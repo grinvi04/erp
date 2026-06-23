@@ -22,8 +22,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
         default_schema: public
-        # 멀티테넌트 — TenantIdentifierResolver 빈 자동 감지
-        tenant_identifier_resolver: com.erp.common.tenant.TenantIdentifierResolver
 
   flyway:
     enabled: true

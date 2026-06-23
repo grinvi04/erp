@@ -1,0 +1,11 @@
+package com.erp.hr.domain.repository;
+
+import com.erp.hr.domain.model.JobGrade;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface JobGradeRepository extends JpaRepository<JobGrade, Long> {
+    Optional<JobGrade> findByCode(String code);
+    boolean existsByCode(String code);
+}

@@ -55,7 +55,6 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: frontend
@@ -63,16 +62,31 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Check frontend is initialized
+        id: check
+        working-directory: '.'
+        run: |
+          if [ -f "frontend/package.json" ]; then
+            echo "initialized=true" >> $GITHUB_OUTPUT
+          else
+            echo "initialized=false" >> $GITHUB_OUTPUT
+          fi
+
       - uses: actions/setup-node@v5
+        if: steps.check.outputs.initialized == 'true'
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - run: npm ci
+        if: steps.check.outputs.initialized == 'true'
       - run: npm run type-check --if-present
+        if: steps.check.outputs.initialized == 'true'
       - run: npm run lint
+        if: steps.check.outputs.initialized == 'true'
       - run: npm run build
+        if: steps.check.outputs.initialized == 'true'
 
   secret-scan:
     runs-on: ubuntu-latest

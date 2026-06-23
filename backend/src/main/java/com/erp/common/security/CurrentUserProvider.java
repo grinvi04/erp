@@ -10,7 +10,9 @@ public class CurrentUserProvider {
 
     public String getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) return null;
+        if (auth == null || !auth.isAuthenticated()) {
+            return null;
+        }
         if (auth.getPrincipal() instanceof Jwt jwt) {
             return jwt.getSubject();
         }
@@ -19,17 +21,27 @@ public class CurrentUserProvider {
 
     public String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof Jwt jwt)) return null;
+        if (auth == null || !(auth.getPrincipal() instanceof Jwt jwt)) {
+            return null;
+        }
         return jwt.getClaimAsString("email");
     }
 
     public Long getCurrentTenantId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof Jwt jwt)) return null;
+        if (auth == null || !(auth.getPrincipal() instanceof Jwt jwt)) {
+            return null;
+        }
         Object claim = jwt.getClaim("tenant_id");
-        if (claim instanceof Long l) return l;
-        if (claim instanceof Integer i) return i.longValue();
-        if (claim instanceof String s) return Long.parseLong(s);
+        if (claim instanceof Long l) {
+            return l;
+        }
+        if (claim instanceof Integer i) {
+            return i.longValue();
+        }
+        if (claim instanceof String s) {
+            return Long.parseLong(s);
+        }
         return null;
     }
 }
