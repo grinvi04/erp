@@ -7,6 +7,7 @@ import com.erp.common.workflow.ApprovalRequest;
 import com.erp.common.workflow.ApprovalStatus;
 import com.erp.common.workflow.ApprovalStep;
 import com.erp.common.workflow.repository.ApprovalRequestRepository;
+import com.erp.hr.application.dto.ApprovalActionRequest;
 import com.erp.hr.application.dto.LeaveRequestCreateRequest;
 import com.erp.hr.application.dto.LeaveRequestResponse;
 import com.erp.hr.domain.model.Employee;
@@ -86,5 +87,70 @@ public class LeaveRequestService {
         leaveRequest.linkApprovalRequest(approvalRequest.getId());
 
         return LeaveRequestResponse.from(leaveRequest);
+    }
+
+    @Transactional
+    public LeaveRequestResponse approve(Long leaveRequestId, ApprovalActionRequest request) {
+        LeaveRequest leaveRequest = getLeaveRequestOrThrow(leaveRequestId);
+        if (!leaveRequest.isPending()) {
+            throw new ErpException(ErrorCode.APPROVAL_ALREADY_PROCESSED);
+        }
+
+        ApprovalRequest approvalRequest = approvalRequestRepository
+            .findById(leaveRequest.getApprovalRequestId())
+            .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
+
+        if (!approvalRequest.isPending()) {
+            throw new ErpException(ErrorCode.APPROVAL_ALREADY_PROCESSED);
+        }
+
+        String approverId = currentUserProvider.getCurrentUserId();
+        if (approverId == null) {
+            approverId = "SYSTEM";
+        }
+        approvalRequest.approve(approverId, request.comment());
+
+        if (approvalRequest.getStatus() == ApprovalStatus.APPROVED) {
+            leaveRequest.approve();
+            int year = leaveRequest.getStartDate().getYear();
+            leaveBalanceRepository
+                .findByEmployeeIdAndLeavePolicyIdAndYear(
+                    leaveRequest.getEmployee().getId(),
+                    leaveRequest.getLeavePolicy().getId(),
+                    year)
+                .ifPresent(b -> b.deduct(leaveRequest.getRequestedDays()));
+        }
+
+        return LeaveRequestResponse.from(leaveRequest);
+    }
+
+    @Transactional
+    public LeaveRequestResponse reject(Long leaveRequestId, ApprovalActionRequest request) {
+        LeaveRequest leaveRequest = getLeaveRequestOrThrow(leaveRequestId);
+        if (!leaveRequest.isPending()) {
+            throw new ErpException(ErrorCode.APPROVAL_ALREADY_PROCESSED);
+        }
+
+        ApprovalRequest approvalRequest = approvalRequestRepository
+            .findById(leaveRequest.getApprovalRequestId())
+            .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
+
+        if (!approvalRequest.isPending()) {
+            throw new ErpException(ErrorCode.APPROVAL_ALREADY_PROCESSED);
+        }
+
+        String approverId = currentUserProvider.getCurrentUserId();
+        if (approverId == null) {
+            approverId = "SYSTEM";
+        }
+        approvalRequest.reject(approverId, request.comment());
+        leaveRequest.reject();
+
+        return LeaveRequestResponse.from(leaveRequest);
+    }
+
+    private LeaveRequest getLeaveRequestOrThrow(Long id) {
+        return leaveRequestRepository.findById(id)
+            .orElseThrow(() -> new ErpException(ErrorCode.LEAVE_REQUEST_NOT_FOUND));
     }
 }
