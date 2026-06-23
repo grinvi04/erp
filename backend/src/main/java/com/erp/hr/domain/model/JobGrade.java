@@ -40,6 +40,23 @@ public class JobGrade extends BaseEntity {
 
     protected JobGrade() {}
 
+    public static JobGrade of(String code, String name, int gradeOrder, BigDecimal minSalary, BigDecimal maxSalary) {
+        JobGrade g = new JobGrade();
+        g.code = code;
+        g.name = name;
+        g.gradeOrder = gradeOrder;
+        g.minSalary = minSalary;
+        g.maxSalary = maxSalary;
+        return g;
+    }
+
+    public void update(String name, int gradeOrder, BigDecimal minSalary, BigDecimal maxSalary) {
+        this.name = name;
+        this.gradeOrder = gradeOrder;
+        this.minSalary = minSalary;
+        this.maxSalary = maxSalary;
+    }
+
     public Long getId() { return id; }
     public String getCode() { return code; }
     public String getName() { return name; }

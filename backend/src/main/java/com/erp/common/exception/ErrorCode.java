@@ -23,6 +23,10 @@ public enum ErrorCode {
     LEAVE_BALANCE_INSUFFICIENT(HttpStatus.CONFLICT, "H008", "잔여 휴가 일수가 부족합니다"),
     LEAVE_OVERLAP(HttpStatus.CONFLICT, "H009", "동일 기간에 이미 승인된 휴가가 있습니다"),
     CONTRACT_NOT_FOUND(HttpStatus.NOT_FOUND, "H010", "계약 이력을 찾을 수 없습니다"),
+    DUPLICATE_CODE(HttpStatus.CONFLICT, "H011", "이미 사용 중인 코드입니다"),
+    JOB_GRADE_NOT_FOUND(HttpStatus.NOT_FOUND, "H012", "직급을 찾을 수 없습니다"),
+    POSITION_IN_USE(HttpStatus.CONFLICT, "H013", "사용 중인 직위는 삭제할 수 없습니다"),
+    JOB_GRADE_IN_USE(HttpStatus.CONFLICT, "H014", "사용 중인 직급은 삭제할 수 없습니다"),
 
     // Finance
     ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "F001", "계정을 찾을 수 없습니다"),
