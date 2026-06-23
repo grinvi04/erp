@@ -3,7 +3,6 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:tc:postgresql:16:///erp_test}
     username: ${SPRING_DATASOURCE_USERNAME:erp_ci}
     password: ${SPRING_DATASOURCE_PASSWORD:erp_ci_pass}
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
 
   jpa:
     hibernate:

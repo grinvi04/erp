@@ -55,6 +55,7 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
+    if: hashFiles('frontend/package.json') != ''
 
     defaults:
       run:
