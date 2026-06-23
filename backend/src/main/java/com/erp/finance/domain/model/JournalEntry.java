@@ -1,0 +1,149 @@
+package com.erp.finance.domain.model;
+
+import com.erp.common.audit.BaseEntity;
+import com.erp.common.exception.ErpException;
+import com.erp.common.exception.ErrorCode;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "journal_entry", schema = "finance")
+public class JournalEntry extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "journal_entry_seq")
+    @SequenceGenerator(name = "journal_entry_seq", sequenceName = "finance.journal_entry_id_seq", allocationSize = 50)
+    private Long id;
+
+    @Column(name = "entry_no", nullable = false, length = 30)
+    private String entryNo;
+
+    @Column(name = "entry_date", nullable = false)
+    private LocalDate entryDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fiscal_period_id", nullable = false)
+    private FiscalPeriod fiscalPeriod;
+
+    @Column(name = "description", nullable = false, length = 500)
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "entry_type", nullable = false, length = 30)
+    private JournalEntryType entryType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private JournalEntryStatus status;
+
+    @Column(name = "total_debit", nullable = false, precision = 20, scale = 2)
+    private BigDecimal totalDebit;
+
+    @Column(name = "total_credit", nullable = false, precision = 20, scale = 2)
+    private BigDecimal totalCredit;
+
+    @Column(name = "currency", nullable = false, length = 3)
+    private String currency;
+
+    @Column(name = "reference_type", length = 100)
+    private String referenceType;
+
+    @Column(name = "reference_id")
+    private Long referenceId;
+
+    @Column(name = "posted_at")
+    private LocalDateTime postedAt;
+
+    @Column(name = "posted_by", length = 100)
+    private String postedBy;
+
+    @OneToMany(mappedBy = "journalEntry", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @OrderBy("lineNo ASC")
+    private List<JournalLine> lines = new ArrayList<>();
+
+    protected JournalEntry() {}
+
+    public static JournalEntry create(String entryNo, LocalDate entryDate, FiscalPeriod fiscalPeriod,
+                                       String description, JournalEntryType entryType, String currency) {
+        JournalEntry je = new JournalEntry();
+        je.entryNo = entryNo;
+        je.entryDate = entryDate;
+        je.fiscalPeriod = fiscalPeriod;
+        je.description = description;
+        je.entryType = entryType;
+        je.status = JournalEntryStatus.DRAFT;
+        je.totalDebit = BigDecimal.ZERO;
+        je.totalCredit = BigDecimal.ZERO;
+        je.currency = currency != null ? currency : "KRW";
+        return je;
+    }
+
+    public void addLine(JournalLine line) {
+        lines.add(line);
+        totalDebit = totalDebit.add(line.getDebitAmount());
+        totalCredit = totalCredit.add(line.getCreditAmount());
+    }
+
+    public boolean isBalanced() {
+        return totalDebit.compareTo(totalCredit) == 0 && totalDebit.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    public void post(String postedBy) {
+        if (status != JournalEntryStatus.DRAFT) {
+            throw new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_DRAFT);
+        }
+        if (!isBalanced()) {
+            throw new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_BALANCED);
+        }
+        if (!fiscalPeriod.isOpen()) {
+            throw new ErpException(ErrorCode.FISCAL_PERIOD_CLOSED);
+        }
+        this.status = JournalEntryStatus.POSTED;
+        this.postedAt = LocalDateTime.now();
+        this.postedBy = postedBy;
+    }
+
+    public void markReversed() {
+        this.status = JournalEntryStatus.REVERSED;
+    }
+
+    public void linkReference(String referenceType, Long referenceId) {
+        this.referenceType = referenceType;
+        this.referenceId = referenceId;
+    }
+
+    public Long getId() { return id; }
+    public String getEntryNo() { return entryNo; }
+    public LocalDate getEntryDate() { return entryDate; }
+    public FiscalPeriod getFiscalPeriod() { return fiscalPeriod; }
+    public String getDescription() { return description; }
+    public JournalEntryType getEntryType() { return entryType; }
+    public JournalEntryStatus getStatus() { return status; }
+    public BigDecimal getTotalDebit() { return totalDebit; }
+    public BigDecimal getTotalCredit() { return totalCredit; }
+    public String getCurrency() { return currency; }
+    public String getReferenceType() { return referenceType; }
+    public Long getReferenceId() { return referenceId; }
+    public LocalDateTime getPostedAt() { return postedAt; }
+    public String getPostedBy() { return postedBy; }
+    public List<JournalLine> getLines() { return lines; }
+}
