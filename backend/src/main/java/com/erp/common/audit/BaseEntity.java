@@ -1,10 +1,8 @@
 package com.erp.common.audit;
 
-import com.erp.common.tenant.TenantContext;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Version;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.TenantId;
