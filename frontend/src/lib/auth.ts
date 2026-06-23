@@ -69,6 +69,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           tenantId: payload.tenant_id ?? payload.org_id ?? '',
         }
       }
+      if (token.error === 'RefreshAccessTokenError') {
+        return token
+      }
       if (Date.now() < (token.accessTokenExpires ?? 0) - 60_000) {
         return token
       }

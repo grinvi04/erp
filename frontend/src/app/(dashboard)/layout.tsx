@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
-  if (!session) redirect('/login')
+  if (!session || session.error === 'RefreshAccessTokenError') redirect('/login')
 
   return (
     <SessionProvider session={session}>

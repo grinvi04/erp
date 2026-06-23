@@ -22,6 +22,10 @@ export async function apiFetch<T>(
     headers: { ...headers, ...(options.headers ?? {}) },
     cache: 'no-store',
   })
+  const contentType = res.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) {
+    throw new Error(`HTTP ${res.status} — JSON 응답이 아닙니다 (${contentType})`)
+  }
   const body: ApiResponse<T> = await res.json()
   return body
 }
@@ -61,5 +65,8 @@ export async function apiPut<T>(path: string, data: unknown): Promise<T> {
 }
 
 export async function apiDelete(path: string): Promise<void> {
-  await apiFetch(path, { method: 'DELETE' })
+  const body = await apiFetch(path, { method: 'DELETE' })
+  if (!body.success) {
+    throw new Error(body.error?.message ?? 'DELETE 실패')
+  }
 }
