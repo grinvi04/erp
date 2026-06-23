@@ -1,0 +1,164 @@
+package com.erp.finance.application.service;
+
+import com.erp.common.exception.ErpException;
+import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.CurrentUserProvider;
+import com.erp.finance.application.dto.JournalEntryCreateRequest;
+import com.erp.finance.application.dto.JournalEntryResponse;
+import com.erp.finance.application.dto.JournalLineRequest;
+import com.erp.finance.domain.model.Account;
+import com.erp.finance.domain.model.AccountType;
+import com.erp.finance.domain.model.FiscalPeriod;
+import com.erp.finance.domain.model.FiscalYear;
+import com.erp.finance.domain.model.JournalEntry;
+import com.erp.finance.domain.model.JournalEntryType;
+import com.erp.finance.domain.model.NormalBalance;
+import com.erp.finance.domain.repository.AccountRepository;
+import com.erp.finance.domain.repository.FiscalPeriodRepository;
+import com.erp.finance.domain.repository.JournalEntryRepository;
+import com.erp.finance.domain.repository.JournalLineRepository;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+
+@ExtendWith(MockitoExtension.class)
+class JournalEntryServiceTest {
+
+    @Mock private JournalEntryRepository journalEntryRepository;
+    @Mock private JournalLineRepository journalLineRepository;
+    @Mock private FiscalPeriodRepository fiscalPeriodRepository;
+    @Mock private AccountRepository accountRepository;
+    @Mock private CurrentUserProvider currentUserProvider;
+
+    @InjectMocks
+    private JournalEntryService journalEntryService;
+
+    private FiscalYear buildFiscalYear() {
+        return FiscalYear.of(2025, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
+    }
+
+    private FiscalPeriod buildOpenPeriod() {
+        return FiscalPeriod.of(buildFiscalYear(), 1,
+            LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31));
+    }
+
+    private Account buildAccount(String code) {
+        return Account.of(code, "테스트계정", AccountType.ASSET, NormalBalance.DEBIT, null, false);
+    }
+
+    @Test
+    void create_balancedEntry_returnsJournalEntryResponse() {
+        FiscalPeriod period = buildOpenPeriod();
+        Account account = buildAccount("1100");
+
+        given(fiscalPeriodRepository.findById(1L)).willReturn(Optional.of(period));
+        given(accountRepository.findById(anyLong())).willReturn(Optional.of(account));
+        given(journalEntryRepository.existsByEntryNo(anyString())).willReturn(false);
+
+        JournalEntry saved = JournalEntry.create("JE-20250101-00001",
+            LocalDate.of(2025, 1, 1), period, "테스트전표", JournalEntryType.MANUAL, "KRW");
+        saved.addLine(com.erp.finance.domain.model.JournalLine.of(saved, 1, account,
+            new BigDecimal("1000"), BigDecimal.ZERO, null, null));
+        saved.addLine(com.erp.finance.domain.model.JournalLine.of(saved, 2, account,
+            BigDecimal.ZERO, new BigDecimal("1000"), null, null));
+
+        given(journalEntryRepository.save(any())).willReturn(saved);
+
+        JournalEntryCreateRequest request = new JournalEntryCreateRequest(
+            LocalDate.of(2025, 1, 15), 1L, "테스트전표", JournalEntryType.MANUAL, "KRW",
+            List.of(
+                new JournalLineRequest(1L, new BigDecimal("1000"), BigDecimal.ZERO, null, null),
+                new JournalLineRequest(1L, BigDecimal.ZERO, new BigDecimal("1000"), null, null)
+            ));
+
+        JournalEntryResponse result = journalEntryService.create(request);
+
+        assertThat(result.entryType()).isEqualTo(JournalEntryType.MANUAL);
+    }
+
+    @Test
+    void create_closedPeriod_throwsFiscalPeriodClosed() {
+        FiscalPeriod period = buildOpenPeriod();
+        period.close();
+        given(fiscalPeriodRepository.findById(1L)).willReturn(Optional.of(period));
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            journalEntryService.create(new JournalEntryCreateRequest(
+                LocalDate.of(2025, 1, 1), 1L, "설명", JournalEntryType.MANUAL, null,
+                List.of(new JournalLineRequest(1L, new BigDecimal("1000"), BigDecimal.ZERO, null, null)))));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FISCAL_PERIOD_CLOSED);
+    }
+
+    @Test
+    void create_entryDateOutOfRange_throwsJournalEntryDateOutOfRange() {
+        FiscalPeriod period = buildOpenPeriod(); // Jan 2025 period
+        given(fiscalPeriodRepository.findById(1L)).willReturn(Optional.of(period));
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            journalEntryService.create(new JournalEntryCreateRequest(
+                LocalDate.of(2025, 2, 1), // February — outside January period
+                1L, "설명", JournalEntryType.MANUAL, null,
+                List.of(new JournalLineRequest(1L, new BigDecimal("1000"), BigDecimal.ZERO, null, null)))));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOURNAL_ENTRY_DATE_OUT_OF_RANGE);
+    }
+
+    @Test
+    void create_lineWithBothDebitAndCredit_throwsJournalLineAmountsInvalid() {
+        FiscalPeriod period = buildOpenPeriod();
+        Account account = buildAccount("1100");
+        given(fiscalPeriodRepository.findById(1L)).willReturn(Optional.of(period));
+        given(accountRepository.findById(anyLong())).willReturn(Optional.of(account));
+        given(journalEntryRepository.existsByEntryNo(anyString())).willReturn(false);
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            journalEntryService.create(new JournalEntryCreateRequest(
+                LocalDate.of(2025, 1, 15), 1L, "잘못된 전표", JournalEntryType.MANUAL, null,
+                List.of(new JournalLineRequest(1L, new BigDecimal("500"), new BigDecimal("500"), null, null)))));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOURNAL_LINE_AMOUNTS_INVALID);
+    }
+
+    @Test
+    void post_draftEntry_postsSuccessfully() {
+        FiscalPeriod period = buildOpenPeriod();
+        Account account = buildAccount("1100");
+        JournalEntry entry = JournalEntry.create("JE-20250101-00001",
+            LocalDate.of(2025, 1, 1), period, "설명", JournalEntryType.MANUAL, "KRW");
+        entry.addLine(com.erp.finance.domain.model.JournalLine.of(entry, 1, account,
+            new BigDecimal("1000"), BigDecimal.ZERO, null, null));
+        entry.addLine(com.erp.finance.domain.model.JournalLine.of(entry, 2, account,
+            BigDecimal.ZERO, new BigDecimal("1000"), null, null));
+
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("user-1");
+
+        JournalEntryResponse result = journalEntryService.post(1L);
+
+        assertThat(result.status().name()).isEqualTo("POSTED");
+    }
+
+    @Test
+    void findById_notFound_throwsJournalEntryNotFound() {
+        given(journalEntryRepository.findById(99L)).willReturn(Optional.empty());
+
+        ErpException ex = assertThrows(ErpException.class, () -> journalEntryService.findById(99L));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOURNAL_ENTRY_NOT_FOUND);
+    }
+}
