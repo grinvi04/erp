@@ -47,6 +47,20 @@ public class LeavePolicy extends BaseEntity {
 
     protected LeavePolicy() {}
 
+    public static LeavePolicy of(String code, String name, LeaveType leaveType,
+                                  int annualDays, int carryOverDays,
+                                  boolean requiresApproval, int minNoticeDays) {
+        LeavePolicy p = new LeavePolicy();
+        p.code = code;
+        p.name = name;
+        p.leaveType = leaveType;
+        p.annualDays = annualDays;
+        p.carryOverDays = carryOverDays;
+        p.requiresApproval = requiresApproval;
+        p.minNoticeDays = minNoticeDays;
+        return p;
+    }
+
     public Long getId() { return id; }
     public String getCode() { return code; }
     public String getName() { return name; }
