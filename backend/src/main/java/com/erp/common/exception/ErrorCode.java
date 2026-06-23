@@ -85,6 +85,14 @@ public enum ErrorCode {
     ACCOUNT_COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "CR001", "고객사를 찾을 수 없습니다"),
     CONTACT_NOT_FOUND(HttpStatus.NOT_FOUND, "CR002", "담당자를 찾을 수 없습니다"),
     OPPORTUNITY_NOT_FOUND(HttpStatus.NOT_FOUND, "CR003", "영업 기회를 찾을 수 없습니다"),
+    PIPELINE_STAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "CR004", "파이프라인 스테이지를 찾을 수 없습니다"),
+    LEAD_NOT_FOUND(HttpStatus.NOT_FOUND, "CR005", "리드를 찾을 수 없습니다"),
+    ACTIVITY_NOT_FOUND(HttpStatus.NOT_FOUND, "CR006", "활동을 찾을 수 없습니다"),
+    CRM_ACCOUNT_CODE_DUPLICATE(HttpStatus.CONFLICT, "CR007", "이미 사용 중인 고객사 코드입니다"),
+    LEAD_ALREADY_CONVERTED(HttpStatus.CONFLICT, "CR008", "이미 전환된 리드입니다"),
+    ACTIVITY_INVALID_STATUS_TRANSITION(HttpStatus.CONFLICT, "CR009", "유효하지 않은 활동 상태 전이입니다"),
+    LEAD_ALREADY_CONVERTED_UPDATE(HttpStatus.CONFLICT, "CR010", "전환된 리드는 수정할 수 없습니다"),
+    CONTACT_PRIMARY_DUPLICATE(HttpStatus.CONFLICT, "CR011", "해당 고객사에 이미 주 담당자가 존재합니다"),
 
     // Workflow
     APPROVAL_NOT_FOUND(HttpStatus.NOT_FOUND, "W001", "결재 요청을 찾을 수 없습니다"),
