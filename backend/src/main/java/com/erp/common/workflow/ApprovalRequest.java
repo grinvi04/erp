@@ -108,6 +108,14 @@ public class ApprovalRequest extends BaseEntity {
 
     public boolean isPending() { return status == ApprovalStatus.PENDING; }
 
+    public String getCurrentStepApproverId() {
+        return steps.stream()
+            .filter(s -> s.getStepOrder() == currentStep)
+            .findFirst()
+            .map(ApprovalStep::getApproverId)
+            .orElseThrow(() -> new IllegalStateException("Current approval step not found: " + currentStep));
+    }
+
     public Long getId() { return id; }
     public String getEntityType() { return entityType; }
     public Long getEntityId() { return entityId; }

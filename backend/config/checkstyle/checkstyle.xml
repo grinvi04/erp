@@ -6,6 +6,11 @@
   <property name="charset" value="UTF-8"/>
   <property name="severity" value="error"/>
 
+  <module name="SuppressionSingleFilter">
+    <property name="files" value=".*Test\.java$"/>
+    <property name="checks" value="MagicNumber"/>
+  </module>
+
   <module name="TreeWalker">
     <module name="UnusedImports"/>
     <module name="NeedBraces"/>
