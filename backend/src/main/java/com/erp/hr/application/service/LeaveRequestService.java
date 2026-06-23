@@ -49,17 +49,22 @@ public class LeaveRequestService {
         LeavePolicy policy = leavePolicyRepository.findById(request.leavePolicyId())
             .orElseThrow(() -> new ErpException(ErrorCode.RESOURCE_NOT_FOUND));
 
+        if (request.startDate().getYear() != request.endDate().getYear()) {
+            throw new ErpException(ErrorCode.LEAVE_CROSS_YEAR);
+        }
+
         int year = request.startDate().getYear();
         LeaveBalance balance = leaveBalanceRepository
             .findByEmployeeIdAndLeavePolicyIdAndYear(request.employeeId(), request.leavePolicyId(), year)
-            .orElseThrow(() -> new ErpException(ErrorCode.LEAVE_BALANCE_INSUFFICIENT));
+            .orElseThrow(() -> new ErpException(ErrorCode.LEAVE_BALANCE_NOT_FOUND));
 
         if (!balance.hasSufficientBalance(request.requestedDays())) {
             throw new ErpException(ErrorCode.LEAVE_BALANCE_INSUFFICIENT);
         }
 
-        List<LeaveRequest> overlapping = leaveRequestRepository.findApprovedOverlapping(
-            request.employeeId(), request.startDate(), request.endDate(), ApprovalStatus.APPROVED);
+        List<LeaveRequest> overlapping = leaveRequestRepository.findOverlappingByStatuses(
+            request.employeeId(), request.startDate(), request.endDate(),
+            List.of(ApprovalStatus.APPROVED, ApprovalStatus.PENDING));
         if (!overlapping.isEmpty()) {
             throw new ErpException(ErrorCode.LEAVE_OVERLAP);
         }
@@ -108,17 +113,21 @@ public class LeaveRequestService {
         if (approverId == null) {
             approverId = "SYSTEM";
         }
+        if (!"SYSTEM".equals(approverId) && !approverId.equals(approvalRequest.getCurrentStepApproverId())) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
         approvalRequest.approve(approverId, request.comment());
 
         if (approvalRequest.getStatus() == ApprovalStatus.APPROVED) {
             leaveRequest.approve();
             int year = leaveRequest.getStartDate().getYear();
-            leaveBalanceRepository
+            LeaveBalance balance = leaveBalanceRepository
                 .findByEmployeeIdAndLeavePolicyIdAndYear(
                     leaveRequest.getEmployee().getId(),
                     leaveRequest.getLeavePolicy().getId(),
                     year)
-                .ifPresent(b -> b.deduct(leaveRequest.getRequestedDays()));
+                .orElseThrow(() -> new ErpException(ErrorCode.LEAVE_BALANCE_NOT_FOUND));
+            balance.deduct(leaveRequest.getRequestedDays());
         }
 
         return LeaveRequestResponse.from(leaveRequest);
@@ -142,6 +151,9 @@ public class LeaveRequestService {
         String approverId = currentUserProvider.getCurrentUserId();
         if (approverId == null) {
             approverId = "SYSTEM";
+        }
+        if (!"SYSTEM".equals(approverId) && !approverId.equals(approvalRequest.getCurrentStepApproverId())) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
         }
         approvalRequest.reject(approverId, request.comment());
         leaveRequest.reject();

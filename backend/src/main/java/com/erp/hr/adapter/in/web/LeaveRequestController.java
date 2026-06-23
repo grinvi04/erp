@@ -42,14 +42,14 @@ public class LeaveRequestController {
     @PostMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<LeaveRequestResponse>> approve(
         @PathVariable Long id,
-        @RequestBody ApprovalActionRequest request) {
+        @Valid @RequestBody ApprovalActionRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(leaveRequestService.approve(id, request)));
     }
 
     @PostMapping("/{id}/reject")
     public ResponseEntity<ApiResponse<LeaveRequestResponse>> reject(
         @PathVariable Long id,
-        @RequestBody ApprovalActionRequest request) {
+        @Valid @RequestBody ApprovalActionRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(leaveRequestService.reject(id, request)));
     }
 }

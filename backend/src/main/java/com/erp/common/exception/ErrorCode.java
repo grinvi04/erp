@@ -28,6 +28,8 @@ public enum ErrorCode {
     POSITION_IN_USE(HttpStatus.CONFLICT, "H013", "사용 중인 직위는 삭제할 수 없습니다"),
     JOB_GRADE_IN_USE(HttpStatus.CONFLICT, "H014", "사용 중인 직급은 삭제할 수 없습니다"),
     EMPLOYEE_STATUS_CONFLICT(HttpStatus.CONFLICT, "H015", "유효하지 않은 직원 상태 전이입니다"),
+    LEAVE_BALANCE_NOT_FOUND(HttpStatus.NOT_FOUND, "H016", "휴가 잔여 기록을 찾을 수 없습니다"),
+    LEAVE_CROSS_YEAR(HttpStatus.BAD_REQUEST, "H017", "연도를 넘어가는 휴가 신청은 허용되지 않습니다. 연도별로 분리해서 신청하세요"),
 
     // Finance
     ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "F001", "계정을 찾을 수 없습니다"),

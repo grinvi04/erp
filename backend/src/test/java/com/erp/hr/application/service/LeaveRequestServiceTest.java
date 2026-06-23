@@ -4,7 +4,6 @@ import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.workflow.ApprovalRequest;
-import com.erp.common.workflow.ApprovalStatus;
 import com.erp.common.workflow.repository.ApprovalRequestRepository;
 import com.erp.hr.application.dto.LeaveRequestCreateRequest;
 import com.erp.hr.domain.model.Department;
@@ -94,8 +93,8 @@ class LeaveRequestServiceTest {
         given(leaveBalanceRepository.findByEmployeeIdAndLeavePolicyIdAndYear(1L, 1L, 2024))
             .willReturn(Optional.of(balance));
 
-        given(leaveRequestRepository.findApprovedOverlapping(
-            eq(1L), any(LocalDate.class), any(LocalDate.class), eq(ApprovalStatus.APPROVED)))
+        given(leaveRequestRepository.findOverlappingByStatuses(
+            eq(1L), any(LocalDate.class), any(LocalDate.class), any()))
             .willReturn(List.of(mock(LeaveRequest.class)));
 
         LeaveRequestCreateRequest request = new LeaveRequestCreateRequest(
@@ -120,8 +119,8 @@ class LeaveRequestServiceTest {
         given(leaveBalanceRepository.findByEmployeeIdAndLeavePolicyIdAndYear(1L, 1L, 2024))
             .willReturn(Optional.of(balance));
 
-        given(leaveRequestRepository.findApprovedOverlapping(
-            eq(1L), any(LocalDate.class), any(LocalDate.class), eq(ApprovalStatus.APPROVED)))
+        given(leaveRequestRepository.findOverlappingByStatuses(
+            eq(1L), any(LocalDate.class), any(LocalDate.class), any()))
             .willReturn(List.of());
 
         LeaveRequest savedRequest = LeaveRequest.create(emp, policy,
