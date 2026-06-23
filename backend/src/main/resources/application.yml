@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: erp-backend
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/erp}
+    username: ${SPRING_DATASOURCE_USERNAME:erp}
+    password: ${SPRING_DATASOURCE_PASSWORD:erp}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_schema: public
+        # 멀티테넌트 — TenantIdentifierResolver 빈 자동 감지
+        tenant_identifier_resolver: com.erp.common.tenant.TenantIdentifierResolver
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    out-of-order: false
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/erp}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    root: INFO
+    com.erp: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
