@@ -17,4 +17,12 @@ public interface OpportunityRepository extends JpaRepository<Opportunity, Long> 
     Page<Opportunity> search(@Param("accountId") Long accountId,
                              @Param("stageId") Long stageId,
                              Pageable pageable);
+
+    @Query("SELECT COUNT(o) FROM Opportunity o "
+            + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false")
+    long countOpen();
+
+    @Query("SELECT COALESCE(SUM(o.amount), 0) FROM Opportunity o "
+            + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false")
+    java.math.BigDecimal sumOpenAmount();
 }

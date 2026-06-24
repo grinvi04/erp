@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface MovementRepository extends JpaRepository<Movement, Long> {
     boolean existsByMovementNo(String movementNo);
+    long countByStatus(MovementStatus status);
 
     @Query("SELECT m FROM Movement m WHERE "
             + "(:type IS NULL OR m.movementType = :type) AND "
