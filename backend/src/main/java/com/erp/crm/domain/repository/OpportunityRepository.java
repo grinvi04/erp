@@ -1,6 +1,7 @@
 package com.erp.crm.domain.repository;
 
 import com.erp.crm.domain.model.Opportunity;
+import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,5 +25,5 @@ public interface OpportunityRepository extends JpaRepository<Opportunity, Long> 
 
     @Query("SELECT COALESCE(SUM(o.amount), 0) FROM Opportunity o "
             + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false")
-    java.math.BigDecimal sumOpenAmount();
+    BigDecimal sumOpenAmount();
 }
