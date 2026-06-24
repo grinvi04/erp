@@ -1,5 +1,18 @@
 version: '3.9'
 
+# 로컬 개발 인프라: PostgreSQL + Keycloak
+# 앱(백엔드·프론트엔드)은 로컬에서 직접 실행한다.
+#
+# 사용법:
+#   docker compose up -d
+#   헬스체크: curl -sf http://localhost:8080/actuator/health   (백엔드 기동 후)
+#              curl -sf http://localhost:8180/health/ready      (Keycloak)
+#
+# Keycloak 초기 설정 (최초 1회):
+#   http://localhost:8180 → admin/admin 로그인 → Create realm: erp
+#   → Create client: erp-frontend (OpenID Connect, Standard flow)
+#   → Client secret 복사 → frontend/.env.local 에 AUTH_KEYCLOAK_SECRET 설정
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -31,10 +44,16 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     command: start-dev
     ports:
-      - "8080:8080"
+      - "8180:8080"
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
   postgres_data:
