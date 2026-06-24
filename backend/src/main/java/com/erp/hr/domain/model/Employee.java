@@ -128,6 +128,24 @@ public class Employee extends BaseEntity {
         this.terminationDate = terminationDate;
     }
 
+    public void updateInfo(String lastName, String firstName, String phone,
+                           String personalEmail, String workEmail, java.math.BigDecimal baseSalary) {
+        this.personalInfo = new PersonalInfo(
+            lastName != null ? lastName : this.personalInfo.getLastName(),
+            firstName != null ? firstName : this.personalInfo.getFirstName(),
+            this.personalInfo.getDateOfBirth(),
+            this.personalInfo.getGender(),
+            this.personalInfo.getNationalId(),
+            phone != null ? phone : this.personalInfo.getPhone(),
+            personalEmail != null ? personalEmail : this.personalInfo.getPersonalEmail());
+        if (workEmail != null) {
+            this.workEmail = workEmail;
+        }
+        if (baseSalary != null) {
+            this.baseSalary = baseSalary;
+        }
+    }
+
     public void assignManager(Employee manager) {
         this.manager = manager;
     }

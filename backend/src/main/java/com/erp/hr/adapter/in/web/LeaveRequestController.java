@@ -27,9 +27,12 @@ public class LeaveRequestController {
     private final LeaveRequestService leaveRequestService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<LeaveRequestResponse>>> findByEmployee(
-        @RequestParam Long employeeId) {
-        return ResponseEntity.ok(ApiResponse.ok(leaveRequestService.findByEmployee(employeeId)));
+    public ResponseEntity<ApiResponse<List<LeaveRequestResponse>>> find(
+        @RequestParam(required = false) Long employeeId) {
+        List<LeaveRequestResponse> result = employeeId != null
+            ? leaveRequestService.findByEmployee(employeeId)
+            : leaveRequestService.findAll();
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     @PostMapping

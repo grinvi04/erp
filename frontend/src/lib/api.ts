@@ -23,6 +23,9 @@ export async function apiFetch<T>(
     headers: { ...headers, ...(options.headers ?? {}) },
     cache: 'no-store',
   })
+  if (res.status === 204 || res.status === 205) {
+    return { success: true } as ApiResponse<T>
+  }
   const contentType = res.headers.get('content-type') ?? ''
   if (!contentType.includes('application/json')) {
     throw new Error(`HTTP ${res.status} — JSON 응답이 아닙니다 (${contentType})`)

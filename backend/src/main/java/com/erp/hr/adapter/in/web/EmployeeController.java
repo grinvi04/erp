@@ -7,6 +7,7 @@ import com.erp.hr.application.dto.EmployeePromoteRequest;
 import com.erp.hr.application.dto.EmployeeResponse;
 import com.erp.hr.application.dto.EmployeeTerminateRequest;
 import com.erp.hr.application.dto.EmployeeTransferRequest;
+import com.erp.hr.application.dto.EmployeeUpdateRequest;
 import com.erp.hr.application.service.EmployeeService;
 import com.erp.hr.domain.model.EmployeeStatus;
 import jakarta.validation.Valid;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -49,6 +51,13 @@ public class EmployeeController {
         @Valid @RequestBody EmployeeCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.ok(employeeService.create(request)));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<EmployeeResponse>> update(
+        @PathVariable Long id,
+        @Valid @RequestBody EmployeeUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(employeeService.update(id, request)));
     }
 
     @PostMapping("/{id}/transfer")

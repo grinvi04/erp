@@ -36,6 +36,12 @@ public class LeaveRequestService {
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CurrentUserProvider currentUserProvider;
 
+    public List<LeaveRequestResponse> findAll() {
+        return leaveRequestRepository.findAll().stream()
+            .map(LeaveRequestResponse::from)
+            .toList();
+    }
+
     public List<LeaveRequestResponse> findByEmployee(Long employeeId) {
         return leaveRequestRepository.findByEmployeeId(employeeId).stream()
             .map(LeaveRequestResponse::from)

@@ -7,6 +7,7 @@ import com.erp.hr.application.dto.EmployeePromoteRequest;
 import com.erp.hr.application.dto.EmployeeResponse;
 import com.erp.hr.application.dto.EmployeeTerminateRequest;
 import com.erp.hr.application.dto.EmployeeTransferRequest;
+import com.erp.hr.application.dto.EmployeeUpdateRequest;
 import com.erp.hr.domain.model.Department;
 import com.erp.hr.domain.model.Employee;
 import com.erp.hr.domain.model.EmployeeStatus;
@@ -139,6 +140,19 @@ public class EmployeeService {
             employee.returnFromLeave();
         } catch (IllegalStateException e) {
             throw new ErpException(ErrorCode.EMPLOYEE_STATUS_CONFLICT);
+        }
+        return EmployeeResponse.from(employee);
+    }
+
+    @Transactional
+    public EmployeeResponse update(Long id, EmployeeUpdateRequest request) {
+        Employee employee = getOrThrow(id);
+        employee.updateInfo(
+            request.lastName(), request.firstName(), request.phone(),
+            request.personalEmail(), request.workEmail(), request.baseSalary());
+        if (request.managerId() != null) {
+            Employee manager = getOrThrow(request.managerId());
+            employee.assignManager(manager);
         }
         return EmployeeResponse.from(employee);
     }
