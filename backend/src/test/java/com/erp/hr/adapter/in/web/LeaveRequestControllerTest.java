@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,6 +24,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -45,13 +48,26 @@ class LeaveRequestControllerTest {
     }
 
     @Test
-    void findByEmployee_returnsOkWithList() throws Exception {
-        given(leaveRequestService.findByEmployee(1L)).willReturn(List.of(sampleResponse()));
+    void findByEmployee_returnsPagedResult() throws Exception {
+        var page = new PageImpl<>(List.of(sampleResponse()), PageRequest.of(0, 20), 1);
+        given(leaveRequestService.findByEmployee(eq(1L), any())).willReturn(page);
 
         mockMvc.perform(get("/api/hr/leave-requests").param("employeeId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data[0].leavePolicyName").value("연차"));
+            .andExpect(jsonPath("$.data.content[0].leavePolicyName").value("연차"))
+            .andExpect(jsonPath("$.data.totalElements").value(1));
+    }
+
+    @Test
+    void findAll_returnsPagedResult() throws Exception {
+        var page = new PageImpl<>(List.of(sampleResponse()), PageRequest.of(0, 20), 1);
+        given(leaveRequestService.findAll(any())).willReturn(page);
+
+        mockMvc.perform(get("/api/hr/leave-requests"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.content[0].approvalStatus").value("PENDING"));
     }
 
     @Test

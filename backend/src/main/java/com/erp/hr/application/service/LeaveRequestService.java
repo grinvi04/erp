@@ -22,6 +22,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 
 @Service
@@ -36,10 +39,13 @@ public class LeaveRequestService {
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CurrentUserProvider currentUserProvider;
 
-    public List<LeaveRequestResponse> findByEmployee(Long employeeId) {
-        return leaveRequestRepository.findByEmployeeId(employeeId).stream()
-            .map(LeaveRequestResponse::from)
-            .toList();
+    public Page<LeaveRequestResponse> findAll(Pageable pageable) {
+        return leaveRequestRepository.findAll(pageable).map(LeaveRequestResponse::from);
+    }
+
+    public Page<LeaveRequestResponse> findByEmployee(Long employeeId, Pageable pageable) {
+        return leaveRequestRepository.findByEmployeeId(employeeId, pageable)
+            .map(LeaveRequestResponse::from);
     }
 
     @Transactional
