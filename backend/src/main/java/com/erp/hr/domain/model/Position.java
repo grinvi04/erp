@@ -40,6 +40,11 @@ public class Position extends BaseEntity {
         return p;
     }
 
+    public void update(String name, int levelOrder) {
+        this.name = name;
+        this.levelOrder = levelOrder;
+    }
+
     public Long getId() { return id; }
     public String getCode() { return code; }
     public String getName() { return name; }

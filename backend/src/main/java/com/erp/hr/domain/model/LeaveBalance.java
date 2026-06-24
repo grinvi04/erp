@@ -48,6 +48,18 @@ public class LeaveBalance extends BaseEntity {
 
     protected LeaveBalance() {}
 
+    public static LeaveBalance create(Employee employee, LeavePolicy leavePolicy, int year,
+                                       BigDecimal entitledDays, BigDecimal carryOverDays) {
+        LeaveBalance lb = new LeaveBalance();
+        lb.employee = employee;
+        lb.leavePolicy = leavePolicy;
+        lb.year = year;
+        lb.entitledDays = entitledDays;
+        lb.usedDays = BigDecimal.ZERO;
+        lb.carryOverDays = carryOverDays;
+        return lb;
+    }
+
     public BigDecimal getRemainingDays() {
         return entitledDays.add(carryOverDays).subtract(usedDays);
     }

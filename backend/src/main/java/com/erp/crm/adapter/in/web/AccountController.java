@@ -1,0 +1,64 @@
+package com.erp.crm.adapter.in.web;
+
+import com.erp.common.response.ApiResponse;
+import com.erp.common.response.PageResponse;
+import com.erp.crm.application.dto.AccountCreateRequest;
+import com.erp.crm.application.dto.AccountResponse;
+import com.erp.crm.application.dto.AccountUpdateRequest;
+import com.erp.crm.application.service.CrmAccountService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController("crmAccountController")
+@RequestMapping("/api/crm/accounts")
+@RequiredArgsConstructor
+public class AccountController {
+
+    private final CrmAccountService accountService;
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<AccountResponse>>> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Boolean isActive,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(accountService.search(keyword, isActive, pageable)));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<AccountResponse>> findById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(accountService.findById(id)));
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<AccountResponse>> create(
+            @Valid @RequestBody AccountCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok(accountService.create(request)));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<AccountResponse>> update(
+            @PathVariable Long id,
+            @Valid @RequestBody AccountUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(accountService.update(id, request)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deactivate(@PathVariable Long id) {
+        accountService.deactivate(id);
+        return ResponseEntity.noContent().build();
+    }
+}

@@ -47,10 +47,18 @@ public class JwtTenantFilter extends OncePerRequestFilter {
 
     private Long extractTenantId(Jwt jwt) {
         Object claim = jwt.getClaim("tenant_id");
-        if (claim instanceof Long l) return l;
-        if (claim instanceof Integer i) return i.longValue();
+        if (claim instanceof Long l) {
+            return l;
+        }
+        if (claim instanceof Integer i) {
+            return i.longValue();
+        }
         if (claim instanceof String s) {
-            try { return Long.parseLong(s); } catch (NumberFormatException ignored) {}
+            try {
+                return Long.parseLong(s);
+            } catch (NumberFormatException ignored) {
+                // non-numeric tenant_id claim — skip
+            }
         }
         return null;
     }
