@@ -1,7 +1,8 @@
 import { auth } from '@/lib/auth'
 import type { ApiResponse, PageResponse } from '@/types/api'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
+// BACKEND_URL: server-only (Docker container-to-container). NEXT_PUBLIC_API_URL: browser-facing.
+const API_BASE = process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
 
 async function getHeaders(): Promise<HeadersInit> {
   const session = await auth()
