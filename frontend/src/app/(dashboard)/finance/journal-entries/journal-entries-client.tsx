@@ -63,6 +63,8 @@ export default function JournalEntriesClient({
   const [lines, setLines] = useState<LineRow[]>([emptyLine(), emptyLine()])
 
   const activeAccounts = useMemo(() => accounts.filter((a) => a.isActive && !a.isSummary), [accounts])
+  const selectedPeriod = useMemo(() => periods.find((p) => p.id === selectedPeriodId), [periods, selectedPeriodId])
+  const isPeriodClosed = selectedPeriod?.status === 'CLOSED'
 
   const totalDebit = useMemo(
     () => lines.reduce((s, l) => s + (Number(l.debitAmount) || 0), 0), [lines]
@@ -141,7 +143,9 @@ export default function JournalEntriesClient({
           <p className="text-sm text-gray-500 mt-1">회계 기간을 선택하여 분개 내역을 조회합니다</p>
         </div>
         {selectedPeriodId != null && (
-          <Button onClick={openCreate} disabled={isPending}><PlusIcon />새 분개</Button>
+          <Button onClick={openCreate} disabled={isPending || isPeriodClosed} title={isPeriodClosed ? '마감된 기간에는 분개를 등록할 수 없습니다' : undefined}>
+            <PlusIcon />새 분개
+          </Button>
         )}
       </div>
 
@@ -177,7 +181,7 @@ export default function JournalEntriesClient({
               </SelectTrigger>
               <SelectContent>
                 {periods.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
+                  <SelectItem key={p.id} value={String(p.id)} disabled={p.status === 'CLOSED'}>
                     {p.periodNumber}기 ({p.startDate} ~ {p.endDate})
                     {p.status === 'CLOSED' ? ' [마감]' : ''}
                   </SelectItem>

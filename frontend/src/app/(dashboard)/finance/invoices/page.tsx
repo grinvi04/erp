@@ -15,7 +15,7 @@ export default async function InvoicesPage(props: {
 
   const [data, vendors] = await Promise.all([
     apiGetPage<ApInvoice>(`/api/finance/invoices?page=${page}&size=${size}${statusFilter}`),
-    apiGet<Vendor[]>('/api/finance/vendors?isActive=true&size=1000'),
+    apiGet<Vendor[]>('/api/finance/vendors?size=1000'),
   ])
 
   return <InvoicesClient data={data as PageResponse<ApInvoice>} vendors={vendors} />

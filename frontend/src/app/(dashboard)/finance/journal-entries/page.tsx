@@ -14,9 +14,8 @@ export default async function JournalEntriesPage(props: {
   const page = Number(sp.page ?? 0)
   const size = Number(sp.size ?? 20)
 
-  const fiscalYears = await apiGet<FiscalYear[]>('/api/finance/fiscal-years')
-
-  const [periods, entries, accounts] = await Promise.all([
+  const [fiscalYears, periods, entries, accounts] = await Promise.all([
+    apiGet<FiscalYear[]>('/api/finance/fiscal-years'),
     fiscalYearId != null
       ? apiGet<FiscalPeriod[]>(`/api/finance/fiscal-years/${fiscalYearId}/periods`)
       : Promise.resolve([] as FiscalPeriod[]),
