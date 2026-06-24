@@ -1,6 +1,5 @@
 import { apiGet, apiGetPage } from '@/lib/api'
 import type { Employee, Department, Position, JobGrade } from '@/types/hr'
-import type { PageResponse } from '@/types/api'
 import EmployeesClient from './employees-client'
 
 export const metadata = { title: '직원 관리 | ERP' }
@@ -21,7 +20,7 @@ export default async function EmployeesPage(props: {
 
   return (
     <EmployeesClient
-      data={data as PageResponse<Employee>}
+      data={data}
       departments={departments}
       positions={positions}
       jobGrades={jobGrades}

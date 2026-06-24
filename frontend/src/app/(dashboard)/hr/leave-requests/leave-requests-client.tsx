@@ -16,8 +16,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { PaginationBar } from '@/components/ui/pagination-bar'
 import { createLeaveRequest, approveLeaveRequest, rejectLeaveRequest } from './actions'
 import type { LeaveRequest, Employee, LeavePolicy, ApprovalStatus } from '@/types/hr'
+import type { PageResponse } from '@/types/api'
 
 const STATUS_LABEL: Record<ApprovalStatus, string> = {
   PENDING: '대기', APPROVED: '승인', REJECTED: '반려',
@@ -33,12 +35,13 @@ type DialogState =
   | { type: 'reject'; req: LeaveRequest }
 
 interface Props {
-  requests: LeaveRequest[]
+  data: PageResponse<LeaveRequest>
   employees: Employee[]
   policies: LeavePolicy[]
 }
 
-export default function LeaveRequestsClient({ requests, employees, policies }: Props) {
+export default function LeaveRequestsClient({ data, employees, policies }: Props) {
+  const { content: requests } = data
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
@@ -119,7 +122,7 @@ export default function LeaveRequestsClient({ requests, employees, policies }: P
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg border">
+      <div className="bg-white rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -178,6 +181,13 @@ export default function LeaveRequestsClient({ requests, employees, policies }: P
             ))}
           </TableBody>
         </Table>
+        <PaginationBar
+          page={data.page}
+          totalPages={data.totalPages}
+          totalElements={data.totalElements}
+          size={data.size}
+          basePath="/hr/leave-requests"
+        />
       </div>
 
       {/* Create Dialog */}

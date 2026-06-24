@@ -1,5 +1,5 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useMemo } from 'react'
 import { toast } from 'sonner'
 import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,10 @@ interface Props {
 }
 
 export default function DepartmentsClient({ departments }: Props) {
+  const deptById = useMemo(
+    () => new Map(departments.map((d) => [d.id, d])),
+    [departments]
+  )
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
 
@@ -137,7 +141,7 @@ export default function DepartmentsClient({ departments }: Props) {
               </TableRow>
             )}
             {departments.map((dept) => {
-              const parent = departments.find((d) => d.id === dept.parentId)
+              const parent = dept.parentId != null ? deptById.get(dept.parentId) : undefined
               return (
                 <TableRow key={dept.id}>
                   <TableCell className="font-mono text-sm">{dept.code}</TableCell>
