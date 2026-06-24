@@ -34,4 +34,6 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
                           @Param("activityType") ActivityType activityType,
                           @Param("status") ActivityStatus status,
                           Pageable pageable);
+
+    long countByStatus(ActivityStatus status);
 }

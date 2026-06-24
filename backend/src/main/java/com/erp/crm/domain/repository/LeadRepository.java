@@ -20,4 +20,6 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
     Page<Lead> search(@Param("status") LeadStatus status,
                       @Param("keyword") String keyword,
                       Pageable pageable);
+
+    long countByStatus(LeadStatus status);
 }

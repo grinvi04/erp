@@ -15,6 +15,7 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
     Page<LeaveRequest> findByEmployeeId(Long employeeId, Pageable pageable);
     List<LeaveRequest> findByEmployeeIdAndApprovalStatus(Long employeeId, ApprovalStatus status);
     List<LeaveRequest> findByApprovalStatus(ApprovalStatus status);
+    long countByApprovalStatus(ApprovalStatus status);
 
     @Query("SELECT lr FROM LeaveRequest lr WHERE lr.employee.id = :employeeId "
         + "AND lr.approvalStatus = :status "
