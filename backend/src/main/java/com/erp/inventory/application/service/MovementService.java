@@ -21,7 +21,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -44,9 +46,18 @@ public class MovementService {
     private final LocationService locationService;
 
     public PageResponse<MovementResponse> findAll(MovementType type, MovementStatus status, Pageable pageable) {
-        return PageResponse.from(
-                movementRepository.findByTypeAndStatus(type, status, pageable)
-                        .map(MovementResponse::from));
+        var page = movementRepository.findByTypeAndStatus(type, status, pageable);
+        if (page.isEmpty()) {
+            return PageResponse.from(page.map(MovementResponse::from));
+        }
+        List<Long> ids = page.getContent().stream().map(Movement::getId).toList();
+        Map<Long, List<MovementLineResponse>> linesMap = movementLineRepository
+                .findByMovement_IdInOrderByLineNoAsc(ids).stream()
+                .collect(Collectors.groupingBy(
+                        l -> l.getMovement().getId(),
+                        Collectors.mapping(MovementLineResponse::from, Collectors.toList())));
+        return PageResponse.from(page.map(m ->
+                MovementResponse.from(m, linesMap.getOrDefault(m.getId(), List.of()))));
     }
 
     public MovementResponse findById(Long id) {
@@ -115,6 +126,7 @@ public class MovementService {
     }
 
     private List<MovementLine> buildLines(Movement movement, MovementCreateRequest req) {
+        MovementType movementType = req.movementType();
         List<MovementLineRequest> lineReqs = req.lines();
         List<MovementLine> result = new ArrayList<>(lineReqs.size());
         for (int i = 0; i < lineReqs.size(); i++) {
@@ -130,10 +142,23 @@ public class MovementService {
                     ? locationService.getOrThrow(lineReq.fromLocationId()) : null;
             Location toLocation = lineReq.toLocationId() != null
                     ? locationService.getOrThrow(lineReq.toLocationId()) : null;
+            validateLocationForType(movementType, fromLocation, toLocation);
             result.add(MovementLine.of(movement, i + 1, item, fromLocation, toLocation,
                     lineReq.lotNo(), lineReq.serialNo(), lineReq.qty(), lineReq.unitCost()));
         }
         return result;
+    }
+
+    private void validateLocationForType(MovementType type, Location from, Location to) {
+        if (type == MovementType.RECEIPT && to == null) {
+            throw new ErpException(ErrorCode.LOCATION_REQUIRED);
+        }
+        if (type == MovementType.ISSUE && from == null) {
+            throw new ErpException(ErrorCode.LOCATION_REQUIRED);
+        }
+        if (type == MovementType.TRANSFER && (from == null || to == null)) {
+            throw new ErpException(ErrorCode.LOCATION_REQUIRED);
+        }
     }
 
     private String generateMovementNo() {

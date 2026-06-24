@@ -53,6 +53,7 @@ interface Props {
 export default function MovementsClient({ data, items, warehouses }: Props) {
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false)
   const close = () => setDialog({ type: 'none' })
 
   const [movementType, setMovementType] = useState<MovementType>('RECEIPT')
@@ -69,13 +70,13 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
     const wId = val ?? ''
     setDialogWarehouseId(wId)
     setDialogLocations([])
+    setLines((prev) => prev.map((l) => ({ ...l, fromLocationId: '', toLocationId: '' })))
     if (wId) {
-      startTransition(async () => {
-        try {
-          const locs = await getLocationsByWarehouse(Number(wId))
-          setDialogLocations(locs)
-        } catch { /* keep empty */ }
-      })
+      setIsLoadingLocations(true)
+      getLocationsByWarehouse(Number(wId))
+        .then((locs) => setDialogLocations(locs))
+        .catch(() => {})
+        .finally(() => setIsLoadingLocations(false))
     }
   }
 
@@ -92,8 +93,16 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
 
   const handleCreate = () => {
     if (!movementDate) { toast.error('이동일은 필수입니다'); return }
-    if (lines.some((l) => !l.itemId || !l.qty || Number(l.qty) <= 0)) {
+    if (lines.some((l) => !l.itemId || !l.qty || Number(l.qty) <= 0 || isNaN(Number(l.qty)))) {
       toast.error('모든 행에 품목과 수량을 입력해주세요'); return
+    }
+    const needsFromRequired = movementType === 'ISSUE' || movementType === 'TRANSFER'
+    const needsToRequired = movementType === 'RECEIPT' || movementType === 'TRANSFER'
+    if (needsFromRequired && lines.some((l) => !l.fromLocationId)) {
+      toast.error('출고 위치를 선택해주세요'); return
+    }
+    if (needsToRequired && lines.some((l) => !l.toLocationId)) {
+      toast.error('입고 위치를 선택해주세요'); return
     }
     startTransition(async () => {
       try {
@@ -152,6 +161,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
             <TableRow>
               <TableHead>이동번호</TableHead>
               <TableHead>유형</TableHead>
+              <TableHead>품목</TableHead>
               <TableHead>이동일</TableHead>
               <TableHead>메모</TableHead>
               <TableHead>상태</TableHead>
@@ -161,7 +171,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
           <TableBody>
             {data.content.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={7} className="text-center text-gray-400 py-10">
                   재고 이동 내역이 없습니다
                 </TableCell>
               </TableRow>
@@ -171,6 +181,13 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                 <TableCell className="font-mono text-sm">{mv.movementNo}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">{TYPE_LABEL[mv.movementType]}</Badge>
+                </TableCell>
+                <TableCell className="text-sm text-gray-700">
+                  {mv.lines && mv.lines.length > 0
+                    ? mv.lines.length === 1
+                      ? mv.lines[0].itemName
+                      : `${mv.lines[0].itemName} 외 ${mv.lines.length - 1}건`
+                    : '—'}
                 </TableCell>
                 <TableCell className="text-sm">{mv.movementDate}</TableCell>
                 <TableCell className="text-sm text-gray-500 max-w-xs truncate">
@@ -212,7 +229,11 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-1.5">
                 <Label>유형 *</Label>
-                <Select value={movementType} onValueChange={(v) => setMovementType((v ?? 'RECEIPT') as MovementType)}>
+                <Select value={movementType} onValueChange={(v) => {
+                  const t = (v ?? 'RECEIPT') as MovementType
+                  setMovementType(t)
+                  setLines((prev) => prev.map((l) => ({ ...l, fromLocationId: '', toLocationId: '' })))
+                }}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {(Object.keys(TYPE_LABEL) as MovementType[]).map((t) => (
@@ -281,7 +302,8 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                         {needsFrom && (
                           <TableCell className="py-1">
                             <Select value={line.fromLocationId}
-                              onValueChange={(v) => setLine(i, 'fromLocationId', v ?? '')}>
+                              onValueChange={(v) => setLine(i, 'fromLocationId', v ?? '')}
+                              disabled={isLoadingLocations}>
                               <SelectTrigger className="w-full h-8 text-sm">
                                 <SelectValue placeholder="—" />
                               </SelectTrigger>
@@ -298,7 +320,8 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                         {needsTo && (
                           <TableCell className="py-1">
                             <Select value={line.toLocationId}
-                              onValueChange={(v) => setLine(i, 'toLocationId', v ?? '')}>
+                              onValueChange={(v) => setLine(i, 'toLocationId', v ?? '')}
+                              disabled={isLoadingLocations}>
                               <SelectTrigger className="w-full h-8 text-sm">
                                 <SelectValue placeholder="—" />
                               </SelectTrigger>
