@@ -80,6 +80,7 @@ public enum ErrorCode {
     MOVEMENT_NO_UNIT_COST_ZERO(HttpStatus.BAD_REQUEST, "I016", "단가 0은 입력할 수 없습니다"),
     SERIAL_NO_REQUIRED(HttpStatus.BAD_REQUEST, "I017", "시리얼 추적 품목은 시리얼 번호가 필수입니다"),
     LOT_NO_REQUIRED(HttpStatus.BAD_REQUEST, "I018", "로트 추적 품목은 로트 번호가 필수입니다"),
+    LOCATION_REQUIRED(HttpStatus.BAD_REQUEST, "I019", "해당 이동 유형에는 위치 정보가 필수입니다"),
 
     // CRM
     ACCOUNT_COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "CR001", "고객사를 찾을 수 없습니다"),
