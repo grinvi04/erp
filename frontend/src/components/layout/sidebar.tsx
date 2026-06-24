@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import {
   Users, Building2, Package, TrendingUp, LayoutDashboard,
   ChevronRight, Briefcase, FileText, Warehouse, BarChart3,
-  UserSquare, Target, Activity,
+  UserSquare, Target, Activity, GitBranch,
 } from 'lucide-react'
 
 const NAV = [
@@ -51,6 +51,7 @@ const NAV = [
       { label: '담당자', href: '/crm/contacts', icon: UserSquare },
       { label: '리드', href: '/crm/leads', icon: Target },
       { label: '영업 기회', href: '/crm/opportunities', icon: TrendingUp },
+      { label: '파이프라인 단계', href: '/crm/pipeline-stages', icon: GitBranch },
       { label: '활동', href: '/crm/activities', icon: Activity },
     ],
   },

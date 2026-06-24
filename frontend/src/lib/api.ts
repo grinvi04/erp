@@ -34,6 +34,20 @@ export async function apiFetch<T>(
   return body
 }
 
+/** 현재 로그인 사용자의 Keycloak subject(고유 ID)를 access token에서 추출한다. */
+export async function getCurrentUserId(): Promise<string> {
+  const session = await auth()
+  if (!session?.accessToken) return ''
+  try {
+    const payload = JSON.parse(
+      Buffer.from(session.accessToken.split('.')[1], 'base64').toString()
+    )
+    return payload.sub ?? ''
+  } catch {
+    return ''
+  }
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const body = await apiFetch<T>(path)
   if (!body.success || body.data === undefined) {
