@@ -14,7 +14,7 @@ export default async function LeadsPage(props: {
 
   const [data, accounts, currentUserId] = await Promise.all([
     apiGetPage<Lead>(`/api/crm/leads?page=${page}&size=${size}`),
-    apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?size=1000'),
+    apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?isActive=true&size=1000'),
     getCurrentUserId(),
   ])
 

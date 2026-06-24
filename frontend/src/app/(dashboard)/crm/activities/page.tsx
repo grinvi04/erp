@@ -14,7 +14,7 @@ export default async function ActivitiesPage(props: {
 
   const [data, accountsPage, currentUserId] = await Promise.all([
     apiGetPage<Activity>(`/api/crm/activities?page=${page}&size=${size}`),
-    apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?size=1000'),
+    apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?isActive=true&size=1000'),
     getCurrentUserId(),
   ])
 

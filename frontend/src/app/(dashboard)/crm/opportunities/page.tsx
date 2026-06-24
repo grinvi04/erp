@@ -14,7 +14,7 @@ export default async function OpportunitiesPage(props: {
 
   const [data, accountsPage, stages, currentUserId] = await Promise.all([
     apiGetPage<Opportunity>(`/api/crm/opportunities?page=${page}&size=${size}`),
-    apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?size=1000'),
+    apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?isActive=true&size=1000'),
     apiGet<PipelineStage[]>('/api/crm/pipeline-stages'),
     getCurrentUserId(),
   ])

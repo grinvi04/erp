@@ -1,5 +1,5 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import { toast } from 'sonner'
 import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -49,26 +49,27 @@ export default function ContactsClient({ accounts }: Props) {
   const [mobile, setMobile] = useState('')
   const [isPrimary, setIsPrimary] = useState(false)
 
-  const reload = () => {
-    if (!selectedAccountId) return
+  // 마지막으로 요청한 accountId만 반영해 응답 순서가 뒤바뀌어도 다른 고객사의
+  // 담당자가 표시되지 않게 한다.
+  const loadReqRef = useRef(0)
+
+  const loadContacts = (aId: string) => {
+    if (!aId) { setContacts([]); return }
+    const reqId = ++loadReqRef.current
     setIsLoadingContacts(true)
-    getContactsByAccount(Number(selectedAccountId))
-      .then((cs) => setContacts(cs))
-      .catch(() => toast.error('담당자 목록을 불러오지 못했습니다'))
-      .finally(() => setIsLoadingContacts(false))
+    getContactsByAccount(Number(aId))
+      .then((cs) => { if (loadReqRef.current === reqId) setContacts(cs) })
+      .catch(() => { if (loadReqRef.current === reqId) toast.error('담당자 목록을 불러오지 못했습니다') })
+      .finally(() => { if (loadReqRef.current === reqId) setIsLoadingContacts(false) })
   }
+
+  const reload = () => loadContacts(selectedAccountId)
 
   const onAccountChange = (val: string | null) => {
     const aId = val ?? ''
     setSelectedAccountId(aId)
     setContacts([])
-    if (aId) {
-      setIsLoadingContacts(true)
-      getContactsByAccount(Number(aId))
-        .then((cs) => setContacts(cs))
-        .catch(() => toast.error('담당자 목록을 불러오지 못했습니다'))
-        .finally(() => setIsLoadingContacts(false))
-    }
+    loadContacts(aId)
   }
 
   const openCreate = () => {
@@ -196,7 +197,8 @@ export default function ContactsClient({ accounts }: Props) {
 
       <div className="mb-4 max-w-md">
         <Label className="mb-1.5 block">고객사</Label>
-        <Select value={selectedAccountId} onValueChange={onAccountChange}>
+        <Select value={selectedAccountId} onValueChange={onAccountChange}
+          disabled={dialog.type !== 'none'}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="고객사 선택" />
           </SelectTrigger>

@@ -217,8 +217,15 @@ export default function OpportunitiesClient({ data, accounts, stages, currentUse
           <h1 className="text-2xl font-semibold text-gray-900">영업 기회</h1>
           <p className="text-sm text-gray-500 mt-1">영업 파이프라인을 관리합니다</p>
         </div>
-        <Button onClick={openCreate}><PlusIcon />새 영업기회</Button>
+        <Button onClick={openCreate} disabled={stages.length === 0}>
+          <PlusIcon />새 영업기회
+        </Button>
       </div>
+      {stages.length === 0 && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          영업 기회를 등록하려면 먼저 파이프라인 단계를 1개 이상 정의해야 합니다.
+        </div>
+      )}
 
       <div className="bg-white rounded-lg border overflow-hidden">
         <Table>

@@ -251,10 +251,12 @@ export default function LeadsClient({ data, accounts, currentUserId }: Props) {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(lead)}>
-                      <PencilIcon />
-                    </Button>
                     {lead.status !== 'CONVERTED' && (
+                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(lead)}>
+                        <PencilIcon />
+                      </Button>
+                    )}
+                    {lead.status !== 'CONVERTED' && lead.status !== 'DISQUALIFIED' && (
                       <Button variant="ghost" size="icon-xs" title="전환" onClick={() => openConvert(lead)}>
                         <ArrowRightLeft />
                       </Button>
