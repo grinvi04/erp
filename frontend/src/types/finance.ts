@@ -1,50 +1,95 @@
-export type AccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
-export type JournalStatus = 'DRAFT' | 'POSTED';
+export type AccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'
+export type NormalBalance = 'DEBIT' | 'CREDIT'
+export type JournalEntryType = 'MANUAL' | 'AP' | 'AR' | 'PAYROLL' | 'ADJUSTMENT'
+export type JournalEntryStatus = 'DRAFT' | 'POSTED' | 'REVERSED'
+export type ApInvoiceStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'
+export type FiscalYearStatus = 'OPEN' | 'CLOSED'
+export type FiscalPeriodStatus = 'OPEN' | 'CLOSED'
 
 export interface Account {
-  id: number;
-  code: string;
-  name: string;
-  accountType: AccountType;
-  parentId: number | null;
-  isSummary: boolean;
-  isActive: boolean;
-  createdAt: string;
-}
-
-export interface JournalEntry {
-  id: number;
-  entryNo: string;
-  entryDate: string;
-  description: string;
-  status: JournalStatus;
-  totalDebit: number;
-  totalCredit: number;
-  createdBy: string;
-  createdAt: string;
+  id: number
+  code: string
+  name: string
+  accountType: AccountType
+  normalBalance: NormalBalance
+  parentId: number | null
+  parentCode: string | null
+  isSummary: boolean
+  isActive: boolean
 }
 
 export interface Vendor {
-  id: number;
-  code: string;
-  name: string;
-  businessNo: string | null;
-  email: string | null;
-  phone: string | null;
-  isActive: boolean;
-  createdAt: string;
+  id: number
+  code: string
+  name: string
+  businessNo: string | null
+  contactName: string | null
+  contactEmail: string | null
+  contactPhone: string | null
+  paymentTerms: number
+  isActive: boolean
 }
 
-export interface Invoice {
-  id: number;
-  invoiceNo: string;
-  vendorId: number;
-  vendorName: string;
-  invoiceDate: string;
-  dueDate: string;
-  totalAmount: number;
-  currency: string;
-  paidAmount: number;
-  status: 'OPEN' | 'PARTIAL' | 'PAID' | 'VOID';
-  createdAt: string;
+export interface JournalLine {
+  id: number
+  lineNo: number
+  accountId: number
+  accountCode: string
+  accountName: string
+  debitAmount: number
+  creditAmount: number
+  description: string | null
+  departmentId: number | null
+}
+
+export interface JournalEntry {
+  id: number
+  entryNo: string
+  entryDate: string
+  fiscalPeriodId: number
+  fiscalPeriodNumber: number
+  description: string
+  entryType: JournalEntryType
+  status: JournalEntryStatus
+  totalDebit: number
+  totalCredit: number
+  currency: string
+  referenceType: string | null
+  referenceId: number | null
+  postedAt: string | null
+  postedBy: string | null
+}
+
+export interface ApInvoice {
+  id: number
+  invoiceNo: string
+  vendorId: number
+  vendorName: string
+  invoiceDate: string
+  dueDate: string
+  totalAmount: number
+  paidAmount: number
+  outstandingAmount: number
+  currency: string
+  status: ApInvoiceStatus
+  journalEntryId: number | null
+  approvalRequestId: number | null
+  note: string | null
+}
+
+export interface FiscalYear {
+  id: number
+  year: number
+  startDate: string
+  endDate: string
+  status: FiscalYearStatus
+}
+
+export interface FiscalPeriod {
+  id: number
+  fiscalYearId: number
+  periodNumber: number
+  startDate: string
+  endDate: string
+  status: FiscalPeriodStatus
 }
