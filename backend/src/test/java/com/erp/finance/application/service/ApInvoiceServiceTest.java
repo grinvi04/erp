@@ -3,6 +3,8 @@ package com.erp.finance.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.CurrentUserProvider;
+import com.erp.common.workflow.ApprovalRequest;
+import com.erp.common.workflow.repository.ApprovalRequestRepository;
 import com.erp.finance.application.dto.ApInvoiceCreateRequest;
 import com.erp.finance.application.dto.ApInvoicePayRequest;
 import com.erp.finance.application.dto.ApInvoiceResponse;
@@ -30,6 +32,7 @@ class ApInvoiceServiceTest {
 
     @Mock private ApInvoiceRepository apInvoiceRepository;
     @Mock private VendorRepository vendorRepository;
+    @Mock private ApprovalRequestRepository approvalRequestRepository;
     @Mock private CurrentUserProvider currentUserProvider;
 
     @InjectMocks
@@ -77,6 +80,9 @@ class ApInvoiceServiceTest {
     void submit_draftInvoice_changeStatusToPendingApproval() {
         ApInvoice invoice = buildInvoice();
         given(apInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("user-1");
+        given(approvalRequestRepository.save(any(ApprovalRequest.class)))
+            .willAnswer(inv -> inv.getArgument(0));
 
         ApInvoiceResponse result = apInvoiceService.submit(1L);
 

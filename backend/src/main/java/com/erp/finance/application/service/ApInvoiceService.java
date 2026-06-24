@@ -4,6 +4,9 @@ import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
 import com.erp.common.security.CurrentUserProvider;
+import com.erp.common.workflow.ApprovalRequest;
+import com.erp.common.workflow.ApprovalStep;
+import com.erp.common.workflow.repository.ApprovalRequestRepository;
 import com.erp.finance.application.dto.ApInvoiceCreateRequest;
 import com.erp.finance.application.dto.ApInvoicePayRequest;
 import com.erp.finance.application.dto.ApInvoiceResponse;
@@ -17,6 +20,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -24,6 +30,7 @@ public class ApInvoiceService {
 
     private final ApInvoiceRepository apInvoiceRepository;
     private final VendorRepository vendorRepository;
+    private final ApprovalRequestRepository approvalRequestRepository;
     private final CurrentUserProvider currentUserProvider;
 
     public ApInvoiceResponse findById(Long id) {
@@ -55,8 +62,17 @@ public class ApInvoiceService {
 
     @Transactional
     public ApInvoiceResponse submit(Long id) {
+        String userId = currentUserProvider.getCurrentUserId();
         ApInvoice invoice = getOrThrow(id);
         invoice.submit();
+        ApprovalStep step = ApprovalStep.of(1, "AP 전표 승인", userId);
+        ApprovalRequest approvalRequest = ApprovalRequest.create(
+            "AP_INVOICE", invoice.getId(),
+            "AP 전표 승인: " + invoice.getInvoiceNo(),
+            userId, new ArrayList<>(List.of(step))
+        );
+        ApprovalRequest saved = approvalRequestRepository.save(approvalRequest);
+        invoice.linkApprovalRequest(saved.getId());
         return ApInvoiceResponse.from(invoice);
     }
 
@@ -67,7 +83,16 @@ public class ApInvoiceService {
             throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
         }
         ApInvoice invoice = getOrThrow(id);
+        if (userId.equals(invoice.getCreatedBy())) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
         invoice.approve();
+        if (invoice.getApprovalRequestId() != null) {
+            ApprovalRequest approvalRequest = approvalRequestRepository
+                .findById(invoice.getApprovalRequestId())
+                .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
+            approvalRequest.approve(userId, null);
+        }
         return ApInvoiceResponse.from(invoice);
     }
 
