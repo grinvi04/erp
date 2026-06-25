@@ -68,6 +68,8 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
   const [currency, setCurrency] = useState('KRW')
   const [note, setNote] = useState('')
   const [collectAmount, setCollectAmount] = useState('')
+  const [collectCashAccountId, setCollectCashAccountId] = useState('')
+  const [collectDate, setCollectDate] = useState('')
   const [lines, setLines] = useState<LineForm[]>([])
   const [vatAccountId, setVatAccountId] = useState('')
   const [vatAmount, setVatAmount] = useState('')
@@ -156,7 +158,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
     if (!collectAmount || Number(collectAmount) <= 0) { toast.error('수금 금액을 입력해주세요'); return }
     startTransition(async () => {
       try {
-        await collectArInvoice(inv.id, Number(collectAmount))
+        await collectArInvoice(inv.id, Number(collectAmount), collectCashAccountId ? Number(collectCashAccountId) : null, collectDate || null)
         toast.success('수금이 처리되었습니다')
         close()
       } catch (e) { toast.error(e instanceof Error ? e.message : '수금 중 오류가 발생했습니다') }
@@ -259,7 +261,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                     )}
                     {canWrite && inv.status === 'APPROVED' && (
                       <Button variant="ghost" size="sm" title="수금처리"
-                        onClick={() => { setCollectAmount(String(inv.outstandingAmount)); setDialog({ type: 'collect', inv }) }}
+                        onClick={() => { setCollectAmount(String(inv.outstandingAmount)); setCollectCashAccountId(''); setCollectDate(new Date().toISOString().slice(0, 10)); setDialog({ type: 'collect', inv }) }}
                         disabled={isPending}>
                         수금
                       </Button>
@@ -430,6 +432,23 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                 <Input type="number" min={0.01} step={0.01} value={collectAmount}
                   onChange={(e) => setCollectAmount(e.target.value)} />
               </div>
+              <div className="grid gap-1.5">
+                <Label>수금계정 (현금·예금)</Label>
+                <Select value={collectCashAccountId || 'NONE'} onValueChange={(v) => setCollectCashAccountId(!v || v === 'NONE' ? '' : v)}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">미선택 (분개 없이 잔액만)</SelectItem>
+                    {postableAccounts.map((a) => (
+                      <SelectItem key={a.id} value={String(a.id)}>{a.code} {a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label>수금일</Label>
+                <Input type="date" value={collectDate} onChange={(e) => setCollectDate(e.target.value)} />
+              </div>
+              <p className="text-xs text-gray-400">계정 선택 시 지급/수금 분개가 자동 생성됩니다.</p>
             </div>
           )}
           <DialogFooter showCloseButton>

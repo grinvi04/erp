@@ -67,6 +67,8 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
   const [currency, setCurrency] = useState('KRW')
   const [note, setNote] = useState('')
   const [payAmount, setPayAmount] = useState('')
+  const [payCashAccountId, setPayCashAccountId] = useState('')
+  const [payDate, setPayDate] = useState('')
   const [lines, setLines] = useState<LineForm[]>([])
   const [vatAccountId, setVatAccountId] = useState('')
   const [vatAmount, setVatAmount] = useState('')
@@ -155,7 +157,7 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
     if (!payAmount || Number(payAmount) <= 0) { toast.error('지급 금액을 입력해주세요'); return }
     startTransition(async () => {
       try {
-        await payInvoice(inv.id, Number(payAmount))
+        await payInvoice(inv.id, Number(payAmount), payCashAccountId ? Number(payCashAccountId) : null, payDate || null)
         toast.success('지급이 처리되었습니다')
         close()
       } catch (e) { toast.error(e instanceof Error ? e.message : '지급 중 오류가 발생했습니다') }
@@ -258,7 +260,7 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
                     )}
                     {canWrite && inv.status === 'APPROVED' && (
                       <Button variant="ghost" size="sm" title="지급처리"
-                        onClick={() => { setPayAmount(String(inv.outstandingAmount)); setDialog({ type: 'pay', inv }) }}
+                        onClick={() => { setPayAmount(String(inv.outstandingAmount)); setPayCashAccountId(''); setPayDate(new Date().toISOString().slice(0, 10)); setDialog({ type: 'pay', inv }) }}
                         disabled={isPending}>
                         지급
                       </Button>
@@ -429,6 +431,23 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
                 <Input type="number" min={0.01} step={0.01} value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)} />
               </div>
+              <div className="grid gap-1.5">
+                <Label>지급계정 (현금·예금)</Label>
+                <Select value={payCashAccountId || 'NONE'} onValueChange={(v) => setPayCashAccountId(!v || v === 'NONE' ? '' : v)}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">미선택 (분개 없이 잔액만)</SelectItem>
+                    {postableAccounts.map((a) => (
+                      <SelectItem key={a.id} value={String(a.id)}>{a.code} {a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label>지급일</Label>
+                <Input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
+              </div>
+              <p className="text-xs text-gray-400">계정 선택 시 지급/수금 분개가 자동 생성됩니다.</p>
             </div>
           )}
           <DialogFooter showCloseButton>

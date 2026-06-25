@@ -142,7 +142,7 @@ class ApInvoiceServiceTest {
         invoice.approve();
         given(apInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
 
-        ApInvoiceResponse result = apInvoiceService.pay(1L, new ApInvoicePayRequest(new BigDecimal("100000")));
+        ApInvoiceResponse result = apInvoiceService.pay(1L, new ApInvoicePayRequest(new BigDecimal("100000"), null, null));
 
         assertThat(result.status().name()).isEqualTo("PAID");
         assertThat(result.outstandingAmount()).isEqualByComparingTo("0");
@@ -156,7 +156,7 @@ class ApInvoiceServiceTest {
         given(apInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
 
         ErpException ex = assertThrows(ErpException.class, () ->
-            apInvoiceService.pay(1L, new ApInvoicePayRequest(new BigDecimal("200000"))));
+            apInvoiceService.pay(1L, new ApInvoicePayRequest(new BigDecimal("200000"), null, null)));
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVOICE_OVERPAYMENT);
     }

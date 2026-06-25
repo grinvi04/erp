@@ -6,6 +6,7 @@ import com.erp.common.security.UserAccessProfile;
 import com.erp.common.security.UserAccessProfileRepository;
 import com.erp.finance.application.dto.ArInvoiceCreateRequest;
 import com.erp.finance.application.dto.ArInvoiceLineRequest;
+import com.erp.finance.application.dto.ArInvoicePayRequest;
 import com.erp.finance.application.service.ArInvoiceService;
 import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.AccountType;
@@ -139,5 +140,34 @@ class ArInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
         assertThat(approved.journalEntryId()).isNull();
         assertThat(invoiceRepository.findById(created.id()).orElseThrow().getStatus().name())
                 .isEqualTo("APPROVED");
+    }
+
+    @Test
+    void pay_withCashAccount_createsBalancedReceiptDraftJournalEntry() {
+        // 승인된 AR 전표 준비
+        authenticate("creator", BigDecimal.ZERO, "finance:write");
+        var created = arInvoiceService.create(new ArInvoiceCreateRequest(
+                "AR-PAY-1", customerId, LocalDate.of(2025, 1, 10), LocalDate.of(2025, 2, 10),
+                new BigDecimal("100000"), "KRW", null,
+                List.of(new ArInvoiceLineRequest(revenueAccountId, new BigDecimal("100000"), "매출"))));
+        arInvoiceService.submit(created.id());
+        authenticate("approver", new BigDecimal("1000000"), "finance:invoice:approve");
+        arInvoiceService.approve(created.id());
+
+        // 현금 계정으로 수금 → (차)현금 /(대)외상매출금 분개 (AP 지급의 반전)
+        Account cash = accountRepository.save(Account.of("10100", "현금",
+                AccountType.ASSET, NormalBalance.DEBIT, null, false));
+        authenticate("receiver", BigDecimal.ZERO, "finance:write");
+        arInvoiceService.pay(created.id(), new ArInvoicePayRequest(
+                new BigDecimal("100000"), cash.getId(), LocalDate.of(2025, 1, 20)));
+
+        JournalEntry payJe = journalEntryRepository
+                .findByReferenceTypeAndReferenceId("AR_PAYMENT", created.id()).orElseThrow();
+        assertThat(payJe.getStatus().name()).isEqualTo("DRAFT");
+        assertThat(payJe.isBalanced()).isTrue();
+        assertThat(payJe.getTotalDebit()).isEqualByComparingTo("100000");
+        // 차변이 현금 계정(수금으로 현금 증가)
+        assertThat(payJe.getLines()).anyMatch(l -> l.getDebitAmount().compareTo(BigDecimal.ZERO) > 0
+                && l.getAccount().getId().equals(cash.getId()));
     }
 }
