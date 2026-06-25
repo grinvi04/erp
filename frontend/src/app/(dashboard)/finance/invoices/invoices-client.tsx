@@ -68,11 +68,17 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
   const [note, setNote] = useState('')
   const [payAmount, setPayAmount] = useState('')
   const [lines, setLines] = useState<LineForm[]>([])
+  const [vatAccountId, setVatAccountId] = useState('')
+  const [vatAmount, setVatAmount] = useState('')
 
-  // 라인이 있으면 총금액은 라인 합계로 자동 산출(서버가 합계=총금액을 BigDecimal로 검증).
+  // 라인이 있으면 총금액은 (공급가 합계 + 부가세)로 자동 산출(서버가 합계=총금액을 BigDecimal 검증).
   // 정수 전(錢) 단위로 합산해 부동소수 오차(0.1+0.2≠0.3)를 피한다 — 금액 컬럼은 소수 2자리.
-  const linesTotal = lines.reduce((s, l) => s + Math.round((Number(l.amount) || 0) * 100), 0) / 100
-  const effectiveTotal = lines.length > 0 ? String(linesTotal) : totalAmount
+  const supplyTotal = lines.reduce((s, l) => s + Math.round((Number(l.amount) || 0) * 100), 0) / 100
+  const vatNum = Math.round((Number(vatAmount) || 0) * 100) / 100
+  const grandTotal = Math.round((supplyTotal + vatNum) * 100) / 100
+  const effectiveTotal = lines.length > 0 ? String(grandTotal) : totalAmount
+  // 부가세 10% 자동 채움(편의값) — 실제 인보이스 세액으로 수정 가능.
+  const fillVat10 = () => setVatAmount(String(Math.round(supplyTotal * 10) / 100))
 
   const addLine = () => setLines((ls) => [...ls, { accountId: '', amount: '', description: '' }])
   const removeLine = (i: number) => setLines((ls) => ls.filter((_, idx) => idx !== i))
@@ -82,6 +88,7 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
   const openCreate = () => {
     setInvoiceNo(''); setVendorId(''); setInvoiceDate(''); setDueDate('')
     setTotalAmount(''); setCurrency('KRW'); setNote(''); setLines([])
+    setVatAccountId(''); setVatAmount('')
     setDialog({ type: 'create' })
   }
 
@@ -94,6 +101,21 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
       toast.error('분개 라인의 계정과 금액을 모두 입력해주세요')
       return
     }
+    if (vatNum > 0 && !vatAccountId) {
+      toast.error('부가세 금액을 입력했으면 부가세대급금 계정을 선택해주세요')
+      return
+    }
+    // 공급 라인 + (부가세 라인) → 승인 시 GL 차변. 합계 = effectiveTotal(서버가 균형 검증).
+    // 금액은 소수 2자리(전)로 반올림해 전송 — 라인합계(전 단위)·서버 BigDecimal 검증과 일치
+    // (예: 사용자가 2자리 초과 입력/붙여넣기해도 총금액 불일치로 거부되지 않게).
+    const supplyLines = lines.map((l) => ({
+      accountId: Number(l.accountId),
+      amount: Math.round(Number(l.amount) * 100) / 100,
+      description: l.description || null,
+    }))
+    const vatLine = vatAccountId && vatNum > 0
+      ? [{ accountId: Number(vatAccountId), amount: vatNum, description: '부가세대급금' }]
+      : []
     startTransition(async () => {
       try {
         await createInvoice({
@@ -103,9 +125,7 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
           totalAmount: Number(effectiveTotal),
           currency: currency || 'KRW',
           note: note || null,
-          lines: lines.length > 0
-            ? lines.map((l) => ({ accountId: Number(l.accountId), amount: Number(l.amount), description: l.description || null }))
-            : null,
+          lines: lines.length > 0 ? [...supplyLines, ...vatLine] : null,
         })
         toast.success('인보이스가 등록되었습니다')
         close()
@@ -312,7 +332,7 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
             {/* 분개 라인(차변) — 입력 시 승인 때 GL 자동 분개. 합계가 총금액이 된다. */}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
-                <Label>분개 라인 (차변 — 비용/자산·부가세)</Label>
+                <Label>분개 라인 (차변 — 비용/자산, 공급가액)</Label>
                 <Button type="button" variant="outline" size="xs" onClick={addLine}>
                   <PlusIcon />라인 추가
                 </Button>
@@ -345,11 +365,43 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
                     </div>
                   ))}
                   <div className="text-right text-sm text-gray-600">
-                    라인 합계: <span className="font-medium">{fmt(linesTotal, currency)}</span>
+                    공급가 합계: <span className="font-medium">{fmt(supplyTotal, currency)}</span>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* 부가세 자동 split — 부가세대급금 차변 라인을 자동 생성. 10% 자동, 실제 세액으로 수정 가능. */}
+            {lines.length > 0 && (
+              <div className="grid gap-2 rounded-md border bg-gray-50/60 p-3">
+                <Label>부가세 (자동 분개)</Label>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1 grid gap-1.5">
+                    <span className="text-xs text-gray-500">부가세대급금 계정</span>
+                    <Select value={vatAccountId} onValueChange={(v) => setVatAccountId(v ?? '')}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="(부가세 없으면 비워두기)" /></SelectTrigger>
+                      <SelectContent>
+                        {postableAccounts.map((a) => (
+                          <SelectItem key={a.id} value={String(a.id)}>{a.code} {a.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5 w-36">
+                    <span className="text-xs text-gray-500">세액</span>
+                    <Input type="number" min={0} step={0.01} placeholder="0"
+                      value={vatAmount} onChange={(e) => setVatAmount(e.target.value)} />
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={fillVat10} disabled={supplyTotal <= 0}>
+                    10% 자동
+                  </Button>
+                </div>
+                <div className="text-right text-sm">
+                  <span className="text-gray-500">공급가 {fmt(supplyTotal, currency)} + 부가세 {fmt(vatNum, currency)} = </span>
+                  <span className="font-semibold text-gray-900">합계 {fmt(grandTotal, currency)}</span>
+                </div>
+              </div>
+            )}
 
             <div className="grid gap-1.5">
               <Label>비고</Label>
