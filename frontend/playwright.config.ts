@@ -17,7 +17,21 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // 인증 쿠키를 생성해 storageState로 저장.
+    { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    // 인증 게이트(미인증) 스모크.
+    {
+      name: 'unauth',
+      testMatch: /auth-gate\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // 인증된 렌더 스모크 — setup이 만든 세션 사용.
+    {
+      name: 'authed',
+      testMatch: /authenticated\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/user.json' },
+      dependencies: ['setup'],
+    },
   ],
   webServer: {
     // 빌드된 앱을 기동한다(CI·로컬 모두 사전 `npm run build` 필요).
