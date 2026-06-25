@@ -49,6 +49,8 @@ interface Props {
 export default function InvoicesClient({ data, vendors }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.FINANCE_WRITE)
+  // 결재(전결)는 작성권과 분리 — 별도 전결권 보유자만. 서버가 전결 한도까지 최종 검증한다.
+  const canApprove = can(PERM.FINANCE_INVOICE_APPROVE)
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
@@ -189,16 +191,20 @@ export default function InvoicesClient({ data, vendors }: Props) {
                         </Button>
                       </>
                     )}
-                    {canWrite && inv.status === 'PENDING_APPROVAL' && (
+                    {inv.status === 'PENDING_APPROVAL' && (
                       <>
-                        <Button variant="ghost" size="icon-xs" title="승인"
-                          onClick={() => handleApprove(inv)} disabled={isPending}>
-                          <CheckIcon className="text-green-600" />
-                        </Button>
-                        <Button variant="ghost" size="icon-xs" title="취소"
-                          onClick={() => setDialog({ type: 'cancel', inv })} disabled={isPending}>
-                          <BanIcon className="text-destructive" />
-                        </Button>
+                        {canApprove && (
+                          <Button variant="ghost" size="icon-xs" title="승인"
+                            onClick={() => handleApprove(inv)} disabled={isPending}>
+                            <CheckIcon className="text-green-600" />
+                          </Button>
+                        )}
+                        {canWrite && (
+                          <Button variant="ghost" size="icon-xs" title="취소"
+                            onClick={() => setDialog({ type: 'cancel', inv })} disabled={isPending}>
+                            <BanIcon className="text-destructive" />
+                          </Button>
+                        )}
                       </>
                     )}
                     {canWrite && inv.status === 'APPROVED' && (

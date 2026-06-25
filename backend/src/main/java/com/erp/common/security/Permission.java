@@ -27,6 +27,8 @@ public final class Permission {
     // Finance
     public static final String FINANCE_READ = "finance:read";
     public static final String FINANCE_WRITE = "finance:write";
+    // AP 전표 결재권(전결권). 전표 작성·수정(finance:write)과 분리 — 직무분리(작성자≠결재자) 강제.
+    public static final String FINANCE_INVOICE_APPROVE = "finance:invoice:approve";
 
     // Inventory
     public static final String INVENTORY_READ = "inventory:read";

@@ -14,6 +14,7 @@ export const PERM = {
   HR_JOBGRADE_WRITE: 'hr:jobgrade:write',
   FINANCE_READ: 'finance:read',
   FINANCE_WRITE: 'finance:write',
+  FINANCE_INVOICE_APPROVE: 'finance:invoice:approve',
   INVENTORY_READ: 'inventory:read',
   INVENTORY_WRITE: 'inventory:write',
   CRM_READ: 'crm:read',
