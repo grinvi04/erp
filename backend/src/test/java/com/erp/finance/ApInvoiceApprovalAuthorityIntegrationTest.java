@@ -3,6 +3,8 @@ package com.erp.finance;
 import com.erp.common.AbstractIntegrationTest;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.workflow.ApprovalInboxService;
+import com.erp.common.workflow.dto.ApprovalSummaryResponse;
 import com.erp.finance.application.dto.ApInvoiceResponse;
 import com.erp.finance.application.service.ApInvoiceService;
 import com.erp.finance.domain.model.ApInvoice;
@@ -25,6 +27,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -39,6 +42,7 @@ class ApInvoiceApprovalAuthorityIntegrationTest extends AbstractIntegrationTest 
     @Autowired private ApInvoiceService apInvoiceService;
     @Autowired private ApInvoiceRepository invoiceRepository;
     @Autowired private VendorRepository vendorRepository;
+    @Autowired private ApprovalInboxService approvalInboxService;
 
     private static final String CREATOR = "creator-user";
     private static final String APPROVER = "approver-user";
@@ -101,6 +105,37 @@ class ApInvoiceApprovalAuthorityIntegrationTest extends AbstractIntegrationTest 
         ErpException ex = assertThrows(ErpException.class, () -> apInvoiceService.approve(invoiceId));
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+    }
+
+    @Test
+    void inbox_authorizedApproverWithinLimit_seesPendingInvoice() {
+        // 전결함 라우팅: 전결권+한도 보유 결재자에게 대기 전표가 보인다(person-assigned 아님).
+        authenticate(APPROVER, "2000000", "finance:invoice:approve");
+
+        List<ApprovalSummaryResponse> inbox = approvalInboxService.pendingForCurrentUser();
+
+        assertThat(inbox).extracting(ApprovalSummaryResponse::entityType, ApprovalSummaryResponse::entityId)
+            .contains(tuple("AP_INVOICE", invoiceId));
+    }
+
+    @Test
+    void inbox_creator_doesNotSeeOwnInvoice() {
+        // 직무분리: 작성자에게는 본인 작성 전표가 결재함에 보이지 않는다(과거엔 잘못 노출됐음).
+        authenticate(CREATOR, "2000000", "finance:invoice:approve");
+
+        List<ApprovalSummaryResponse> inbox = approvalInboxService.pendingForCurrentUser();
+
+        assertThat(inbox).extracting(ApprovalSummaryResponse::entityId).doesNotContain(invoiceId);
+    }
+
+    @Test
+    void inbox_amountExceedsLimit_doesNotSeeInvoice() {
+        // 전결 한도 미달 결재자에게는 보이지 않는다 — 상위 전결권자에게만.
+        authenticate(APPROVER, "500000", "finance:invoice:approve");
+
+        List<ApprovalSummaryResponse> inbox = approvalInboxService.pendingForCurrentUser();
+
+        assertThat(inbox).extracting(ApprovalSummaryResponse::entityId).doesNotContain(invoiceId);
     }
 
     @Test

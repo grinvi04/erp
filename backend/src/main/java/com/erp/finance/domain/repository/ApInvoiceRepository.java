@@ -16,6 +16,16 @@ public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
     Page<ApInvoice> findByStatus(ApInvoiceStatus status, Pageable pageable);
     Page<ApInvoice> findByVendorIdAndStatus(Long vendorId, ApInvoiceStatus status, Pageable pageable);
 
+    /**
+     * 전결규정상 현재 사용자가 결재할 수 있는 대기 전표 — 통합 결재함 라우팅용.
+     * 상태=대기, 작성자≠본인(직무분리), 금액≤본인 전결 한도. 테넌트 필터는 자동 적용.
+     */
+    @Query("SELECT i FROM ApInvoice i WHERE i.status = :status "
+            + "AND i.createdBy <> :userId AND i.totalAmount <= :limit")
+    List<ApInvoice> findPendingApprovableBy(@Param("status") ApInvoiceStatus status,
+                                            @Param("userId") String userId,
+                                            @Param("limit") BigDecimal limit);
+
     @Query("SELECT COUNT(i) FROM ApInvoice i "
             + "WHERE i.status NOT IN (com.erp.finance.domain.model.ApInvoiceStatus.PAID, "
             + "com.erp.finance.domain.model.ApInvoiceStatus.CANCELLED) "
