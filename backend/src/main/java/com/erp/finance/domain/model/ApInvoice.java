@@ -3,6 +3,7 @@ package com.erp.finance.domain.model;
 import com.erp.common.audit.BaseEntity;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,11 +14,15 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "ap_invoice", schema = "finance")
@@ -63,6 +68,10 @@ public class ApInvoice extends BaseEntity {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
+    @OneToMany(mappedBy = "apInvoice", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("lineNo ASC")
+    private List<ApInvoiceLine> lines = new ArrayList<>();
+
     protected ApInvoice() {}
 
     public static ApInvoice create(String invoiceNo, Vendor vendor, LocalDate invoiceDate,
@@ -81,6 +90,16 @@ public class ApInvoice extends BaseEntity {
         inv.status = ApInvoiceStatus.DRAFT;
         inv.note = note;
         return inv;
+    }
+
+    /** 차변 라인 추가(비용/자산·부가세). DRAFT 상태에서만. lineNo는 추가 순서로 자동 채번. */
+    public ApInvoiceLine addLine(Account account, BigDecimal amount, String description) {
+        if (status != ApInvoiceStatus.DRAFT) {
+            throw new ErpException(ErrorCode.INVOICE_ALREADY_PROCESSED);
+        }
+        ApInvoiceLine line = ApInvoiceLine.of(this, lines.size() + 1, account, amount, description);
+        lines.add(line);
+        return line;
     }
 
     public void submit() {
@@ -141,4 +160,6 @@ public class ApInvoice extends BaseEntity {
     public Long getJournalEntryId() { return journalEntryId; }
     public Long getApprovalRequestId() { return approvalRequestId; }
     public String getNote() { return note; }
+    public List<ApInvoiceLine> getLines() { return lines; }
+    public boolean hasLines() { return !lines.isEmpty(); }
 }

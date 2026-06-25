@@ -39,7 +39,7 @@ class VendorControllerTest {
 
     @Test
     void findAll_returnsOkWithPage() throws Exception {
-        VendorResponse response = new VendorResponse(1L, "V001", "공급사", null, null, null, null, 30, true);
+        VendorResponse response = new VendorResponse(1L, "V001", "공급사", null, null, null, null, 30, true, null);
         given(vendorService.findAll(any())).willReturn(
             PageResponse.from(new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1)));
 
@@ -51,8 +51,8 @@ class VendorControllerTest {
 
     @Test
     void create_validRequest_returns201() throws Exception {
-        VendorCreateRequest request = new VendorCreateRequest("V001", "공급사", null, null, null, null, 30);
-        VendorResponse response = new VendorResponse(1L, "V001", "공급사", null, null, null, null, 30, true);
+        VendorCreateRequest request = new VendorCreateRequest("V001", "공급사", null, null, null, null, 30, null);
+        VendorResponse response = new VendorResponse(1L, "V001", "공급사", null, null, null, null, 30, true, null);
         given(vendorService.create(any())).willReturn(response);
 
         mockMvc.perform(post("/api/finance/vendors")
@@ -69,7 +69,7 @@ class VendorControllerTest {
         mockMvc.perform(post("/api/finance/vendors")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(
-                    new VendorCreateRequest("V001", "공급사", null, null, null, null, 30))))
+                    new VendorCreateRequest("V001", "공급사", null, null, null, null, 30, null))))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.success").value(false));
     }

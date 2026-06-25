@@ -39,6 +39,8 @@ class ApInvoiceServiceTest {
     @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @Mock private com.erp.common.security.ApprovalAuthorityProvider approvalAuthorityProvider;
     @Mock private com.erp.common.audit.AuditService auditService;
+    @Mock private com.erp.finance.domain.repository.AccountRepository accountRepository;
+    @Mock private ApInvoicePostingService apInvoicePostingService;
 
     @InjectMocks
     private ApInvoiceService apInvoiceService;
@@ -63,7 +65,7 @@ class ApInvoiceServiceTest {
         ApInvoiceResponse result = apInvoiceService.create(
             new ApInvoiceCreateRequest("INV-001", 1L,
                 LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31),
-                new BigDecimal("100000"), "KRW", null));
+                new BigDecimal("100000"), "KRW", null, null));
 
         assertThat(result.invoiceNo()).isEqualTo("INV-001");
         assertThat(result.totalAmount()).isEqualByComparingTo("100000");
@@ -76,7 +78,7 @@ class ApInvoiceServiceTest {
         ErpException ex = assertThrows(ErpException.class, () ->
             apInvoiceService.create(new ApInvoiceCreateRequest("INV-001", 1L,
                 LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31),
-                new BigDecimal("100000"), "KRW", null)));
+                new BigDecimal("100000"), "KRW", null, null)));
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVOICE_NO_DUPLICATE);
     }
