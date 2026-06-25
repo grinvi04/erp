@@ -5,6 +5,7 @@ import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.ApprovalAuthorityProvider;
 import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
@@ -37,6 +38,7 @@ public class ApInvoiceService {
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CurrentUserProvider currentUserProvider;
     private final PermissionChecker permissionChecker;
+    private final ApprovalAuthorityProvider approvalAuthorityProvider;
     private final AuditService auditService;
 
     public ApInvoiceResponse findById(Long id) {
@@ -89,13 +91,20 @@ public class ApInvoiceService {
 
     @Transactional
     public ApInvoiceResponse approve(Long id) {
+        // 전결권(결재 권한) 보유자만 결재할 수 있다 — 전표 작성권(finance:write)과 분리.
+        permissionChecker.require(Permission.FINANCE_INVOICE_APPROVE);
         String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
         }
         ApInvoice invoice = getOrThrow(id);
+        // 직무분리(직무 분리): 본인이 작성한 전표는 결재할 수 없다.
         if (userId.equals(invoice.getCreatedBy())) {
             throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
+        // 전결규정(위임전결): 본인의 전결 한도를 초과하는 금액은 상위 전결권자만 결재 가능.
+        if (invoice.getTotalAmount().compareTo(approvalAuthorityProvider.getApprovalLimit()) > 0) {
+            throw new ErpException(ErrorCode.APPROVAL_LIMIT_EXCEEDED);
         }
         invoice.approve();
         if (invoice.getApprovalRequestId() != null) {

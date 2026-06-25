@@ -3,6 +3,7 @@ package com.erp.finance.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.CurrentUserProvider;
+import com.erp.common.security.Permission;
 import com.erp.common.workflow.ApprovalRequest;
 import com.erp.common.workflow.repository.ApprovalRequestRepository;
 import com.erp.finance.application.dto.ApInvoiceCreateRequest;
@@ -26,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class ApInvoiceServiceTest {
@@ -35,6 +37,7 @@ class ApInvoiceServiceTest {
     @Mock private ApprovalRequestRepository approvalRequestRepository;
     @Mock private CurrentUserProvider currentUserProvider;
     @Mock private com.erp.common.security.PermissionChecker permissionChecker;
+    @Mock private com.erp.common.security.ApprovalAuthorityProvider approvalAuthorityProvider;
     @Mock private com.erp.common.audit.AuditService auditService;
 
     @InjectMocks
@@ -97,10 +100,28 @@ class ApInvoiceServiceTest {
         invoice.submit();
         given(apInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
         given(currentUserProvider.getCurrentUserId()).willReturn("user-1");
+        // 전결 한도(1백만) ≥ 전표 금액(10만) → 결재 가능
+        given(approvalAuthorityProvider.getApprovalLimit()).willReturn(new BigDecimal("1000000"));
 
         ApInvoiceResponse result = apInvoiceService.approve(1L);
 
         assertThat(result.status().name()).isEqualTo("APPROVED");
+        verify(permissionChecker).require(Permission.FINANCE_INVOICE_APPROVE);
+    }
+
+    @Test
+    void approve_amountExceedsApprovalLimit_throwsLimitExceeded() {
+        // 전결규정: 전결 한도(5만)를 초과하는 전표(10만)는 상위 전결권자만 결재 가능.
+        ApInvoice invoice = buildInvoice();
+        invoice.submit();
+        given(apInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("user-1");
+        given(approvalAuthorityProvider.getApprovalLimit()).willReturn(new BigDecimal("50000"));
+
+        ErpException ex = assertThrows(ErpException.class, () -> apInvoiceService.approve(1L));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVAL_LIMIT_EXCEEDED);
+        assertThat(invoice.getStatus().name()).isEqualTo("PENDING_APPROVAL");
     }
 
     @Test

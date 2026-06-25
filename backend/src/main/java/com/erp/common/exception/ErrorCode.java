@@ -98,7 +98,8 @@ public enum ErrorCode {
     // Workflow
     APPROVAL_NOT_FOUND(HttpStatus.NOT_FOUND, "W001", "결재 요청을 찾을 수 없습니다"),
     APPROVAL_ALREADY_PROCESSED(HttpStatus.CONFLICT, "W002", "이미 처리된 결재 요청입니다"),
-    APPROVER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "W003", "결재 권한이 없습니다");
+    APPROVER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "W003", "결재 권한이 없습니다"),
+    APPROVAL_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "W004", "전결 한도를 초과하는 금액입니다 — 상위 전결권자의 결재가 필요합니다");
 
     private final HttpStatus httpStatus;
     private final String code;
