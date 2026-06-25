@@ -8,7 +8,9 @@ import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.VendorCreateRequest;
 import com.erp.finance.application.dto.VendorResponse;
 import com.erp.finance.application.dto.VendorUpdateRequest;
+import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.Vendor;
+import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class VendorService {
 
     private final VendorRepository vendorRepository;
+    private final AccountRepository accountRepository;
     private final PermissionChecker permissionChecker;
 
     public PageResponse<VendorResponse> findAll(Pageable pageable) {
@@ -41,6 +44,7 @@ public class VendorService {
         }
         Vendor vendor = Vendor.of(request.code(), request.name(), request.businessNo(),
             request.contactName(), request.contactEmail(), request.contactPhone(), request.paymentTerms());
+        applyPayablesAccount(vendor, request.payablesAccountId());
         return VendorResponse.from(vendorRepository.save(vendor));
     }
 
@@ -50,7 +54,18 @@ public class VendorService {
         Vendor vendor = getOrThrow(id);
         vendor.update(request.name(), request.businessNo(), request.contactName(),
             request.contactEmail(), request.contactPhone(), request.paymentTerms());
+        applyPayablesAccount(vendor, request.payablesAccountId());
         return VendorResponse.from(vendor);
+    }
+
+    private void applyPayablesAccount(Vendor vendor, Long accountId) {
+        if (accountId == null) {
+            vendor.assignPayablesAccount(null);
+            return;
+        }
+        Account account = accountRepository.findById(accountId)
+            .orElseThrow(() -> new ErpException(ErrorCode.ACCOUNT_NOT_FOUND));
+        vendor.assignPayablesAccount(account);
     }
 
     @Transactional

@@ -15,11 +15,14 @@ import com.erp.common.workflow.repository.ApprovalRequestRepository;
 import com.erp.finance.application.dto.ApInvoiceCreateRequest;
 import com.erp.finance.application.dto.ApInvoicePayRequest;
 import com.erp.finance.application.dto.ApInvoiceResponse;
+import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.ApInvoice;
 import com.erp.finance.domain.model.ApInvoiceStatus;
 import com.erp.finance.domain.model.Vendor;
+import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.VendorRepository;
+import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -40,6 +43,8 @@ public class ApInvoiceService {
     private final PermissionChecker permissionChecker;
     private final ApprovalAuthorityProvider approvalAuthorityProvider;
     private final AuditService auditService;
+    private final AccountRepository accountRepository;
+    private final ApInvoicePostingService apInvoicePostingService;
 
     // 전결규정상 결재자는 전결권·한도로 결정되므로 결재선에 특정인을 사전 지정하지 않는다(역할 sentinel).
     private static final String ROLE_BASED_APPROVER = "@role:" + Permission.FINANCE_INVOICE_APPROVE;
@@ -72,7 +77,26 @@ public class ApInvoiceService {
             .orElseThrow(() -> new ErpException(ErrorCode.VENDOR_NOT_FOUND));
         ApInvoice invoice = ApInvoice.create(request.invoiceNo(), vendor, request.invoiceDate(),
             request.dueDate(), request.totalAmount(), request.currency(), request.note());
+        addLines(invoice, request);
         return ApInvoiceResponse.from(apInvoiceRepository.save(invoice));
+    }
+
+    /** 차변 라인 추가(있으면) — 계정 검증 + 합계가 totalAmount와 일치하는지 확인. */
+    private void addLines(ApInvoice invoice, ApInvoiceCreateRequest request) {
+        if (request.lines() == null || request.lines().isEmpty()) {
+            return;
+        }
+        BigDecimal sum = BigDecimal.ZERO;
+        for (var lineReq : request.lines()) {
+            Account account = accountRepository.findById(lineReq.accountId())
+                .orElseThrow(() -> new ErpException(ErrorCode.ACCOUNT_NOT_FOUND));
+            account.assertPostable();
+            invoice.addLine(account, lineReq.amount(), lineReq.description());
+            sum = sum.add(lineReq.amount());
+        }
+        if (sum.compareTo(request.totalAmount()) != 0) {
+            throw new ErpException(ErrorCode.INVALID_INPUT);
+        }
     }
 
     @Transactional
@@ -118,6 +142,11 @@ public class ApInvoiceService {
                 .findById(invoice.getApprovalRequestId())
                 .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
             approvalRequest.approve(userId, null);
+        }
+        // 승인 → GL 자동 분개(DRAFT). 라인·공급업체 외상매입금계정이 있을 때만 생성·연결.
+        Long journalEntryId = apInvoicePostingService.postDraft(invoice);
+        if (journalEntryId != null) {
+            invoice.linkJournalEntry(journalEntryId);
         }
         auditService.record("AP_INVOICE", invoice.getId(),
             AuditLog.AuditAction.APPROVE, null, null);

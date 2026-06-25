@@ -66,6 +66,15 @@ public class JournalEntryService {
     @Transactional
     public JournalEntryResponse create(JournalEntryCreateRequest request) {
         permissionChecker.require(Permission.FINANCE_WRITE);
+        return createInternal(request);
+    }
+
+    /**
+     * 권한 게이트 없는 DRAFT 분개 생성 — finance 모듈 내부의 시스템 자동 전기(AP 전표 승인 등)용.
+     * 결재 승인이 분개 생성을 인가하므로 결재자에게 finance:write를 요구하지 않는다(package-private).
+     */
+    @Transactional
+    JournalEntryResponse createInternal(JournalEntryCreateRequest request) {
         FiscalPeriod period = fiscalPeriodRepository.findById(request.fiscalPeriodId())
             .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_PERIOD_NOT_FOUND));
 

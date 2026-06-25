@@ -11,11 +11,13 @@ public record VendorResponse(
     String contactEmail,
     String contactPhone,
     int paymentTerms,
-    boolean isActive
+    boolean isActive,
+    Long payablesAccountId
 ) {
     public static VendorResponse from(Vendor v) {
         return new VendorResponse(v.getId(), v.getCode(), v.getName(), v.getBusinessNo(),
             v.getContactName(), v.getContactEmail(), v.getContactPhone(),
-            v.getPaymentTerms(), v.isActive());
+            v.getPaymentTerms(), v.isActive(),
+            v.getPayablesAccount() != null ? v.getPayablesAccount().getId() : null);
     }
 }
