@@ -1,5 +1,5 @@
 import { apiGet, apiGetPage } from '@/lib/api'
-import type { ApInvoice, Vendor } from '@/types/finance'
+import type { Account, ApInvoice, Vendor } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
 import InvoicesClient from './invoices-client'
 
@@ -13,10 +13,11 @@ export default async function InvoicesPage(props: {
   const size = Number(sp.size ?? 20)
   const statusFilter = sp.status ? `&status=${sp.status}` : ''
 
-  const [data, vendors] = await Promise.all([
+  const [data, vendors, accounts] = await Promise.all([
     apiGetPage<ApInvoice>(`/api/finance/invoices?page=${page}&size=${size}${statusFilter}`),
     apiGet<Vendor[]>('/api/finance/vendors?size=1000'),
+    apiGet<Account[]>('/api/finance/accounts'),
   ])
 
-  return <InvoicesClient data={data as PageResponse<ApInvoice>} vendors={vendors} />
+  return <InvoicesClient data={data as PageResponse<ApInvoice>} vendors={vendors} accounts={accounts} />
 }

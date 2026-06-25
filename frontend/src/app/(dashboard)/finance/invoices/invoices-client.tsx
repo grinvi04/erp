@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, SendIcon, CheckIcon, BanIcon } from 'lucide-react'
+import { PlusIcon, SendIcon, CheckIcon, BanIcon, Trash2Icon, BookOpenIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,8 +20,10 @@ import {
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { createInvoice, submitInvoice, approveInvoice, payInvoice, cancelInvoice } from './actions'
-import type { ApInvoice, ApInvoiceStatus, Vendor } from '@/types/finance'
+import type { Account, ApInvoice, ApInvoiceStatus, Vendor } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
+
+type LineForm = { accountId: string; amount: string; description: string }
 
 const STATUS_LABEL: Record<ApInvoiceStatus, string> = {
   DRAFT: '임시', PENDING_APPROVAL: '결재대기', APPROVED: '승인', PAID: '완납', CANCELLED: '취소',
@@ -44,9 +46,11 @@ type DialogState =
 interface Props {
   data: PageResponse<ApInvoice>
   vendors: Vendor[]
+  accounts: Account[]
 }
 
-export default function InvoicesClient({ data, vendors }: Props) {
+export default function InvoicesClient({ data, vendors, accounts }: Props) {
+  const postableAccounts = accounts.filter((a) => !a.isSummary && a.isActive)
   const { can } = usePermissions()
   const canWrite = can(PERM.FINANCE_WRITE)
   // 결재(전결)는 작성권과 분리 — 별도 전결권 보유자만. 서버가 전결 한도까지 최종 검증한다.
@@ -63,16 +67,31 @@ export default function InvoicesClient({ data, vendors }: Props) {
   const [currency, setCurrency] = useState('KRW')
   const [note, setNote] = useState('')
   const [payAmount, setPayAmount] = useState('')
+  const [lines, setLines] = useState<LineForm[]>([])
+
+  // 라인이 있으면 총금액은 라인 합계로 자동 산출(서버가 합계=총금액을 BigDecimal로 검증).
+  // 정수 전(錢) 단위로 합산해 부동소수 오차(0.1+0.2≠0.3)를 피한다 — 금액 컬럼은 소수 2자리.
+  const linesTotal = lines.reduce((s, l) => s + Math.round((Number(l.amount) || 0) * 100), 0) / 100
+  const effectiveTotal = lines.length > 0 ? String(linesTotal) : totalAmount
+
+  const addLine = () => setLines((ls) => [...ls, { accountId: '', amount: '', description: '' }])
+  const removeLine = (i: number) => setLines((ls) => ls.filter((_, idx) => idx !== i))
+  const updateLine = (i: number, patch: Partial<LineForm>) =>
+    setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
 
   const openCreate = () => {
     setInvoiceNo(''); setVendorId(''); setInvoiceDate(''); setDueDate('')
-    setTotalAmount(''); setCurrency('KRW'); setNote('')
+    setTotalAmount(''); setCurrency('KRW'); setNote(''); setLines([])
     setDialog({ type: 'create' })
   }
 
   const handleCreate = () => {
-    if (!invoiceNo.trim() || !vendorId || !invoiceDate || !dueDate || !totalAmount) {
+    if (!invoiceNo.trim() || !vendorId || !invoiceDate || !dueDate || !effectiveTotal || Number(effectiveTotal) <= 0) {
       toast.error('필수 항목을 모두 입력해주세요')
+      return
+    }
+    if (lines.length > 0 && lines.some((l) => !l.accountId || !l.amount || Number(l.amount) <= 0)) {
+      toast.error('분개 라인의 계정과 금액을 모두 입력해주세요')
       return
     }
     startTransition(async () => {
@@ -81,9 +100,12 @@ export default function InvoicesClient({ data, vendors }: Props) {
           invoiceNo: invoiceNo.trim(),
           vendorId: Number(vendorId),
           invoiceDate, dueDate,
-          totalAmount: Number(totalAmount),
+          totalAmount: Number(effectiveTotal),
           currency: currency || 'KRW',
           note: note || null,
+          lines: lines.length > 0
+            ? lines.map((l) => ({ accountId: Number(l.accountId), amount: Number(l.amount), description: l.description || null }))
+            : null,
         })
         toast.success('인보이스가 등록되었습니다')
         close()
@@ -175,7 +197,14 @@ export default function InvoicesClient({ data, vendors }: Props) {
                   {fmt(inv.outstandingAmount, inv.currency)}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={STATUS_VARIANT[inv.status]}>{STATUS_LABEL[inv.status]}</Badge>
+                  <span className="inline-flex items-center gap-1">
+                    <Badge variant={STATUS_VARIANT[inv.status]}>{STATUS_LABEL[inv.status]}</Badge>
+                    {inv.journalEntryId && (
+                      <span title={`연결 분개 #${inv.journalEntryId}`} className="inline-flex items-center text-gray-400">
+                        <BookOpenIcon className="size-3.5" />
+                      </span>
+                    )}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
@@ -229,7 +258,7 @@ export default function InvoicesClient({ data, vendors }: Props) {
 
       {/* Create Dialog */}
       <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>새 인보이스 등록</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid grid-cols-2 gap-4">
@@ -262,8 +291,10 @@ export default function InvoicesClient({ data, vendors }: Props) {
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-1.5 col-span-2">
                 <Label>총금액 *</Label>
-                <Input type="number" min={0.01} step={0.01} value={totalAmount}
-                  onChange={(e) => setTotalAmount(e.target.value)} placeholder="0" />
+                <Input type="number" min={0.01} step={0.01} value={effectiveTotal}
+                  readOnly={lines.length > 0}
+                  onChange={(e) => setTotalAmount(e.target.value)} placeholder="0"
+                  className={lines.length > 0 ? 'bg-gray-50 text-gray-600' : undefined} />
               </div>
               <div className="grid gap-1.5">
                 <Label>통화</Label>
@@ -277,6 +308,49 @@ export default function InvoicesClient({ data, vendors }: Props) {
                 </Select>
               </div>
             </div>
+
+            {/* 분개 라인(차변) — 입력 시 승인 때 GL 자동 분개. 합계가 총금액이 된다. */}
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label>분개 라인 (차변 — 비용/자산·부가세)</Label>
+                <Button type="button" variant="outline" size="xs" onClick={addLine}>
+                  <PlusIcon />라인 추가
+                </Button>
+              </div>
+              {lines.length === 0 ? (
+                <p className="text-xs text-gray-400">
+                  라인을 추가하면 승인 시 GL 분개가 자동 생성됩니다 (대변은 공급업체 외상매입금 계정).
+                  미입력 시 분개 없이 전표만 등록됩니다.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {lines.map((line, i) => (
+                    <div key={i} className="flex gap-2 items-start">
+                      <div className="flex-1">
+                        <Select value={line.accountId} onValueChange={(v) => updateLine(i, { accountId: v ?? '' })}>
+                          <SelectTrigger className="w-full"><SelectValue placeholder="계정 선택" /></SelectTrigger>
+                          <SelectContent>
+                            {postableAccounts.map((a) => (
+                              <SelectItem key={a.id} value={String(a.id)}>{a.code} {a.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Input type="number" min={0.01} step={0.01} className="w-32" placeholder="금액"
+                        value={line.amount} onChange={(e) => updateLine(i, { amount: e.target.value })} />
+                      <Input className="flex-1" placeholder="적요(선택)"
+                        value={line.description} onChange={(e) => updateLine(i, { description: e.target.value })} />
+                      <Button type="button" variant="ghost" size="icon-xs" title="삭제"
+                        onClick={() => removeLine(i)}><Trash2Icon className="text-destructive" /></Button>
+                    </div>
+                  ))}
+                  <div className="text-right text-sm text-gray-600">
+                    라인 합계: <span className="font-medium">{fmt(linesTotal, currency)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid gap-1.5">
               <Label>비고</Label>
               <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />

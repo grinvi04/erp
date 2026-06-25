@@ -28,6 +28,7 @@ export interface Vendor {
   contactPhone: string | null
   paymentTerms: number
   isActive: boolean
+  payablesAccountId: number | null
 }
 
 export interface JournalLine {

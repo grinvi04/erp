@@ -14,10 +14,15 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { createVendor, updateVendor, deactivateVendor } from './actions'
-import type { Vendor } from '@/types/finance'
+import type { Account, Vendor } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
+
+const NONE = 'NONE'
 
 type DialogMode =
   | { type: 'none' }
@@ -25,9 +30,10 @@ type DialogMode =
   | { type: 'edit'; vendor: Vendor }
   | { type: 'deactivate'; vendor: Vendor }
 
-interface Props { data: PageResponse<Vendor> }
+interface Props { data: PageResponse<Vendor>; accounts: Account[] }
 
-export default function VendorsClient({ data }: Props) {
+export default function VendorsClient({ data, accounts }: Props) {
+  const liabilityAccounts = accounts.filter((a) => !a.isSummary && a.isActive && a.accountType === 'LIABILITY')
   const { can } = usePermissions()
   const canWrite = can(PERM.FINANCE_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -41,10 +47,11 @@ export default function VendorsClient({ data }: Props) {
   const [contactEmail, setContactEmail] = useState('')
   const [contactPhone, setContactPhone] = useState('')
   const [paymentTerms, setPaymentTerms] = useState('30')
+  const [payablesAccountId, setPayablesAccountId] = useState('')
 
   const openCreate = () => {
     setCode(''); setName(''); setBusinessNo(''); setContactName('')
-    setContactEmail(''); setContactPhone(''); setPaymentTerms('30')
+    setContactEmail(''); setContactPhone(''); setPaymentTerms('30'); setPayablesAccountId('')
     setDialog({ type: 'create' })
   }
 
@@ -52,6 +59,7 @@ export default function VendorsClient({ data }: Props) {
     setName(vendor.name); setBusinessNo(vendor.businessNo ?? '')
     setContactName(vendor.contactName ?? ''); setContactEmail(vendor.contactEmail ?? '')
     setContactPhone(vendor.contactPhone ?? ''); setPaymentTerms(String(vendor.paymentTerms))
+    setPayablesAccountId(vendor.payablesAccountId != null ? String(vendor.payablesAccountId) : '')
     setDialog({ type: 'edit', vendor })
   }
 
@@ -64,6 +72,7 @@ export default function VendorsClient({ data }: Props) {
           businessNo: businessNo || null, contactName: contactName || null,
           contactEmail: contactEmail || null, contactPhone: contactPhone || null,
           paymentTerms: Number(paymentTerms) || 0,
+          payablesAccountId: payablesAccountId ? Number(payablesAccountId) : null,
         })
         toast.success('공급업체가 등록되었습니다')
         close()
@@ -80,6 +89,7 @@ export default function VendorsClient({ data }: Props) {
           businessNo: businessNo || null, contactName: contactName || null,
           contactEmail: contactEmail || null, contactPhone: contactPhone || null,
           paymentTerms: Number(paymentTerms) || 0,
+          payablesAccountId: payablesAccountId ? Number(payablesAccountId) : null,
         })
         toast.success('공급업체 정보가 수정되었습니다')
         close()
@@ -129,9 +139,25 @@ export default function VendorsClient({ data }: Props) {
           <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
         </div>
       </div>
-      <div className="grid gap-1.5 w-32">
-        <Label>결제기한 (일)</Label>
-        <Input type="number" min={0} value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-1.5">
+          <Label>결제기한 (일)</Label>
+          <Input type="number" min={0} value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label>외상매입금 계정 (대변)</Label>
+          <Select value={payablesAccountId || NONE}
+            onValueChange={(v) => setPayablesAccountId(!v || v === NONE ? '' : v)}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="미설정" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>미설정</SelectItem>
+              {liabilityAccounts.map((a) => (
+                <SelectItem key={a.id} value={String(a.id)}>{a.code} {a.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-gray-400">설정 시 AP 전표 승인이 이 계정으로 자동 분개됩니다.</p>
+        </div>
       </div>
     </div>
   )

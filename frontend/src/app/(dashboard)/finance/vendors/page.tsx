@@ -1,5 +1,5 @@
-import { apiGetPage } from '@/lib/api'
-import type { Vendor } from '@/types/finance'
+import { apiGet, apiGetPage } from '@/lib/api'
+import type { Account, Vendor } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
 import VendorsClient from './vendors-client'
 
@@ -12,6 +12,9 @@ export default async function VendorsPage(props: {
   const page = Number(sp.page ?? 0)
   const size = Number(sp.size ?? 20)
 
-  const data = await apiGetPage<Vendor>(`/api/finance/vendors?page=${page}&size=${size}`)
-  return <VendorsClient data={data as PageResponse<Vendor>} />
+  const [data, accounts] = await Promise.all([
+    apiGetPage<Vendor>(`/api/finance/vendors?page=${page}&size=${size}`),
+    apiGet<Account[]>('/api/finance/accounts'),
+  ])
+  return <VendorsClient data={data as PageResponse<Vendor>} accounts={accounts} />
 }
