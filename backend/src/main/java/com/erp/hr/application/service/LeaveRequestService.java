@@ -3,6 +3,8 @@ package com.erp.hr.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.CurrentUserProvider;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.common.workflow.ApprovalRequest;
 import com.erp.common.workflow.ApprovalStatus;
 import com.erp.common.workflow.ApprovalStep;
@@ -38,18 +40,22 @@ public class LeaveRequestService {
     private final LeavePolicyRepository leavePolicyRepository;
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final PermissionChecker permissionChecker;
 
     public Page<LeaveRequestResponse> findAll(Pageable pageable) {
+        permissionChecker.require(Permission.HR_LEAVE_READ);
         return leaveRequestRepository.findAll(pageable).map(LeaveRequestResponse::from);
     }
 
     public Page<LeaveRequestResponse> findByEmployee(Long employeeId, Pageable pageable) {
+        permissionChecker.require(Permission.HR_LEAVE_READ);
         return leaveRequestRepository.findByEmployeeId(employeeId, pageable)
             .map(LeaveRequestResponse::from);
     }
 
     @Transactional
     public LeaveRequestResponse create(LeaveRequestCreateRequest request) {
+        permissionChecker.require(Permission.HR_LEAVE_WRITE);
         Employee employee = employeeRepository.findById(request.employeeId())
             .orElseThrow(() -> new ErpException(ErrorCode.EMPLOYEE_NOT_FOUND));
         LeavePolicy policy = leavePolicyRepository.findById(request.leavePolicyId())

@@ -2,6 +2,8 @@ package com.erp.hr.application.service;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.hr.application.dto.PositionCreateRequest;
 import com.erp.hr.application.dto.PositionResponse;
 import com.erp.hr.application.dto.PositionUpdateRequest;
@@ -22,8 +24,10 @@ public class PositionService {
 
     private final PositionRepository positionRepository;
     private final EmployeeRepository employeeRepository;
+    private final PermissionChecker permissionChecker;
 
     public List<PositionResponse> findAll() {
+        permissionChecker.require(Permission.HR_POSITION_READ);
         return positionRepository.findAll().stream()
             .sorted(Comparator.comparingInt(Position::getLevelOrder))
             .map(PositionResponse::from)
@@ -31,11 +35,13 @@ public class PositionService {
     }
 
     public PositionResponse findById(Long id) {
+        permissionChecker.require(Permission.HR_POSITION_READ);
         return PositionResponse.from(getOrThrow(id));
     }
 
     @Transactional
     public PositionResponse create(PositionCreateRequest request) {
+        permissionChecker.require(Permission.HR_POSITION_WRITE);
         if (positionRepository.existsByCode(request.code())) {
             throw new ErpException(ErrorCode.DUPLICATE_CODE);
         }
@@ -45,6 +51,7 @@ public class PositionService {
 
     @Transactional
     public PositionResponse update(Long id, PositionUpdateRequest request) {
+        permissionChecker.require(Permission.HR_POSITION_WRITE);
         Position position = getOrThrow(id);
         position.update(request.name(), request.levelOrder());
         return PositionResponse.from(position);
@@ -52,6 +59,7 @@ public class PositionService {
 
     @Transactional
     public void delete(Long id) {
+        permissionChecker.require(Permission.HR_POSITION_WRITE);
         Position position = getOrThrow(id);
         if (employeeRepository.existsByPositionId(id)) {
             throw new ErpException(ErrorCode.POSITION_IN_USE);

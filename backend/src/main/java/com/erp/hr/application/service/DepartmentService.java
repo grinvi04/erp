@@ -2,6 +2,8 @@ package com.erp.hr.application.service;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.hr.application.dto.DepartmentCreateRequest;
 import com.erp.hr.application.dto.DepartmentResponse;
 import com.erp.hr.application.dto.DepartmentUpdateRequest;
@@ -21,19 +23,23 @@ public class DepartmentService {
 
     private final DepartmentRepository departmentRepository;
     private final EmployeeRepository employeeRepository;
+    private final PermissionChecker permissionChecker;
 
     public List<DepartmentResponse> findAll() {
+        permissionChecker.require(Permission.HR_DEPARTMENT_READ);
         return departmentRepository.findAll().stream()
             .map(DepartmentResponse::from)
             .toList();
     }
 
     public DepartmentResponse findById(Long id) {
+        permissionChecker.require(Permission.HR_DEPARTMENT_READ);
         return DepartmentResponse.from(getOrThrow(id));
     }
 
     @Transactional
     public DepartmentResponse create(DepartmentCreateRequest request) {
+        permissionChecker.require(Permission.HR_DEPARTMENT_WRITE);
         if (departmentRepository.existsByCode(request.code())) {
             throw new ErpException(ErrorCode.DUPLICATE_CODE);
         }
@@ -49,6 +55,7 @@ public class DepartmentService {
 
     @Transactional
     public DepartmentResponse update(Long id, DepartmentUpdateRequest request) {
+        permissionChecker.require(Permission.HR_DEPARTMENT_WRITE);
         Department dept = getOrThrow(id);
         dept.rename(request.name());
         return DepartmentResponse.from(dept);
@@ -56,6 +63,7 @@ public class DepartmentService {
 
     @Transactional
     public void delete(Long id) {
+        permissionChecker.require(Permission.HR_DEPARTMENT_WRITE);
         Department dept = getOrThrow(id);
         if (!departmentRepository.findByParentId(id).isEmpty()) {
             throw new ErpException(ErrorCode.DEPARTMENT_HAS_CHILDREN);

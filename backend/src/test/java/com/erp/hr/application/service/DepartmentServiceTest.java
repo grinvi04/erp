@@ -32,6 +32,9 @@ class DepartmentServiceTest {
     @Mock
     private EmployeeRepository employeeRepository;
 
+    @Mock
+    private com.erp.common.security.PermissionChecker permissionChecker;
+
     @InjectMocks
     private DepartmentService departmentService;
 

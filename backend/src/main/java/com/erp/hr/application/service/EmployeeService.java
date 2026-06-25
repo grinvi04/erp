@@ -2,6 +2,8 @@ package com.erp.hr.application.service;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.hr.application.dto.EmployeeCreateRequest;
 import com.erp.hr.application.dto.EmployeePromoteRequest;
 import com.erp.hr.application.dto.EmployeeResponse;
@@ -34,8 +36,10 @@ public class EmployeeService {
     private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
     private final JobGradeRepository jobGradeRepository;
+    private final PermissionChecker permissionChecker;
 
     public Page<EmployeeResponse> findAll(EmployeeStatus status, Long departmentId, Pageable pageable) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_READ);
         Specification<Employee> spec = Specification.where(null);
         if (status != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
@@ -47,11 +51,13 @@ public class EmployeeService {
     }
 
     public EmployeeResponse findById(Long id) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_READ);
         return EmployeeResponse.from(getOrThrow(id));
     }
 
     @Transactional
     public EmployeeResponse create(EmployeeCreateRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         if (employeeRepository.existsByEmployeeNo(request.employeeNo())) {
             throw new ErpException(ErrorCode.DUPLICATE_CODE);
         }
@@ -82,6 +88,7 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeResponse transfer(Long id, EmployeeTransferRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
         if (employee.isTerminated()) {
             throw new ErpException(ErrorCode.EMPLOYEE_ALREADY_TERMINATED);
@@ -96,6 +103,7 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeResponse promote(Long id, EmployeePromoteRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
         if (employee.isTerminated()) {
             throw new ErpException(ErrorCode.EMPLOYEE_ALREADY_TERMINATED);
@@ -113,6 +121,7 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeResponse terminate(Long id, EmployeeTerminateRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
         try {
             employee.terminate(request.terminationDate());
@@ -124,6 +133,7 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeResponse onLeave(Long id) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
         try {
             employee.onLeave();
@@ -135,6 +145,7 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeResponse returnFromLeave(Long id) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
         try {
             employee.returnFromLeave();
@@ -146,6 +157,7 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeResponse update(Long id, EmployeeUpdateRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
         if (employee.isTerminated()) {
             throw new ErpException(ErrorCode.EMPLOYEE_ALREADY_TERMINATED);

@@ -2,6 +2,8 @@ package com.erp.hr.application.service;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.hr.application.dto.ContractCreateRequest;
 import com.erp.hr.application.dto.ContractResponse;
 import com.erp.hr.domain.model.Contract;
@@ -27,8 +29,10 @@ public class ContractService {
     private final EmployeeRepository employeeRepository;
     private final PositionRepository positionRepository;
     private final JobGradeRepository jobGradeRepository;
+    private final PermissionChecker permissionChecker;
 
     public List<ContractResponse> findByEmployee(Long employeeId) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_READ);
         employeeRepository.findById(employeeId)
             .orElseThrow(() -> new ErpException(ErrorCode.EMPLOYEE_NOT_FOUND));
         return contractRepository.findByEmployeeId(employeeId).stream()
@@ -38,6 +42,7 @@ public class ContractService {
 
     @Transactional
     public ContractResponse create(Long employeeId, ContractCreateRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = employeeRepository.findById(employeeId)
             .orElseThrow(() -> new ErpException(ErrorCode.EMPLOYEE_NOT_FOUND));
         Position position = positionRepository.findById(request.positionId())
