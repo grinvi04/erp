@@ -2,8 +2,10 @@ package com.erp.common.security;
 
 import com.erp.common.AbstractIntegrationTest;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,6 +21,7 @@ class AuthorizationResolverIntegrationTest extends AbstractIntegrationTest {
     @Autowired private RoleRepository roleRepository;
     @Autowired private UserRoleRepository userRoleRepository;
     @Autowired private UserAccessProfileRepository accessProfileRepository;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @Test
     void permissionCodes_unionOfAssignedRolePermissions() {
@@ -51,6 +54,20 @@ class AuthorizationResolverIntegrationTest extends AbstractIntegrationTest {
         userRoleRepository.save(UserRole.of(TEST_TENANT_ID, "mallory", foreignRole));
 
         assertThat(authorizationResolver.permissionCodes(TEST_TENANT_ID, "mallory")).isEmpty();
+    }
+
+    @Test
+    void grant_persistsParentTenantIdOnEachRolePermissionRow() {
+        // AC-1: role_permission 행은 부모 역할의 tenant_id를 DB 레벨로 보유해야 한다
+        // (앱 쿼리 필터만이 아니라 테이블 자체의 심층 방어).
+        Role hr = roleRepository.saveAndFlush(
+                roleWith("HR_MANAGER", "hr:employee:read", "hr:employee:write"));
+
+        List<Long> tenantIds = jdbcTemplate.queryForList(
+                "SELECT tenant_id FROM common.role_permission WHERE role_id = ?",
+                Long.class, hr.getId());
+
+        assertThat(tenantIds).hasSize(2).containsOnly(TEST_TENANT_ID);
     }
 
     @Test

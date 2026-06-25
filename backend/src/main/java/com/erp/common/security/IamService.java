@@ -76,8 +76,7 @@ public class IamService {
         // 미지 권한 코드는 변경(clear) 전에 거부 — 부분 변경 방지.
         validatePermissions(request.permissions());
         role.rename(request.name(), request.description());
-        role.getPermissions().clear();
-        grantAll(role, request.permissions());
+        role.replacePermissions(request.permissions());
         auditService.record("ROLE", role.getId(), AuditLog.AuditAction.UPDATE, null,
             json(Map.of("code", role.getCode())));
         return RoleResponse.from(role);
