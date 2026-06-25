@@ -106,8 +106,12 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
       return
     }
     // 공급 라인 + (부가세 라인) → 승인 시 GL 차변. 합계 = effectiveTotal(서버가 균형 검증).
+    // 금액은 소수 2자리(전)로 반올림해 전송 — 라인합계(전 단위)·서버 BigDecimal 검증과 일치
+    // (예: 사용자가 2자리 초과 입력/붙여넣기해도 총금액 불일치로 거부되지 않게).
     const supplyLines = lines.map((l) => ({
-      accountId: Number(l.accountId), amount: Number(l.amount), description: l.description || null,
+      accountId: Number(l.accountId),
+      amount: Math.round(Number(l.amount) * 100) / 100,
+      description: l.description || null,
     }))
     const vatLine = vatAccountId && vatNum > 0
       ? [{ accountId: Number(vatAccountId), amount: vatNum, description: '부가세대급금' }]
