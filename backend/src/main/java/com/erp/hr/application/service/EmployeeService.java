@@ -1,5 +1,7 @@
 package com.erp.hr.application.service;
 
+import com.erp.common.audit.AuditLog;
+import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.Permission;
@@ -38,6 +40,12 @@ public class EmployeeService {
     private final JobGradeRepository jobGradeRepository;
     private final PermissionChecker permissionChecker;
     private final HrDataScopeResolver dataScopeResolver;
+    private final AuditService auditService;
+
+    /** 감사 로그 afterData에 기록할 인사 변경 이벤트 태그(통제된 상수값 — 주입 위험 없음). */
+    private static String event(String name) {
+        return "{\"event\":\"" + name + "\"}";
+    }
 
     public Page<EmployeeResponse> findAll(EmployeeStatus status, Long departmentId, Pageable pageable) {
         permissionChecker.require(Permission.HR_EMPLOYEE_READ);
@@ -90,7 +98,9 @@ public class EmployeeService {
             Employee manager = getOrThrow(request.managerId());
             employee.assignManager(manager);
         }
-        return EmployeeResponse.from(employeeRepository.save(employee));
+        Employee saved = employeeRepository.save(employee);
+        auditService.record("EMPLOYEE", saved.getId(), AuditLog.AuditAction.CREATE, null, event("HIRE"));
+        return EmployeeResponse.from(saved);
     }
 
     @Transactional
@@ -105,6 +115,7 @@ public class EmployeeService {
         Position position = positionRepository.findById(request.positionId())
             .orElseThrow(() -> new ErpException(ErrorCode.POSITION_NOT_FOUND));
         employee.transfer(department, position);
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("TRANSFER"));
         return EmployeeResponse.from(employee);
     }
 
@@ -123,6 +134,7 @@ public class EmployeeService {
                 .orElseThrow(() -> new ErpException(ErrorCode.JOB_GRADE_NOT_FOUND));
         }
         employee.promote(position, jobGrade, request.baseSalary());
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("PROMOTE"));
         return EmployeeResponse.from(employee);
     }
 
@@ -135,6 +147,7 @@ public class EmployeeService {
         } catch (IllegalStateException e) {
             throw new ErpException(ErrorCode.EMPLOYEE_ALREADY_TERMINATED);
         }
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("TERMINATE"));
         return EmployeeResponse.from(employee);
     }
 
@@ -147,6 +160,7 @@ public class EmployeeService {
         } catch (IllegalStateException e) {
             throw new ErpException(ErrorCode.EMPLOYEE_STATUS_CONFLICT);
         }
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("LEAVE_START"));
         return EmployeeResponse.from(employee);
     }
 
@@ -159,6 +173,7 @@ public class EmployeeService {
         } catch (IllegalStateException e) {
             throw new ErpException(ErrorCode.EMPLOYEE_STATUS_CONFLICT);
         }
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("LEAVE_RETURN"));
         return EmployeeResponse.from(employee);
     }
 
@@ -192,6 +207,7 @@ public class EmployeeService {
             }
             employee.linkUserAccount(newUserId);
         }
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("UPDATE"));
         return EmployeeResponse.from(employee);
     }
 
