@@ -1,6 +1,8 @@
 'use client'
 import { useState, useTransition, useMemo } from 'react'
 import { toast } from 'sonner'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 import { PlusIcon, PencilIcon, BanIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +34,8 @@ type DialogMode =
 interface Props { accounts: Account[] }
 
 export default function AccountsClient({ accounts }: Props) {
+  const { can } = usePermissions()
+  const canWrite = can(PERM.FINANCE_WRITE)
   const accountById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts])
 
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -104,7 +108,7 @@ export default function AccountsClient({ accounts }: Props) {
           <h1 className="text-2xl font-semibold text-gray-900">계정과목</h1>
           <p className="text-sm text-gray-500 mt-1">회계 계정과목 체계를 관리합니다</p>
         </div>
-        <Button onClick={openCreate}><PlusIcon />새 계정과목</Button>
+        {canWrite && <Button onClick={openCreate}><PlusIcon />새 계정과목</Button>}
       </div>
 
       <div className="bg-white rounded-lg border">
@@ -148,10 +152,12 @@ export default function AccountsClient({ accounts }: Props) {
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(acc)}>
-                        <PencilIcon />
-                      </Button>
-                      {acc.isActive && (
+                      {canWrite && (
+                        <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(acc)}>
+                          <PencilIcon />
+                        </Button>
+                      )}
+                      {canWrite && acc.isActive && (
                         <Button
                           variant="ghost" size="icon-xs" title="비활성화"
                           onClick={() => setDialog({ type: 'deactivate', acc })}

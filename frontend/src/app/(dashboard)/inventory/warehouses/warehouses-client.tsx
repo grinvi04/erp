@@ -1,6 +1,8 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 import { PlusIcon, PencilIcon, BanIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,6 +27,8 @@ type DialogMode =
 interface Props { warehouses: Warehouse[] }
 
 export default function WarehousesClient({ warehouses }: Props) {
+  const { can } = usePermissions()
+  const canWrite = can(PERM.INVENTORY_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
@@ -84,7 +88,7 @@ export default function WarehousesClient({ warehouses }: Props) {
           <h1 className="text-2xl font-semibold text-gray-900">창고 관리</h1>
           <p className="text-sm text-gray-500 mt-1">물류 창고 정보를 관리합니다</p>
         </div>
-        <Button onClick={openCreate}><PlusIcon />새 창고</Button>
+        {canWrite && <Button onClick={openCreate}><PlusIcon />새 창고</Button>}
       </div>
 
       <div className="bg-white rounded-lg border">
@@ -120,10 +124,12 @@ export default function WarehousesClient({ warehouses }: Props) {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(wh)}>
-                      <PencilIcon />
-                    </Button>
-                    {wh.active && (
+                    {canWrite && (
+                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(wh)}>
+                        <PencilIcon />
+                      </Button>
+                    )}
+                    {canWrite && wh.active && (
                       <Button
                         variant="ghost" size="icon-xs" title="비활성화"
                         onClick={() => setDialog({ type: 'deactivate', wh })}

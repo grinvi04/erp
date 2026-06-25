@@ -1,6 +1,8 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 import { PlusIcon, SendIcon, CheckIcon, BanIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,6 +47,8 @@ interface Props {
 }
 
 export default function InvoicesClient({ data, vendors }: Props) {
+  const { can } = usePermissions()
+  const canWrite = can(PERM.FINANCE_WRITE)
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
@@ -131,7 +135,7 @@ export default function InvoicesClient({ data, vendors }: Props) {
           <h1 className="text-2xl font-semibold text-gray-900">매입 인보이스</h1>
           <p className="text-sm text-gray-500 mt-1">공급업체 인보이스 및 지급 현황을 관리합니다</p>
         </div>
-        <Button onClick={openCreate}><PlusIcon />새 인보이스</Button>
+        {canWrite && <Button onClick={openCreate}><PlusIcon />새 인보이스</Button>}
       </div>
 
       <div className="bg-white rounded-lg border overflow-hidden">
@@ -173,7 +177,7 @@ export default function InvoicesClient({ data, vendors }: Props) {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
-                    {inv.status === 'DRAFT' && (
+                    {canWrite && inv.status === 'DRAFT' && (
                       <>
                         <Button variant="ghost" size="icon-xs" title="결재상신"
                           onClick={() => handleSubmit(inv)} disabled={isPending}>
@@ -185,7 +189,7 @@ export default function InvoicesClient({ data, vendors }: Props) {
                         </Button>
                       </>
                     )}
-                    {inv.status === 'PENDING_APPROVAL' && (
+                    {canWrite && inv.status === 'PENDING_APPROVAL' && (
                       <>
                         <Button variant="ghost" size="icon-xs" title="승인"
                           onClick={() => handleApprove(inv)} disabled={isPending}>
@@ -197,7 +201,7 @@ export default function InvoicesClient({ data, vendors }: Props) {
                         </Button>
                       </>
                     )}
-                    {inv.status === 'APPROVED' && (
+                    {canWrite && inv.status === 'APPROVED' && (
                       <Button variant="ghost" size="sm" title="지급처리"
                         onClick={() => { setPayAmount(String(inv.outstandingAmount)); setDialog({ type: 'pay', inv }) }}
                         disabled={isPending}>

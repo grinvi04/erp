@@ -1,6 +1,8 @@
 'use client'
 import { useState, useTransition, useRef } from 'react'
 import { toast } from 'sonner'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +34,8 @@ interface Props {
 }
 
 export default function ContactsClient({ accounts }: Props) {
+  const { can } = usePermissions()
+  const canWrite = can(PERM.CRM_WRITE)
   const [selectedAccountId, setSelectedAccountId] = useState('')
   const [contacts, setContacts] = useState<Contact[]>([])
   const [isLoadingContacts, setIsLoadingContacts] = useState(false)
@@ -190,9 +194,11 @@ export default function ContactsClient({ accounts }: Props) {
           <h1 className="text-2xl font-semibold text-gray-900">담당자</h1>
           <p className="text-sm text-gray-500 mt-1">고객사 담당자 정보를 관리합니다</p>
         </div>
-        <Button onClick={openCreate} disabled={!selectedAccountId}>
-          <PlusIcon />새 담당자
-        </Button>
+        {canWrite && (
+          <Button onClick={openCreate} disabled={!selectedAccountId}>
+            <PlusIcon />새 담당자
+          </Button>
+        )}
       </div>
 
       <div className="mb-4 max-w-md">
@@ -256,13 +262,17 @@ export default function ContactsClient({ accounts }: Props) {
                     <TableCell>{ct.isPrimary && <Badge>주 담당자</Badge>}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(ct)}>
-                          <PencilIcon />
-                        </Button>
-                        <Button variant="ghost" size="icon-xs" title="삭제"
-                          onClick={() => setDialog({ type: 'delete', contact: ct })}>
-                          <Trash2Icon className="text-destructive" />
-                        </Button>
+                        {canWrite && (
+                          <>
+                            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(ct)}>
+                              <PencilIcon />
+                            </Button>
+                            <Button variant="ghost" size="icon-xs" title="삭제"
+                              onClick={() => setDialog({ type: 'delete', contact: ct })}>
+                              <Trash2Icon className="text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

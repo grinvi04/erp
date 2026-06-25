@@ -1,6 +1,8 @@
 'use client'
 import { useState, useTransition, useMemo } from 'react'
 import { toast } from 'sonner'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 import { PlusIcon, TrashIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,6 +53,8 @@ interface Props {
 }
 
 export default function MovementsClient({ data, items, warehouses }: Props) {
+  const { can } = usePermissions()
+  const canWrite = can(PERM.INVENTORY_WRITE)
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const [isLoadingLocations, setIsLoadingLocations] = useState(false)
@@ -152,7 +156,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
           <h1 className="text-2xl font-semibold text-gray-900">재고 이동</h1>
           <p className="text-sm text-gray-500 mt-1">재고 입출고 및 이전 내역을 관리합니다</p>
         </div>
-        <Button onClick={openCreate}><PlusIcon />새 이동 등록</Button>
+        {canWrite && <Button onClick={openCreate}><PlusIcon />새 이동 등록</Button>}
       </div>
 
       <div className="bg-white rounded-lg border overflow-hidden">
@@ -197,7 +201,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                   <Badge variant={STATUS_VARIANT[mv.status]}>{STATUS_LABEL[mv.status]}</Badge>
                 </TableCell>
                 <TableCell>
-                  {mv.status === 'DRAFT' && (
+                  {canWrite && mv.status === 'DRAFT' && (
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="sm" onClick={() => handleConfirm(mv)}
                         disabled={isPending} title="확정">
