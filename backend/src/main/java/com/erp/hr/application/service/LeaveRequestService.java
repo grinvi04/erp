@@ -120,12 +120,7 @@ public class LeaveRequestService {
         }
 
         String approverId = currentUserProvider.getCurrentUserId();
-        if (approverId == null) {
-            approverId = "SYSTEM";
-        }
-        if (!"SYSTEM".equals(approverId) && !approverId.equals(approvalRequest.getCurrentStepApproverId())) {
-            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
-        }
+        requireAuthorizedApprover(approverId, approvalRequest);
         approvalRequest.approve(approverId, request.comment());
 
         if (approvalRequest.getStatus() == ApprovalStatus.APPROVED) {
@@ -159,16 +154,24 @@ public class LeaveRequestService {
         }
 
         String approverId = currentUserProvider.getCurrentUserId();
-        if (approverId == null) {
-            approverId = "SYSTEM";
-        }
-        if (!"SYSTEM".equals(approverId) && !approverId.equals(approvalRequest.getCurrentStepApproverId())) {
-            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
-        }
+        requireAuthorizedApprover(approverId, approvalRequest);
         approvalRequest.reject(approverId, request.comment());
         leaveRequest.reject();
 
         return LeaveRequestResponse.from(leaveRequest);
+    }
+
+    /**
+     * 결재 권한 검증. (1) 인증된 사용자여야 하고 — null 행위자를 SYSTEM으로 승격해 우회를
+     * 허용하지 않는다, (2) 현재 단계의 결재자(매니저 sub)와 일치해야 하며, (3) 본인이
+     * 상신한 건은 결재할 수 없다(직무 분리). AP 전표 결재와 동일한 기준.
+     */
+    private void requireAuthorizedApprover(String approverId, ApprovalRequest approvalRequest) {
+        if (approverId == null
+                || !approverId.equals(approvalRequest.getCurrentStepApproverId())
+                || approverId.equals(approvalRequest.getRequesterId())) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
     }
 
     private LeaveRequest getLeaveRequestOrThrow(Long id) {

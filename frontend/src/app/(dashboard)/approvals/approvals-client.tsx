@@ -26,10 +26,11 @@ function entityInfo(entityType: string) {
   return ENTITY_ROUTE[entityType] ?? { label: entityType, href: '#' }
 }
 
-function ApprovalTable({ rows, emptyText, showApprover }: {
+function ApprovalTable({ rows, emptyText, showRequester, failed }: {
   rows: ApprovalSummary[]
   emptyText: string
-  showApprover: boolean
+  showRequester: boolean
+  failed: boolean
 }) {
   return (
     <div className="bg-white rounded-lg border overflow-hidden">
@@ -39,7 +40,7 @@ function ApprovalTable({ rows, emptyText, showApprover }: {
             <TableHead>유형</TableHead>
             <TableHead>제목</TableHead>
             <TableHead>단계</TableHead>
-            {showApprover && <TableHead>상신자</TableHead>}
+            {showRequester && <TableHead>상신자</TableHead>}
             <TableHead>상태</TableHead>
             <TableHead>요청일</TableHead>
             <TableHead className="w-28" />
@@ -48,8 +49,9 @@ function ApprovalTable({ rows, emptyText, showApprover }: {
         <TableBody>
           {rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={showApprover ? 7 : 6} className="text-center text-gray-400 py-10">
-                {emptyText}
+              <TableCell colSpan={showRequester ? 7 : 6}
+                className={`text-center py-10 ${failed ? 'text-destructive' : 'text-gray-400'}`}>
+                {failed ? '결재 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.' : emptyText}
               </TableCell>
             </TableRow>
           )}
@@ -63,7 +65,7 @@ function ApprovalTable({ rows, emptyText, showApprover }: {
                   {a.currentStep}/{a.totalSteps}
                   {a.currentStepName ? ` · ${a.currentStepName}` : ''}
                 </TableCell>
-                {showApprover && (
+                {showRequester && (
                   <TableCell className="text-sm text-gray-500 font-mono">{a.requesterId}</TableCell>
                 )}
                 <TableCell>
@@ -89,10 +91,12 @@ function ApprovalTable({ rows, emptyText, showApprover }: {
 
 interface Props {
   pending: ApprovalSummary[]
+  pendingFailed: boolean
   mine: ApprovalSummary[]
+  mineFailed: boolean
 }
 
-export default function ApprovalsClient({ pending, mine }: Props) {
+export default function ApprovalsClient({ pending, pendingFailed, mine, mineFailed }: Props) {
   return (
     <div className="p-6 space-y-8">
       <div>
@@ -104,12 +108,14 @@ export default function ApprovalsClient({ pending, mine }: Props) {
         <h2 className="text-lg font-semibold text-gray-900 mb-3">
           처리 대기 <span className="text-blue-600">{pending.length}</span>
         </h2>
-        <ApprovalTable rows={pending} emptyText="처리할 결재가 없습니다" showApprover />
+        <ApprovalTable rows={pending} failed={pendingFailed}
+          emptyText="처리할 결재가 없습니다" showRequester />
       </section>
 
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">내가 상신한 결재</h2>
-        <ApprovalTable rows={mine} emptyText="상신한 결재가 없습니다" showApprover={false} />
+        <ApprovalTable rows={mine} failed={mineFailed}
+          emptyText="상신한 결재가 없습니다" showRequester={false} />
       </section>
     </div>
   )

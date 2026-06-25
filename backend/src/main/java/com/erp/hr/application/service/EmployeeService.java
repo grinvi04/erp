@@ -166,7 +166,12 @@ public class EmployeeService {
             employee.assignManager(manager);
         }
         if (request.userId() != null) {
-            employee.linkUserAccount(request.userId().isBlank() ? null : request.userId());
+            String newUserId = request.userId().isBlank() ? null : request.userId();
+            if (newUserId != null && !newUserId.equals(employee.getUserId())
+                    && employeeRepository.existsByUserId(newUserId)) {
+                throw new ErpException(ErrorCode.DUPLICATE_CODE);
+            }
+            employee.linkUserAccount(newUserId);
         }
         return EmployeeResponse.from(employee);
     }
