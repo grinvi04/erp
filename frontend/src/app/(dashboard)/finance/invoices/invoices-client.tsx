@@ -69,8 +69,9 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
   const [payAmount, setPayAmount] = useState('')
   const [lines, setLines] = useState<LineForm[]>([])
 
-  // 라인이 있으면 총금액은 라인 합계로 자동 산출(서버가 합계=총금액을 검증한다).
-  const linesTotal = lines.reduce((s, l) => s + (Number(l.amount) || 0), 0)
+  // 라인이 있으면 총금액은 라인 합계로 자동 산출(서버가 합계=총금액을 BigDecimal로 검증).
+  // 정수 전(錢) 단위로 합산해 부동소수 오차(0.1+0.2≠0.3)를 피한다 — 금액 컬럼은 소수 2자리.
+  const linesTotal = lines.reduce((s, l) => s + Math.round((Number(l.amount) || 0) * 100), 0) / 100
   const effectiveTotal = lines.length > 0 ? String(linesTotal) : totalAmount
 
   const addLine = () => setLines((ls) => [...ls, { accountId: '', amount: '', description: '' }])
