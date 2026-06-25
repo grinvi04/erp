@@ -41,6 +41,19 @@ class AuthorizationResolverIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void permissionCodes_crossTenantRoleAssignment_doesNotLeak() {
+        // 심층 방어: 테넌트2의 역할을 테넌트1 사용자에게 잘못 배정해도(배정행=테넌트1, 역할=테넌트2)
+        // 해석은 역할의 tenant_id까지 검증하므로 권한이 새지 않는다.
+        Role foreignRole = roleRepository.save(
+                Role.of(2L, "FOREIGN", "타 테넌트 역할", null));
+        foreignRole.grant("finance:invoice:approve");
+        roleRepository.save(foreignRole);
+        userRoleRepository.save(UserRole.of(TEST_TENANT_ID, "mallory", foreignRole));
+
+        assertThat(authorizationResolver.permissionCodes(TEST_TENANT_ID, "mallory")).isEmpty();
+    }
+
+    @Test
     void accessProfile_returnsScopeAndLimit() {
         accessProfileRepository.save(UserAccessProfile.of(
                 TEST_TENANT_ID, "bob", DataScope.DEPARTMENT, 9L, new BigDecimal("5000000")));
