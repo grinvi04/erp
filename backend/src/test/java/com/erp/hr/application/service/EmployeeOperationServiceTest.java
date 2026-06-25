@@ -36,6 +36,7 @@ class EmployeeOperationServiceTest {
     @Mock private DepartmentRepository departmentRepository;
     @Mock private PositionRepository positionRepository;
     @Mock private JobGradeRepository jobGradeRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
 
     @InjectMocks
     private EmployeeService employeeService;

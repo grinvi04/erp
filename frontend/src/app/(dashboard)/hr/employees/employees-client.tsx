@@ -1,6 +1,8 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 import { PlusIcon, PencilIcon, ArrowRightLeftIcon, TrendingUpIcon, LogOutIcon, LogInIcon, BanIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,6 +54,8 @@ interface Props {
 }
 
 export default function EmployeesClient({ data, departments, positions, jobGrades }: Props) {
+  const { can } = usePermissions()
+  const canWrite = can(PERM.HR_EMPLOYEE_WRITE)
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
@@ -252,10 +256,12 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
           <h1 className="text-2xl font-semibold text-gray-900">직원 관리</h1>
           <p className="text-sm text-gray-500 mt-1">조직 내 직원 정보를 관리합니다</p>
         </div>
-        <Button onClick={openCreate}>
-          <PlusIcon />
-          새 직원
-        </Button>
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />
+            새 직원
+          </Button>
+        )}
       </div>
 
       <div className="bg-white rounded-lg border">
@@ -295,10 +301,12 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
+                    {canWrite && (
                     <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(emp)}>
                       <PencilIcon />
                     </Button>
-                    {emp.status !== 'TERMINATED' && (
+                    )}
+                    {canWrite && emp.status !== 'TERMINATED' && (
                       <>
                         <Button variant="ghost" size="icon-xs" title="발령" onClick={() => openTransfer(emp)}>
                           <ArrowRightLeftIcon />
