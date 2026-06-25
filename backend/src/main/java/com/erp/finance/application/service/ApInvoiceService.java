@@ -158,6 +158,15 @@ public class ApInvoiceService {
         permissionChecker.require(Permission.FINANCE_WRITE);
         ApInvoice invoice = getOrThrow(id);
         invoice.pay(request.amount());
+        // 지급계정 제공 시 지급 분개 자동 생성 (차)외상매입금 /(대)현금·예금.
+        if (request.cashAccountId() != null) {
+            Account cashAccount = accountRepository.findById(request.cashAccountId())
+                .orElseThrow(() -> new ErpException(ErrorCode.ACCOUNT_NOT_FOUND));
+            cashAccount.assertPostable();
+            java.time.LocalDate paymentDate = request.paymentDate() != null
+                ? request.paymentDate() : invoice.getInvoiceDate();
+            apInvoicePostingService.postPaymentDraft(invoice, request.amount(), cashAccount, paymentDate);
+        }
         return ApInvoiceResponse.from(invoice);
     }
 

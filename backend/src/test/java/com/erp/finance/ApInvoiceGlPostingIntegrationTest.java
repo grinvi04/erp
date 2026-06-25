@@ -6,6 +6,7 @@ import com.erp.common.security.UserAccessProfile;
 import com.erp.common.security.UserAccessProfileRepository;
 import com.erp.finance.application.dto.ApInvoiceCreateRequest;
 import com.erp.finance.application.dto.ApInvoiceLineRequest;
+import com.erp.finance.application.dto.ApInvoicePayRequest;
 import com.erp.finance.application.service.ApInvoiceService;
 import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.AccountType;
@@ -129,5 +130,34 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
         assertThat(approved.journalEntryId()).isNull();
         assertThat(invoiceRepository.findById(created.id()).orElseThrow().getStatus().name())
                 .isEqualTo("APPROVED");
+    }
+
+    @Test
+    void pay_withCashAccount_createsBalancedPaymentDraftJournalEntry() {
+        // 승인된 전표 준비
+        authenticate("creator", BigDecimal.ZERO, "finance:write");
+        var created = apInvoiceService.create(new ApInvoiceCreateRequest(
+                "INV-PAY-1", vendorId, LocalDate.of(2025, 1, 10), LocalDate.of(2025, 2, 10),
+                new BigDecimal("100000"), "KRW", null,
+                List.of(new ApInvoiceLineRequest(expenseAccountId, new BigDecimal("100000"), "구매"))));
+        apInvoiceService.submit(created.id());
+        authenticate("approver", new BigDecimal("1000000"), "finance:invoice:approve");
+        apInvoiceService.approve(created.id());
+
+        // 현금 계정으로 지급 → (차)외상매입금 /(대)현금 분개
+        Account cash = accountRepository.save(Account.of("10100", "현금",
+                AccountType.ASSET, NormalBalance.DEBIT, null, false));
+        authenticate("payer", BigDecimal.ZERO, "finance:write");
+        apInvoiceService.pay(created.id(), new ApInvoicePayRequest(
+                new BigDecimal("100000"), cash.getId(), LocalDate.of(2025, 1, 20)));
+
+        JournalEntry payJe = journalEntryRepository
+                .findByReferenceTypeAndReferenceId("AP_PAYMENT", created.id()).orElseThrow();
+        assertThat(payJe.getStatus().name()).isEqualTo("DRAFT");
+        assertThat(payJe.isBalanced()).isTrue();
+        assertThat(payJe.getTotalDebit()).isEqualByComparingTo("100000");
+        // 대변이 현금 계정(지급으로 현금 감소)
+        assertThat(payJe.getLines()).anyMatch(l -> l.getCreditAmount().compareTo(BigDecimal.ZERO) > 0
+                && l.getAccount().getId().equals(cash.getId()));
     }
 }

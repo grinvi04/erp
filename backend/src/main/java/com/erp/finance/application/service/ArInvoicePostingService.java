@@ -12,6 +12,7 @@ import com.erp.finance.domain.model.JournalEntryType;
 import com.erp.finance.domain.repository.FiscalPeriodRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -72,6 +73,36 @@ public class ArInvoicePostingService {
         // GL 전표가 원천 문서(AR 전표)를 역참조하도록 연결(실무: 보조원장 ↔ GL 추적).
         journalEntryRepository.findById(journalEntryId)
             .ifPresent(je -> je.linkReference("AR_INVOICE", invoice.getId()));
+        return journalEntryId;
+    }
+
+    /**
+     * 수금 시 DRAFT 분개(AP 지급의 반전): <pre>(차) 현금·예금 [수금계정]  (대) 외상매출금 [고객 통제계정] = 수금액</pre>
+     * 외상매출금 통제계정·수금계정이 없으면 전기하지 않고 {@code null}을 반환한다.
+     */
+    @Transactional
+    public Long postPaymentDraft(ArInvoice invoice, BigDecimal amount, Account cashAccount, LocalDate paymentDate) {
+        Account receivables = invoice.getCustomer().getReceivablesAccount();
+        if (receivables == null || cashAccount == null) {
+            return null;
+        }
+        FiscalPeriod period = fiscalPeriodRepository
+            .findByStartDateLessThanEqualAndEndDateGreaterThanEqual(paymentDate, paymentDate)
+            .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_PERIOD_NOT_FOUND));
+
+        List<JournalLineRequest> lines = List.of(
+            new JournalLineRequest(cashAccount.getId(), amount, BigDecimal.ZERO,
+                "수금: " + invoice.getInvoiceNo(), null),
+            new JournalLineRequest(receivables.getId(), BigDecimal.ZERO, amount,
+                "외상매출금 회수: " + invoice.getInvoiceNo(), null));
+
+        JournalEntryCreateRequest request = new JournalEntryCreateRequest(
+            paymentDate, period.getId(),
+            "AR 수금 " + invoice.getInvoiceNo(), JournalEntryType.AR, invoice.getCurrency(), lines);
+
+        Long journalEntryId = journalEntryService.createInternal(request).id();
+        journalEntryRepository.findById(journalEntryId)
+            .ifPresent(je -> je.linkReference("AR_PAYMENT", invoice.getId()));
         return journalEntryId;
     }
 }

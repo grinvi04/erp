@@ -155,6 +155,15 @@ public class ArInvoiceService {
         permissionChecker.require(Permission.FINANCE_WRITE);
         ArInvoice invoice = getOrThrow(id);
         invoice.pay(request.amount());
+        // 수금계정 제공 시 수금 분개 자동 생성 (차)현금·예금 /(대)외상매출금.
+        if (request.cashAccountId() != null) {
+            Account cashAccount = accountRepository.findById(request.cashAccountId())
+                .orElseThrow(() -> new ErpException(ErrorCode.ACCOUNT_NOT_FOUND));
+            cashAccount.assertPostable();
+            java.time.LocalDate paymentDate = request.paymentDate() != null
+                ? request.paymentDate() : invoice.getInvoiceDate();
+            arInvoicePostingService.postPaymentDraft(invoice, request.amount(), cashAccount, paymentDate);
+        }
         return ArInvoiceResponse.from(invoice);
     }
 
