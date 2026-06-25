@@ -1,6 +1,9 @@
 package com.erp.hr;
 
 import com.erp.common.AbstractIntegrationTest;
+import com.erp.common.security.DataScope;
+import com.erp.common.security.UserAccessProfile;
+import com.erp.common.security.UserAccessProfileRepository;
 import com.erp.hr.application.dto.EmployeeResponse;
 import com.erp.hr.application.dto.LeaveRequestResponse;
 import com.erp.hr.application.service.EmployeeService;
@@ -45,6 +48,7 @@ class EmployeeDataScopeIntegrationTest extends AbstractIntegrationTest {
     @Autowired private EmployeeRepository employeeRepository;
     @Autowired private LeavePolicyRepository leavePolicyRepository;
     @Autowired private LeaveRequestRepository leaveRequestRepository;
+    @Autowired private UserAccessProfileRepository accessProfileRepository;
 
     private Department deptA;
     private Employee empA;
@@ -78,16 +82,14 @@ class EmployeeDataScopeIntegrationTest extends AbstractIntegrationTest {
     }
 
     private void authenticate(String sub, String dataScope, Long departmentId) {
-        Jwt.Builder b = Jwt.withTokenValue("t").header("alg", "none").subject(sub).claim("sub", sub);
-        if (dataScope != null) {
-            b.claim("data_scope", dataScope);
-        }
-        if (departmentId != null) {
-            b.claim("department_id", departmentId);
-        }
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(b.build(),
+        // 신원(sub·tenant_id)은 JWT, 데이터 스코프는 DB 접근 프로파일에서 해석(전면 DB 전환).
+        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject(sub)
+                .claim("sub", sub).claim("tenant_id", TEST_TENANT_ID).build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
                 List.of(new SimpleGrantedAuthority("hr:employee:read"),
                         new SimpleGrantedAuthority("hr:leave:read"))));
+        DataScope scope = dataScope != null ? DataScope.valueOf(dataScope) : DataScope.ALL;
+        accessProfileRepository.save(UserAccessProfile.of(TEST_TENANT_ID, sub, scope, departmentId, null));
     }
 
     private List<String> findAllEmpNos() {

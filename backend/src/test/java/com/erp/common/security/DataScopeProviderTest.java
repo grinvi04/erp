@@ -1,71 +1,53 @@
 package com.erp.common.security;
 
-import org.junit.jupiter.api.AfterEach;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-
-import java.util.List;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 class DataScopeProviderTest {
 
-    private final DataScopeProvider provider = new DataScopeProvider();
+    @Mock private CurrentUserProvider currentUserProvider;
+    @Mock private AuthorizationResolver authorizationResolver;
 
-    @AfterEach
-    void clear() {
-        SecurityContextHolder.clearContext();
-    }
+    @InjectMocks
+    private DataScopeProvider provider;
 
-    private void authWithClaims(Object dataScope, Object departmentId) {
-        Jwt.Builder b = Jwt.withTokenValue("t").header("alg", "none").subject("u");
-        if (dataScope != null) {
-            b.claim("data_scope", dataScope);
-        }
-        if (departmentId != null) {
-            b.claim("department_id", departmentId);
-        }
-        SecurityContextHolder.getContext()
-                .setAuthentication(new JwtAuthenticationToken(b.build(), List.of()));
+    private void currentUser(Long tenantId, String userId) {
+        given(currentUserProvider.getCurrentTenantId()).willReturn(tenantId);
+        given(currentUserProvider.getCurrentUserId()).willReturn(userId);
     }
 
     @Test
-    void getDataScope_departmentClaim_parsed() {
-        authWithClaims("DEPARTMENT", 5);
+    void getDataScope_fromProfile() {
+        currentUser(1L, "u");
+        given(authorizationResolver.accessProfile(1L, "u")).willReturn(Optional.of(
+                UserAccessProfile.of(1L, "u", DataScope.DEPARTMENT, 5L, null)));
+
         assertThat(provider.getDataScope()).isEqualTo(DataScope.DEPARTMENT);
         assertThat(provider.getDepartmentId()).isEqualTo(5L);
     }
 
     @Test
-    void getDataScope_caseInsensitive() {
-        authWithClaims("self", null);
-        assertThat(provider.getDataScope()).isEqualTo(DataScope.SELF);
-    }
+    void getDataScope_noProfile_defaultsToAll() {
+        currentUser(1L, "u");
+        given(authorizationResolver.accessProfile(1L, "u")).willReturn(Optional.empty());
 
-    @Test
-    void getDataScope_noClaim_defaultsToAll() {
-        authWithClaims(null, null);
-        assertThat(provider.getDataScope()).isEqualTo(DataScope.ALL);
-    }
-
-    @Test
-    void getDataScope_unauthenticated_defaultsToAll() {
-        SecurityContextHolder.clearContext();
         assertThat(provider.getDataScope()).isEqualTo(DataScope.ALL);
         assertThat(provider.getDepartmentId()).isNull();
     }
 
     @Test
-    void getDataScope_invalidClaim_defaultsToAll() {
-        authWithClaims("GARBAGE", null);
-        assertThat(provider.getDataScope()).isEqualTo(DataScope.ALL);
-    }
+    void getDataScope_unauthenticated_defaultsToAll() {
+        currentUser(null, null);
+        given(authorizationResolver.accessProfile(null, null)).willReturn(Optional.empty());
 
-    @Test
-    void getDepartmentId_stringClaim_parsed() {
-        authWithClaims("DEPARTMENT", "42");
-        assertThat(provider.getDepartmentId()).isEqualTo(42L);
+        assertThat(provider.getDataScope()).isEqualTo(DataScope.ALL);
     }
 }

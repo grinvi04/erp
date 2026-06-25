@@ -20,6 +20,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final JwtTenantFilter jwtTenantFilter;
+    private final AuthorizationResolver authorizationResolver;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -37,10 +38,10 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /** JWT permissions 클레임 → authority(권한 코드)로 변환. */
+    /** JWT 신원 → DB(역할→권한) 기반 authority 변환. */
     private JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(new JwtAuthoritiesConverter());
+        converter.setJwtGrantedAuthoritiesConverter(new JwtAuthoritiesConverter(authorizationResolver));
         return converter;
     }
 }
