@@ -13,6 +13,7 @@ export async function createInvoice(data: {
   totalAmount: number
   currency: string
   note: string | null
+  lines: { accountId: number; amount: number; description: string | null }[] | null
 }): Promise<void> {
   await apiPost<ApInvoice>('/api/finance/invoices', data)
   revalidatePath(PATH)

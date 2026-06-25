@@ -13,6 +13,7 @@ export async function createVendor(data: {
   contactEmail: string | null
   contactPhone: string | null
   paymentTerms: number
+  payablesAccountId: number | null
 }): Promise<void> {
   await apiPost<Vendor>('/api/finance/vendors', data)
   revalidatePath(PATH)
@@ -25,6 +26,7 @@ export async function updateVendor(id: number, data: {
   contactEmail: string | null
   contactPhone: string | null
   paymentTerms: number
+  payablesAccountId: number | null
 }): Promise<void> {
   await apiPut<Vendor>(`/api/finance/vendors/${id}`, data)
   revalidatePath(PATH)
