@@ -104,14 +104,32 @@ erp/
 - 프론트엔드 린트: `cd frontend && npm run lint`
 - 프론트엔드 빌드: `cd frontend && npm run build`
 
+## 호스팅·배포 대상
+
+| 구성 | 대상 | 비용 | 비고 |
+|---|---|---|---|
+| 프론트 (Next.js BFF) | **Vercel** (Hobby 무료) | $0 | `output: standalone`, root=`frontend` |
+| 백엔드 (Spring Boot) | **Railway** (Dockerfile) | 사용량 | root=`backend`, `railway.json` 헬스체크 |
+| PostgreSQL 16 | **Railway** Postgres 플러그인 | 사용량 | (대안: Neon 무료로 비용↓) |
+| Keycloak 26 (OIDC) | **Railway** 서비스 | 사용량(메모리 주비용) | 단일 realm `erp` |
+
+- **CD**: Railway·Vercel **GitHub 연동**으로 main 푸시 시 자동 재배포(GH Actions 분 미소모). 릴리즈가 main 머지되면 자동 배포.
+- 상세 절차·환경변수·시크릿·Keycloak realm 설정: **`docs/deployment.md`**.
+- ⚠️ 인가 DB 기반 → 기동 시 `ERP_IAM_BOOTSTRAP_ADMIN_SUB`(+`ERP_IAM_BOOTSTRAP_TENANT_ID`) 미설정이면 권한 보유자 없음(fail-closed). 필수 설정.
+
 ## 배포·헬스체크 명령
 
+**로컬 (docker-compose)**
 - 로컬 인프라 실행 (PostgreSQL · Keycloak): `docker compose up -d`
 - 백엔드 헬스체크: `curl -sf http://localhost:8080/actuator/health`
 - Keycloak 헬스체크: `curl -sf http://localhost:8180/health/ready`
 - 프론트엔드 헬스체크: `curl -sf http://localhost:3000/api/auth/session`
-- 전체 스택 중지: `docker compose down`
-- 데이터 초기화: `docker compose down -v`
+- 전체 스택 중지: `docker compose down` / 데이터 초기화: `docker compose down -v`
+
+**운영 (배포 후)** — `<...>`는 발급된 도메인으로 치환
+- 백엔드: `curl -sf https://<backend>.up.railway.app/actuator/health`
+- Keycloak: `curl -sf https://<keycloak>.up.railway.app/health/ready`
+- 프론트: `curl -sf https://<app>.vercel.app/api/auth/session`
 
 ## 팀 표준 문서
 
