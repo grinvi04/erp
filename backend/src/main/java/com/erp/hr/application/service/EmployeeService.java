@@ -165,6 +165,9 @@ public class EmployeeService {
             Employee manager = getOrThrow(request.managerId());
             employee.assignManager(manager);
         }
+        if (request.userId() != null) {
+            employee.linkUserAccount(request.userId().isBlank() ? null : request.userId());
+        }
         return EmployeeResponse.from(employee);
     }
 

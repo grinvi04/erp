@@ -12,5 +12,6 @@ public record EmployeeUpdateRequest(
     @Email @Size(max = 200) String personalEmail,
     @Email @Size(max = 200) String workEmail,
     BigDecimal baseSalary,
-    Long managerId
+    Long managerId,
+    @Size(max = 100) String userId
 ) {}

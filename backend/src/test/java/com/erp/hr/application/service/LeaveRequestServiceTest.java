@@ -20,6 +20,7 @@ import com.erp.hr.domain.repository.LeavePolicyRepository;
 import com.erp.hr.domain.repository.LeaveRequestRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -141,5 +142,37 @@ class LeaveRequestServiceTest {
 
         assertThat(result.employeeId()).isEqualTo(emp.getId());
         assertThat(result.leavePolicyName()).isEqualTo("연차");
+    }
+
+    @Test
+    void create_managerWithLinkedUserAccount_setsApproverToManagerUserId() {
+        // 신원 버그 수정 회귀: 결재자는 매니저의 사번이 아니라 연결된 Keycloak sub여야
+        // approve() 검증(sub 기준)과 일치한다.
+        Employee manager = buildEmployee();
+        manager.linkUserAccount("manager-sub-123");
+        Employee emp = buildEmployee();
+        emp.assignManager(manager);
+        given(employeeRepository.findById(1L)).willReturn(Optional.of(emp));
+
+        LeavePolicy policy = LeavePolicy.of("ANNUAL", "연차", LeavePolicy.LeaveType.ANNUAL, 15, 5, true, 1);
+        given(leavePolicyRepository.findById(1L)).willReturn(Optional.of(policy));
+
+        LeaveBalance balance = mock(LeaveBalance.class);
+        given(balance.hasSufficientBalance(any(BigDecimal.class))).willReturn(true);
+        given(leaveBalanceRepository.findByEmployeeIdAndLeavePolicyIdAndYear(1L, 1L, 2024))
+            .willReturn(Optional.of(balance));
+        given(leaveRequestRepository.findOverlappingByStatuses(
+            eq(1L), any(LocalDate.class), any(LocalDate.class), any())).willReturn(List.of());
+        given(leaveRequestRepository.save(any())).willReturn(LeaveRequest.create(emp, policy,
+            LocalDate.of(2024, 3, 1), LocalDate.of(2024, 3, 5), BigDecimal.valueOf(5), null));
+        given(currentUserProvider.getCurrentUserId()).willReturn("user-001");
+
+        ArgumentCaptor<ApprovalRequest> captor = ArgumentCaptor.forClass(ApprovalRequest.class);
+        given(approvalRequestRepository.save(captor.capture())).willAnswer(inv -> inv.getArgument(0));
+
+        leaveRequestService.create(new LeaveRequestCreateRequest(
+            1L, 1L, LocalDate.of(2024, 3, 1), LocalDate.of(2024, 3, 5), BigDecimal.valueOf(5), null));
+
+        assertThat(captor.getValue().getCurrentStepApproverId()).isEqualTo("manager-sub-123");
     }
 }

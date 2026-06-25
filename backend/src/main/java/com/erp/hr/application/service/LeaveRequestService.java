@@ -84,8 +84,12 @@ public class LeaveRequestService {
         if (requesterId == null) {
             requesterId = employee.getEmployeeNo();
         }
-        String approverId = employee.getManager() != null
-            ? employee.getManager().getEmployeeNo()
+        // 결재자 식별은 Keycloak sub(정본 신원)로 한다 — approve()의 검증도 sub 기준이므로
+        // 매니저의 employeeNo가 아니라 연결된 user_id를 결재자로 지정해야 실제 로그인
+        // 사용자가 결재할 수 있다. (미연결 매니저는 결재 불가 상태로 남으므로 SYSTEM fallback)
+        Employee manager = employee.getManager();
+        String approverId = manager != null && manager.getUserId() != null
+            ? manager.getUserId()
             : "SYSTEM";
         ApprovalStep step = ApprovalStep.of(1, "직속 상관 승인", approverId);
         ApprovalRequest approvalRequest = ApprovalRequest.create(
