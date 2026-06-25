@@ -3,6 +3,8 @@ package com.erp.crm.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.AccountCreateRequest;
 import com.erp.crm.application.dto.AccountResponse;
 import com.erp.crm.application.dto.AccountUpdateRequest;
@@ -19,18 +21,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class CrmAccountService {
 
     private final CrmAccountRepository accountRepository;
+    private final PermissionChecker permissionChecker;
 
     public PageResponse<AccountResponse> search(String keyword, Boolean isActive, Pageable pageable) {
+        permissionChecker.require(Permission.CRM_READ);
         return PageResponse.from(accountRepository.search(keyword, isActive, pageable)
                 .map(AccountResponse::from));
     }
 
     public AccountResponse findById(Long id) {
+        permissionChecker.require(Permission.CRM_READ);
         return AccountResponse.from(getOrThrow(id));
     }
 
     @Transactional
     public AccountResponse create(AccountCreateRequest req) {
+        permissionChecker.require(Permission.CRM_WRITE);
         if (accountRepository.existsByCode(req.code())) {
             throw new ErpException(ErrorCode.CRM_ACCOUNT_CODE_DUPLICATE);
         }
@@ -42,6 +48,7 @@ public class CrmAccountService {
 
     @Transactional
     public AccountResponse update(Long id, AccountUpdateRequest req) {
+        permissionChecker.require(Permission.CRM_WRITE);
         Account account = getOrThrow(id);
         account.update(req.name(), req.businessNo(), req.industry(), req.website(),
                 req.phone(), req.address(), req.employeeCount(), req.annualRevenue(),
@@ -51,6 +58,7 @@ public class CrmAccountService {
 
     @Transactional
     public void deactivate(Long id) {
+        permissionChecker.require(Permission.CRM_WRITE);
         getOrThrow(id).deactivate();
     }
 

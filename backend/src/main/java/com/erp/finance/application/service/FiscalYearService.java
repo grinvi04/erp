@@ -2,6 +2,8 @@ package com.erp.finance.application.service;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.FiscalPeriodCreateRequest;
 import com.erp.finance.application.dto.FiscalPeriodResponse;
 import com.erp.finance.application.dto.FiscalYearCreateRequest;
@@ -24,18 +26,22 @@ public class FiscalYearService {
 
     private final FiscalYearRepository fiscalYearRepository;
     private final FiscalPeriodRepository fiscalPeriodRepository;
+    private final PermissionChecker permissionChecker;
 
     public List<FiscalYearResponse> findAll() {
+        permissionChecker.require(Permission.FINANCE_READ);
         return fiscalYearRepository.findAllByOrderByYearDesc().stream()
             .map(FiscalYearResponse::from)
             .toList();
     }
 
     public FiscalYearResponse findById(Long id) {
+        permissionChecker.require(Permission.FINANCE_READ);
         return FiscalYearResponse.from(getFiscalYearOrThrow(id));
     }
 
     public List<FiscalPeriodResponse> findPeriodsByYear(Long fiscalYearId) {
+        permissionChecker.require(Permission.FINANCE_READ);
         getFiscalYearOrThrow(fiscalYearId);
         return fiscalPeriodRepository.findByFiscalYearIdOrderByPeriodNumberAsc(fiscalYearId).stream()
             .map(FiscalPeriodResponse::from)
@@ -44,6 +50,7 @@ public class FiscalYearService {
 
     @Transactional
     public FiscalYearResponse create(FiscalYearCreateRequest request) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
         if (fiscalYearRepository.existsByYear(request.year())) {
             throw new ErpException(ErrorCode.FISCAL_YEAR_DUPLICATE);
         }
@@ -53,6 +60,7 @@ public class FiscalYearService {
 
     @Transactional
     public FiscalYearResponse close(Long id) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
         FiscalYear fy = getFiscalYearOrThrow(id);
         fiscalPeriodRepository.findByFiscalYearIdAndStatus(id, FiscalPeriodStatus.OPEN)
             .forEach(FiscalPeriod::close);
@@ -62,6 +70,7 @@ public class FiscalYearService {
 
     @Transactional
     public FiscalPeriodResponse createPeriod(Long fiscalYearId, FiscalPeriodCreateRequest request) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
         FiscalYear fy = getFiscalYearOrThrow(fiscalYearId);
         if (fiscalPeriodRepository.existsByFiscalYearIdAndPeriodNumber(fiscalYearId, request.periodNumber())) {
             throw new ErpException(ErrorCode.FISCAL_PERIOD_DUPLICATE);
@@ -75,6 +84,7 @@ public class FiscalYearService {
 
     @Transactional
     public FiscalPeriodResponse closePeriod(Long periodId) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
         FiscalPeriod fp = getFiscalPeriodOrThrow(periodId);
         fp.close();
         return FiscalPeriodResponse.from(fp);

@@ -18,6 +18,7 @@ class InventorySummaryServiceTest {
 
     @Mock private ItemRepository itemRepository;
     @Mock private MovementRepository movementRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private InventorySummaryService inventorySummaryService;
 
     @Test

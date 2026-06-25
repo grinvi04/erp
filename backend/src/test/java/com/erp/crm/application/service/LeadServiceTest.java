@@ -29,6 +29,7 @@ class LeadServiceTest {
     @Mock private LeadRepository leadRepository;
     @Mock private CrmAccountService accountService;
     @Mock private OpportunityService opportunityService;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private LeadService leadService;
 
     private Lead buildLead() {

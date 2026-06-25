@@ -34,6 +34,7 @@ class ApInvoiceServiceTest {
     @Mock private VendorRepository vendorRepository;
     @Mock private ApprovalRequestRepository approvalRequestRepository;
     @Mock private CurrentUserProvider currentUserProvider;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
 
     @InjectMocks
     private ApInvoiceService apInvoiceService;

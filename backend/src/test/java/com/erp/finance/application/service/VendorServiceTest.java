@@ -26,6 +26,9 @@ class VendorServiceTest {
     @Mock
     private VendorRepository vendorRepository;
 
+    @Mock
+    private com.erp.common.security.PermissionChecker permissionChecker;
+
     @InjectMocks
     private VendorService vendorService;
 

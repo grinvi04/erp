@@ -35,6 +35,9 @@ class FiscalYearServiceTest {
     @Mock
     private FiscalPeriodRepository fiscalPeriodRepository;
 
+    @Mock
+    private com.erp.common.security.PermissionChecker permissionChecker;
+
     @InjectMocks
     private FiscalYearService fiscalYearService;
 

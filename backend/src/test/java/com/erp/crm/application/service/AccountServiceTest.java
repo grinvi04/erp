@@ -24,6 +24,7 @@ import static org.mockito.BDDMockito.given;
 class AccountServiceTest {
 
     @Mock private CrmAccountRepository accountRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private CrmAccountService accountService;
 
     private Account buildAccount() {

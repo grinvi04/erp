@@ -2,6 +2,8 @@ package com.erp.finance.application.service;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.BudgetCreateRequest;
 import com.erp.finance.application.dto.BudgetResponse;
 import com.erp.finance.application.dto.BudgetUpdateRequest;
@@ -25,19 +27,23 @@ public class BudgetService {
     private final BudgetRepository budgetRepository;
     private final FiscalYearRepository fiscalYearRepository;
     private final AccountRepository accountRepository;
+    private final PermissionChecker permissionChecker;
 
     public List<BudgetResponse> findByFiscalYear(Long fiscalYearId) {
+        permissionChecker.require(Permission.FINANCE_READ);
         return budgetRepository.findByFiscalYearId(fiscalYearId).stream()
             .map(BudgetResponse::from)
             .toList();
     }
 
     public BudgetResponse findById(Long id) {
+        permissionChecker.require(Permission.FINANCE_READ);
         return BudgetResponse.from(getOrThrow(id));
     }
 
     @Transactional
     public BudgetResponse create(BudgetCreateRequest request) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
         FiscalYear fy = fiscalYearRepository.findById(request.fiscalYearId())
             .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_YEAR_NOT_FOUND));
         Account account = accountRepository.findById(request.accountId())
@@ -57,6 +63,7 @@ public class BudgetService {
 
     @Transactional
     public BudgetResponse update(Long id, BudgetUpdateRequest request) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
         Budget budget = getOrThrow(id);
         budget.updateBudgetAmount(request.budgetAmount());
         return BudgetResponse.from(budget);
@@ -64,6 +71,7 @@ public class BudgetService {
 
     @Transactional
     public void delete(Long id) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
         Budget budget = getOrThrow(id);
         budgetRepository.delete(budget);
     }
