@@ -6,6 +6,7 @@ import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.dto.RoleCreateRequest;
 import com.erp.common.tenant.TenantContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,7 @@ class IamServiceTest {
     @Mock private UserAccessProfileRepository accessProfileRepository;
     @Mock private PermissionChecker permissionChecker;
     @Mock private AuditService auditService;
+    @org.mockito.Spy private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private IamService iamService;

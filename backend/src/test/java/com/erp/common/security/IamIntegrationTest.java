@@ -85,4 +85,18 @@ class IamIntegrationTest extends AbstractIntegrationTest {
         assertThrows(com.erp.common.exception.ErpException.class,
                 () -> iamService.unassignRole("nobody", 999L));
     }
+
+    @Test
+    void assignRole_userIdWithQuote_doesNotCorruptAuditJsonb() {
+        // 따옴표 포함 userId — 수동 JSON 문자열이었다면 jsonb afterData를 깨뜨려 작업이 실패했을 입력.
+        // Jackson 직렬화로 안전하게 이스케이프되어 작업이 정상 완료돼야 한다.
+        RoleResponse role = iamService.createRole(new RoleCreateRequest(
+                "Q", "q", null, Set.of(Permission.CRM_READ)));
+
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                () -> iamService.assignRole("ev\"il", role.id()));
+
+        assertThat(authorizationResolver.permissionCodes(TEST_TENANT_ID, "ev\"il"))
+                .containsExactly(Permission.CRM_READ);
+    }
 }

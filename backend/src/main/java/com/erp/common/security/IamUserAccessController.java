@@ -31,10 +31,9 @@ public class IamUserAccessController {
     }
 
     @PostMapping("/roles/{roleId}")
-    public ResponseEntity<ApiResponse<Void>> assignRole(
-        @PathVariable String userId, @PathVariable Long roleId) {
+    public ResponseEntity<Void> assignRole(@PathVariable String userId, @PathVariable Long roleId) {
         iamService.assignRole(userId, roleId);
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/roles/{roleId}")
