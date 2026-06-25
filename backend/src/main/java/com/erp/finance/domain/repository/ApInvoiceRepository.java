@@ -3,10 +3,12 @@ package com.erp.finance.domain.repository;
 import com.erp.finance.domain.model.ApInvoice;
 import com.erp.finance.domain.model.ApInvoiceStatus;
 import java.math.BigDecimal;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
     boolean existsByInvoiceNo(String invoiceNo);
@@ -25,4 +27,10 @@ public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
             + "com.erp.finance.domain.model.ApInvoiceStatus.CANCELLED) "
             + "AND i.totalAmount > i.paidAmount")
     BigDecimal sumUnpaidAmount();
+
+    @Query("SELECT EXTRACT(MONTH FROM i.invoiceDate) AS month, COUNT(i) AS count, "
+            + "COALESCE(SUM(i.totalAmount), 0) AS totalAmount "
+            + "FROM ApInvoice i WHERE EXTRACT(YEAR FROM i.invoiceDate) = :year "
+            + "GROUP BY EXTRACT(MONTH FROM i.invoiceDate) ORDER BY EXTRACT(MONTH FROM i.invoiceDate)")
+    List<MonthlyInvoiceRow> monthlyInvoices(@Param("year") int year);
 }
