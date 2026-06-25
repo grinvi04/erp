@@ -3,6 +3,9 @@ import type { ApprovalSummary } from '@/types/approval'
 import ApprovalsClient from './approvals-client'
 
 export const metadata = { title: '결재함 | ERP' }
+// 인증 데이터(헤더/쿠키)를 서버에서 조회하므로 본질적으로 동적 — 빌드 타임 정적 프리렌더
+// 시도(세션 없이 fetch 실패 로그)를 건너뛰도록 명시한다.
+export const dynamic = 'force-dynamic'
 
 interface ListResult {
   rows: ApprovalSummary[]
