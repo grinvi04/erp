@@ -20,10 +20,9 @@ ALTER TABLE common.role_permission ALTER COLUMN id        SET NOT NULL;
 ALTER TABLE common.role_permission ALTER COLUMN tenant_id SET NOT NULL;
 ALTER TABLE common.role_permission ALTER COLUMN id        SET DEFAULT nextval('common.role_permission_id_seq');
 
--- 4) 복합 PK(role_id, permission_code) → 단일 id PK, (role_id, permission_code) UNIQUE로 보존
+-- 4) 복합 PK(role_id, permission_code) → 단일 id PK, (role_id, permission_code) UNIQUE로 보존.
+--    role_id 단독 조회(FK 캐스케이드·권한 해석 JOIN)는 이 UNIQUE 인덱스의 선두 컬럼으로 커버됨.
 ALTER TABLE common.role_permission DROP CONSTRAINT role_permission_pkey;
 ALTER TABLE common.role_permission ADD PRIMARY KEY (id);
 ALTER TABLE common.role_permission
     ADD CONSTRAINT uq_role_permission_role_code UNIQUE (role_id, permission_code);
-
-CREATE INDEX idx_role_permission_role ON common.role_permission (role_id);

@@ -50,8 +50,5 @@ public class RolePermission {
         return rp;
     }
 
-    public Long getId() { return id; }
-    public Long getTenantId() { return tenantId; }
-    public Role getRole() { return role; }
     public String getPermissionCode() { return permissionCode; }
 }
