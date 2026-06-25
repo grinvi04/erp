@@ -37,9 +37,17 @@ public class ApprovalInboxService {
         approvalRequestRepository.findPendingForApprover(userId).stream()
                 .map(ApprovalSummaryResponse::from)
                 .forEach(s -> merged.put(s.entityType() + ":" + s.entityId(), s));
+        // 모듈 기여분은 외부(다른 모듈) 구현이므로 방어적으로 합친다 — 한 기여자의 오류가
+        // 결재함 전체를 비우지 않도록 null 결과/항목은 건너뛴다.
         for (PendingApprovalContributor contributor : pendingContributors) {
-            for (ApprovalSummaryResponse s : contributor.pendingForCurrentUser()) {
-                merged.putIfAbsent(s.entityType() + ":" + s.entityId(), s);
+            List<ApprovalSummaryResponse> contributed = contributor.pendingForCurrentUser();
+            if (contributed == null) {
+                continue;
+            }
+            for (ApprovalSummaryResponse s : contributed) {
+                if (s != null) {
+                    merged.putIfAbsent(s.entityType() + ":" + s.entityId(), s);
+                }
             }
         }
         return List.copyOf(merged.values());
