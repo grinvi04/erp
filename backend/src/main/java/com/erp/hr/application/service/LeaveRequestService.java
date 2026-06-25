@@ -140,6 +140,10 @@ public class LeaveRequestService {
 
     @Transactional
     public LeaveRequestResponse reject(Long leaveRequestId, ApprovalActionRequest request) {
+        // 반려는 사유가 필수 — 클라이언트뿐 아니라 서버에서도 강제한다.
+        if (request.comment() == null || request.comment().isBlank()) {
+            throw new ErpException(ErrorCode.INVALID_INPUT);
+        }
         LeaveRequest leaveRequest = getLeaveRequestOrThrow(leaveRequestId);
         if (!leaveRequest.isPending()) {
             throw new ErpException(ErrorCode.APPROVAL_ALREADY_PROCESSED);

@@ -165,4 +165,13 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
     }
+
+    @Test
+    void reject_blankComment_throwsInvalidInput() {
+        // 반려 사유는 서버에서도 필수 — 빈 사유는 거부한다(클라이언트 전용 규칙 아님).
+        ErpException ex = assertThrows(ErpException.class, () ->
+            leaveRequestService.reject(savedLeaveRequest.getId(), new ApprovalActionRequest("  ")));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT);
+    }
 }
