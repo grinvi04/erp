@@ -12,16 +12,16 @@ import com.erp.common.security.PermissionChecker;
 import com.erp.common.workflow.ApprovalRequest;
 import com.erp.common.workflow.ApprovalStep;
 import com.erp.common.workflow.repository.ApprovalRequestRepository;
-import com.erp.finance.application.dto.ApInvoiceCreateRequest;
-import com.erp.finance.application.dto.ApInvoicePayRequest;
-import com.erp.finance.application.dto.ApInvoiceResponse;
+import com.erp.finance.application.dto.ArInvoiceCreateRequest;
+import com.erp.finance.application.dto.ArInvoicePayRequest;
+import com.erp.finance.application.dto.ArInvoiceResponse;
 import com.erp.finance.domain.model.Account;
-import com.erp.finance.domain.model.ApInvoice;
-import com.erp.finance.domain.model.ApInvoiceStatus;
-import com.erp.finance.domain.model.Vendor;
+import com.erp.finance.domain.model.ArInvoice;
+import com.erp.finance.domain.model.ArInvoiceStatus;
+import com.erp.finance.domain.model.Customer;
 import com.erp.finance.domain.repository.AccountRepository;
-import com.erp.finance.domain.repository.ApInvoiceRepository;
-import com.erp.finance.domain.repository.VendorRepository;
+import com.erp.finance.domain.repository.ArInvoiceRepository;
+import com.erp.finance.domain.repository.CustomerRepository;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -34,55 +34,55 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class ApInvoiceService {
+public class ArInvoiceService {
 
-    private final ApInvoiceRepository apInvoiceRepository;
-    private final VendorRepository vendorRepository;
+    private final ArInvoiceRepository arInvoiceRepository;
+    private final CustomerRepository customerRepository;
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CurrentUserProvider currentUserProvider;
     private final PermissionChecker permissionChecker;
     private final ApprovalAuthorityProvider approvalAuthorityProvider;
     private final AuditService auditService;
     private final AccountRepository accountRepository;
-    private final ApInvoicePostingService apInvoicePostingService;
+    private final ArInvoicePostingService arInvoicePostingService;
 
     // 전결규정상 결재자는 전결권·한도로 결정되므로 결재선에 특정인을 사전 지정하지 않는다(역할 sentinel).
     private static final String ROLE_BASED_APPROVER = "@role:" + Permission.FINANCE_INVOICE_APPROVE;
 
-    public ApInvoiceResponse findById(Long id) {
+    public ArInvoiceResponse findById(Long id) {
         permissionChecker.require(Permission.FINANCE_READ);
-        return ApInvoiceResponse.from(getOrThrow(id));
+        return ArInvoiceResponse.from(getOrThrow(id));
     }
 
-    public PageResponse<ApInvoiceResponse> findAll(ApInvoiceStatus status, Pageable pageable) {
+    public PageResponse<ArInvoiceResponse> findAll(ArInvoiceStatus status, Pageable pageable) {
         permissionChecker.require(Permission.FINANCE_READ);
         if (status != null) {
-            return PageResponse.from(apInvoiceRepository.findByStatus(status, pageable).map(ApInvoiceResponse::from));
+            return PageResponse.from(arInvoiceRepository.findByStatus(status, pageable).map(ArInvoiceResponse::from));
         }
-        return PageResponse.from(apInvoiceRepository.findAll(pageable).map(ApInvoiceResponse::from));
+        return PageResponse.from(arInvoiceRepository.findAll(pageable).map(ArInvoiceResponse::from));
     }
 
-    public PageResponse<ApInvoiceResponse> findByVendor(Long vendorId, Pageable pageable) {
+    public PageResponse<ArInvoiceResponse> findByCustomer(Long customerId, Pageable pageable) {
         permissionChecker.require(Permission.FINANCE_READ);
-        return PageResponse.from(apInvoiceRepository.findByVendorId(vendorId, pageable).map(ApInvoiceResponse::from));
+        return PageResponse.from(arInvoiceRepository.findByCustomerId(customerId, pageable).map(ArInvoiceResponse::from));
     }
 
     @Transactional
-    public ApInvoiceResponse create(ApInvoiceCreateRequest request) {
+    public ArInvoiceResponse create(ArInvoiceCreateRequest request) {
         permissionChecker.require(Permission.FINANCE_WRITE);
-        if (apInvoiceRepository.existsByInvoiceNo(request.invoiceNo())) {
+        if (arInvoiceRepository.existsByInvoiceNo(request.invoiceNo())) {
             throw new ErpException(ErrorCode.INVOICE_NO_DUPLICATE);
         }
-        Vendor vendor = vendorRepository.findById(request.vendorId())
-            .orElseThrow(() -> new ErpException(ErrorCode.VENDOR_NOT_FOUND));
-        ApInvoice invoice = ApInvoice.create(request.invoiceNo(), vendor, request.invoiceDate(),
+        Customer customer = customerRepository.findById(request.customerId())
+            .orElseThrow(() -> new ErpException(ErrorCode.CUSTOMER_NOT_FOUND));
+        ArInvoice invoice = ArInvoice.create(request.invoiceNo(), customer, request.invoiceDate(),
             request.dueDate(), request.totalAmount(), request.currency(), request.note());
         addLines(invoice, request);
-        return ApInvoiceResponse.from(apInvoiceRepository.save(invoice));
+        return ArInvoiceResponse.from(arInvoiceRepository.save(invoice));
     }
 
-    /** 차변 라인 추가(있으면) — 계정 검증 + 합계가 totalAmount와 일치하는지 확인. */
-    private void addLines(ApInvoice invoice, ApInvoiceCreateRequest request) {
+    /** 대변 라인 추가(있으면) — 계정 검증 + 합계가 totalAmount와 일치하는지 확인. */
+    private void addLines(ArInvoice invoice, ArInvoiceCreateRequest request) {
         if (request.lines() == null || request.lines().isEmpty()) {
             return;
         }
@@ -100,35 +100,32 @@ public class ApInvoiceService {
     }
 
     @Transactional
-    public ApInvoiceResponse submit(Long id) {
+    public ArInvoiceResponse submit(Long id) {
         permissionChecker.require(Permission.FINANCE_WRITE);
         String userId = currentUserProvider.getCurrentUserId();
-        ApInvoice invoice = getOrThrow(id);
+        ArInvoice invoice = getOrThrow(id);
         invoice.submit();
-        // 전결규정(역할/한도 기반)이라 특정 결재자를 결재선에 사전 지정하지 않는다 —
-        // 결재함 라우팅은 ApInvoiceApprovalInboxContributor가 전결권·한도로 산출한다.
-        // 사람 단위 결재함(findPendingForApprover)에 작성자로 잘못 노출되지 않도록 역할 sentinel.
-        ApprovalStep step = ApprovalStep.of(1, "AP 전표 승인", ROLE_BASED_APPROVER);
+        ApprovalStep step = ApprovalStep.of(1, "AR 전표 승인", ROLE_BASED_APPROVER);
         ApprovalRequest approvalRequest = ApprovalRequest.create(
-            "AP_INVOICE", invoice.getId(),
-            "AP 전표 승인: " + invoice.getInvoiceNo(),
+            "AR_INVOICE", invoice.getId(),
+            "AR 전표 승인: " + invoice.getInvoiceNo(),
             userId, new ArrayList<>(List.of(step))
         );
         ApprovalRequest saved = approvalRequestRepository.save(approvalRequest);
         invoice.linkApprovalRequest(saved.getId());
-        return ApInvoiceResponse.from(invoice);
+        return ArInvoiceResponse.from(invoice);
     }
 
     @Transactional
-    public ApInvoiceResponse approve(Long id) {
+    public ArInvoiceResponse approve(Long id) {
         // 전결권(결재 권한) 보유자만 결재할 수 있다 — 전표 작성권(finance:write)과 분리.
         permissionChecker.require(Permission.FINANCE_INVOICE_APPROVE);
         String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
         }
-        ApInvoice invoice = getOrThrow(id);
-        // 직무분리(직무 분리): 본인이 작성한 전표는 결재할 수 없다.
+        ArInvoice invoice = getOrThrow(id);
+        // 직무분리: 본인이 작성한 전표는 결재할 수 없다.
         if (userId.equals(invoice.getCreatedBy())) {
             throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
         }
@@ -143,43 +140,43 @@ public class ApInvoiceService {
                 .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
             approvalRequest.approve(userId, null);
         }
-        // 승인 → GL 자동 분개(DRAFT). 라인·공급업체 외상매입금계정이 있을 때만 생성·연결.
-        Long journalEntryId = apInvoicePostingService.postDraft(invoice);
+        // 승인 → GL 자동 분개(DRAFT). 라인·고객 외상매출금계정이 있을 때만 생성·연결.
+        Long journalEntryId = arInvoicePostingService.postDraft(invoice);
         if (journalEntryId != null) {
             invoice.linkJournalEntry(journalEntryId);
         }
-        auditService.record("AP_INVOICE", invoice.getId(),
+        auditService.record("AR_INVOICE", invoice.getId(),
             AuditLog.AuditAction.APPROVE, null, null);
-        return ApInvoiceResponse.from(invoice);
+        return ArInvoiceResponse.from(invoice);
     }
 
     @Transactional
-    public ApInvoiceResponse pay(Long id, ApInvoicePayRequest request) {
+    public ArInvoiceResponse pay(Long id, ArInvoicePayRequest request) {
         permissionChecker.require(Permission.FINANCE_WRITE);
-        ApInvoice invoice = getOrThrow(id);
+        ArInvoice invoice = getOrThrow(id);
         invoice.pay(request.amount());
-        // 지급계정 제공 시 지급 분개 자동 생성 (차)외상매입금 /(대)현금·예금.
+        // 수금계정 제공 시 수금 분개 자동 생성 (차)현금·예금 /(대)외상매출금.
         if (request.cashAccountId() != null) {
             Account cashAccount = accountRepository.findById(request.cashAccountId())
                 .orElseThrow(() -> new ErpException(ErrorCode.ACCOUNT_NOT_FOUND));
             cashAccount.assertPostable();
             java.time.LocalDate paymentDate = request.paymentDate() != null
                 ? request.paymentDate() : invoice.getInvoiceDate();
-            apInvoicePostingService.postPaymentDraft(invoice, request.amount(), cashAccount, paymentDate);
+            arInvoicePostingService.postPaymentDraft(invoice, request.amount(), cashAccount, paymentDate);
         }
-        return ApInvoiceResponse.from(invoice);
+        return ArInvoiceResponse.from(invoice);
     }
 
     @Transactional
-    public ApInvoiceResponse cancel(Long id) {
+    public ArInvoiceResponse cancel(Long id) {
         permissionChecker.require(Permission.FINANCE_WRITE);
-        ApInvoice invoice = getOrThrow(id);
+        ArInvoice invoice = getOrThrow(id);
         invoice.cancel();
-        return ApInvoiceResponse.from(invoice);
+        return ArInvoiceResponse.from(invoice);
     }
 
-    private ApInvoice getOrThrow(Long id) {
-        return apInvoiceRepository.findById(id)
+    private ArInvoice getOrThrow(Long id) {
+        return arInvoiceRepository.findById(id)
             .orElseThrow(() -> new ErpException(ErrorCode.INVOICE_NOT_FOUND));
     }
 }

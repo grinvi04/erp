@@ -60,6 +60,8 @@ public enum ErrorCode {
     JOURNAL_LINE_AMOUNTS_INVALID(HttpStatus.BAD_REQUEST, "F026", "전표 라인은 차변 또는 대변 중 하나만 0보다 커야 합니다"),
     INVOICE_DUE_DATE_INVALID(HttpStatus.BAD_REQUEST, "F027", "만기일은 인보이스 일자 이후여야 합니다"),
     FISCAL_PERIOD_DATE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "F028", "회계기간 날짜가 회계연도 범위를 벗어납니다"),
+    CUSTOMER_NOT_FOUND(HttpStatus.NOT_FOUND, "F029", "고객을 찾을 수 없습니다"),
+    CUSTOMER_CODE_DUPLICATE(HttpStatus.CONFLICT, "F030", "이미 사용 중인 고객 코드입니다"),
 
     // Inventory
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "품목을 찾을 수 없습니다"),

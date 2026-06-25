@@ -4,23 +4,23 @@ import com.erp.common.AbstractIntegrationTest;
 import com.erp.common.security.DataScope;
 import com.erp.common.security.UserAccessProfile;
 import com.erp.common.security.UserAccessProfileRepository;
-import com.erp.finance.application.dto.ApInvoiceCreateRequest;
-import com.erp.finance.application.dto.ApInvoiceLineRequest;
-import com.erp.finance.application.dto.ApInvoicePayRequest;
-import com.erp.finance.application.service.ApInvoiceService;
+import com.erp.finance.application.dto.ArInvoiceCreateRequest;
+import com.erp.finance.application.dto.ArInvoiceLineRequest;
+import com.erp.finance.application.dto.ArInvoicePayRequest;
+import com.erp.finance.application.service.ArInvoiceService;
 import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.AccountType;
+import com.erp.finance.domain.model.Customer;
 import com.erp.finance.domain.model.FiscalPeriod;
 import com.erp.finance.domain.model.FiscalYear;
 import com.erp.finance.domain.model.JournalEntry;
 import com.erp.finance.domain.model.NormalBalance;
-import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.AccountRepository;
-import com.erp.finance.domain.repository.ApInvoiceRepository;
+import com.erp.finance.domain.repository.ArInvoiceRepository;
+import com.erp.finance.domain.repository.CustomerRepository;
 import com.erp.finance.domain.repository.FiscalPeriodRepository;
 import com.erp.finance.domain.repository.FiscalYearRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
-import com.erp.finance.domain.repository.VendorRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -38,23 +38,25 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * AP 전표 승인 → GL 자동 분개(DRAFT) 전체 흐름 검증.
- * 실무 분개: (차) 비용[라인 계정] / (대) 외상매입금[공급업체 통제계정] — 균형·DRAFT·역참조 확인.
+ * AR 전표 승인 → GL 자동 분개(DRAFT) 전체 흐름 검증.
+ * 실무 분개(AP와 반전): (차) 외상매출금[고객 통제계정] / (대) 매출[라인 계정] — 균형·DRAFT·역참조 확인.
+ * DEBIT 측이 외상매출금 계정임을 검증한다.
  */
 @Transactional
-class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
+class ArInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
 
-    @Autowired private ApInvoiceService apInvoiceService;
-    @Autowired private ApInvoiceRepository invoiceRepository;
-    @Autowired private VendorRepository vendorRepository;
+    @Autowired private ArInvoiceService arInvoiceService;
+    @Autowired private ArInvoiceRepository invoiceRepository;
+    @Autowired private CustomerRepository customerRepository;
     @Autowired private AccountRepository accountRepository;
     @Autowired private FiscalYearRepository fiscalYearRepository;
     @Autowired private FiscalPeriodRepository fiscalPeriodRepository;
     @Autowired private JournalEntryRepository journalEntryRepository;
     @Autowired private UserAccessProfileRepository accessProfileRepository;
 
-    private Long expenseAccountId;
-    private Long vendorId;
+    private Long revenueAccountId;
+    private Long customerId;
+    private Long receivablesAccountId;
 
     @BeforeEach
     void setUp() {
@@ -63,15 +65,16 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
         fiscalPeriodRepository.save(FiscalPeriod.of(fy, 1,
                 LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)));
 
-        Account expense = accountRepository.save(Account.of("51100", "소모품비",
-                AccountType.EXPENSE, NormalBalance.DEBIT, null, false));
-        Account apControl = accountRepository.save(Account.of("25100", "외상매입금",
-                AccountType.LIABILITY, NormalBalance.CREDIT, null, false));
-        expenseAccountId = expense.getId();
+        Account revenue = accountRepository.save(Account.of("40100", "매출",
+                AccountType.REVENUE, NormalBalance.CREDIT, null, false));
+        Account arControl = accountRepository.save(Account.of("11100", "외상매출금",
+                AccountType.ASSET, NormalBalance.DEBIT, null, false));
+        revenueAccountId = revenue.getId();
+        receivablesAccountId = arControl.getId();
 
-        Vendor vendor = Vendor.of("V-GL", "공급사", "111-11-11111", "담당", "v@test.com", "010-1", 30);
-        vendor.assignPayablesAccount(apControl);
-        vendorId = vendorRepository.save(vendor).getId();
+        Customer customer = Customer.of("C-GL", "고객사", "222-22-22222", "담당", "c@test.com", "010-2", 30);
+        customer.assignReceivablesAccount(arControl);
+        customerId = customerRepository.save(customer).getId();
     }
 
     @AfterEach
@@ -92,40 +95,47 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void approve_withLinesAndVendorPayables_createsBalancedDraftJournalEntry() {
-        // 작성자: 라인(소모품비 10만)이 있는 전표 생성·상신
+    void approve_withLinesAndCustomerReceivables_createsBalancedDraftJournalEntry() {
+        // 작성자: 라인(매출 10만)이 있는 AR 전표 생성·상신
         authenticate("creator", BigDecimal.ZERO, "finance:write");
-        var created = apInvoiceService.create(new ApInvoiceCreateRequest(
-                "INV-GL-1", vendorId, LocalDate.of(2025, 1, 10), LocalDate.of(2025, 2, 10),
+        var created = arInvoiceService.create(new ArInvoiceCreateRequest(
+                "AR-GL-1", customerId, LocalDate.of(2025, 1, 10), LocalDate.of(2025, 2, 10),
                 new BigDecimal("100000"), "KRW", null,
-                List.of(new ApInvoiceLineRequest(expenseAccountId, new BigDecimal("100000"), "소모품 구매"))));
-        apInvoiceService.submit(created.id());
+                List.of(new ArInvoiceLineRequest(revenueAccountId, new BigDecimal("100000"), "매출 발생"))));
+        arInvoiceService.submit(created.id());
 
         // 결재자: 승인 → GL 자동 분개
         authenticate("approver", new BigDecimal("1000000"), "finance:invoice:approve");
-        var approved = apInvoiceService.approve(created.id());
+        var approved = arInvoiceService.approve(created.id());
 
         assertThat(approved.journalEntryId()).isNotNull();
         JournalEntry je = journalEntryRepository.findById(approved.journalEntryId()).orElseThrow();
         assertThat(je.getStatus().name()).isEqualTo("DRAFT");
         assertThat(je.isBalanced()).isTrue();
+        // 전표 총액(차변 = 대변 = 10만)
         assertThat(je.getTotalDebit()).isEqualByComparingTo("100000");
         assertThat(je.getTotalCredit()).isEqualByComparingTo("100000");
-        assertThat(je.getReferenceType()).isEqualTo("AP_INVOICE");
+        // 역참조: AR_INVOICE
+        assertThat(je.getReferenceType()).isEqualTo("AR_INVOICE");
         assertThat(je.getReferenceId()).isEqualTo(created.id());
+        // 차변 측이 외상매출금 계정임을 확인 (AP와 반전)
+        boolean debitIsReceivables = je.getLines().stream()
+                .anyMatch(l -> l.getDebitAmount().compareTo(BigDecimal.ZERO) > 0
+                        && l.getAccount().getId().equals(receivablesAccountId));
+        assertThat(debitIsReceivables).isTrue();
     }
 
     @Test
     void approve_withoutLines_doesNotPost() {
-        // 라인 없는 전표(레거시) → 자동 분개 생략(추가적 변화 없음, fail-closed 아님)
+        // 라인 없는 전표(레거시) → 자동 분개 생략
         authenticate("creator", BigDecimal.ZERO, "finance:write");
-        var created = apInvoiceService.create(new ApInvoiceCreateRequest(
-                "INV-GL-2", vendorId, LocalDate.of(2025, 1, 10), LocalDate.of(2025, 2, 10),
+        var created = arInvoiceService.create(new ArInvoiceCreateRequest(
+                "AR-GL-2", customerId, LocalDate.of(2025, 1, 10), LocalDate.of(2025, 2, 10),
                 new BigDecimal("50000"), "KRW", null, null));
-        apInvoiceService.submit(created.id());
+        arInvoiceService.submit(created.id());
 
         authenticate("approver", new BigDecimal("1000000"), "finance:invoice:approve");
-        var approved = apInvoiceService.approve(created.id());
+        var approved = arInvoiceService.approve(created.id());
 
         assertThat(approved.journalEntryId()).isNull();
         assertThat(invoiceRepository.findById(created.id()).orElseThrow().getStatus().name())
@@ -133,31 +143,31 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void pay_withCashAccount_createsBalancedPaymentDraftJournalEntry() {
-        // 승인된 전표 준비
+    void pay_withCashAccount_createsBalancedReceiptDraftJournalEntry() {
+        // 승인된 AR 전표 준비
         authenticate("creator", BigDecimal.ZERO, "finance:write");
-        var created = apInvoiceService.create(new ApInvoiceCreateRequest(
-                "INV-PAY-1", vendorId, LocalDate.of(2025, 1, 10), LocalDate.of(2025, 2, 10),
+        var created = arInvoiceService.create(new ArInvoiceCreateRequest(
+                "AR-PAY-1", customerId, LocalDate.of(2025, 1, 10), LocalDate.of(2025, 2, 10),
                 new BigDecimal("100000"), "KRW", null,
-                List.of(new ApInvoiceLineRequest(expenseAccountId, new BigDecimal("100000"), "구매"))));
-        apInvoiceService.submit(created.id());
+                List.of(new ArInvoiceLineRequest(revenueAccountId, new BigDecimal("100000"), "매출"))));
+        arInvoiceService.submit(created.id());
         authenticate("approver", new BigDecimal("1000000"), "finance:invoice:approve");
-        apInvoiceService.approve(created.id());
+        arInvoiceService.approve(created.id());
 
-        // 현금 계정으로 지급 → (차)외상매입금 /(대)현금 분개
+        // 현금 계정으로 수금 → (차)현금 /(대)외상매출금 분개 (AP 지급의 반전)
         Account cash = accountRepository.save(Account.of("10100", "현금",
                 AccountType.ASSET, NormalBalance.DEBIT, null, false));
-        authenticate("payer", BigDecimal.ZERO, "finance:write");
-        apInvoiceService.pay(created.id(), new ApInvoicePayRequest(
+        authenticate("receiver", BigDecimal.ZERO, "finance:write");
+        arInvoiceService.pay(created.id(), new ArInvoicePayRequest(
                 new BigDecimal("100000"), cash.getId(), LocalDate.of(2025, 1, 20)));
 
         JournalEntry payJe = journalEntryRepository
-                .findByReferenceTypeAndReferenceId("AP_PAYMENT", created.id()).orElseThrow();
+                .findByReferenceTypeAndReferenceId("AR_PAYMENT", created.id()).orElseThrow();
         assertThat(payJe.getStatus().name()).isEqualTo("DRAFT");
         assertThat(payJe.isBalanced()).isTrue();
         assertThat(payJe.getTotalDebit()).isEqualByComparingTo("100000");
-        // 대변이 현금 계정(지급으로 현금 감소)
-        assertThat(payJe.getLines()).anyMatch(l -> l.getCreditAmount().compareTo(BigDecimal.ZERO) > 0
+        // 차변이 현금 계정(수금으로 현금 증가)
+        assertThat(payJe.getLines()).anyMatch(l -> l.getDebitAmount().compareTo(BigDecimal.ZERO) > 0
                 && l.getAccount().getId().equals(cash.getId()));
     }
 }
