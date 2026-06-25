@@ -9,7 +9,8 @@ export const metadata = { title: '분석 | ERP' }
 
 async function safeGetArray<T>(path: string): Promise<T[]> {
   try {
-    return await apiGet<T[]>(path)
+    const data = await apiGet<T[]>(path)
+    return Array.isArray(data) ? data : []
   } catch {
     return []
   }
