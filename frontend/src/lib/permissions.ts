@@ -18,6 +18,7 @@ export const PERM = {
   INVENTORY_WRITE: 'inventory:write',
   CRM_READ: 'crm:read',
   CRM_WRITE: 'crm:write',
+  AUDIT_READ: 'audit:read',
 } as const
 
 /** 현재 사용자의 권한 코드 목록(UI 게이팅용). 서버 검사가 항상 최종이다. */

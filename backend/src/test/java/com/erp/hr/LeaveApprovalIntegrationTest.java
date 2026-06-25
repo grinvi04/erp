@@ -1,6 +1,8 @@
 package com.erp.hr;
 
 import com.erp.common.AbstractIntegrationTest;
+import com.erp.common.audit.AuditLog;
+import com.erp.common.audit.AuditLogRepository;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.workflow.ApprovalRequest;
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -51,6 +54,7 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
     @Autowired private PositionRepository positionRepository;
     @Autowired private EmployeeRepository employeeRepository;
     @Autowired private LeavePolicyRepository leavePolicyRepository;
+    @Autowired private AuditLogRepository auditLogRepository;
 
     private LeaveRequest savedLeaveRequest;
     private LeaveBalance savedBalance;
@@ -164,6 +168,34 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
             leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("권한 없음")));
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
+    }
+
+    @Test
+    void approve_writesApproveAuditLog() {
+        // 감사 추적: 결재 승인이 누가(MANAGER)·무엇을(LEAVE_REQUEST id) 결재했는지 로그로 남는다.
+        authenticateAs("MANAGER");
+        leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("승인합니다"));
+
+        List<AuditLog> logs = auditLogRepository.search(
+            TEST_TENANT_ID, "LEAVE_REQUEST", savedLeaveRequest.getId(), "MANAGER",
+            PageRequest.of(0, 10)).getContent();
+
+        assertThat(logs).hasSize(1);
+        assertThat(logs.get(0).getAction()).isEqualTo(AuditLog.AuditAction.APPROVE);
+        assertThat(logs.get(0).getPerformedBy()).isEqualTo("MANAGER");
+    }
+
+    @Test
+    void reject_writesRejectAuditLog() {
+        authenticateAs("MANAGER");
+        leaveRequestService.reject(savedLeaveRequest.getId(), new ApprovalActionRequest("일정 조정 필요"));
+
+        List<AuditLog> logs = auditLogRepository.search(
+            TEST_TENANT_ID, "LEAVE_REQUEST", savedLeaveRequest.getId(), "MANAGER",
+            PageRequest.of(0, 10)).getContent();
+
+        assertThat(logs).hasSize(1);
+        assertThat(logs.get(0).getAction()).isEqualTo(AuditLog.AuditAction.REJECT);
     }
 
     @Test

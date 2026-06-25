@@ -7,7 +7,10 @@ import {
   Users, Building2, Package, TrendingUp, LayoutDashboard,
   ChevronRight, Briefcase, FileText, Warehouse, BarChart3,
   UserSquare, Target, Activity, GitBranch, Inbox, PieChart,
+  ScrollText,
 } from 'lucide-react'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 
 const NAV = [
   {
@@ -69,6 +72,7 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { can } = usePermissions()
 
   return (
     <aside className="w-60 min-h-screen bg-gray-900 text-gray-100 flex flex-col shrink-0">
@@ -82,6 +86,10 @@ export function Sidebar() {
           ) : (
             <NavLink key={item.href} href={item.href!} label={item.label} icon={item.icon} pathname={pathname} />
           )
+        )}
+        {/* 감사 로그 — audit:read 권한자(운영·감사자)에게만 노출 */}
+        {can(PERM.AUDIT_READ) && (
+          <NavLink href="/audit" label="감사 로그" icon={ScrollText} pathname={pathname} />
         )}
       </nav>
     </aside>

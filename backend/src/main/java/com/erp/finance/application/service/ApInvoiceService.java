@@ -1,5 +1,7 @@
 package com.erp.finance.application.service;
 
+import com.erp.common.audit.AuditLog;
+import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
@@ -35,6 +37,7 @@ public class ApInvoiceService {
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CurrentUserProvider currentUserProvider;
     private final PermissionChecker permissionChecker;
+    private final AuditService auditService;
 
     public ApInvoiceResponse findById(Long id) {
         permissionChecker.require(Permission.FINANCE_READ);
@@ -101,6 +104,8 @@ public class ApInvoiceService {
                 .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
             approvalRequest.approve(userId, null);
         }
+        auditService.record("AP_INVOICE", invoice.getId(),
+            AuditLog.AuditAction.APPROVE, null, null);
         return ApInvoiceResponse.from(invoice);
     }
 

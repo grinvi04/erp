@@ -75,7 +75,7 @@ public class AuditLog {
         return log;
     }
 
-    public enum AuditAction { CREATE, UPDATE, DELETE, VIEW }
+    public enum AuditAction { CREATE, UPDATE, DELETE, VIEW, APPROVE, REJECT }
 
     public Long getId() { return id; }
     public Long getTenantId() { return tenantId; }
