@@ -30,11 +30,16 @@ public class ContractService {
     private final PositionRepository positionRepository;
     private final JobGradeRepository jobGradeRepository;
     private final PermissionChecker permissionChecker;
+    private final HrDataScopeResolver dataScopeResolver;
 
     public List<ContractResponse> findByEmployee(Long employeeId) {
         permissionChecker.require(Permission.HR_EMPLOYEE_READ);
-        employeeRepository.findById(employeeId)
+        Employee employee = employeeRepository.findById(employeeId)
             .orElseThrow(() -> new ErpException(ErrorCode.EMPLOYEE_NOT_FOUND));
+        // 데이터 스코프 — 범위 밖 직원의 보상(계약) 데이터 접근 차단
+        if (!dataScopeResolver.isEmployeeInScope(employee)) {
+            throw new ErpException(ErrorCode.FORBIDDEN);
+        }
         return contractRepository.findByEmployeeId(employeeId).stream()
             .map(ContractResponse::from)
             .toList();

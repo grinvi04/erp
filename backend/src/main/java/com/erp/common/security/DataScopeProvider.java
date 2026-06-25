@@ -1,5 +1,6 @@
 package com.erp.common.security;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
  * 클레임: {@code data_scope}(ALL|DEPARTMENT|SELF), {@code department_id}(소속 부서).
  * 미설정·비인증 시 {@link DataScope#ALL}(narrowing 없음).
  */
+@Slf4j
 @Component
 public class DataScopeProvider {
 
@@ -25,6 +27,8 @@ public class DataScopeProvider {
         try {
             return DataScope.valueOf(raw.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
+            // 알 수 없는 값 — ALL로 폴백하되 경고(Keycloak 매핑 오류 진단용)
+            log.warn("알 수 없는 data_scope 클레임 '{}' — ALL로 처리", raw);
             return DataScope.ALL;
         }
     }

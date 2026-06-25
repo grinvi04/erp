@@ -41,14 +41,22 @@ public class LeaveRequestService {
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CurrentUserProvider currentUserProvider;
     private final PermissionChecker permissionChecker;
+    private final HrDataScopeResolver dataScopeResolver;
 
     public Page<LeaveRequestResponse> findAll(Pageable pageable) {
         permissionChecker.require(Permission.HR_LEAVE_READ);
-        return leaveRequestRepository.findAll(pageable).map(LeaveRequestResponse::from);
+        // 데이터 스코프 공통 필터 — 범위 밖 직원의 휴가는 목록에서 제외
+        return leaveRequestRepository.findAll(dataScopeResolver.leaveRequestScope(), pageable)
+            .map(LeaveRequestResponse::from);
     }
 
     public Page<LeaveRequestResponse> findByEmployee(Long employeeId, Pageable pageable) {
         permissionChecker.require(Permission.HR_LEAVE_READ);
+        Employee employee = employeeRepository.findById(employeeId)
+            .orElseThrow(() -> new ErpException(ErrorCode.EMPLOYEE_NOT_FOUND));
+        if (!dataScopeResolver.isEmployeeInScope(employee)) {
+            throw new ErpException(ErrorCode.FORBIDDEN);
+        }
         return leaveRequestRepository.findByEmployeeId(employeeId, pageable)
             .map(LeaveRequestResponse::from);
     }

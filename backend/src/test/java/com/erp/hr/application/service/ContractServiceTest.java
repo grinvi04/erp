@@ -42,6 +42,7 @@ class ContractServiceTest {
     @Mock private PositionRepository positionRepository;
     @Mock private JobGradeRepository jobGradeRepository;
     @Mock private com.erp.common.security.PermissionChecker permissionChecker;
+    @Mock private HrDataScopeResolver dataScopeResolver;
 
     @InjectMocks
     private ContractService contractService;
@@ -68,6 +69,7 @@ class ContractServiceTest {
     void findByEmployee_existing_returnsList() {
         Employee emp = buildEmployee();
         given(employeeRepository.findById(1L)).willReturn(Optional.of(emp));
+        given(dataScopeResolver.isEmployeeInScope(emp)).willReturn(true);
 
         Position pos = Position.of("P001", "Engineer", 2);
         Contract contract = Contract.create(emp, ContractType.REGULAR,

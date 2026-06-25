@@ -4,6 +4,7 @@ import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.DataScope;
 import com.erp.common.security.DataScopeProvider;
 import com.erp.hr.domain.model.Employee;
+import com.erp.hr.domain.model.LeaveRequest;
 import com.erp.hr.domain.repository.DepartmentRepository;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -45,6 +46,33 @@ public class HrDataScopeResolver {
                 yield (root, query, cb) -> root.get("department").get("id").in(deptIds);
             }
         };
+    }
+
+    /** 직원 연관 데이터(휴가신청 등) 조회의 스코프 제약 — 소속 직원의 부서/본인 기준. */
+    public Specification<LeaveRequest> leaveRequestScope() {
+        DataScope scope = dataScopeProvider.getDataScope();
+        return switch (scope) {
+            case ALL -> Specification.where(null);
+            case SELF -> {
+                String sub = currentUserProvider.getCurrentUserId();
+                yield (root, query, cb) ->
+                        sub == null ? cb.disjunction() : cb.equal(root.get("employee").get("userId"), sub);
+            }
+            case DEPARTMENT -> {
+                Long deptId = dataScopeProvider.getDepartmentId();
+                if (deptId == null) {
+                    yield (root, query, cb) -> cb.disjunction();
+                }
+                Set<Long> deptIds = selfAndDescendantDeptIds(deptId);
+                yield (root, query, cb) ->
+                        root.get("employee").get("department").get("id").in(deptIds);
+            }
+        };
+    }
+
+    /** 직원 id가 현재 사용자 스코프 안에 있는지 — 직원 키 엔드포인트(계약·휴가잔여 등) 검사용. */
+    public boolean isEmployeeInScope(Employee employee) {
+        return isInScope(employee);
     }
 
     /** 단건 직원이 현재 스코프 안에 있는지(findById 등 단건 접근 검사용). */

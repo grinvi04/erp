@@ -2,14 +2,20 @@ package com.erp.hr;
 
 import com.erp.common.AbstractIntegrationTest;
 import com.erp.hr.application.dto.EmployeeResponse;
+import com.erp.hr.application.dto.LeaveRequestResponse;
 import com.erp.hr.application.service.EmployeeService;
+import com.erp.hr.application.service.LeaveRequestService;
 import com.erp.hr.domain.model.Department;
 import com.erp.hr.domain.model.Employee;
 import com.erp.hr.domain.model.EmploymentType;
+import com.erp.hr.domain.model.LeavePolicy;
+import com.erp.hr.domain.model.LeaveRequest;
 import com.erp.hr.domain.model.PersonalInfo;
 import com.erp.hr.domain.model.Position;
 import com.erp.hr.domain.repository.DepartmentRepository;
 import com.erp.hr.domain.repository.EmployeeRepository;
+import com.erp.hr.domain.repository.LeavePolicyRepository;
+import com.erp.hr.domain.repository.LeaveRequestRepository;
 import com.erp.hr.domain.repository.PositionRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,12 +39,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 class EmployeeDataScopeIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired private EmployeeService employeeService;
+    @Autowired private LeaveRequestService leaveRequestService;
     @Autowired private DepartmentRepository departmentRepository;
     @Autowired private PositionRepository positionRepository;
     @Autowired private EmployeeRepository employeeRepository;
+    @Autowired private LeavePolicyRepository leavePolicyRepository;
+    @Autowired private LeaveRequestRepository leaveRequestRepository;
 
     private Department deptA;
     private Employee empA;
+    private Employee empC;
 
     @BeforeEach
     void setUp() {
@@ -49,7 +59,7 @@ class EmployeeDataScopeIntegrationTest extends AbstractIntegrationTest {
 
         empA = save("EMP-A", "user-a", deptA, pos);
         save("EMP-B", "user-b", deptB, pos);
-        save("EMP-C", "user-c", deptC, pos);
+        empC = save("EMP-C", "user-c", deptC, pos);
     }
 
     @AfterEach
@@ -76,7 +86,8 @@ class EmployeeDataScopeIntegrationTest extends AbstractIntegrationTest {
             b.claim("department_id", departmentId);
         }
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(b.build(),
-                List.of(new SimpleGrantedAuthority("hr:employee:read"))));
+                List.of(new SimpleGrantedAuthority("hr:employee:read"),
+                        new SimpleGrantedAuthority("hr:leave:read"))));
     }
 
     private List<String> findAllEmpNos() {
@@ -104,6 +115,24 @@ class EmployeeDataScopeIntegrationTest extends AbstractIntegrationTest {
         authenticate("user-a", "ALL", null);
 
         assertThat(findAllEmpNos()).containsExactlyInAnyOrder("EMP-A", "EMP-B", "EMP-C");
+    }
+
+    @Test
+    void leaveRequestFindAll_departmentScope_excludesOutOfScopeEmployees() {
+        // 형제 경로 우회 차단 검증: 휴가신청 목록도 데이터 스코프로 필터(범위 밖 직원 제외)
+        LeavePolicy policy = leavePolicyRepository.save(
+                LeavePolicy.of("ANN", "연차", LeavePolicy.LeaveType.ANNUAL, 15, 5, true, 1));
+        leaveRequestRepository.save(LeaveRequest.create(empA, policy,
+                LocalDate.of(2024, 4, 1), LocalDate.of(2024, 4, 2), BigDecimal.valueOf(2), "A"));
+        leaveRequestRepository.save(LeaveRequest.create(empC, policy,
+                LocalDate.of(2024, 5, 1), LocalDate.of(2024, 5, 2), BigDecimal.valueOf(2), "C"));
+
+        authenticate("user-a", "DEPARTMENT", deptA.getId());
+
+        List<Long> empIds = leaveRequestService.findAll(PageRequest.of(0, 50))
+                .getContent().stream().map(LeaveRequestResponse::employeeId).toList();
+        // 본부A의 empA만, 본부C의 empC는 제외
+        assertThat(empIds).containsExactly(empA.getId());
     }
 
     @Test
