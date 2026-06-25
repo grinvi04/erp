@@ -2,6 +2,8 @@ package com.erp.hr.application.service;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.hr.application.dto.LeaveBalanceResponse;
 import com.erp.hr.domain.repository.EmployeeRepository;
 import com.erp.hr.domain.repository.LeaveBalanceRepository;
@@ -18,8 +20,10 @@ public class LeaveBalanceService {
 
     private final LeaveBalanceRepository leaveBalanceRepository;
     private final EmployeeRepository employeeRepository;
+    private final PermissionChecker permissionChecker;
 
     public List<LeaveBalanceResponse> findByEmployeeAndYear(Long employeeId, int year) {
+        permissionChecker.require(Permission.HR_LEAVE_READ);
         employeeRepository.findById(employeeId)
             .orElseThrow(() -> new ErpException(ErrorCode.EMPLOYEE_NOT_FOUND));
         return leaveBalanceRepository.findByEmployeeIdAndYear(employeeId, year).stream()

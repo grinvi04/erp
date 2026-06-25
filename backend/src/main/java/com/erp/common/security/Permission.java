@@ -19,6 +19,10 @@ public final class Permission {
     public static final String HR_DEPARTMENT_WRITE = "hr:department:write";
     public static final String HR_LEAVE_READ = "hr:leave:read";
     public static final String HR_LEAVE_WRITE = "hr:leave:write";
+    public static final String HR_POSITION_READ = "hr:position:read";
+    public static final String HR_POSITION_WRITE = "hr:position:write";
+    public static final String HR_JOBGRADE_READ = "hr:jobgrade:read";
+    public static final String HR_JOBGRADE_WRITE = "hr:jobgrade:write";
 
     // Finance
     public static final String FINANCE_READ = "finance:read";

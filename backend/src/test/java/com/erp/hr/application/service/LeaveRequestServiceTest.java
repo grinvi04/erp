@@ -46,6 +46,7 @@ class LeaveRequestServiceTest {
     @Mock private LeavePolicyRepository leavePolicyRepository;
     @Mock private ApprovalRequestRepository approvalRequestRepository;
     @Mock private CurrentUserProvider currentUserProvider;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
 
     @InjectMocks
     private LeaveRequestService leaveRequestService;
