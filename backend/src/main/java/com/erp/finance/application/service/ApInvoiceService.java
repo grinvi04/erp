@@ -41,6 +41,9 @@ public class ApInvoiceService {
     private final ApprovalAuthorityProvider approvalAuthorityProvider;
     private final AuditService auditService;
 
+    // 전결규정상 결재자는 전결권·한도로 결정되므로 결재선에 특정인을 사전 지정하지 않는다(역할 sentinel).
+    private static final String ROLE_BASED_APPROVER = "@role:" + Permission.FINANCE_INVOICE_APPROVE;
+
     public ApInvoiceResponse findById(Long id) {
         permissionChecker.require(Permission.FINANCE_READ);
         return ApInvoiceResponse.from(getOrThrow(id));
@@ -78,7 +81,10 @@ public class ApInvoiceService {
         String userId = currentUserProvider.getCurrentUserId();
         ApInvoice invoice = getOrThrow(id);
         invoice.submit();
-        ApprovalStep step = ApprovalStep.of(1, "AP 전표 승인", userId);
+        // 전결규정(역할/한도 기반)이라 특정 결재자를 결재선에 사전 지정하지 않는다 —
+        // 결재함 라우팅은 ApInvoiceApprovalInboxContributor가 전결권·한도로 산출한다.
+        // 사람 단위 결재함(findPendingForApprover)에 작성자로 잘못 노출되지 않도록 역할 sentinel.
+        ApprovalStep step = ApprovalStep.of(1, "AP 전표 승인", ROLE_BASED_APPROVER);
         ApprovalRequest approvalRequest = ApprovalRequest.create(
             "AP_INVOICE", invoice.getId(),
             "AP 전표 승인: " + invoice.getInvoiceNo(),
