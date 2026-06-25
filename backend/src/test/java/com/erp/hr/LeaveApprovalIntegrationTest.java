@@ -23,9 +23,13 @@ import com.erp.hr.domain.repository.LeaveBalanceRepository;
 import com.erp.hr.domain.repository.LeavePolicyRepository;
 import com.erp.hr.domain.repository.LeaveRequestRepository;
 import com.erp.hr.domain.repository.PositionRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -80,6 +84,23 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
         lr.linkApprovalRequest(ar.getId());
 
         savedLeaveRequest = lr;
+
+        // 결재 검증은 인증된 현재 사용자(sub)가 단계 결재자와 일치해야 통과한다 —
+        // 결재자 "MANAGER"로 인증 컨텍스트를 설정한다.
+        authenticateAs("MANAGER");
+    }
+
+    @AfterEach
+    void clearAuthentication() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void authenticateAs(String subject) {
+        Jwt jwt = Jwt.withTokenValue("test-token").header("alg", "none")
+            .subject(subject).claim("sub", subject).build();
+        // 2-인자 생성자는 authenticated=true로 설정한다(단일 인자 생성자는 false).
+        SecurityContextHolder.getContext()
+            .setAuthentication(new JwtAuthenticationToken(jwt, List.of()));
     }
 
     @Test
@@ -121,5 +142,27 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
             leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("재승인")));
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVAL_ALREADY_PROCESSED);
+    }
+
+    @Test
+    void approve_unauthenticated_throwsNotAuthorized() {
+        // 보안: 인증되지 않은(현재 사용자 null) 요청이 SYSTEM으로 승격돼 결재를 우회하지 못한다.
+        SecurityContextHolder.clearContext();
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("우회 시도")));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
+    }
+
+    @Test
+    void approve_byNonApprover_throwsNotAuthorized() {
+        // 현재 단계 결재자(MANAGER)가 아닌 다른 사용자는 결재할 수 없다.
+        authenticateAs("OTHER-USER");
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("권한 없음")));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
     }
 }

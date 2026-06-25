@@ -73,6 +73,7 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
   const [workEmail, setWorkEmail] = useState('')
   const [baseSalary, setBaseSalary] = useState('')
   const [managerId, setManagerId] = useState('')
+  const [userId, setUserId] = useState('')
 
   // Transfer form state
   const [transferDeptId, setTransferDeptId] = useState<string>('')
@@ -90,6 +91,7 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
     setEmpNo(''); setLastName(''); setFirstName(''); setDob(''); setGender('')
     setNationalId(''); setPhone(''); setPersonalEmail(''); setDeptId(''); setPosId('')
     setGradeId(''); setHireDate(''); setEmpType(''); setWorkEmail(''); setBaseSalary(''); setManagerId('')
+    setUserId('')
     setDialog({ type: 'create' })
   }
 
@@ -98,6 +100,7 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
     setPhone(emp.phone ?? ''); setPersonalEmail(emp.personalEmail ?? '')
     setWorkEmail(emp.workEmail); setBaseSalary(emp.baseSalary != null ? String(emp.baseSalary) : '')
     setManagerId(emp.managerId != null ? String(emp.managerId) : '')
+    setUserId(emp.userId ?? '')
     setDialog({ type: 'edit', emp })
   }
 
@@ -156,6 +159,7 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
           phone: phone || null, personalEmail: personalEmail || null,
           workEmail, baseSalary: baseSalary ? Number(baseSalary) : null,
           managerId: managerId ? Number(managerId) : null,
+          userId: userId.trim() || null,
         })
         toast.success('직원 정보가 수정되었습니다')
         close()
@@ -481,6 +485,11 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             <div className="grid gap-1.5">
               <Label>관리자 ID</Label>
               <Input type="number" value={managerId} onChange={(e) => setManagerId(e.target.value)} placeholder="직원 ID" />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>로그인 계정 ID (Keycloak)</Label>
+              <Input value={userId} onChange={(e) => setUserId(e.target.value)}
+                placeholder="결재자 식별용 sub" />
             </div>
           </div>
           <DialogFooter showCloseButton>

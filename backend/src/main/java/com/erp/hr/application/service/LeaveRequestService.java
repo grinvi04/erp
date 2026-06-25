@@ -84,8 +84,12 @@ public class LeaveRequestService {
         if (requesterId == null) {
             requesterId = employee.getEmployeeNo();
         }
-        String approverId = employee.getManager() != null
-            ? employee.getManager().getEmployeeNo()
+        // 결재자 식별은 Keycloak sub(정본 신원)로 한다 — approve()의 검증도 sub 기준이므로
+        // 매니저의 employeeNo가 아니라 연결된 user_id를 결재자로 지정해야 실제 로그인
+        // 사용자가 결재할 수 있다. (미연결 매니저는 결재 불가 상태로 남으므로 SYSTEM fallback)
+        Employee manager = employee.getManager();
+        String approverId = manager != null && manager.getUserId() != null
+            ? manager.getUserId()
             : "SYSTEM";
         ApprovalStep step = ApprovalStep.of(1, "직속 상관 승인", approverId);
         ApprovalRequest approvalRequest = ApprovalRequest.create(
@@ -116,12 +120,7 @@ public class LeaveRequestService {
         }
 
         String approverId = currentUserProvider.getCurrentUserId();
-        if (approverId == null) {
-            approverId = "SYSTEM";
-        }
-        if (!"SYSTEM".equals(approverId) && !approverId.equals(approvalRequest.getCurrentStepApproverId())) {
-            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
-        }
+        requireAuthorizedApprover(approverId, approvalRequest);
         approvalRequest.approve(approverId, request.comment());
 
         if (approvalRequest.getStatus() == ApprovalStatus.APPROVED) {
@@ -155,16 +154,24 @@ public class LeaveRequestService {
         }
 
         String approverId = currentUserProvider.getCurrentUserId();
-        if (approverId == null) {
-            approverId = "SYSTEM";
-        }
-        if (!"SYSTEM".equals(approverId) && !approverId.equals(approvalRequest.getCurrentStepApproverId())) {
-            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
-        }
+        requireAuthorizedApprover(approverId, approvalRequest);
         approvalRequest.reject(approverId, request.comment());
         leaveRequest.reject();
 
         return LeaveRequestResponse.from(leaveRequest);
+    }
+
+    /**
+     * 결재 권한 검증. (1) 인증된 사용자여야 하고 — null 행위자를 SYSTEM으로 승격해 우회를
+     * 허용하지 않는다, (2) 현재 단계의 결재자(매니저 sub)와 일치해야 하며, (3) 본인이
+     * 상신한 건은 결재할 수 없다(직무 분리). AP 전표 결재와 동일한 기준.
+     */
+    private void requireAuthorizedApprover(String approverId, ApprovalRequest approvalRequest) {
+        if (approverId == null
+                || !approverId.equals(approvalRequest.getCurrentStepApproverId())
+                || approverId.equals(approvalRequest.getRequesterId())) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
     }
 
     private LeaveRequest getLeaveRequestOrThrow(Long id) {

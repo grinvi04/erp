@@ -53,6 +53,7 @@ export interface Employee {
   baseSalary: number | null
   workEmail: string
   managerId: number | null
+  userId: string | null
 }
 
 export interface LeaveRequest {

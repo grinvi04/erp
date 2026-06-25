@@ -70,6 +70,10 @@ public class Employee extends BaseEntity {
     @Column(name = "work_email", nullable = false, length = 200)
     private String workEmail;
 
+    // Keycloak subject(sub) — 로그인 계정 연결. 결재자 식별의 정본 신원.
+    @Column(name = "user_id", length = 100)
+    private String userId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id")
     private Employee manager;
@@ -150,6 +154,11 @@ public class Employee extends BaseEntity {
         this.manager = manager;
     }
 
+    /** Keycloak 로그인 계정(sub)을 직원에 연결한다. null이면 연결 해제. */
+    public void linkUserAccount(String userId) {
+        this.userId = userId;
+    }
+
     public boolean isActive() { return status == EmployeeStatus.ACTIVE; }
     public boolean isTerminated() { return status == EmployeeStatus.TERMINATED; }
 
@@ -165,5 +174,6 @@ public class Employee extends BaseEntity {
     public EmployeeStatus getStatus() { return status; }
     public BigDecimal getBaseSalary() { return baseSalary; }
     public String getWorkEmail() { return workEmail; }
+    public String getUserId() { return userId; }
     public Employee getManager() { return manager; }
 }
