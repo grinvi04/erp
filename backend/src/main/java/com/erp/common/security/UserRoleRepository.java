@@ -15,8 +15,9 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
      * 양쪽의 tenant_id를 모두 검증한다 — 잘못 만들어진 배정이 타 테넌트 역할의 권한을 새지
      * 못하도록 해석 시점에서 차단(심층 방어). 배정 생성 API도 동일 테넌트를 강제한다.
      */
-    @Query("SELECT DISTINCT p FROM UserRole ur JOIN ur.role r JOIN r.permissions p "
-        + "WHERE ur.tenantId = :tenantId AND ur.userId = :userId AND r.tenantId = :tenantId")
+    @Query("SELECT DISTINCT p.permissionCode FROM UserRole ur JOIN ur.role r JOIN r.permissions p "
+        + "WHERE ur.tenantId = :tenantId AND ur.userId = :userId "
+        + "AND r.tenantId = :tenantId AND p.tenantId = :tenantId")
     Set<String> findPermissionCodes(@Param("tenantId") Long tenantId, @Param("userId") String userId);
 
     List<UserRole> findByTenantIdAndUserId(Long tenantId, String userId);
