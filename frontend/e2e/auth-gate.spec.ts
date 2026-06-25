@@ -17,7 +17,9 @@ test.describe('인증 게이트', () => {
   for (const route of protectedRoutes) {
     test(`미인증 사용자는 ${route} 접근 시 /login으로 리다이렉트된다`, async ({ page }) => {
       await page.goto(route)
-      await expect(page).toHaveURL(/\/login$/)
+      // 레이아웃은 plain /login으로 보내지만, 미들웨어에 authorized 콜백이 추가되면
+      // /login?callbackUrl=... 형태가 될 수 있어 쿼리 유무 모두 허용한다.
+      await expect(page).toHaveURL(/\/login(\?|$)/)
     })
   }
 
