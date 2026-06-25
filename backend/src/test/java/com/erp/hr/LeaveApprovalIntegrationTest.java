@@ -143,4 +143,37 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVAL_ALREADY_PROCESSED);
     }
+
+    @Test
+    void approve_unauthenticated_throwsNotAuthorized() {
+        // 보안: 인증되지 않은(현재 사용자 null) 요청이 SYSTEM으로 승격돼 결재를 우회하지 못한다.
+        SecurityContextHolder.clearContext();
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("우회 시도")));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
+    }
+
+    @Test
+    void approve_byNonApprover_throwsNotAuthorized() {
+        // 현재 단계 결재자(MANAGER)가 아닌 다른 사용자는 결재할 수 없다.
+        authenticateAs("OTHER-USER");
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("권한 없음")));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
+    }
+
+    @Test
+    void reject_blankComment_throwsInvalidInput() {
+        // 반려 사유는 서버에서도 필수 — 빈 사유는 거부한다(클라이언트 전용 규칙 아님).
+        authenticateAs("MANAGER");
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            leaveRequestService.reject(savedLeaveRequest.getId(), new ApprovalActionRequest("  ")));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT);
+    }
 }
