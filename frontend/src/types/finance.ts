@@ -3,6 +3,7 @@ export type NormalBalance = 'DEBIT' | 'CREDIT'
 export type JournalEntryType = 'MANUAL' | 'AP' | 'AR' | 'PAYROLL' | 'ADJUSTMENT'
 export type JournalEntryStatus = 'DRAFT' | 'POSTED' | 'REVERSED'
 export type ApInvoiceStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'
+export type ArInvoiceStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'
 export type FiscalYearStatus = 'OPEN' | 'CLOSED'
 export type FiscalPeriodStatus = 'OPEN' | 'CLOSED'
 
@@ -73,6 +74,36 @@ export interface ApInvoice {
   outstandingAmount: number
   currency: string
   status: ApInvoiceStatus
+  journalEntryId: number | null
+  approvalRequestId: number | null
+  note: string | null
+}
+
+export interface Customer {
+  id: number
+  code: string
+  name: string
+  businessNo: string | null
+  contactName: string | null
+  contactEmail: string | null
+  contactPhone: string | null
+  paymentTerms: number
+  isActive: boolean
+  receivablesAccountId: number | null
+}
+
+export interface ArInvoice {
+  id: number
+  invoiceNo: string
+  customerId: number
+  customerName: string
+  invoiceDate: string
+  dueDate: string
+  totalAmount: number
+  paidAmount: number
+  outstandingAmount: number
+  currency: string
+  status: ArInvoiceStatus
   journalEntryId: number | null
   approvalRequestId: number | null
   note: string | null

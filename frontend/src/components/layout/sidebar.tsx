@@ -45,6 +45,8 @@ const NAV = [
       { label: '전표', href: '/finance/journal-entries', icon: FileText },
       { label: '매입 인보이스', href: '/finance/invoices', icon: FileText },
       { label: '공급업체', href: '/finance/vendors', icon: Building2 },
+      { label: '고객', href: '/finance/customers', icon: Building2 },
+      { label: '매출 인보이스', href: '/finance/ar-invoices', icon: FileText },
     ],
   },
   {
