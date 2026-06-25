@@ -9,8 +9,14 @@ import com.erp.crm.domain.repository.LeadRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,6 +28,16 @@ class LeadsByStatusIntegrationTest extends AbstractIntegrationTest {
     private LeadRepository leadRepository;
     @Autowired
     private CrmAnalyticsService crmAnalyticsService;
+
+    @BeforeEach
+    void authenticate() {
+        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject("test-user").claim("sub", "test-user").build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
+            List.of(new SimpleGrantedAuthority("crm:read"), new SimpleGrantedAuthority("crm:write"))));
+    }
+
+    @AfterEach
+    void clearAuth() { SecurityContextHolder.clearContext(); }
 
     @Test
     void leadsByStatus_fillsAllStatusValuesWithZeroForMissing() {

@@ -1,5 +1,7 @@
 package com.erp.finance.application.service;
 
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.MonthlyInvoiceResponse;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.MonthlyInvoiceRow;
@@ -21,8 +23,10 @@ public class FinanceAnalyticsService {
     private static final int MONTHS_IN_YEAR = 12;
 
     private final ApInvoiceRepository apInvoiceRepository;
+    private final PermissionChecker permissionChecker;
 
     public List<MonthlyInvoiceResponse> getMonthlyInvoices(Integer year) {
+        permissionChecker.require(Permission.FINANCE_READ);
         int targetYear = year != null ? year : Year.now().getValue();
 
         Map<Integer, MonthlyInvoiceRow> rowMap = apInvoiceRepository.monthlyInvoices(targetYear)

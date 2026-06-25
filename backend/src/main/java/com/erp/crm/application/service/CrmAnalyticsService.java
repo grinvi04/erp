@@ -1,5 +1,7 @@
 package com.erp.crm.application.service;
 
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.LeadStatusCountResponse;
 import com.erp.crm.application.dto.PipelineDistributionResponse;
 import com.erp.crm.domain.model.LeadStatus;
@@ -21,8 +23,10 @@ public class CrmAnalyticsService {
 
     private final PipelineStageRepository pipelineStageRepository;
     private final LeadRepository leadRepository;
+    private final PermissionChecker permissionChecker;
 
     public List<PipelineDistributionResponse> getPipelineDistribution() {
+        permissionChecker.require(Permission.CRM_READ);
         return pipelineStageRepository.pipelineDistribution().stream()
                 .map(r -> new PipelineDistributionResponse(
                         r.getStageId(),
@@ -34,6 +38,7 @@ public class CrmAnalyticsService {
     }
 
     public List<LeadStatusCountResponse> getLeadsByStatus() {
+        permissionChecker.require(Permission.CRM_READ);
         Map<LeadStatus, Long> countMap = leadRepository.countByStatusGrouped().stream()
                 .collect(Collectors.toMap(LeadStatusCountRow::getStatus, LeadStatusCountRow::getCount));
 

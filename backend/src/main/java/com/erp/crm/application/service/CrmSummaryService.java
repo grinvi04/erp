@@ -1,5 +1,7 @@
 package com.erp.crm.application.service;
 
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.CrmSummaryResponse;
 import com.erp.crm.domain.model.ActivityStatus;
 import com.erp.crm.domain.model.LeadStatus;
@@ -19,8 +21,10 @@ public class CrmSummaryService {
     private final OpportunityRepository opportunityRepository;
     private final LeadRepository leadRepository;
     private final ActivityRepository activityRepository;
+    private final PermissionChecker permissionChecker;
 
     public CrmSummaryResponse getSummary() {
+        permissionChecker.require(Permission.CRM_READ);
         BigDecimal openAmount = opportunityRepository.sumOpenAmount();
         return new CrmSummaryResponse(
                 opportunityRepository.countOpen(),

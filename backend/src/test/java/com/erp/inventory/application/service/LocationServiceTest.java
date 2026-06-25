@@ -26,6 +26,7 @@ class LocationServiceTest {
 
     @Mock private LocationRepository locationRepository;
     @Mock private WarehouseService warehouseService;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private LocationService locationService;
 
     private Warehouse buildWarehouse() {

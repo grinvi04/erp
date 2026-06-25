@@ -27,6 +27,8 @@ class AccountServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+    @Mock
+    private com.erp.common.security.PermissionChecker permissionChecker;
 
     @InjectMocks
     private AccountService accountService;

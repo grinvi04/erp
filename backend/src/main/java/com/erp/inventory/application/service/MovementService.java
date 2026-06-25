@@ -3,6 +3,8 @@ package com.erp.inventory.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.inventory.application.dto.MovementCreateRequest;
 import com.erp.inventory.application.dto.MovementLineRequest;
 import com.erp.inventory.application.dto.MovementLineResponse;
@@ -44,8 +46,10 @@ public class MovementService {
     private final StockRepository stockRepository;
     private final ItemService itemService;
     private final LocationService locationService;
+    private final PermissionChecker permissionChecker;
 
     public PageResponse<MovementResponse> findAll(MovementType type, MovementStatus status, Pageable pageable) {
+        permissionChecker.require(Permission.INVENTORY_READ);
         var page = movementRepository.findByTypeAndStatus(type, status, pageable);
         if (page.isEmpty()) {
             return PageResponse.from(page.map(MovementResponse::from));
@@ -61,6 +65,7 @@ public class MovementService {
     }
 
     public MovementResponse findById(Long id) {
+        permissionChecker.require(Permission.INVENTORY_READ);
         Movement movement = getOrThrow(id);
         List<MovementLineResponse> lines = movementLineRepository
                 .findByMovement_IdOrderByLineNoAsc(id).stream()
@@ -70,6 +75,7 @@ public class MovementService {
 
     @Transactional
     public MovementResponse create(MovementCreateRequest req) {
+        permissionChecker.require(Permission.INVENTORY_WRITE);
         String movementNo = generateMovementNo();
         Movement movement;
         try {
@@ -89,6 +95,7 @@ public class MovementService {
 
     @Transactional
     public MovementResponse confirm(Long id) {
+        permissionChecker.require(Permission.INVENTORY_WRITE);
         Movement movement = getOrThrow(id);
         movement.confirm();
 
@@ -117,6 +124,7 @@ public class MovementService {
 
     @Transactional
     public MovementResponse cancel(Long id) {
+        permissionChecker.require(Permission.INVENTORY_WRITE);
         Movement movement = getOrThrow(id);
         movement.cancel();
         List<MovementLineResponse> lines = movementLineRepository

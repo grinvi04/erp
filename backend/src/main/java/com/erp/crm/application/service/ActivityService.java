@@ -3,6 +3,8 @@ package com.erp.crm.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.ActivityCreateRequest;
 import com.erp.crm.application.dto.ActivityResponse;
 import com.erp.crm.domain.model.Account;
@@ -26,21 +28,25 @@ public class ActivityService {
     private final CrmAccountService accountService;
     private final ContactService contactService;
     private final OpportunityService opportunityService;
+    private final PermissionChecker permissionChecker;
 
     public PageResponse<ActivityResponse> search(Long opportunityId, Long accountId,
                                                  ActivityType activityType, ActivityStatus status,
                                                  Pageable pageable) {
+        permissionChecker.require(Permission.CRM_READ);
         return PageResponse.from(activityRepository
                 .search(opportunityId, accountId, activityType, status, pageable)
                 .map(ActivityResponse::from));
     }
 
     public ActivityResponse findById(Long id) {
+        permissionChecker.require(Permission.CRM_READ);
         return ActivityResponse.from(getOrThrow(id));
     }
 
     @Transactional
     public ActivityResponse create(ActivityCreateRequest req) {
+        permissionChecker.require(Permission.CRM_WRITE);
         Account account = req.accountId() != null ? accountService.getOrThrow(req.accountId()) : null;
         Contact contact = req.contactId() != null ? contactService.getOrThrow(req.contactId()) : null;
         Opportunity opportunity = req.opportunityId() != null
@@ -53,6 +59,7 @@ public class ActivityService {
 
     @Transactional
     public ActivityResponse complete(Long id) {
+        permissionChecker.require(Permission.CRM_WRITE);
         Activity activity = getOrThrow(id);
         if (!activity.isOpen()) {
             throw new ErpException(ErrorCode.ACTIVITY_INVALID_STATUS_TRANSITION);
@@ -63,6 +70,7 @@ public class ActivityService {
 
     @Transactional
     public ActivityResponse cancel(Long id) {
+        permissionChecker.require(Permission.CRM_WRITE);
         Activity activity = getOrThrow(id);
         if (!activity.isOpen()) {
             throw new ErpException(ErrorCode.ACTIVITY_INVALID_STATUS_TRANSITION);
@@ -73,6 +81,7 @@ public class ActivityService {
 
     @Transactional
     public void delete(Long id) {
+        permissionChecker.require(Permission.CRM_WRITE);
         getOrThrow(id).softDelete();
     }
 

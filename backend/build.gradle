@@ -66,6 +66,7 @@ checkstyle {
 
 test {
     useJUnitPlatform()
+    jvmArgs('-Xmx1g')
 }
 
 tasks.named('check') {

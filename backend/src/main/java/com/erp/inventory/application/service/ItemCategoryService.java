@@ -2,6 +2,8 @@ package com.erp.inventory.application.service;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.inventory.application.dto.ItemCategoryCreateRequest;
 import com.erp.inventory.application.dto.ItemCategoryResponse;
 import com.erp.inventory.domain.model.ItemCategory;
@@ -19,26 +21,32 @@ public class ItemCategoryService {
 
     private final ItemCategoryRepository categoryRepository;
     private final ItemRepository itemRepository;
+    private final PermissionChecker permissionChecker;
 
     public List<ItemCategoryResponse> findAll() {
+        permissionChecker.require(Permission.INVENTORY_READ);
         return categoryRepository.findAll().stream().map(ItemCategoryResponse::from).toList();
     }
 
     public List<ItemCategoryResponse> findRoots() {
+        permissionChecker.require(Permission.INVENTORY_READ);
         return categoryRepository.findByParentIsNull().stream().map(ItemCategoryResponse::from).toList();
     }
 
     public List<ItemCategoryResponse> findChildren(Long parentId) {
+        permissionChecker.require(Permission.INVENTORY_READ);
         getOrThrow(parentId);
         return categoryRepository.findByParent_Id(parentId).stream().map(ItemCategoryResponse::from).toList();
     }
 
     public ItemCategoryResponse findById(Long id) {
+        permissionChecker.require(Permission.INVENTORY_READ);
         return ItemCategoryResponse.from(getOrThrow(id));
     }
 
     @Transactional
     public ItemCategoryResponse create(ItemCategoryCreateRequest req) {
+        permissionChecker.require(Permission.INVENTORY_WRITE);
         if (categoryRepository.existsByCode(req.code().toUpperCase())) {
             throw new ErpException(ErrorCode.ITEM_CATEGORY_CODE_DUPLICATE);
         }
@@ -49,6 +57,7 @@ public class ItemCategoryService {
 
     @Transactional
     public ItemCategoryResponse update(Long id, ItemCategoryCreateRequest req) {
+        permissionChecker.require(Permission.INVENTORY_WRITE);
         ItemCategory cat = getOrThrow(id);
         ItemCategory parent = req.parentId() != null ? getOrThrow(req.parentId()) : null;
         cat.update(req.name(), parent);
@@ -57,6 +66,7 @@ public class ItemCategoryService {
 
     @Transactional
     public void delete(Long id) {
+        permissionChecker.require(Permission.INVENTORY_WRITE);
         ItemCategory cat = getOrThrow(id);
         if (categoryRepository.existsByParent_Id(id)) {
             throw new ErpException(ErrorCode.ITEM_CATEGORY_HAS_CHILDREN);

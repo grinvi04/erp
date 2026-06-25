@@ -22,6 +22,7 @@ class CrmSummaryServiceTest {
     @Mock private OpportunityRepository opportunityRepository;
     @Mock private LeadRepository leadRepository;
     @Mock private ActivityRepository activityRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private CrmSummaryService crmSummaryService;
 
     @Test

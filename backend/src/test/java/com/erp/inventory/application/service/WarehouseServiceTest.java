@@ -24,6 +24,7 @@ import static org.mockito.BDDMockito.given;
 class WarehouseServiceTest {
 
     @Mock private WarehouseRepository warehouseRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private WarehouseService warehouseService;
 
     @Test

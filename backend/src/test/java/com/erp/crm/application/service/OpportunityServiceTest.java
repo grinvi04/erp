@@ -29,6 +29,7 @@ class OpportunityServiceTest {
     @Mock private OpportunityRepository opportunityRepository;
     @Mock private CrmAccountService accountService;
     @Mock private PipelineStageService stageService;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private OpportunityService opportunityService;
 
     private Account buildAccount() {

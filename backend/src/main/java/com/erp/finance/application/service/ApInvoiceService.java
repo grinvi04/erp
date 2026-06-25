@@ -4,6 +4,8 @@ import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
 import com.erp.common.security.CurrentUserProvider;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.common.workflow.ApprovalRequest;
 import com.erp.common.workflow.ApprovalStep;
 import com.erp.common.workflow.repository.ApprovalRequestRepository;
@@ -32,12 +34,15 @@ public class ApInvoiceService {
     private final VendorRepository vendorRepository;
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final PermissionChecker permissionChecker;
 
     public ApInvoiceResponse findById(Long id) {
+        permissionChecker.require(Permission.FINANCE_READ);
         return ApInvoiceResponse.from(getOrThrow(id));
     }
 
     public PageResponse<ApInvoiceResponse> findAll(ApInvoiceStatus status, Pageable pageable) {
+        permissionChecker.require(Permission.FINANCE_READ);
         if (status != null) {
             return PageResponse.from(apInvoiceRepository.findByStatus(status, pageable).map(ApInvoiceResponse::from));
         }
@@ -45,11 +50,13 @@ public class ApInvoiceService {
     }
 
     public PageResponse<ApInvoiceResponse> findByVendor(Long vendorId, Pageable pageable) {
+        permissionChecker.require(Permission.FINANCE_READ);
         return PageResponse.from(apInvoiceRepository.findByVendorId(vendorId, pageable).map(ApInvoiceResponse::from));
     }
 
     @Transactional
     public ApInvoiceResponse create(ApInvoiceCreateRequest request) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
         if (apInvoiceRepository.existsByInvoiceNo(request.invoiceNo())) {
             throw new ErpException(ErrorCode.INVOICE_NO_DUPLICATE);
         }
@@ -62,6 +69,7 @@ public class ApInvoiceService {
 
     @Transactional
     public ApInvoiceResponse submit(Long id) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
         String userId = currentUserProvider.getCurrentUserId();
         ApInvoice invoice = getOrThrow(id);
         invoice.submit();
@@ -98,6 +106,7 @@ public class ApInvoiceService {
 
     @Transactional
     public ApInvoiceResponse pay(Long id, ApInvoicePayRequest request) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
         ApInvoice invoice = getOrThrow(id);
         invoice.pay(request.amount());
         return ApInvoiceResponse.from(invoice);
@@ -105,6 +114,7 @@ public class ApInvoiceService {
 
     @Transactional
     public ApInvoiceResponse cancel(Long id) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
         ApInvoice invoice = getOrThrow(id);
         invoice.cancel();
         return ApInvoiceResponse.from(invoice);

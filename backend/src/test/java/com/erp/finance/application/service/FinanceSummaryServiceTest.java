@@ -19,6 +19,7 @@ class FinanceSummaryServiceTest {
 
     @Mock private ApInvoiceRepository apInvoiceRepository;
     @Mock private JournalEntryRepository journalEntryRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private FinanceSummaryService financeSummaryService;
 
     @Test
