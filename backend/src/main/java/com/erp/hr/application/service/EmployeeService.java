@@ -37,6 +37,7 @@ public class EmployeeService {
     private final PositionRepository positionRepository;
     private final JobGradeRepository jobGradeRepository;
     private final PermissionChecker permissionChecker;
+    private final HrDataScopeResolver dataScopeResolver;
 
     public Page<EmployeeResponse> findAll(EmployeeStatus status, Long departmentId, Pageable pageable) {
         permissionChecker.require(Permission.HR_EMPLOYEE_READ);
@@ -47,12 +48,18 @@ public class EmployeeService {
         if (departmentId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("department").get("id"), departmentId));
         }
+        // 데이터 스코프 공통 필터 — 부서/본인 범위 밖 직원은 목록에서 제외(정보 유출 방지)
+        spec = spec.and(dataScopeResolver.employeeScope());
         return employeeRepository.findAll(spec, pageable).map(EmployeeResponse::from);
     }
 
     public EmployeeResponse findById(Long id) {
         permissionChecker.require(Permission.HR_EMPLOYEE_READ);
-        return EmployeeResponse.from(getOrThrow(id));
+        Employee employee = getOrThrow(id);
+        if (!dataScopeResolver.isInScope(employee)) {
+            throw new ErpException(ErrorCode.FORBIDDEN);
+        }
+        return EmployeeResponse.from(employee);
     }
 
     @Transactional
