@@ -3,6 +3,9 @@ package com.erp.finance;
 import com.erp.common.AbstractIntegrationTest;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.DataScope;
+import com.erp.common.security.UserAccessProfile;
+import com.erp.common.security.UserAccessProfileRepository;
 import com.erp.common.workflow.ApprovalInboxService;
 import com.erp.common.workflow.dto.ApprovalSummaryResponse;
 import com.erp.finance.application.dto.ApInvoiceResponse;
@@ -43,6 +46,7 @@ class ApInvoiceApprovalAuthorityIntegrationTest extends AbstractIntegrationTest 
     @Autowired private ApInvoiceRepository invoiceRepository;
     @Autowired private VendorRepository vendorRepository;
     @Autowired private ApprovalInboxService approvalInboxService;
+    @Autowired private UserAccessProfileRepository accessProfileRepository;
 
     private static final String CREATOR = "creator-user";
     private static final String APPROVER = "approver-user";
@@ -68,11 +72,18 @@ class ApInvoiceApprovalAuthorityIntegrationTest extends AbstractIntegrationTest 
     }
 
     private void authenticate(String sub, String approvalLimit, String... authorities) {
+        // 신원(sub·tenant_id)은 JWT, 전결 한도는 DB 접근 프로파일에서 해석(전면 DB 전환).
         Jwt jwt = Jwt.withTokenValue("t").header("alg", "none")
-            .subject(sub).claim("sub", sub).claim("approval_limit", approvalLimit).build();
+            .subject(sub).claim("sub", sub).claim("tenant_id", TEST_TENANT_ID).build();
         List<GrantedAuthority> auths = Arrays.stream(authorities)
             .map(a -> (GrantedAuthority) new SimpleGrantedAuthority(a)).toList();
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, auths));
+        // 동일 사용자 재인증(setUp의 CREATOR 등) 시 유니크 제약 위반을 피하려 upsert.
+        BigDecimal limit = new BigDecimal(approvalLimit);
+        UserAccessProfile profile = accessProfileRepository.findByTenantIdAndUserId(TEST_TENANT_ID, sub)
+            .map(existing -> { existing.update(DataScope.ALL, null, limit); return existing; })
+            .orElseGet(() -> UserAccessProfile.of(TEST_TENANT_ID, sub, DataScope.ALL, null, limit));
+        accessProfileRepository.save(profile);
     }
 
     @Test
