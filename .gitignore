@@ -24,3 +24,5 @@ docker-data/
 
 # ── harness ──────────────────────────────────────────────────────────
 .claude/settings.local.json
+# 에이전트 워크트리(transient scratch) — 커밋 금지
+.claude/worktrees/
