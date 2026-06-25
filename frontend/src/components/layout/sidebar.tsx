@@ -7,7 +7,7 @@ import {
   Users, Building2, Package, TrendingUp, LayoutDashboard,
   ChevronRight, Briefcase, FileText, Warehouse, BarChart3,
   UserSquare, Target, Activity, GitBranch, Inbox, PieChart,
-  ScrollText,
+  ScrollText, ShieldCheck,
 } from 'lucide-react'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
@@ -86,6 +86,10 @@ export function Sidebar() {
           ) : (
             <NavLink key={item.href} href={item.href!} label={item.label} icon={item.icon} pathname={pathname} />
           )
+        )}
+        {/* 역할·권한 관리 — iam:read 관리자에게만 노출 */}
+        {can(PERM.IAM_READ) && (
+          <NavLink href="/iam" label="역할·권한" icon={ShieldCheck} pathname={pathname} />
         )}
         {/* 감사 로그 — audit:read 권한자(운영·감사자)에게만 노출 */}
         {can(PERM.AUDIT_READ) && (
