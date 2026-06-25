@@ -2,6 +2,8 @@
 import { useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 import { PlusIcon, TrashIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,6 +54,8 @@ interface Props {
 export default function JournalEntriesClient({
   fiscalYears, selectedYearId, periods, selectedPeriodId, entries, accounts,
 }: Props) {
+  const { can } = usePermissions()
+  const canWrite = can(PERM.FINANCE_WRITE)
   const router = useRouter()
   const [showCreate, setShowCreate] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -142,7 +146,7 @@ export default function JournalEntriesClient({
           <h1 className="text-2xl font-semibold text-gray-900">분개장</h1>
           <p className="text-sm text-gray-500 mt-1">회계 기간을 선택하여 분개 내역을 조회합니다</p>
         </div>
-        {selectedPeriodId != null && (
+        {canWrite && selectedPeriodId != null && (
           <Button onClick={openCreate} disabled={isPending || isPeriodClosed} title={isPeriodClosed ? '마감된 기간에는 분개를 등록할 수 없습니다' : undefined}>
             <PlusIcon />새 분개
           </Button>
@@ -236,7 +240,7 @@ export default function JournalEntriesClient({
                     <Badge variant={STATUS_VARIANT[entry.status]}>{STATUS_LABEL[entry.status]}</Badge>
                   </TableCell>
                   <TableCell>
-                    {entry.status === 'DRAFT' && (
+                    {canWrite && entry.status === 'DRAFT' && (
                       <Button variant="ghost" size="sm" onClick={() => handlePost(entry)}
                         disabled={isPending} title="전기">
                         전기

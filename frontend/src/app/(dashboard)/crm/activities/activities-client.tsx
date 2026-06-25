@@ -1,6 +1,8 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 import { PlusIcon, CheckIcon, BanIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -55,6 +57,8 @@ interface Props {
 }
 
 export default function ActivitiesClient({ data, accounts, currentUserId }: Props) {
+  const { can } = usePermissions()
+  const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
@@ -182,7 +186,7 @@ export default function ActivitiesClient({ data, accounts, currentUserId }: Prop
           <h1 className="text-2xl font-semibold text-gray-900">활동</h1>
           <p className="text-sm text-gray-500 mt-1">영업 활동 이력을 관리합니다</p>
         </div>
-        <Button onClick={openCreate}><PlusIcon />새 활동</Button>
+        {canWrite && <Button onClick={openCreate}><PlusIcon />새 활동</Button>}
       </div>
 
       <div className="bg-white rounded-lg border overflow-hidden">
@@ -220,7 +224,7 @@ export default function ActivitiesClient({ data, accounts, currentUserId }: Prop
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
-                    {act.status === 'OPEN' && (
+                    {canWrite && act.status === 'OPEN' && (
                       <>
                         <Button variant="ghost" size="icon-xs" title="완료"
                           onClick={() => setDialog({ type: 'complete', activity: act })}>
@@ -232,10 +236,12 @@ export default function ActivitiesClient({ data, accounts, currentUserId }: Prop
                         </Button>
                       </>
                     )}
-                    <Button variant="ghost" size="icon-xs" title="삭제"
-                      onClick={() => setDialog({ type: 'delete', activity: act })}>
-                      <Trash2Icon className="text-destructive" />
-                    </Button>
+                    {canWrite && (
+                      <Button variant="ghost" size="icon-xs" title="삭제"
+                        onClick={() => setDialog({ type: 'delete', activity: act })}>
+                        <Trash2Icon className="text-destructive" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

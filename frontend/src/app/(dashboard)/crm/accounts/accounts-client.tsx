@@ -1,6 +1,8 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 import { PlusIcon, PencilIcon, BanIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,6 +39,8 @@ interface Props {
 }
 
 export default function AccountsClient({ data, currentUserId }: Props) {
+  const { can } = usePermissions()
+  const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
@@ -202,7 +206,7 @@ export default function AccountsClient({ data, currentUserId }: Props) {
           <h1 className="text-2xl font-semibold text-gray-900">고객사</h1>
           <p className="text-sm text-gray-500 mt-1">고객사 및 잠재 고객 정보를 관리합니다</p>
         </div>
-        <Button onClick={openCreate}><PlusIcon />새 고객사</Button>
+        {canWrite && <Button onClick={openCreate}><PlusIcon />새 고객사</Button>}
       </div>
 
       <div className="bg-white rounded-lg border overflow-hidden">
@@ -240,10 +244,12 @@ export default function AccountsClient({ data, currentUserId }: Props) {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(acc)}>
-                      <PencilIcon />
-                    </Button>
-                    {acc.isActive && (
+                    {canWrite && (
+                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(acc)}>
+                        <PencilIcon />
+                      </Button>
+                    )}
+                    {canWrite && acc.isActive && (
                       <Button variant="ghost" size="icon-xs" title="비활성화"
                         onClick={() => setDialog({ type: 'deactivate', account: acc })}>
                         <BanIcon className="text-destructive" />

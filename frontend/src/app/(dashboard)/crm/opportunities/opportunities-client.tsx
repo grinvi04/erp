@@ -1,6 +1,8 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,6 +44,8 @@ interface Props {
 }
 
 export default function OpportunitiesClient({ data, accounts, stages, currentUserId }: Props) {
+  const { can } = usePermissions()
+  const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
@@ -217,9 +221,11 @@ export default function OpportunitiesClient({ data, accounts, stages, currentUse
           <h1 className="text-2xl font-semibold text-gray-900">영업 기회</h1>
           <p className="text-sm text-gray-500 mt-1">영업 파이프라인을 관리합니다</p>
         </div>
-        <Button onClick={openCreate} disabled={stages.length === 0}>
-          <PlusIcon />새 영업기회
-        </Button>
+        {canWrite && (
+          <Button onClick={openCreate} disabled={stages.length === 0}>
+            <PlusIcon />새 영업기회
+          </Button>
+        )}
       </div>
       {stages.length === 0 && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
@@ -260,13 +266,17 @@ export default function OpportunitiesClient({ data, accounts, stages, currentUse
                 <TableCell className="text-sm text-gray-600">{opp.closeDate ?? '—'}</TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(opp)}>
-                      <PencilIcon />
-                    </Button>
-                    <Button variant="ghost" size="icon-xs" title="삭제"
-                      onClick={() => setDialog({ type: 'delete', opp })}>
-                      <Trash2Icon className="text-destructive" />
-                    </Button>
+                    {canWrite && (
+                      <>
+                        <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(opp)}>
+                          <PencilIcon />
+                        </Button>
+                        <Button variant="ghost" size="icon-xs" title="삭제"
+                          onClick={() => setDialog({ type: 'delete', opp })}>
+                          <Trash2Icon className="text-destructive" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
