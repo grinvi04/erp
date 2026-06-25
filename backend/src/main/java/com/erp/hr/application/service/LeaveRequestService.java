@@ -1,5 +1,7 @@
 package com.erp.hr.application.service;
 
+import com.erp.common.audit.AuditLog;
+import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.CurrentUserProvider;
@@ -42,6 +44,7 @@ public class LeaveRequestService {
     private final CurrentUserProvider currentUserProvider;
     private final PermissionChecker permissionChecker;
     private final HrDataScopeResolver dataScopeResolver;
+    private final AuditService auditService;
 
     public Page<LeaveRequestResponse> findAll(Pageable pageable) {
         permissionChecker.require(Permission.HR_LEAVE_READ);
@@ -149,6 +152,8 @@ public class LeaveRequestService {
             balance.deduct(leaveRequest.getRequestedDays());
         }
 
+        auditService.record("LEAVE_REQUEST", leaveRequest.getId(),
+            AuditLog.AuditAction.APPROVE, null, null);
         return LeaveRequestResponse.from(leaveRequest);
     }
 
@@ -176,6 +181,8 @@ public class LeaveRequestService {
         approvalRequest.reject(approverId, request.comment());
         leaveRequest.reject();
 
+        auditService.record("LEAVE_REQUEST", leaveRequest.getId(),
+            AuditLog.AuditAction.REJECT, null, null);
         return LeaveRequestResponse.from(leaveRequest);
     }
 

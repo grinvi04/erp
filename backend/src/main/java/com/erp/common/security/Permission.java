@@ -35,4 +35,7 @@ public final class Permission {
     // CRM
     public static final String CRM_READ = "crm:read";
     public static final String CRM_WRITE = "crm:write";
+
+    // Audit (감사 로그 — 운영·감사자 권한. 누가 무엇을 변경/결재했는지 조회)
+    public static final String AUDIT_READ = "audit:read";
 }
