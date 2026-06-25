@@ -44,6 +44,7 @@ class MovementServiceTest {
     @Mock private StockRepository stockRepository;
     @Mock private ItemService itemService;
     @Mock private LocationService locationService;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
 
     @InjectMocks private MovementService movementService;
 

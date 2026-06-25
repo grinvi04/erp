@@ -2,6 +2,8 @@ package com.erp.crm.application.service;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.ContactCreateRequest;
 import com.erp.crm.application.dto.ContactResponse;
 import com.erp.crm.application.dto.ContactUpdateRequest;
@@ -19,19 +21,23 @@ public class ContactService {
 
     private final ContactRepository contactRepository;
     private final CrmAccountService accountService;
+    private final PermissionChecker permissionChecker;
 
     public List<ContactResponse> findByAccount(Long accountId) {
+        permissionChecker.require(Permission.CRM_READ);
         accountService.getOrThrow(accountId);
         return contactRepository.findByAccount_IdOrderByIsPrimaryDescLastNameAsc(accountId)
                 .stream().map(ContactResponse::from).toList();
     }
 
     public ContactResponse findById(Long id) {
+        permissionChecker.require(Permission.CRM_READ);
         return ContactResponse.from(getOrThrow(id));
     }
 
     @Transactional
     public ContactResponse create(ContactCreateRequest req) {
+        permissionChecker.require(Permission.CRM_WRITE);
         if (Boolean.TRUE.equals(req.isPrimary())
                 && contactRepository.existsByAccount_IdAndIsPrimaryTrue(req.accountId())) {
             throw new ErpException(ErrorCode.CONTACT_PRIMARY_DUPLICATE);
@@ -45,6 +51,7 @@ public class ContactService {
 
     @Transactional
     public ContactResponse update(Long id, ContactUpdateRequest req) {
+        permissionChecker.require(Permission.CRM_WRITE);
         Contact contact = getOrThrow(id);
         if (Boolean.TRUE.equals(req.isPrimary())
                 && contactRepository.existsByAccount_IdAndIsPrimaryTrueAndIdNot(
@@ -58,6 +65,7 @@ public class ContactService {
 
     @Transactional
     public void delete(Long id) {
+        permissionChecker.require(Permission.CRM_WRITE);
         getOrThrow(id).softDelete();
     }
 

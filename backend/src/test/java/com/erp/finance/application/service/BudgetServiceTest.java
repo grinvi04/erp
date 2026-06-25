@@ -34,6 +34,7 @@ class BudgetServiceTest {
     @Mock private BudgetRepository budgetRepository;
     @Mock private FiscalYearRepository fiscalYearRepository;
     @Mock private AccountRepository accountRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
 
     @InjectMocks
     private BudgetService budgetService;

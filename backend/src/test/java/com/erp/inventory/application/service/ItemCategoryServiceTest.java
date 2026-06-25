@@ -25,6 +25,7 @@ class ItemCategoryServiceTest {
 
     @Mock private ItemCategoryRepository categoryRepository;
     @Mock private ItemRepository itemRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private ItemCategoryService itemCategoryService;
 
     @Test

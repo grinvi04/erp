@@ -88,6 +88,31 @@ jobs:
       - run: npm run build
         if: steps.check.outputs.initialized == 'true'
 
+  e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # frontend 잡과 동일하게 npm install 사용(npm ci의 엄격한 lock 검증은 크로스
+      # 플랫폼 optional dep 차이에 취약). 브라우저는 별도로 명시 설치한다.
+      - run: npm install --ignore-scripts
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Run E2E (auth-gate smoke)
+        run: npm run test:e2e
+        env:
+          CI: 'true'
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:

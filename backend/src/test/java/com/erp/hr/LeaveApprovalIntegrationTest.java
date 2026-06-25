@@ -1,6 +1,8 @@
 package com.erp.hr;
 
 import com.erp.common.AbstractIntegrationTest;
+import com.erp.common.audit.AuditLog;
+import com.erp.common.audit.AuditLogRepository;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.workflow.ApprovalRequest;
@@ -23,9 +25,15 @@ import com.erp.hr.domain.repository.LeaveBalanceRepository;
 import com.erp.hr.domain.repository.LeavePolicyRepository;
 import com.erp.hr.domain.repository.LeaveRequestRepository;
 import com.erp.hr.domain.repository.PositionRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -46,6 +54,7 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
     @Autowired private PositionRepository positionRepository;
     @Autowired private EmployeeRepository employeeRepository;
     @Autowired private LeavePolicyRepository leavePolicyRepository;
+    @Autowired private AuditLogRepository auditLogRepository;
 
     private LeaveRequest savedLeaveRequest;
     private LeaveBalance savedBalance;
@@ -82,8 +91,22 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
         savedLeaveRequest = lr;
     }
 
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void authenticateAs(String subject) {
+        Jwt jwt = Jwt.withTokenValue("test-token").header("alg", "none")
+            .subject(subject).claim("sub", subject).build();
+        SecurityContextHolder.getContext().setAuthentication(
+            new JwtAuthenticationToken(jwt,
+                List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+    }
+
     @Test
     void approve_finalStep_approvesLeaveAndDeductsBalance() {
+        authenticateAs("MANAGER");
         LeaveRequestResponse result = leaveRequestService.approve(
             savedLeaveRequest.getId(), new ApprovalActionRequest("승인합니다"));
 
@@ -100,6 +123,7 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void reject_pendingRequest_rejectsLeaveRequest() {
+        authenticateAs("MANAGER");
         LeaveRequestResponse result = leaveRequestService.reject(
             savedLeaveRequest.getId(), new ApprovalActionRequest("일정 조정 필요"));
 
@@ -115,11 +139,73 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void approve_alreadyApproved_throwsAlreadyProcessed() {
+        authenticateAs("MANAGER");
         leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("승인"));
 
         ErpException ex = assertThrows(ErpException.class, () ->
             leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("재승인")));
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVAL_ALREADY_PROCESSED);
+    }
+
+    @Test
+    void approve_unauthenticated_throwsNotAuthorized() {
+        // 보안: 인증되지 않은(현재 사용자 null) 요청이 SYSTEM으로 승격돼 결재를 우회하지 못한다.
+        SecurityContextHolder.clearContext();
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("우회 시도")));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
+    }
+
+    @Test
+    void approve_byNonApprover_throwsNotAuthorized() {
+        // 현재 단계 결재자(MANAGER)가 아닌 다른 사용자는 결재할 수 없다.
+        authenticateAs("OTHER-USER");
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("권한 없음")));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
+    }
+
+    @Test
+    void approve_writesApproveAuditLog() {
+        // 감사 추적: 결재 승인이 누가(MANAGER)·무엇을(LEAVE_REQUEST id) 결재했는지 로그로 남는다.
+        authenticateAs("MANAGER");
+        leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("승인합니다"));
+
+        List<AuditLog> logs = auditLogRepository.search(
+            TEST_TENANT_ID, "LEAVE_REQUEST", savedLeaveRequest.getId(), "MANAGER",
+            PageRequest.of(0, 10)).getContent();
+
+        assertThat(logs).hasSize(1);
+        assertThat(logs.get(0).getAction()).isEqualTo(AuditLog.AuditAction.APPROVE);
+        assertThat(logs.get(0).getPerformedBy()).isEqualTo("MANAGER");
+    }
+
+    @Test
+    void reject_writesRejectAuditLog() {
+        authenticateAs("MANAGER");
+        leaveRequestService.reject(savedLeaveRequest.getId(), new ApprovalActionRequest("일정 조정 필요"));
+
+        List<AuditLog> logs = auditLogRepository.search(
+            TEST_TENANT_ID, "LEAVE_REQUEST", savedLeaveRequest.getId(), "MANAGER",
+            PageRequest.of(0, 10)).getContent();
+
+        assertThat(logs).hasSize(1);
+        assertThat(logs.get(0).getAction()).isEqualTo(AuditLog.AuditAction.REJECT);
+    }
+
+    @Test
+    void reject_blankComment_throwsInvalidInput() {
+        // 반려 사유는 서버에서도 필수 — 빈 사유는 거부한다(클라이언트 전용 규칙 아님).
+        authenticateAs("MANAGER");
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            leaveRequestService.reject(savedLeaveRequest.getId(), new ApprovalActionRequest("  ")));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT);
     }
 }

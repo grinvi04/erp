@@ -1,7 +1,8 @@
 import { auth } from '@/lib/auth'
 import type { ApiResponse, PageResponse } from '@/types/api'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
+// BACKEND_URL: server-only (Docker container-to-container). NEXT_PUBLIC_API_URL: browser-facing.
+const API_BASE = process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
 
 async function getHeaders(): Promise<HeadersInit> {
   const session = await auth()
@@ -22,12 +23,29 @@ export async function apiFetch<T>(
     headers: { ...headers, ...(options.headers ?? {}) },
     cache: 'no-store',
   })
+  if (res.status === 204 || res.status === 205) {
+    return { success: true } as ApiResponse<T>
+  }
   const contentType = res.headers.get('content-type') ?? ''
   if (!contentType.includes('application/json')) {
     throw new Error(`HTTP ${res.status} — JSON 응답이 아닙니다 (${contentType})`)
   }
   const body: ApiResponse<T> = await res.json()
   return body
+}
+
+/** 현재 로그인 사용자의 Keycloak subject(고유 ID)를 access token에서 추출한다. */
+export async function getCurrentUserId(): Promise<string> {
+  const session = await auth()
+  if (!session?.accessToken) return ''
+  try {
+    const payload = JSON.parse(
+      Buffer.from(session.accessToken.split('.')[1], 'base64').toString()
+    )
+    return payload.sub ?? ''
+  } catch {
+    return ''
+  }
 }
 
 export async function apiGet<T>(path: string): Promise<T> {

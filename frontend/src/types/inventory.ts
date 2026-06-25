@@ -1,48 +1,103 @@
-export interface Item {
-  id: number;
-  sku: string;
-  name: string;
-  categoryId: number;
-  categoryName: string;
-  uomId: number;
-  uomCode: string;
-  isStockTracked: boolean;
-  isActive: boolean;
-  costPrice: number | null;
-  salePrice: number | null;
-  createdAt: string;
+export type CostMethod = 'FIFO' | 'LIFO' | 'WEIGHTED_AVG' | 'STANDARD'
+
+export interface ItemCategory {
+  id: number
+  code: string
+  name: string
+  parentId: number | null
+  parentName: string | null
+}
+
+export interface Uom {
+  id: number
+  code: string
+  name: string
 }
 
 export interface Warehouse {
-  id: number;
-  code: string;
-  name: string;
-  address: string | null;
-  isActive: boolean;
-  createdAt: string;
+  id: number
+  code: string
+  name: string
+  address: string | null
+  active: boolean
 }
 
-export interface StockMovement {
-  id: number;
-  movementNo: string;
-  movementType: 'RECEIPT' | 'ISSUE' | 'TRANSFER' | 'ADJUSTMENT';
-  itemId: number;
-  itemName: string;
-  warehouseId: number;
-  warehouseName: string;
-  quantity: number;
-  unitCost: number | null;
-  status: 'DRAFT' | 'CONFIRMED';
-  movementDate: string;
-  createdAt: string;
+export interface Location {
+  id: number
+  warehouseId: number
+  warehouseName: string
+  code: string
+  name: string
+  parentId: number | null
+  parentName: string | null
+  active: boolean
+}
+
+export interface Item {
+  id: number
+  sku: string
+  name: string
+  description: string | null
+  categoryId: number | null
+  categoryName: string | null
+  uomId: number
+  uomCode: string
+  uomName: string
+  costMethod: CostMethod
+  standardCost: number
+  reorderPoint: number
+  reorderQty: number
+  minStock: number
+  maxStock: number
+  lotTracked: boolean
+  serialTracked: boolean
+  active: boolean
+}
+
+export type MovementType = 'RECEIPT' | 'ISSUE' | 'TRANSFER' | 'ADJUSTMENT'
+export type MovementStatus = 'DRAFT' | 'CONFIRMED' | 'CANCELLED'
+
+export interface MovementLine {
+  id: number
+  lineNo: number
+  itemId: number
+  itemSku: string
+  itemName: string
+  fromLocationId: number | null
+  fromLocationCode: string | null
+  toLocationId: number | null
+  toLocationCode: string | null
+  lotNo: string | null
+  serialNo: string | null
+  qty: number
+  unitCost: number
+}
+
+export interface Movement {
+  id: number
+  movementNo: string
+  movementType: MovementType
+  status: MovementStatus
+  referenceType: string | null
+  referenceId: number | null
+  movementDate: string
+  note: string | null
+  lines: MovementLine[] | null
 }
 
 export interface StockBalance {
-  itemId: number;
-  itemName: string;
-  sku: string;
-  warehouseId: number;
-  warehouseName: string;
-  quantity: number;
-  uomCode: string;
+  id: number
+  itemId: number
+  itemSku: string
+  itemName: string
+  locationId: number
+  locationCode: string
+  locationName: string
+  warehouseId: number
+  warehouseName: string
+  lotNo: string | null
+  serialNo: string | null
+  qtyOnHand: number
+  qtyReserved: number
+  unitCost: number
 }

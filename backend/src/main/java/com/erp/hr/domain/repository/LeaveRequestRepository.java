@@ -2,17 +2,22 @@ package com.erp.hr.domain.repository;
 
 import com.erp.common.workflow.ApprovalStatus;
 import com.erp.hr.domain.model.LeaveRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
 
-public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long> {
-    List<LeaveRequest> findByEmployeeId(Long employeeId);
+public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long>,
+        JpaSpecificationExecutor<LeaveRequest> {
+    Page<LeaveRequest> findByEmployeeId(Long employeeId, Pageable pageable);
     List<LeaveRequest> findByEmployeeIdAndApprovalStatus(Long employeeId, ApprovalStatus status);
     List<LeaveRequest> findByApprovalStatus(ApprovalStatus status);
+    long countByApprovalStatus(ApprovalStatus status);
 
     @Query("SELECT lr FROM LeaveRequest lr WHERE lr.employee.id = :employeeId "
         + "AND lr.approvalStatus = :status "

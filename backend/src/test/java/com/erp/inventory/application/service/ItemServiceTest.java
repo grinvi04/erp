@@ -31,6 +31,7 @@ class ItemServiceTest {
     @Mock private ItemRepository itemRepository;
     @Mock private ItemCategoryService itemCategoryService;
     @Mock private UomService uomService;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private ItemService itemService;
 
     private UnitOfMeasure buildUom() {

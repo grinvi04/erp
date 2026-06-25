@@ -2,6 +2,7 @@ package com.erp.crm.domain.repository;
 
 import com.erp.crm.domain.model.Lead;
 import com.erp.crm.domain.model.LeadStatus;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +21,9 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
     Page<Lead> search(@Param("status") LeadStatus status,
                       @Param("keyword") String keyword,
                       Pageable pageable);
+
+    long countByStatus(LeadStatus status);
+
+    @Query("SELECT l.status AS status, COUNT(l) AS count FROM Lead l GROUP BY l.status")
+    List<LeadStatusCountRow> countByStatusGrouped();
 }

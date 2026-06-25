@@ -23,6 +23,7 @@ import static org.mockito.BDDMockito.given;
 class UomServiceTest {
 
     @Mock private UnitOfMeasureRepository uomRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private UomService uomService;
 
     @Test

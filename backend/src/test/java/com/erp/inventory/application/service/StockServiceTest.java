@@ -34,6 +34,7 @@ class StockServiceTest {
     @Mock private StockRepository stockRepository;
     @Mock private ItemService itemService;
     @Mock private WarehouseService warehouseService;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private StockService stockService;
 
     private Item buildItem() {

@@ -70,6 +70,10 @@ public class Employee extends BaseEntity {
     @Column(name = "work_email", nullable = false, length = 200)
     private String workEmail;
 
+    // Keycloak subject(sub) — 로그인 계정 연결. 결재자 식별의 정본 신원.
+    @Column(name = "user_id", length = 100)
+    private String userId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id")
     private Employee manager;
@@ -128,8 +132,31 @@ public class Employee extends BaseEntity {
         this.terminationDate = terminationDate;
     }
 
+    public void updateInfo(String lastName, String firstName, String phone,
+                           String personalEmail, String workEmail, java.math.BigDecimal baseSalary) {
+        this.personalInfo = new PersonalInfo(
+            lastName != null ? lastName : this.personalInfo.getLastName(),
+            firstName != null ? firstName : this.personalInfo.getFirstName(),
+            this.personalInfo.getDateOfBirth(),
+            this.personalInfo.getGender(),
+            this.personalInfo.getNationalId(),
+            phone != null ? phone : this.personalInfo.getPhone(),
+            personalEmail != null ? personalEmail : this.personalInfo.getPersonalEmail());
+        if (workEmail != null) {
+            this.workEmail = workEmail;
+        }
+        if (baseSalary != null) {
+            this.baseSalary = baseSalary;
+        }
+    }
+
     public void assignManager(Employee manager) {
         this.manager = manager;
+    }
+
+    /** Keycloak 로그인 계정(sub)을 직원에 연결한다. null이면 연결 해제. */
+    public void linkUserAccount(String userId) {
+        this.userId = userId;
     }
 
     public boolean isActive() { return status == EmployeeStatus.ACTIVE; }
@@ -147,5 +174,6 @@ public class Employee extends BaseEntity {
     public EmployeeStatus getStatus() { return status; }
     public BigDecimal getBaseSalary() { return baseSalary; }
     public String getWorkEmail() { return workEmail; }
+    public String getUserId() { return userId; }
     public Employee getManager() { return manager; }
 }

@@ -3,6 +3,8 @@ package com.erp.crm.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.OpportunityCreateRequest;
 import com.erp.crm.application.dto.OpportunityResponse;
 import com.erp.crm.application.dto.OpportunityUpdateRequest;
@@ -21,18 +23,22 @@ public class OpportunityService {
     private final OpportunityRepository opportunityRepository;
     private final CrmAccountService accountService;
     private final PipelineStageService stageService;
+    private final PermissionChecker permissionChecker;
 
     public PageResponse<OpportunityResponse> search(Long accountId, Long stageId, Pageable pageable) {
+        permissionChecker.require(Permission.CRM_READ);
         return PageResponse.from(opportunityRepository.search(accountId, stageId, pageable)
                 .map(OpportunityResponse::from));
     }
 
     public OpportunityResponse findById(Long id) {
+        permissionChecker.require(Permission.CRM_READ);
         return OpportunityResponse.from(getOrThrow(id));
     }
 
     @Transactional
     public OpportunityResponse create(OpportunityCreateRequest req) {
+        permissionChecker.require(Permission.CRM_WRITE);
         Opportunity opportunity = Opportunity.of(
                 accountService.getOrThrow(req.accountId()),
                 req.name(),
@@ -44,6 +50,7 @@ public class OpportunityService {
 
     @Transactional
     public OpportunityResponse update(Long id, OpportunityUpdateRequest req) {
+        permissionChecker.require(Permission.CRM_WRITE);
         Opportunity opportunity = getOrThrow(id);
         opportunity.update(req.name(), stageService.getOrThrow(req.stageId()),
                 req.amount(), req.currency(), req.closeDate(), req.probability(),
@@ -53,6 +60,7 @@ public class OpportunityService {
 
     @Transactional
     public void delete(Long id) {
+        permissionChecker.require(Permission.CRM_WRITE);
         getOrThrow(id).softDelete();
     }
 

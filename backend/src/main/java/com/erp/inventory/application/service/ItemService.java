@@ -3,6 +3,8 @@ package com.erp.inventory.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.inventory.application.dto.ItemCreateRequest;
 import com.erp.inventory.application.dto.ItemResponse;
 import com.erp.inventory.application.dto.ItemUpdateRequest;
@@ -24,8 +26,10 @@ public class ItemService {
     private final ItemRepository itemRepository;
     private final ItemCategoryService itemCategoryService;
     private final UomService uomService;
+    private final PermissionChecker permissionChecker;
 
     public PageResponse<ItemResponse> findAll(Long categoryId, Pageable pageable) {
+        permissionChecker.require(Permission.INVENTORY_READ);
         Page<Item> page = categoryId != null
                 ? itemRepository.findByCategory_Id(categoryId, pageable)
                 : itemRepository.findAll(pageable);
@@ -33,11 +37,13 @@ public class ItemService {
     }
 
     public ItemResponse findById(Long id) {
+        permissionChecker.require(Permission.INVENTORY_READ);
         return ItemResponse.from(getOrThrow(id));
     }
 
     @Transactional
     public ItemResponse create(ItemCreateRequest req) {
+        permissionChecker.require(Permission.INVENTORY_WRITE);
         if (itemRepository.existsBySku(req.sku().toUpperCase())) {
             throw new ErpException(ErrorCode.ITEM_SKU_DUPLICATE);
         }
@@ -52,6 +58,7 @@ public class ItemService {
 
     @Transactional
     public ItemResponse update(Long id, ItemUpdateRequest req) {
+        permissionChecker.require(Permission.INVENTORY_WRITE);
         Item item = getOrThrow(id);
         ItemCategory category = req.categoryId() != null
                 ? itemCategoryService.getOrThrow(req.categoryId()) : null;
@@ -64,6 +71,7 @@ public class ItemService {
 
     @Transactional
     public void deactivate(Long id) {
+        permissionChecker.require(Permission.INVENTORY_WRITE);
         getOrThrow(id).deactivate();
     }
 

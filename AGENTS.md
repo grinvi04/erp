@@ -104,6 +104,15 @@ erp/
 - 프론트엔드 린트: `cd frontend && npm run lint`
 - 프론트엔드 빌드: `cd frontend && npm run build`
 
+## 배포·헬스체크 명령
+
+- 로컬 인프라 실행 (PostgreSQL · Keycloak): `docker compose up -d`
+- 백엔드 헬스체크: `curl -sf http://localhost:8080/actuator/health`
+- Keycloak 헬스체크: `curl -sf http://localhost:8180/health/ready`
+- 프론트엔드 헬스체크: `curl -sf http://localhost:3000/api/auth/session`
+- 전체 스택 중지: `docker compose down`
+- 데이터 초기화: `docker compose down -v`
+
 ## 팀 표준 문서
 
 상세 표준의 단일 출처: `github.com/grinvi04/team-harness/docs`

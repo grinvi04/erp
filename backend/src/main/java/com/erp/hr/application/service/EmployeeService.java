@@ -1,12 +1,17 @@
 package com.erp.hr.application.service;
 
+import com.erp.common.audit.AuditLog;
+import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.hr.application.dto.EmployeeCreateRequest;
 import com.erp.hr.application.dto.EmployeePromoteRequest;
 import com.erp.hr.application.dto.EmployeeResponse;
 import com.erp.hr.application.dto.EmployeeTerminateRequest;
 import com.erp.hr.application.dto.EmployeeTransferRequest;
+import com.erp.hr.application.dto.EmployeeUpdateRequest;
 import com.erp.hr.domain.model.Department;
 import com.erp.hr.domain.model.Employee;
 import com.erp.hr.domain.model.EmployeeStatus;
@@ -33,8 +38,17 @@ public class EmployeeService {
     private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
     private final JobGradeRepository jobGradeRepository;
+    private final PermissionChecker permissionChecker;
+    private final HrDataScopeResolver dataScopeResolver;
+    private final AuditService auditService;
+
+    /** 감사 로그 afterData에 기록할 인사 변경 이벤트 태그(통제된 상수값 — 주입 위험 없음). */
+    private static String event(String name) {
+        return "{\"event\":\"" + name + "\"}";
+    }
 
     public Page<EmployeeResponse> findAll(EmployeeStatus status, Long departmentId, Pageable pageable) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_READ);
         Specification<Employee> spec = Specification.where(null);
         if (status != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
@@ -42,15 +56,23 @@ public class EmployeeService {
         if (departmentId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("department").get("id"), departmentId));
         }
+        // 데이터 스코프 공통 필터 — 부서/본인 범위 밖 직원은 목록에서 제외(정보 유출 방지)
+        spec = spec.and(dataScopeResolver.employeeScope());
         return employeeRepository.findAll(spec, pageable).map(EmployeeResponse::from);
     }
 
     public EmployeeResponse findById(Long id) {
-        return EmployeeResponse.from(getOrThrow(id));
+        permissionChecker.require(Permission.HR_EMPLOYEE_READ);
+        Employee employee = getOrThrow(id);
+        if (!dataScopeResolver.isInScope(employee)) {
+            throw new ErpException(ErrorCode.FORBIDDEN);
+        }
+        return EmployeeResponse.from(employee);
     }
 
     @Transactional
     public EmployeeResponse create(EmployeeCreateRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         if (employeeRepository.existsByEmployeeNo(request.employeeNo())) {
             throw new ErpException(ErrorCode.DUPLICATE_CODE);
         }
@@ -76,11 +98,14 @@ public class EmployeeService {
             Employee manager = getOrThrow(request.managerId());
             employee.assignManager(manager);
         }
-        return EmployeeResponse.from(employeeRepository.save(employee));
+        Employee saved = employeeRepository.save(employee);
+        auditService.record("EMPLOYEE", saved.getId(), AuditLog.AuditAction.CREATE, null, event("HIRE"));
+        return EmployeeResponse.from(saved);
     }
 
     @Transactional
     public EmployeeResponse transfer(Long id, EmployeeTransferRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
         if (employee.isTerminated()) {
             throw new ErpException(ErrorCode.EMPLOYEE_ALREADY_TERMINATED);
@@ -90,11 +115,13 @@ public class EmployeeService {
         Position position = positionRepository.findById(request.positionId())
             .orElseThrow(() -> new ErpException(ErrorCode.POSITION_NOT_FOUND));
         employee.transfer(department, position);
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("TRANSFER"));
         return EmployeeResponse.from(employee);
     }
 
     @Transactional
     public EmployeeResponse promote(Long id, EmployeePromoteRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
         if (employee.isTerminated()) {
             throw new ErpException(ErrorCode.EMPLOYEE_ALREADY_TERMINATED);
@@ -107,39 +134,80 @@ public class EmployeeService {
                 .orElseThrow(() -> new ErpException(ErrorCode.JOB_GRADE_NOT_FOUND));
         }
         employee.promote(position, jobGrade, request.baseSalary());
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("PROMOTE"));
         return EmployeeResponse.from(employee);
     }
 
     @Transactional
     public EmployeeResponse terminate(Long id, EmployeeTerminateRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
         try {
             employee.terminate(request.terminationDate());
         } catch (IllegalStateException e) {
             throw new ErpException(ErrorCode.EMPLOYEE_ALREADY_TERMINATED);
         }
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("TERMINATE"));
         return EmployeeResponse.from(employee);
     }
 
     @Transactional
     public EmployeeResponse onLeave(Long id) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
         try {
             employee.onLeave();
         } catch (IllegalStateException e) {
             throw new ErpException(ErrorCode.EMPLOYEE_STATUS_CONFLICT);
         }
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("LEAVE_START"));
         return EmployeeResponse.from(employee);
     }
 
     @Transactional
     public EmployeeResponse returnFromLeave(Long id) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
         try {
             employee.returnFromLeave();
         } catch (IllegalStateException e) {
             throw new ErpException(ErrorCode.EMPLOYEE_STATUS_CONFLICT);
         }
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("LEAVE_RETURN"));
+        return EmployeeResponse.from(employee);
+    }
+
+    @Transactional
+    public EmployeeResponse update(Long id, EmployeeUpdateRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
+        Employee employee = getOrThrow(id);
+        if (employee.isTerminated()) {
+            throw new ErpException(ErrorCode.EMPLOYEE_ALREADY_TERMINATED);
+        }
+        if (request.workEmail() != null
+                && !request.workEmail().equals(employee.getWorkEmail())
+                && employeeRepository.existsByWorkEmail(request.workEmail())) {
+            throw new ErpException(ErrorCode.DUPLICATE_CODE);
+        }
+        employee.updateInfo(
+            request.lastName(), request.firstName(), request.phone(),
+            request.personalEmail(), request.workEmail(), request.baseSalary());
+        if (request.managerId() != null) {
+            if (request.managerId().equals(id)) {
+                throw new ErpException(ErrorCode.INVALID_INPUT);
+            }
+            Employee manager = getOrThrow(request.managerId());
+            employee.assignManager(manager);
+        }
+        if (request.userId() != null) {
+            String newUserId = request.userId().isBlank() ? null : request.userId();
+            if (newUserId != null && !newUserId.equals(employee.getUserId())
+                    && employeeRepository.existsByUserId(newUserId)) {
+                throw new ErpException(ErrorCode.DUPLICATE_CODE);
+            }
+            employee.linkUserAccount(newUserId);
+        }
+        auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("UPDATE"));
         return EmployeeResponse.from(employee);
     }
 

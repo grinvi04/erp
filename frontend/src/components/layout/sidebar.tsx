@@ -6,14 +6,27 @@ import { cn } from '@/lib/utils'
 import {
   Users, Building2, Package, TrendingUp, LayoutDashboard,
   ChevronRight, Briefcase, FileText, Warehouse, BarChart3,
-  UserSquare, Target, Activity,
+  UserSquare, Target, Activity, GitBranch, Inbox, PieChart,
+  ScrollText, ShieldCheck,
 } from 'lucide-react'
+import { usePermissions } from '@/components/permissions-provider'
+import { PERM } from '@/lib/permissions'
 
 const NAV = [
   {
     label: '대시보드',
     href: '/',
     icon: LayoutDashboard,
+  },
+  {
+    label: '결재함',
+    href: '/approvals',
+    icon: Inbox,
+  },
+  {
+    label: '분석',
+    href: '/analytics',
+    icon: PieChart,
   },
   {
     label: '인사(HR)',
@@ -51,6 +64,7 @@ const NAV = [
       { label: '담당자', href: '/crm/contacts', icon: UserSquare },
       { label: '리드', href: '/crm/leads', icon: Target },
       { label: '영업 기회', href: '/crm/opportunities', icon: TrendingUp },
+      { label: '파이프라인 단계', href: '/crm/pipeline-stages', icon: GitBranch },
       { label: '활동', href: '/crm/activities', icon: Activity },
     ],
   },
@@ -58,6 +72,7 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { can } = usePermissions()
 
   return (
     <aside className="w-60 min-h-screen bg-gray-900 text-gray-100 flex flex-col shrink-0">
@@ -71,6 +86,14 @@ export function Sidebar() {
           ) : (
             <NavLink key={item.href} href={item.href!} label={item.label} icon={item.icon} pathname={pathname} />
           )
+        )}
+        {/* 역할·권한 관리 — iam:read 관리자에게만 노출 */}
+        {can(PERM.IAM_READ) && (
+          <NavLink href="/iam" label="역할·권한" icon={ShieldCheck} pathname={pathname} />
+        )}
+        {/* 감사 로그 — audit:read 권한자(운영·감사자)에게만 노출 */}
+        {can(PERM.AUDIT_READ) && (
+          <NavLink href="/audit" label="감사 로그" icon={ScrollText} pathname={pathname} />
         )}
       </nav>
     </aside>

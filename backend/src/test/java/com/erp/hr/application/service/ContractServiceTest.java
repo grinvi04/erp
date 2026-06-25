@@ -26,10 +26,13 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import com.erp.common.security.Permission;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class ContractServiceTest {
@@ -38,6 +41,8 @@ class ContractServiceTest {
     @Mock private EmployeeRepository employeeRepository;
     @Mock private PositionRepository positionRepository;
     @Mock private JobGradeRepository jobGradeRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
+    @Mock private HrDataScopeResolver dataScopeResolver;
 
     @InjectMocks
     private ContractService contractService;
@@ -64,6 +69,7 @@ class ContractServiceTest {
     void findByEmployee_existing_returnsList() {
         Employee emp = buildEmployee();
         given(employeeRepository.findById(1L)).willReturn(Optional.of(emp));
+        given(dataScopeResolver.isEmployeeInScope(emp)).willReturn(true);
 
         Position pos = Position.of("P001", "Engineer", 2);
         Contract contract = Contract.create(emp, ContractType.REGULAR,
@@ -108,5 +114,26 @@ class ContractServiceTest {
         ContractResponse result = contractService.create(1L, request);
 
         assertThat(result.contractType()).isEqualTo(ContractType.REGULAR);
+    }
+
+    @Test
+    void create_requiresWritePermission() {
+        Employee emp = buildEmployee();
+        given(employeeRepository.findById(1L)).willReturn(Optional.of(emp));
+
+        Position pos = Position.of("P001", "Engineer", 2);
+        given(positionRepository.findById(1L)).willReturn(Optional.of(pos));
+
+        Contract contract = Contract.create(emp, ContractType.REGULAR,
+            LocalDate.of(2024, 1, 1), null, BigDecimal.valueOf(50000000), pos, null, null);
+        given(contractRepository.save(any())).willReturn(contract);
+
+        ContractCreateRequest request = new ContractCreateRequest(
+            ContractType.REGULAR, LocalDate.of(2024, 1, 1), null,
+            BigDecimal.valueOf(50000000), 1L, null, null);
+
+        contractService.create(1L, request);
+
+        verify(permissionChecker).require(Permission.HR_EMPLOYEE_WRITE);
     }
 }

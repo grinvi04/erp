@@ -1,8 +1,12 @@
 package com.erp.hr.application.service;
 
+import com.erp.common.audit.AuditLog;
+import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.CurrentUserProvider;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.common.workflow.ApprovalRequest;
 import com.erp.common.workflow.ApprovalStatus;
 import com.erp.common.workflow.ApprovalStep;
@@ -22,6 +26,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 
 @Service
@@ -35,15 +42,31 @@ public class LeaveRequestService {
     private final LeavePolicyRepository leavePolicyRepository;
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final PermissionChecker permissionChecker;
+    private final HrDataScopeResolver dataScopeResolver;
+    private final AuditService auditService;
 
-    public List<LeaveRequestResponse> findByEmployee(Long employeeId) {
-        return leaveRequestRepository.findByEmployeeId(employeeId).stream()
-            .map(LeaveRequestResponse::from)
-            .toList();
+    public Page<LeaveRequestResponse> findAll(Pageable pageable) {
+        permissionChecker.require(Permission.HR_LEAVE_READ);
+        // 데이터 스코프 공통 필터 — 범위 밖 직원의 휴가는 목록에서 제외
+        return leaveRequestRepository.findAll(dataScopeResolver.leaveRequestScope(), pageable)
+            .map(LeaveRequestResponse::from);
+    }
+
+    public Page<LeaveRequestResponse> findByEmployee(Long employeeId, Pageable pageable) {
+        permissionChecker.require(Permission.HR_LEAVE_READ);
+        Employee employee = employeeRepository.findById(employeeId)
+            .orElseThrow(() -> new ErpException(ErrorCode.EMPLOYEE_NOT_FOUND));
+        if (!dataScopeResolver.isEmployeeInScope(employee)) {
+            throw new ErpException(ErrorCode.FORBIDDEN);
+        }
+        return leaveRequestRepository.findByEmployeeId(employeeId, pageable)
+            .map(LeaveRequestResponse::from);
     }
 
     @Transactional
     public LeaveRequestResponse create(LeaveRequestCreateRequest request) {
+        permissionChecker.require(Permission.HR_LEAVE_WRITE);
         Employee employee = employeeRepository.findById(request.employeeId())
             .orElseThrow(() -> new ErpException(ErrorCode.EMPLOYEE_NOT_FOUND));
         LeavePolicy policy = leavePolicyRepository.findById(request.leavePolicyId())
@@ -78,8 +101,12 @@ public class LeaveRequestService {
         if (requesterId == null) {
             requesterId = employee.getEmployeeNo();
         }
-        String approverId = employee.getManager() != null
-            ? employee.getManager().getEmployeeNo()
+        // 결재자 식별은 Keycloak sub(정본 신원)로 한다 — approve()의 검증도 sub 기준이므로
+        // 매니저의 employeeNo가 아니라 연결된 user_id를 결재자로 지정해야 실제 로그인
+        // 사용자가 결재할 수 있다. (미연결 매니저는 결재 불가 상태로 남으므로 SYSTEM fallback)
+        Employee manager = employee.getManager();
+        String approverId = manager != null && manager.getUserId() != null
+            ? manager.getUserId()
             : "SYSTEM";
         ApprovalStep step = ApprovalStep.of(1, "직속 상관 승인", approverId);
         ApprovalRequest approvalRequest = ApprovalRequest.create(
@@ -110,12 +137,7 @@ public class LeaveRequestService {
         }
 
         String approverId = currentUserProvider.getCurrentUserId();
-        if (approverId == null) {
-            approverId = "SYSTEM";
-        }
-        if (!"SYSTEM".equals(approverId) && !approverId.equals(approvalRequest.getCurrentStepApproverId())) {
-            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
-        }
+        requireAuthorizedApprover(approverId, approvalRequest);
         approvalRequest.approve(approverId, request.comment());
 
         if (approvalRequest.getStatus() == ApprovalStatus.APPROVED) {
@@ -130,11 +152,17 @@ public class LeaveRequestService {
             balance.deduct(leaveRequest.getRequestedDays());
         }
 
+        auditService.record("LEAVE_REQUEST", leaveRequest.getId(),
+            AuditLog.AuditAction.APPROVE, null, null);
         return LeaveRequestResponse.from(leaveRequest);
     }
 
     @Transactional
     public LeaveRequestResponse reject(Long leaveRequestId, ApprovalActionRequest request) {
+        // 반려는 사유가 필수 — 클라이언트뿐 아니라 서버에서도 강제한다.
+        if (request.comment() == null || request.comment().isBlank()) {
+            throw new ErpException(ErrorCode.INVALID_INPUT);
+        }
         LeaveRequest leaveRequest = getLeaveRequestOrThrow(leaveRequestId);
         if (!leaveRequest.isPending()) {
             throw new ErpException(ErrorCode.APPROVAL_ALREADY_PROCESSED);
@@ -149,16 +177,26 @@ public class LeaveRequestService {
         }
 
         String approverId = currentUserProvider.getCurrentUserId();
-        if (approverId == null) {
-            approverId = "SYSTEM";
-        }
-        if (!"SYSTEM".equals(approverId) && !approverId.equals(approvalRequest.getCurrentStepApproverId())) {
-            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
-        }
+        requireAuthorizedApprover(approverId, approvalRequest);
         approvalRequest.reject(approverId, request.comment());
         leaveRequest.reject();
 
+        auditService.record("LEAVE_REQUEST", leaveRequest.getId(),
+            AuditLog.AuditAction.REJECT, null, null);
         return LeaveRequestResponse.from(leaveRequest);
+    }
+
+    /**
+     * 결재 권한 검증. (1) 인증된 사용자여야 하고 — null 행위자를 SYSTEM으로 승격해 우회를
+     * 허용하지 않는다, (2) 현재 단계의 결재자(매니저 sub)와 일치해야 하며, (3) 본인이
+     * 상신한 건은 결재할 수 없다(직무 분리). AP 전표 결재와 동일한 기준.
+     */
+    private void requireAuthorizedApprover(String approverId, ApprovalRequest approvalRequest) {
+        if (approverId == null
+                || !approverId.equals(approvalRequest.getCurrentStepApproverId())
+                || approverId.equals(approvalRequest.getRequesterId())) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
     }
 
     private LeaveRequest getLeaveRequestOrThrow(Long id) {

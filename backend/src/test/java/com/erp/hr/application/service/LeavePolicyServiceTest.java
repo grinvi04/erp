@@ -24,6 +24,7 @@ import static org.mockito.BDDMockito.given;
 class LeavePolicyServiceTest {
 
     @Mock private LeavePolicyRepository leavePolicyRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
 
     @InjectMocks
     private LeavePolicyService leavePolicyService;

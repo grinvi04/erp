@@ -32,6 +32,8 @@ class LeaveBalanceServiceTest {
 
     @Mock private LeaveBalanceRepository leaveBalanceRepository;
     @Mock private EmployeeRepository employeeRepository;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
+    @Mock private HrDataScopeResolver dataScopeResolver;
 
     @InjectMocks
     private LeaveBalanceService leaveBalanceService;
@@ -55,6 +57,7 @@ class LeaveBalanceServiceTest {
         Employee emp = Employee.create("EMP001", info, dept, pos, null,
             LocalDate.of(2020, 3, 1), EmploymentType.REGULAR, "dev@test.com", BigDecimal.valueOf(50000000));
         given(employeeRepository.findById(1L)).willReturn(Optional.of(emp));
+        given(dataScopeResolver.isEmployeeInScope(emp)).willReturn(true);
 
         LeaveBalance balance = mock(LeaveBalance.class);
         given(balance.getId()).willReturn(1L);

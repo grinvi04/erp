@@ -3,9 +3,12 @@ package com.erp.finance.domain.model;
 import com.erp.common.audit.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
@@ -42,6 +45,11 @@ public class Vendor extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
 
+    // 외상매입금 통제계정(대변) — AP 보조원장이 자동 전기되는 GL 통제계정(실무: reconciliation account).
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payables_account_id")
+    private Account payablesAccount;
+
     protected Vendor() {}
 
     public static Vendor of(String code, String name, String businessNo,
@@ -73,7 +81,12 @@ public class Vendor extends BaseEntity {
         this.isActive = false;
     }
 
+    public void assignPayablesAccount(Account payablesAccount) {
+        this.payablesAccount = payablesAccount;
+    }
+
     public Long getId() { return id; }
+    public Account getPayablesAccount() { return payablesAccount; }
     public String getCode() { return code; }
     public String getName() { return name; }
     public String getBusinessNo() { return businessNo; }

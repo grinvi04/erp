@@ -2,6 +2,8 @@ package com.erp.hr.application.service;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.hr.application.dto.ContractCreateRequest;
 import com.erp.hr.application.dto.ContractResponse;
 import com.erp.hr.domain.model.Contract;
@@ -27,10 +29,17 @@ public class ContractService {
     private final EmployeeRepository employeeRepository;
     private final PositionRepository positionRepository;
     private final JobGradeRepository jobGradeRepository;
+    private final PermissionChecker permissionChecker;
+    private final HrDataScopeResolver dataScopeResolver;
 
     public List<ContractResponse> findByEmployee(Long employeeId) {
-        employeeRepository.findById(employeeId)
+        permissionChecker.require(Permission.HR_EMPLOYEE_READ);
+        Employee employee = employeeRepository.findById(employeeId)
             .orElseThrow(() -> new ErpException(ErrorCode.EMPLOYEE_NOT_FOUND));
+        // 데이터 스코프 — 범위 밖 직원의 보상(계약) 데이터 접근 차단
+        if (!dataScopeResolver.isEmployeeInScope(employee)) {
+            throw new ErpException(ErrorCode.FORBIDDEN);
+        }
         return contractRepository.findByEmployeeId(employeeId).stream()
             .map(ContractResponse::from)
             .toList();
@@ -38,6 +47,7 @@ public class ContractService {
 
     @Transactional
     public ContractResponse create(Long employeeId, ContractCreateRequest request) {
+        permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = employeeRepository.findById(employeeId)
             .orElseThrow(() -> new ErpException(ErrorCode.EMPLOYEE_NOT_FOUND));
         Position position = positionRepository.findById(request.positionId())

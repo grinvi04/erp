@@ -15,6 +15,11 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
+/**
+ * 결재 단계. BaseEntity를 상속하지 않아 @TenantId·소프트삭제 필터가 없다 —
+ * 반드시 부모(ApprovalRequest, 테넌트 필터됨)를 통해서만 조회할 것.
+ * ApprovalStep을 루트로 직접 쿼리하면 테넌트 격리가 깨진다.
+ */
 @Entity
 @Table(name = "approval_step", schema = "common")
 public class ApprovalStep {

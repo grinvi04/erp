@@ -43,6 +43,7 @@ class JournalEntryServiceTest {
     @Mock private FiscalPeriodRepository fiscalPeriodRepository;
     @Mock private AccountRepository accountRepository;
     @Mock private CurrentUserProvider currentUserProvider;
+    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
 
     @InjectMocks
     private JournalEntryService journalEntryService;

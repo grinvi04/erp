@@ -3,6 +3,8 @@ package com.erp.crm.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.Permission;
+import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.LeadConvertRequest;
 import com.erp.crm.application.dto.LeadCreateRequest;
 import com.erp.crm.application.dto.LeadResponse;
@@ -23,18 +25,22 @@ public class LeadService {
     private final LeadRepository leadRepository;
     private final CrmAccountService accountService;
     private final OpportunityService opportunityService;
+    private final PermissionChecker permissionChecker;
 
     public PageResponse<LeadResponse> search(LeadStatus status, String keyword, Pageable pageable) {
+        permissionChecker.require(Permission.CRM_READ);
         return PageResponse.from(leadRepository.search(status, keyword, pageable)
                 .map(LeadResponse::from));
     }
 
     public LeadResponse findById(Long id) {
+        permissionChecker.require(Permission.CRM_READ);
         return LeadResponse.from(getOrThrow(id));
     }
 
     @Transactional
     public LeadResponse create(LeadCreateRequest req) {
+        permissionChecker.require(Permission.CRM_WRITE);
         Lead lead = Lead.of(req.lastName(), req.firstName(), req.company(), req.title(),
                 req.email(), req.phone(), req.source(), req.ownerId(), req.note());
         return LeadResponse.from(leadRepository.save(lead));
@@ -42,6 +48,7 @@ public class LeadService {
 
     @Transactional
     public LeadResponse update(Long id, LeadUpdateRequest req) {
+        permissionChecker.require(Permission.CRM_WRITE);
         Lead lead = getOrThrow(id);
         if (lead.isConverted()) {
             throw new ErpException(ErrorCode.LEAD_ALREADY_CONVERTED_UPDATE);
@@ -53,6 +60,7 @@ public class LeadService {
 
     @Transactional
     public LeadResponse convert(Long id, LeadConvertRequest req) {
+        permissionChecker.require(Permission.CRM_WRITE);
         Lead lead = getOrThrow(id);
         if (lead.isConverted()) {
             throw new ErpException(ErrorCode.LEAD_ALREADY_CONVERTED);
@@ -66,6 +74,7 @@ public class LeadService {
 
     @Transactional
     public void delete(Long id) {
+        permissionChecker.require(Permission.CRM_WRITE);
         getOrThrow(id).softDelete();
     }
 

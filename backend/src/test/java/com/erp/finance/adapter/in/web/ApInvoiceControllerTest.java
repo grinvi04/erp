@@ -64,7 +64,7 @@ class ApInvoiceControllerTest {
 
         ApInvoiceCreateRequest request = new ApInvoiceCreateRequest("INV-001", 1L,
             LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31),
-            new BigDecimal("100000"), "KRW", null);
+            new BigDecimal("100000"), "KRW", null, null);
 
         mockMvc.perform(post("/api/finance/invoices")
                 .contentType(MediaType.APPLICATION_JSON)

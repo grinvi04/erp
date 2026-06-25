@@ -11,5 +11,6 @@ public record VendorUpdateRequest(
     @Size(max = 100) String contactName,
     @Email @Size(max = 200) String contactEmail,
     @Size(max = 30) String contactPhone,
-    @Min(0) int paymentTerms
+    @Min(0) int paymentTerms,
+    Long payablesAccountId
 ) {}

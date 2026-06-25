@@ -26,6 +26,12 @@ class VendorServiceTest {
     @Mock
     private VendorRepository vendorRepository;
 
+    @Mock
+    private com.erp.common.security.PermissionChecker permissionChecker;
+
+    @Mock
+    private com.erp.finance.domain.repository.AccountRepository accountRepository;
+
     @InjectMocks
     private VendorService vendorService;
 
@@ -38,7 +44,7 @@ class VendorServiceTest {
 
         VendorResponse result = vendorService.create(
             new VendorCreateRequest("V001", "테스트공급사", "123-45-67890",
-                "홍길동", "hong@test.com", "010-1234-5678", 30));
+                "홍길동", "hong@test.com", "010-1234-5678", 30, null));
 
         assertThat(result.code()).isEqualTo("V001");
         assertThat(result.paymentTerms()).isEqualTo(30);
@@ -49,7 +55,7 @@ class VendorServiceTest {
         given(vendorRepository.existsByCode("V001")).willReturn(true);
 
         ErpException ex = assertThrows(ErpException.class, () ->
-            vendorService.create(new VendorCreateRequest("V001", "테스트공급사", null, null, null, null, 0)));
+            vendorService.create(new VendorCreateRequest("V001", "테스트공급사", null, null, null, null, 0, null)));
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.VENDOR_CODE_DUPLICATE);
     }
@@ -60,7 +66,7 @@ class VendorServiceTest {
         given(vendorRepository.findById(1L)).willReturn(Optional.of(vendor));
 
         VendorResponse result = vendorService.update(1L,
-            new VendorUpdateRequest("변경공급사", null, null, null, null, 60));
+            new VendorUpdateRequest("변경공급사", null, null, null, null, 60, null));
 
         assertThat(result.name()).isEqualTo("변경공급사");
         assertThat(result.paymentTerms()).isEqualTo(60);

@@ -1,0 +1,49 @@
+# test-guard — PR에서 테스트가 (소리없이) 삭제되는 것을 차단하는 기계 게이트.
+# 배경: harness-guard 훅은 Bash 커맨드만 검사하고(Edit/Write로 테스트 삭제 못 잡음),
+# CI는 테스트가 삭제되면 그냥 green이라 못 잡는다. 이 게이트가 그 공백을 메운다.
+# 정당한 제거(데드코드 정리 등)는 PR에 'allow-test-removal' 라벨을 붙이면 통과.
+name: test-guard
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Detect test removals
+        env:
+          BASE: ${{ github.base_ref }}
+          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          set -uo pipefail
+
+          if echo "$LABELS" | grep -q "allow-test-removal"; then
+            echo "::notice::'allow-test-removal' 라벨 — 테스트 감소 허용(게이트 스킵)"
+            exit 0
+          fi
+
+          git fetch --quiet origin "$BASE"
+
+          # 테스트 마커 총개수: 백엔드 @Test + 프론트 e2e test(/it(
+          count() {
+            local ref="$1" b e
+            b=$(git grep -hE '@Test' "$ref" -- 'backend/src/test' 2>/dev/null | grep -cE '@Test' || true)
+            e=$(git grep -hE '(test|it)\(' "$ref" -- 'frontend/e2e' 2>/dev/null | grep -cE '(test|it)\(' || true)
+            echo $(( ${b:-0} + ${e:-0} ))
+          }
+
+          BEFORE=$(count "origin/$BASE")
+          AFTER=$(count "HEAD")
+          echo "테스트 마커 — base($BASE)=$BEFORE, PR(merge)=$AFTER"
+
+          if [ "$AFTER" -lt "$BEFORE" ]; then
+            echo "::error::테스트가 $((BEFORE - AFTER))개 감소했습니다. 의도된 제거라면 PR에 'allow-test-removal' 라벨을 붙이세요. (서브에이전트가 green을 맞추려 테스트를 삭제하는 사고 방지)"
+            exit 1
+          fi
+          echo "✅ 테스트 감소 없음"

@@ -80,6 +80,7 @@ public enum ErrorCode {
     MOVEMENT_NO_UNIT_COST_ZERO(HttpStatus.BAD_REQUEST, "I016", "단가 0은 입력할 수 없습니다"),
     SERIAL_NO_REQUIRED(HttpStatus.BAD_REQUEST, "I017", "시리얼 추적 품목은 시리얼 번호가 필수입니다"),
     LOT_NO_REQUIRED(HttpStatus.BAD_REQUEST, "I018", "로트 추적 품목은 로트 번호가 필수입니다"),
+    LOCATION_REQUIRED(HttpStatus.BAD_REQUEST, "I019", "해당 이동 유형에는 위치 정보가 필수입니다"),
 
     // CRM
     ACCOUNT_COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "CR001", "고객사를 찾을 수 없습니다"),
@@ -97,7 +98,8 @@ public enum ErrorCode {
     // Workflow
     APPROVAL_NOT_FOUND(HttpStatus.NOT_FOUND, "W001", "결재 요청을 찾을 수 없습니다"),
     APPROVAL_ALREADY_PROCESSED(HttpStatus.CONFLICT, "W002", "이미 처리된 결재 요청입니다"),
-    APPROVER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "W003", "결재 권한이 없습니다");
+    APPROVER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "W003", "결재 권한이 없습니다"),
+    APPROVAL_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "W004", "전결 한도를 초과하는 금액입니다 — 상위 전결권자의 결재가 필요합니다");
 
     private final HttpStatus httpStatus;
     private final String code;
