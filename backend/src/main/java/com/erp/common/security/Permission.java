@@ -40,4 +40,24 @@ public final class Permission {
 
     // Audit (감사 로그 — 운영·감사자 권한. 누가 무엇을 변경/결재했는지 조회)
     public static final String AUDIT_READ = "audit:read";
+
+    // IAM (역할·권한·배정 관리 — 관리자 전용)
+    public static final String IAM_READ = "iam:read";
+    public static final String IAM_WRITE = "iam:write";
+
+    /**
+     * 정의된 모든 권한 코드 카탈로그 — 관리 화면의 권한 선택지·부트스트랩 슈퍼관리자 역할에 사용.
+     * 상수 추가 시 여기에도 반드시 추가한다(단일 출처). {@code IamPermissionCatalogTest}가 누락을 막는다.
+     */
+    public static java.util.Set<String> all() {
+        return java.util.Set.of(
+            HR_EMPLOYEE_READ, HR_EMPLOYEE_WRITE, HR_DEPARTMENT_READ, HR_DEPARTMENT_WRITE,
+            HR_LEAVE_READ, HR_LEAVE_WRITE, HR_POSITION_READ, HR_POSITION_WRITE,
+            HR_JOBGRADE_READ, HR_JOBGRADE_WRITE,
+            FINANCE_READ, FINANCE_WRITE, FINANCE_INVOICE_APPROVE,
+            INVENTORY_READ, INVENTORY_WRITE,
+            CRM_READ, CRM_WRITE,
+            AUDIT_READ,
+            IAM_READ, IAM_WRITE);
+    }
 }

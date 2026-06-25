@@ -6,7 +6,7 @@ import AuditClient from './audit-client'
 
 export const metadata = { title: '감사 로그 | ERP' }
 
-const ENTITY_TYPES = ['LEAVE_REQUEST', 'AP_INVOICE', 'EMPLOYEE'] as const
+const ENTITY_TYPES = ['LEAVE_REQUEST', 'AP_INVOICE', 'EMPLOYEE', 'ROLE', 'USER_ROLE', 'ACCESS_PROFILE'] as const
 
 export default async function AuditPage(props: {
   searchParams: Promise<{ page?: string; size?: string; entityType?: string }>
