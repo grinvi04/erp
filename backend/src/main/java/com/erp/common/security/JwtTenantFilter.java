@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,13 +36,21 @@ public class JwtTenantFilter extends OncePerRequestFilter {
                 Long tenantId = extractTenantId(jwt);
                 if (tenantId != null) {
                     TenantContext.setTenantId(tenantId);
+                    MDC.put("tenantId", String.valueOf(tenantId));
                 } else {
                     log.warn("JWT has no tenant_id claim — sub={}", jwt.getSubject());
+                }
+                // 로그 상관용으로 sub(userId)만 — 이름·이메일 등 개인정보는 MDC에 넣지 않는다.
+                String userId = jwt.getSubject();
+                if (userId != null) {
+                    MDC.put("userId", userId);
                 }
             }
             filterChain.doFilter(request, response);
         } finally {
             TenantContext.clear();
+            MDC.remove("userId");
+            MDC.remove("tenantId");
         }
     }
 
