@@ -64,3 +64,43 @@ export interface LeaveTypeStatResponse {
   count: number
   totalDays: number
 }
+
+// Inventory analytics
+export interface CategoryItemCountResponse {
+  categoryId: number
+  categoryName: string
+  count: number
+}
+
+export interface WarehouseStockResponse {
+  warehouseId: number
+  warehouseName: string
+  totalQty: number
+  totalValue: number
+}
+
+export type MovementType = 'RECEIPT' | 'ISSUE' | 'TRANSFER' | 'ADJUSTMENT' | 'RETURN'
+
+export interface MovementTypeCountResponse {
+  movementType: MovementType
+  count: number
+}
+
+export interface MonthlyMovementResponse {
+  month: number
+  count: number
+  totalQty: number
+}
+
+export interface MonthlyMovementByTypeResponse {
+  movementType: MovementType
+  months: MonthlyMovementResponse[]
+}
+
+export interface LowStockItemResponse {
+  sku: string
+  name: string
+  categoryName: string | null
+  currentQty: number
+  reorderPoint: number
+}

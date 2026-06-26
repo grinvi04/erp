@@ -18,4 +18,15 @@ public interface MovementLineRepository extends JpaRepository<MovementLine, Long
             + "LEFT JOIN FETCH l.toLocation "
             + "WHERE l.movement.id IN :movementIds ORDER BY l.lineNo ASC")
     List<MovementLine> findByMovement_IdInOrderByLineNoAsc(@Param("movementIds") List<Long> movementIds);
+
+    // 이동유형별 월별 수량(Σ라인qty)·건수(전표 수). CONFIRMED·해당 연도만. 빈 월은 서비스에서 0채움.
+    // 건수는 전표 단위(confirmedCountByType와 일치하도록 COUNT(DISTINCT 전표)).
+    @Query("SELECT m.movementType AS movementType, EXTRACT(MONTH FROM m.movementDate) AS month, "
+            + "COUNT(DISTINCT m.id) AS count, COALESCE(SUM(l.qty), 0) AS totalQty "
+            + "FROM MovementLine l JOIN l.movement m "
+            + "WHERE m.status = com.erp.inventory.domain.model.MovementStatus.CONFIRMED "
+            + "AND EXTRACT(YEAR FROM m.movementDate) = :year "
+            + "GROUP BY m.movementType, EXTRACT(MONTH FROM m.movementDate) "
+            + "ORDER BY m.movementType, EXTRACT(MONTH FROM m.movementDate)")
+    List<MonthlyMovementRow> monthlyMovementsByType(@Param("year") int year);
 }

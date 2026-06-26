@@ -1,5 +1,5 @@
 import { apiGet } from '@/lib/api'
-import { formatMoneyList } from '@/lib/money'
+import { formatMoneyList, formatMoneyOne } from '@/lib/money'
 import type {
   PipelineDistributionResponse,
   LeadStatusCountResponse,
@@ -10,6 +10,11 @@ import type {
   EmploymentTypeCountResponse,
   MonthlyHiresTerminationsResponse,
   LeaveTypeStatResponse,
+  CategoryItemCountResponse,
+  WarehouseStockResponse,
+  MovementTypeCountResponse,
+  MonthlyMovementByTypeResponse,
+  LowStockItemResponse,
 } from '@/types/analytics'
 
 export const metadata = { title: '분석 | ERP' }
@@ -53,6 +58,14 @@ const LEAVE_TYPE_LABELS: Record<string, string> = {
   BEREAVEMENT: '경조사',
   UNPAID: '무급',
   COMPENSATORY: '보상휴가',
+}
+
+const MOVEMENT_TYPE_LABELS: Record<string, string> = {
+  RECEIPT: '입고',
+  ISSUE: '출고',
+  TRANSFER: '이동',
+  ADJUSTMENT: '조정',
+  RETURN: '반품',
 }
 
 const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
@@ -106,6 +119,11 @@ export default async function AnalyticsPage() {
     hrByEmploymentType,
     hrHiresTerms,
     hrLeaves,
+    invByCategory,
+    invByWarehouse,
+    invMovementsByType,
+    invMonthlyMovements,
+    invLowStock,
   ] = await Promise.all([
     safeGetArray<PipelineDistributionResponse>('/api/crm/analytics/pipeline'),
     safeGetArray<LeadStatusCountResponse>('/api/crm/analytics/leads-by-status'),
@@ -116,6 +134,11 @@ export default async function AnalyticsPage() {
     safeGetArray<EmploymentTypeCountResponse>('/api/hr/analytics/by-employment-type'),
     safeGetArray<MonthlyHiresTerminationsResponse>(`/api/hr/analytics/hires-terminations?year=${currentYear}`),
     safeGetArray<LeaveTypeStatResponse>('/api/hr/analytics/leaves-by-type'),
+    safeGetArray<CategoryItemCountResponse>('/api/inventory/analytics/by-category'),
+    safeGetArray<WarehouseStockResponse>('/api/inventory/analytics/by-warehouse'),
+    safeGetArray<MovementTypeCountResponse>('/api/inventory/analytics/movements-by-type'),
+    safeGetArray<MonthlyMovementByTypeResponse>(`/api/inventory/analytics/monthly-movements?year=${currentYear}`),
+    safeGetArray<LowStockItemResponse>('/api/inventory/analytics/low-stock'),
   ])
 
   // Pipeline: scale by count
@@ -135,11 +158,17 @@ export default async function AnalyticsPage() {
     1,
   )
 
+  // Inventory scaling
+  const maxInvCategory = Math.max(...invByCategory.map((r) => r.count), 1)
+  const maxInvWhValue = Math.max(...invByWarehouse.map((r) => r.totalValue), 1)
+  const maxInvWhQty = Math.max(...invByWarehouse.map((r) => r.totalQty), 1)
+  const maxInvMovementType = Math.max(...invMovementsByType.map((r) => r.count), 1)
+
   return (
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">분석</h1>
-        <p className="text-sm text-gray-500 mt-1">영업 파이프라인, 리드 현황, 매입 인보이스 추이, 인사 현황</p>
+        <p className="text-sm text-gray-500 mt-1">영업 파이프라인, 리드 현황, 매입 인보이스 추이, 인사 현황, 재고 현황</p>
       </div>
 
       <div className="space-y-6">
@@ -338,6 +367,151 @@ export default async function AnalyticsPage() {
                 color="bg-amber-500"
               />
             ))
+          )}
+        </SectionCard>
+
+        {/* ===== Inventory ===== */}
+        <div className="pt-2">
+          <h2 className="text-base font-semibold text-gray-700">재고 현황</h2>
+        </div>
+
+        {/* 카테고리별 활성 품목 수 */}
+        <SectionCard title="카테고리별 활성 품목 수">
+          {invByCategory.length === 0 ? (
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          ) : (
+            invByCategory.map((r) => (
+              <HorizontalBar
+                key={r.categoryId}
+                label={r.categoryName}
+                subLabel={`${r.count}개`}
+                pct={Math.round((r.count / maxInvCategory) * 100)}
+                color="bg-cyan-500"
+              />
+            ))
+          )}
+        </SectionCard>
+
+        {/* 창고별 재고 가치 (₩ 단일 기준통화) — 수량은 sublabel */}
+        <SectionCard title="창고별 재고 가치">
+          {invByWarehouse.length === 0 ? (
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          ) : (
+            invByWarehouse.map((r) => (
+              <HorizontalBar
+                key={r.warehouseId}
+                label={r.warehouseName}
+                subLabel={`${formatMoneyOne(r.totalValue, 'KRW')} · ${r.totalQty.toLocaleString('ko-KR')}개`}
+                pct={Math.round((r.totalValue / maxInvWhValue) * 100)}
+                color="bg-fuchsia-500"
+              />
+            ))
+          )}
+        </SectionCard>
+
+        {/* 창고별 재고 수량 */}
+        <SectionCard title="창고별 재고 수량">
+          {invByWarehouse.length === 0 ? (
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          ) : (
+            invByWarehouse.map((r) => (
+              <HorizontalBar
+                key={r.warehouseId}
+                label={r.warehouseName}
+                subLabel={`${r.totalQty.toLocaleString('ko-KR')}개`}
+                pct={Math.round((r.totalQty / maxInvWhQty) * 100)}
+                color="bg-purple-500"
+              />
+            ))
+          )}
+        </SectionCard>
+
+        {/* 이동유형별 건수 (확정) */}
+        <SectionCard title="이동유형별 건수 (확정)">
+          {invMovementsByType.length === 0 ? (
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          ) : (
+            invMovementsByType.map((r) => (
+              <HorizontalBar
+                key={r.movementType}
+                label={MOVEMENT_TYPE_LABELS[r.movementType] ?? r.movementType}
+                subLabel={`${r.count}건`}
+                pct={Math.round((r.count / maxInvMovementType) * 100)}
+                color="bg-orange-500"
+              />
+            ))
+          )}
+        </SectionCard>
+
+        {/* 월별 입출고 추이 — 이동유형별 카드(수량 기준 막대) */}
+        {invMonthlyMovements.length === 0 ? (
+          <SectionCard title={`월별 입출고 추이 (${currentYear}년)`}>
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          </SectionCard>
+        ) : (
+          invMonthlyMovements.map((series) => {
+            const maxQty = Math.max(...series.months.map((m) => m.totalQty), 1)
+            return (
+              <SectionCard
+                key={series.movementType}
+                title={`월별 입출고 추이 (${currentYear}년) · ${MOVEMENT_TYPE_LABELS[series.movementType] ?? series.movementType}`}
+              >
+                <div className="flex items-end gap-2">
+                  {series.months.map((r, idx) => {
+                    const heightPct = maxQty === 0 ? 0 : (r.totalQty / maxQty) * 100
+                    return (
+                      <div key={r.month} className="flex flex-col items-center flex-1">
+                        <div className="relative group flex h-40 w-full items-end justify-center">
+                          <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                            {r.count}건<br />수량 {r.totalQty.toLocaleString('ko-KR')}
+                          </div>
+                          <div
+                            className="bg-amber-600 rounded-t w-full"
+                            style={{ height: `${heightPct}%`, minHeight: r.totalQty > 0 ? '4px' : '0px' }}
+                          />
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
+                        <div className="text-xs text-gray-600 font-medium">{r.count}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </SectionCard>
+            )
+          })
+        )}
+
+        {/* 저재고 품목 목록 (Σ현재고 ≤ 재주문점) */}
+        <SectionCard title="저재고 품목">
+          {invLowStock.length === 0 ? (
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-500 border-b border-gray-200">
+                    <th className="py-2 pr-4 font-medium">SKU</th>
+                    <th className="py-2 pr-4 font-medium">품목명</th>
+                    <th className="py-2 pr-4 font-medium">카테고리</th>
+                    <th className="py-2 pr-4 font-medium text-right">현재고</th>
+                    <th className="py-2 font-medium text-right">재주문점</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invLowStock.map((r) => (
+                    <tr key={r.sku} className="border-b border-gray-100">
+                      <td className="py-2 pr-4 font-mono text-gray-700">{r.sku}</td>
+                      <td className="py-2 pr-4 text-gray-700">{r.name}</td>
+                      <td className="py-2 pr-4 text-gray-500">{r.categoryName ?? '-'}</td>
+                      <td className="py-2 pr-4 text-right text-rose-600 font-medium">
+                        {r.currentQty.toLocaleString('ko-KR')}
+                      </td>
+                      <td className="py-2 text-right text-gray-500">{r.reorderPoint.toLocaleString('ko-KR')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </SectionCard>
       </div>
