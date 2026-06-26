@@ -62,7 +62,7 @@ class OpportunityControllerTest {
                                 1L, "2026 클라우드 전환", 1L,
                                 new BigDecimal("50000000"), "KRW",
                                 LocalDate.of(2026, 12, 31),
-                                20, "sales-001", "REFERRAL", null))))
+                                20, "REFERRAL", null))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.name").value("2026 클라우드 전환"));
     }

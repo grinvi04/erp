@@ -30,6 +30,7 @@ class OpportunityServiceTest {
     @Mock private CrmAccountService accountService;
     @Mock private PipelineStageService stageService;
     @Mock private com.erp.common.security.PermissionChecker permissionChecker;
+    @Mock private com.erp.common.security.CurrentUserProvider currentUserProvider;
     @InjectMocks private OpportunityService opportunityService;
 
     private Account buildAccount() {
@@ -42,25 +43,24 @@ class OpportunityServiceTest {
     }
 
     @Test
-    void create_validRequest_savesAndReturns() {
+    void create_validRequest_savesWithCurrentUserAsOwner() {
         Account account = buildAccount();
         PipelineStage stage = buildStage();
-        Opportunity opportunity = Opportunity.of(account, "2026 클라우드 전환", stage,
-                new BigDecimal("50000000"), "KRW", LocalDate.of(2026, 12, 31),
-                20, "sales-001", "REFERRAL", "상세설명");
 
         given(accountService.getOrThrow(1L)).willReturn(account);
         given(stageService.getOrThrow(1L)).willReturn(stage);
-        given(opportunityRepository.save(any())).willReturn(opportunity);
+        given(currentUserProvider.getCurrentUserId()).willReturn("auth-user-sub");
+        given(opportunityRepository.save(any(Opportunity.class))).willAnswer(inv -> inv.getArgument(0));
 
         OpportunityCreateRequest req = new OpportunityCreateRequest(1L, "2026 클라우드 전환", 1L,
                 new BigDecimal("50000000"), "KRW", LocalDate.of(2026, 12, 31),
-                20, "sales-001", "REFERRAL", "상세설명");
+                20, "REFERRAL", "상세설명");
 
         OpportunityResponse result = opportunityService.create(req);
 
         assertThat(result.name()).isEqualTo("2026 클라우드 전환");
         assertThat(result.probability()).isEqualTo(20);
+        assertThat(result.ownerId()).isEqualTo("auth-user-sub");
     }
 
     @Test

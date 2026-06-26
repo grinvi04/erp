@@ -15,7 +15,7 @@ export interface OpportunityPayload {
 }
 
 export async function createOpportunity(
-  data: OpportunityPayload & { accountId: number }
+  data: Omit<OpportunityPayload, 'ownerId'> & { accountId: number }
 ): Promise<void> {
   await apiPost('/api/crm/opportunities', data)
   revalidatePath('/crm/opportunities')

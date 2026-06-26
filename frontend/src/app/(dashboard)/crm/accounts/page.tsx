@@ -1,4 +1,4 @@
-import { apiGetPage, getCurrentUserId } from '@/lib/api'
+import { apiGetPage } from '@/lib/api'
 import type { CrmAccount } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
 import AccountsClient from './accounts-client'
@@ -12,10 +12,7 @@ export default async function CrmAccountsPage(props: {
   const page = Number(sp.page ?? 0)
   const size = Number(sp.size ?? 20)
 
-  const [data, currentUserId] = await Promise.all([
-    apiGetPage<CrmAccount>(`/api/crm/accounts?page=${page}&size=${size}`),
-    getCurrentUserId(),
-  ])
+  const data = await apiGetPage<CrmAccount>(`/api/crm/accounts?page=${page}&size=${size}`)
 
-  return <AccountsClient data={data as PageResponse<CrmAccount>} currentUserId={currentUserId} />
+  return <AccountsClient data={data as PageResponse<CrmAccount>} />
 }

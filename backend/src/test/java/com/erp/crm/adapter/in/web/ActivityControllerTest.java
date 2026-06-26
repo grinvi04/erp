@@ -48,7 +48,7 @@ class ActivityControllerTest {
 
     private ActivityCreateRequest validCreate() {
         return new ActivityCreateRequest(ActivityType.CALL, "신규 고객 전화",
-                1L, 2L, 3L, "user-001", LocalDateTime.of(2026, 7, 1, 10, 0), "통화 메모");
+                1L, 2L, 3L, LocalDateTime.of(2026, 7, 1, 10, 0), "통화 메모");
     }
 
     @Test
@@ -99,7 +99,7 @@ class ActivityControllerTest {
     @Test
     void create_missingActivityType_returns400() throws Exception {
         ActivityCreateRequest invalid = new ActivityCreateRequest(null, "신규 고객 전화",
-                1L, 2L, 3L, "user-001", null, null);
+                1L, 2L, 3L, null, null);
 
         mockMvc.perform(post("/api/crm/activities")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -110,7 +110,7 @@ class ActivityControllerTest {
     @Test
     void create_blankSubject_returns400() throws Exception {
         ActivityCreateRequest invalid = new ActivityCreateRequest(ActivityType.CALL, "",
-                1L, 2L, 3L, "user-001", null, null);
+                1L, 2L, 3L, null, null);
 
         mockMvc.perform(post("/api/crm/activities")
                         .contentType(MediaType.APPLICATION_JSON)

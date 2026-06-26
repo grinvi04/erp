@@ -14,7 +14,7 @@ export interface LeadPayload {
   note: string | null
 }
 
-export async function createLead(data: LeadPayload): Promise<void> {
+export async function createLead(data: Omit<LeadPayload, 'ownerId'>): Promise<void> {
   await apiPost('/api/crm/leads', data)
   revalidatePath('/crm/leads')
 }

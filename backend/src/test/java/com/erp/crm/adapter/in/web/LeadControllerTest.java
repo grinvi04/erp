@@ -48,7 +48,7 @@ class LeadControllerTest {
 
     private LeadCreateRequest validCreate() {
         return new LeadCreateRequest("홍", "길동", "테스트회사", "대리",
-                "hong@test.com", "010-0000-0000", "WEB", "user-001", "메모");
+                "hong@test.com", "010-0000-0000", "WEB", "메모");
     }
 
     @Test
@@ -99,18 +99,7 @@ class LeadControllerTest {
     @Test
     void create_blankLastName_returns400() throws Exception {
         LeadCreateRequest invalid = new LeadCreateRequest("", "길동", "테스트회사",
-                null, null, null, null, "user-001", null);
-
-        mockMvc.perform(post("/api/crm/leads")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalid)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void create_blankOwnerId_returns400() throws Exception {
-        LeadCreateRequest invalid = new LeadCreateRequest("홍", "길동", "테스트회사",
-                null, null, null, null, "", null);
+                null, null, null, null, null);
 
         mockMvc.perform(post("/api/crm/leads")
                         .contentType(MediaType.APPLICATION_JSON)

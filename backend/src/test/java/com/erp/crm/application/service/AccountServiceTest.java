@@ -28,6 +28,7 @@ class AccountServiceTest {
 
     @Mock private CrmAccountRepository accountRepository;
     @Mock private com.erp.common.security.PermissionChecker permissionChecker;
+    @Mock private com.erp.common.security.CurrentUserProvider currentUserProvider;
     @InjectMocks private CrmAccountService accountService;
 
     private Account buildAccount() {
@@ -36,19 +37,20 @@ class AccountServiceTest {
     }
 
     @Test
-    void create_newCode_savesAndReturns() {
-        Account account = buildAccount();
+    void create_newCode_savesWithCurrentUserAsOwner() {
         given(accountRepository.existsByCode("ACC-001")).willReturn(false);
-        given(accountRepository.save(any())).willReturn(account);
+        given(currentUserProvider.getCurrentUserId()).willReturn("auth-user-sub");
+        given(accountRepository.save(any(Account.class))).willAnswer(inv -> inv.getArgument(0));
 
         AccountCreateRequest req = new AccountCreateRequest("ACC-001", "테스트고객사", null, "IT",
                 null, "02-000-0000", "서울시", 100, new BigDecimal("5000000000"),
-                AccountType.CUSTOMER, "user-sub-001");
+                AccountType.CUSTOMER);
 
         AccountResponse result = accountService.create(req);
 
         assertThat(result.code()).isEqualTo("ACC-001");
         assertThat(result.accountType()).isEqualTo(AccountType.CUSTOMER);
+        assertThat(result.ownerId()).isEqualTo("auth-user-sub");
     }
 
     @Test
@@ -56,7 +58,7 @@ class AccountServiceTest {
         given(accountRepository.existsByCode("ACC-001")).willReturn(true);
 
         AccountCreateRequest req = new AccountCreateRequest("ACC-001", "테스트고객사", null, null,
-                null, null, null, null, null, AccountType.PROSPECT, "user-sub-001");
+                null, null, null, null, null, AccountType.PROSPECT);
 
         ErpException ex = assertThrows(ErpException.class, () -> accountService.create(req));
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.CRM_ACCOUNT_CODE_DUPLICATE);

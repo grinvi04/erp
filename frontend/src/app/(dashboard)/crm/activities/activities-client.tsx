@@ -53,10 +53,9 @@ type DialogMode =
 interface Props {
   data: PageResponse<Activity>
   accounts: CrmAccount[]
-  currentUserId: string
 }
 
-export default function ActivitiesClient({ data, accounts, currentUserId }: Props) {
+export default function ActivitiesClient({ data, accounts }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -66,13 +65,12 @@ export default function ActivitiesClient({ data, accounts, currentUserId }: Prop
   const [activityType, setActivityType] = useState<ActivityType>('CALL')
   const [subject, setSubject] = useState('')
   const [accountId, setAccountId] = useState('')
-  const [ownerId, setOwnerId] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [description, setDescription] = useState('')
 
   const openCreate = () => {
     setActivityType('CALL'); setSubject(''); setAccountId('')
-    setOwnerId(currentUserId); setDueDate(''); setDescription('')
+    setDueDate(''); setDescription('')
     setDialog({ type: 'create' })
   }
 
@@ -80,14 +78,12 @@ export default function ActivitiesClient({ data, accounts, currentUserId }: Prop
     activityType,
     subject: subject.trim(),
     accountId: accountId ? Number(accountId) : null,
-    ownerId: ownerId.trim(),
     dueDate: dueDate ? `${dueDate}:00` : null,
     description: description.trim() || null,
   })
 
   const validate = (): boolean => {
     if (!subject.trim()) { toast.error('제목은 필수입니다'); return false }
-    if (!ownerId.trim()) { toast.error('담당자는 필수입니다'); return false }
     return true
   }
 
@@ -162,15 +158,9 @@ export default function ActivitiesClient({ data, accounts, currentUserId }: Prop
         <Label>제목 *</Label>
         <Input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={300} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>마감일</Label>
-          <Input type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>담당자 ID *</Label>
-          <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} />
-        </div>
+      <div className="grid gap-1.5">
+        <Label>마감일</Label>
+        <Input type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
       </div>
       <div className="grid gap-1.5">
         <Label>설명</Label>

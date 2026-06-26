@@ -17,7 +17,6 @@ public record OpportunityCreateRequest(
         @Size(min = 3, max = 3) String currency,
         LocalDate closeDate,
         @Min(0) @Max(100) int probability,
-        @NotBlank @Size(max = 100) String ownerId,
         @Size(max = 50) String source,
         String description
 ) {}

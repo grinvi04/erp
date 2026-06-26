@@ -28,6 +28,7 @@ class ActivityServiceTest {
     @Mock private OpportunityService opportunityService;
     @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @Mock private CrmDataScopeResolver dataScopeResolver;
+    @Mock private com.erp.common.security.CurrentUserProvider currentUserProvider;
     @InjectMocks private ActivityService activityService;
 
     private Activity buildActivity() {
@@ -36,17 +37,18 @@ class ActivityServiceTest {
     }
 
     @Test
-    void create_validRequest_savesAsOpen() {
-        Activity activity = buildActivity();
-        given(activityRepository.save(any())).willReturn(activity);
+    void create_validRequest_savesAsOpenWithCurrentUserAsOwner() {
+        given(currentUserProvider.getCurrentUserId()).willReturn("auth-user-sub");
+        given(activityRepository.save(any(Activity.class))).willAnswer(inv -> inv.getArgument(0));
 
         ActivityCreateRequest req = new ActivityCreateRequest(ActivityType.CALL, "고객 통화",
-                null, null, null, "user-001", null, "1차 컨택");
+                null, null, null, null, "1차 컨택");
 
         ActivityResponse result = activityService.create(req);
 
         assertThat(result.subject()).isEqualTo("고객 통화");
         assertThat(result.status()).isEqualTo(ActivityStatus.OPEN);
+        assertThat(result.ownerId()).isEqualTo("auth-user-sub");
     }
 
     @Test

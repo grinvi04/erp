@@ -112,8 +112,8 @@ class CrmDataScopeIntegrationTest extends AbstractIntegrationTest {
     @Test
     void self_scope_findById_otherOwner_isNotFound() {
         // 목록만 좁히면 id 순회로 우회 가능 — 상세조회도 스코프 밖이면 RESOURCE_NOT_FOUND.
-        LeadResponse bobLead = leadService.create(new LeadCreateRequest(
-                "Lead", BOB, null, null, null, null, null, BOB, null));
+        LeadResponse bobLead = asUser(BOB, () -> leadService.create(new LeadCreateRequest(
+                "Lead", BOB, null, null, null, null, null, null)));
         setScope(DataScope.SELF);
 
         assertThatThrownBy(() -> leadService.findById(bobLead.id()))
@@ -122,13 +122,36 @@ class CrmDataScopeIntegrationTest extends AbstractIntegrationTest {
                 .isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
     }
 
+    @Test
+    void create_assignsOwnerToAuthenticatedUser() {
+        // 생성 시 owner는 요청값이 아니라 현재 인증 사용자(JWT subject)로 자동배정된다.
+        LeadResponse created = leadService.create(new LeadCreateRequest(
+                "Lead", "any", null, null, null, null, null, null));
+
+        assertThat(created.ownerId()).isEqualTo(ALICE);
+    }
+
     private List<LeadResponse> search() {
         return leadService.search(null, null, PageRequest.of(0, 50)).content();
     }
 
     private void createLeadOwnedBy(String ownerId) {
-        leadService.create(new LeadCreateRequest(
-                "Lead", ownerId, null, null, null, null, null, ownerId, null));
+        asUser(ownerId, () -> leadService.create(new LeadCreateRequest(
+                "Lead", ownerId, null, null, null, null, null, null)));
+    }
+
+    /** create는 owner를 현재 인증 사용자로 자동배정하므로, 특정 owner의 리드를 만들려면 그 사용자로 인증한 채 실행한다. */
+    private <T> T asUser(String subject, java.util.function.Supplier<T> action) {
+        var previous = SecurityContextHolder.getContext().getAuthentication();
+        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject(subject)
+                .claim("tenant_id", TEST_TENANT_ID).build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
+                List.of(new SimpleGrantedAuthority(Permission.CRM_WRITE))));
+        try {
+            return action.get();
+        } finally {
+            SecurityContextHolder.getContext().setAuthentication(previous);
+        }
     }
 
     private void setScope(DataScope scope) {

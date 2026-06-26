@@ -1,4 +1,4 @@
-import { apiGet, apiGetPage, getCurrentUserId } from '@/lib/api'
+import { apiGet, apiGetPage } from '@/lib/api'
 import type { Opportunity, CrmAccount, PipelineStage } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
 import OpportunitiesClient from './opportunities-client'
@@ -12,11 +12,10 @@ export default async function OpportunitiesPage(props: {
   const page = Number(sp.page ?? 0)
   const size = Number(sp.size ?? 20)
 
-  const [data, accountsPage, stages, currentUserId] = await Promise.all([
+  const [data, accountsPage, stages] = await Promise.all([
     apiGetPage<Opportunity>(`/api/crm/opportunities?page=${page}&size=${size}`),
     apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?isActive=true&size=1000'),
     apiGet<PipelineStage[]>('/api/crm/pipeline-stages'),
-    getCurrentUserId(),
   ])
 
   return (
@@ -24,7 +23,6 @@ export default async function OpportunitiesPage(props: {
       data={data as PageResponse<Opportunity>}
       accounts={accountsPage.content}
       stages={stages}
-      currentUserId={currentUserId}
     />
   )
 }
