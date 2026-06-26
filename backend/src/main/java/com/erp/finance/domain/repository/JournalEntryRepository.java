@@ -32,4 +32,14 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, Long
     Page<JournalEntry> findByFiscalPeriodIdAndStatus(@Param("fiscalPeriodId") Long fiscalPeriodId,
                                                      @Param("status") JournalEntryStatus status, Pageable pageable);
     Optional<JournalEntry> findByReferenceTypeAndReferenceId(String referenceType, Long referenceId);
+
+    /**
+     * 전결규정상 현재 사용자가 전기 결재할 수 있는 대기 전표 — 통합 결재함 라우팅용.
+     * 상태=대기, 작성자≠본인(직무분리), 차변 합계≤본인 전결 한도. 테넌트 필터는 자동 적용.
+     */
+    @Query("SELECT j FROM JournalEntry j LEFT JOIN FETCH j.fiscalPeriod "
+            + "WHERE j.status = :status AND j.createdBy <> :userId AND j.totalDebit <= :limit")
+    java.util.List<JournalEntry> findPendingApprovableBy(@Param("status") JournalEntryStatus status,
+                                                         @Param("userId") String userId,
+                                                         @Param("limit") java.math.BigDecimal limit);
 }

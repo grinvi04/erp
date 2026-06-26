@@ -80,10 +80,20 @@ class JournalEntryControllerTest {
     }
 
     @Test
-    void post_notFound_returns404() throws Exception {
-        given(journalEntryService.post(99L)).willThrow(new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_FOUND));
+    void submit_notFound_returns404() throws Exception {
+        given(journalEntryService.submitForApproval(99L))
+            .willThrow(new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_FOUND));
 
-        mockMvc.perform(post("/api/finance/journal-entries/99/post"))
+        mockMvc.perform(post("/api/finance/journal-entries/99/submit"))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void approve_returnsOk() throws Exception {
+        given(journalEntryService.approve(1L)).willReturn(sampleResponse());
+
+        mockMvc.perform(post("/api/finance/journal-entries/1/approve"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
     }
 }

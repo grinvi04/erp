@@ -31,6 +31,8 @@ public final class Permission {
     public static final String FINANCE_INVOICE_APPROVE = "finance:invoice:approve";
     // 지급·수금 실행권. 작성(finance:write)과 분리 — 현금이동 직무분리. 기존 write 보유 역할엔 V0004로 백필.
     public static final String FINANCE_INVOICE_PAY = "finance:invoice:pay";
+    // GL 전표 전기 결재권(전결권). 전표 작성(finance:write)과 분리 — 작성자≠전기결재자 직무분리. 기존 write 보유 역할엔 V0005로 백필.
+    public static final String FINANCE_GL_APPROVE = "finance:gl:approve";
 
     // Inventory
     public static final String INVENTORY_READ = "inventory:read";
@@ -56,7 +58,7 @@ public final class Permission {
             HR_EMPLOYEE_READ, HR_EMPLOYEE_WRITE, HR_DEPARTMENT_READ, HR_DEPARTMENT_WRITE,
             HR_LEAVE_READ, HR_LEAVE_WRITE, HR_POSITION_READ, HR_POSITION_WRITE,
             HR_JOBGRADE_READ, HR_JOBGRADE_WRITE,
-            FINANCE_READ, FINANCE_WRITE, FINANCE_INVOICE_APPROVE, FINANCE_INVOICE_PAY,
+            FINANCE_READ, FINANCE_WRITE, FINANCE_INVOICE_APPROVE, FINANCE_INVOICE_PAY, FINANCE_GL_APPROVE,
             INVENTORY_READ, INVENTORY_WRITE,
             CRM_READ, CRM_WRITE,
             AUDIT_READ,

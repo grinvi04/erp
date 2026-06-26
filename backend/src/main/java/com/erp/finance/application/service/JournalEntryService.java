@@ -1,11 +1,17 @@
 package com.erp.finance.application.service;
 
+import com.erp.common.audit.AuditLog;
+import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.ApprovalAuthorityProvider;
 import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
+import com.erp.common.workflow.ApprovalRequest;
+import com.erp.common.workflow.ApprovalStep;
+import com.erp.common.workflow.repository.ApprovalRequestRepository;
 import com.erp.finance.application.dto.JournalEntryCreateRequest;
 import com.erp.finance.application.dto.JournalEntryResponse;
 import com.erp.finance.application.dto.JournalLineRequest;
@@ -25,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -42,6 +49,12 @@ public class JournalEntryService {
     private final AccountRepository accountRepository;
     private final CurrentUserProvider currentUserProvider;
     private final PermissionChecker permissionChecker;
+    private final ApprovalRequestRepository approvalRequestRepository;
+    private final ApprovalAuthorityProvider approvalAuthorityProvider;
+    private final AuditService auditService;
+
+    // 전결규정상 결재자는 전결권·한도로 결정되므로 결재선에 특정인을 사전 지정하지 않는다(역할 sentinel).
+    private static final String ROLE_BASED_APPROVER = "@role:" + Permission.FINANCE_GL_APPROVE;
 
     public JournalEntryResponse findById(Long id) {
         permissionChecker.require(Permission.FINANCE_READ);
@@ -106,12 +119,55 @@ public class JournalEntryService {
         return JournalEntryResponse.from(journalEntryRepository.save(entry));
     }
 
+    /**
+     * 결재 상신: DRAFT → PENDING_APPROVAL + ApprovalRequest(GL_ENTRY) 생성·링크.
+     * 차대변 균형·회계기간 검증은 도메인({@link JournalEntry#submitForApproval})에서 수행.
+     * 결재함 라우팅은 {@link GlEntryApprovalInboxContributor}가 전결권·한도로 산출한다(역할 sentinel).
+     */
     @Transactional
-    public JournalEntryResponse post(Long id) {
+    public JournalEntryResponse submitForApproval(Long id) {
         permissionChecker.require(Permission.FINANCE_WRITE);
-        JournalEntry entry = getOrThrow(id);
         String userId = currentUserProvider.getCurrentUserId();
-        entry.post(userId != null ? userId : "SYSTEM");
+        JournalEntry entry = getOrThrow(id);
+        entry.submitForApproval();
+        ApprovalStep step = ApprovalStep.of(1, "GL 전표 전기 승인", ROLE_BASED_APPROVER);
+        ApprovalRequest approvalRequest = ApprovalRequest.create(
+            "GL_ENTRY", entry.getId(),
+            "GL 전표 전기 승인: " + entry.getEntryNo(),
+            userId, new ArrayList<>(List.of(step)));
+        ApprovalRequest saved = approvalRequestRepository.save(approvalRequest);
+        entry.linkApprovalRequest(saved.getId());
+        return JournalEntryResponse.from(entry);
+    }
+
+    /**
+     * 전기 결재: 전결권(finance:gl:approve) 보유자만, 작성자≠결재자·차변≤전결한도 충족 시
+     * ApprovalRequest 승인 후 PENDING_APPROVAL → POSTED 전기. 작성권(finance:write)과 분리.
+     */
+    @Transactional
+    public JournalEntryResponse approve(Long id) {
+        permissionChecker.require(Permission.FINANCE_GL_APPROVE);
+        String userId = currentUserProvider.getCurrentUserId();
+        if (userId == null) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
+        JournalEntry entry = getOrThrow(id);
+        // 직무분리: 본인이 작성한 전표는 전기 결재할 수 없다.
+        if (userId.equals(entry.getCreatedBy())) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
+        // 전결규정(위임전결): 차변 합계가 본인 전결 한도를 초과하면 상위 전결권자만 결재 가능.
+        if (entry.getTotalDebit().compareTo(approvalAuthorityProvider.getApprovalLimit()) > 0) {
+            throw new ErpException(ErrorCode.APPROVAL_LIMIT_EXCEEDED);
+        }
+        if (entry.getApprovalRequestId() != null) {
+            ApprovalRequest approvalRequest = approvalRequestRepository
+                .findById(entry.getApprovalRequestId())
+                .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
+            approvalRequest.approve(userId, null);
+        }
+        entry.post(userId);
+        auditService.record("GL_ENTRY", entry.getId(), AuditLog.AuditAction.APPROVE, null, null);
         return JournalEntryResponse.from(entry);
     }
 

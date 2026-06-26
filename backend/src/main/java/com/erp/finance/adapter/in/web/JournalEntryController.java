@@ -53,8 +53,13 @@ public class JournalEntryController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(journalEntryService.create(request)));
     }
 
-    @PostMapping("/{id}/post")
-    public ResponseEntity<ApiResponse<JournalEntryResponse>> post(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.post(id)));
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<ApiResponse<JournalEntryResponse>> submit(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.submitForApproval(id)));
+    }
+
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<ApiResponse<JournalEntryResponse>> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.approve(id)));
     }
 }

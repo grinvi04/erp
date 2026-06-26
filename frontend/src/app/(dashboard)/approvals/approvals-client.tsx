@@ -29,6 +29,7 @@ const STATUS_VARIANT: Record<ApprovalStatus, 'default' | 'secondary' | 'destruct
 const ENTITY_ROUTE: Record<string, { label: string; href: string; inline: boolean }> = {
   LEAVE_REQUEST: { label: '휴가 신청', href: '/hr/leave-requests', inline: true },
   AP_INVOICE: { label: 'AP 전표', href: '/finance/invoices', inline: false },
+  GL_ENTRY: { label: 'GL 전표', href: '/finance/journal-entries', inline: false },
 }
 
 function entityInfo(entityType: string) {

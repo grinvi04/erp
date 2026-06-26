@@ -25,7 +25,12 @@ export async function createJournalEntry(data: {
   revalidatePath(PATH)
 }
 
-export async function postJournalEntry(id: number): Promise<void> {
-  await apiPost<JournalEntry>(`/api/finance/journal-entries/${id}/post`, {})
+export async function submitJournalEntry(id: number): Promise<void> {
+  await apiPost<JournalEntry>(`/api/finance/journal-entries/${id}/submit`, {})
+  revalidatePath(PATH)
+}
+
+export async function approveJournalEntry(id: number): Promise<void> {
+  await apiPost<JournalEntry>(`/api/finance/journal-entries/${id}/approve`, {})
   revalidatePath(PATH)
 }
