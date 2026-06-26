@@ -55,6 +55,9 @@ management:
       show-details: when-authorized
 
 logging:
+  pattern:
+    # 모든 로그 줄에 traceId 자동 포함 (MDC) — 없으면 빈 값.
+    correlation: "[%X{traceId:-}] "
   level:
     root: INFO
     com.erp: DEBUG
