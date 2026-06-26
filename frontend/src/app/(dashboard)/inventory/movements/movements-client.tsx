@@ -19,7 +19,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
-import { createMovement, confirmMovement, cancelMovement, getLocationsByWarehouse } from './actions'
+import {
+  createMovement, confirmMovement, submitMovement, approveMovement,
+  cancelMovement, getLocationsByWarehouse,
+} from './actions'
 import type { Movement, MovementType, MovementStatus, Item, Warehouse, Location } from '@/types/inventory'
 import type { PageResponse } from '@/types/api'
 
@@ -27,10 +30,10 @@ const TYPE_LABEL: Record<MovementType, string> = {
   RECEIPT: '입고', ISSUE: '출고', TRANSFER: '이전', ADJUSTMENT: '조정',
 }
 const STATUS_LABEL: Record<MovementStatus, string> = {
-  DRAFT: '임시', CONFIRMED: '확정', CANCELLED: '취소',
+  DRAFT: '임시', PENDING_APPROVAL: '결재중', CONFIRMED: '확정', CANCELLED: '취소',
 }
-const STATUS_VARIANT: Record<MovementStatus, 'secondary' | 'default' | 'destructive'> = {
-  DRAFT: 'secondary', CONFIRMED: 'default', CANCELLED: 'destructive',
+const STATUS_VARIANT: Record<MovementStatus, 'secondary' | 'default' | 'destructive' | 'outline'> = {
+  DRAFT: 'secondary', PENDING_APPROVAL: 'outline', CONFIRMED: 'default', CANCELLED: 'destructive',
 }
 
 interface LineRow {
@@ -55,6 +58,7 @@ interface Props {
 export default function MovementsClient({ data, items, warehouses }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.INVENTORY_WRITE)
+  const canApprove = can(PERM.INVENTORY_MOVEMENT_APPROVE)
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const [isLoadingLocations, setIsLoadingLocations] = useState(false)
@@ -136,6 +140,24 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
     })
   }
 
+  const handleSubmit = (mv: Movement) => {
+    startTransition(async () => {
+      try {
+        await submitMovement(mv.id)
+        toast.success('결재 상신되었습니다')
+      } catch (e) { toast.error(e instanceof Error ? e.message : '상신 중 오류가 발생했습니다') }
+    })
+  }
+
+  const handleApprove = (mv: Movement) => {
+    startTransition(async () => {
+      try {
+        await approveMovement(mv.id)
+        toast.success('승인·확정 처리되었습니다')
+      } catch (e) { toast.error(e instanceof Error ? e.message : '승인 중 오류가 발생했습니다') }
+    })
+  }
+
   const handleCancel = (mv: Movement) => {
     startTransition(async () => {
       try {
@@ -203,13 +225,28 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                 <TableCell>
                   {canWrite && mv.status === 'DRAFT' && (
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleConfirm(mv)}
-                        disabled={isPending} title="확정">
-                        확정
-                      </Button>
+                      {mv.movementType === 'ADJUSTMENT' ? (
+                        <Button variant="ghost" size="sm" onClick={() => handleSubmit(mv)}
+                          disabled={isPending} title="결재상신">
+                          결재상신
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="sm" onClick={() => handleConfirm(mv)}
+                          disabled={isPending} title="확정">
+                          확정
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => setDialog({ type: 'cancel', mv })}
                         disabled={isPending} title="취소" className="text-destructive">
                         취소
+                      </Button>
+                    </div>
+                  )}
+                  {canApprove && mv.status === 'PENDING_APPROVAL' && (
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => handleApprove(mv)}
+                        disabled={isPending} title="승인">
+                        승인
                       </Button>
                     </div>
                   )}

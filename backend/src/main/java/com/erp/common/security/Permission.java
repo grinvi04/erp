@@ -37,6 +37,8 @@ public final class Permission {
     // Inventory
     public static final String INVENTORY_READ = "inventory:read";
     public static final String INVENTORY_WRITE = "inventory:write";
+    // 재고 조정(ADJUSTMENT) 이동 확정 결재권. 이동 작성(inventory:write)과 분리 — 작성자≠확정결재자 직무분리. 기존 write 보유 역할엔 V0006으로 백필.
+    public static final String INVENTORY_MOVEMENT_APPROVE = "inventory:movement:approve";
 
     // CRM
     public static final String CRM_READ = "crm:read";
@@ -59,7 +61,7 @@ public final class Permission {
             HR_LEAVE_READ, HR_LEAVE_WRITE, HR_POSITION_READ, HR_POSITION_WRITE,
             HR_JOBGRADE_READ, HR_JOBGRADE_WRITE,
             FINANCE_READ, FINANCE_WRITE, FINANCE_INVOICE_APPROVE, FINANCE_INVOICE_PAY, FINANCE_GL_APPROVE,
-            INVENTORY_READ, INVENTORY_WRITE,
+            INVENTORY_READ, INVENTORY_WRITE, INVENTORY_MOVEMENT_APPROVE,
             CRM_READ, CRM_WRITE,
             AUDIT_READ,
             IAM_READ, IAM_WRITE);

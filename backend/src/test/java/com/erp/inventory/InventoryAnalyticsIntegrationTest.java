@@ -126,7 +126,13 @@ class InventoryAnalyticsIntegrationTest extends AbstractIntegrationTest {
                             null, locX, null, null, qty, BigDecimal.ONE));
         }
         if (confirm) {
-            m.confirm();
+            // ADJUSTMENT는 결재 경유로만 CONFIRMED 도달(직접 confirm 차단) — submit→승인 확정 경로로 시드.
+            if (type == MovementType.ADJUSTMENT) {
+                m.submitForApproval();
+                m.confirmApproved();
+            } else {
+                m.confirm();
+            }
             movementRepository.save(m);
         }
         return m;

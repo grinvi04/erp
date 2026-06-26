@@ -29,6 +29,16 @@ export async function confirmMovement(id: number): Promise<void> {
   revalidatePath('/inventory/movements')
 }
 
+export async function submitMovement(id: number): Promise<void> {
+  await apiPost(`/api/inventory/movements/${id}/submit`, {})
+  revalidatePath('/inventory/movements')
+}
+
+export async function approveMovement(id: number): Promise<void> {
+  await apiPost(`/api/inventory/movements/${id}/approve`, {})
+  revalidatePath('/inventory/movements')
+}
+
 export async function cancelMovement(id: number): Promise<void> {
   await apiPost(`/api/inventory/movements/${id}/cancel`, {})
   revalidatePath('/inventory/movements')

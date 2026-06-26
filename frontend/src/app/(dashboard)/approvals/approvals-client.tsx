@@ -30,6 +30,7 @@ const ENTITY_ROUTE: Record<string, { label: string; href: string; inline: boolea
   LEAVE_REQUEST: { label: '휴가 신청', href: '/hr/leave-requests', inline: true },
   AP_INVOICE: { label: 'AP 전표', href: '/finance/invoices', inline: false },
   GL_ENTRY: { label: 'GL 전표', href: '/finance/journal-entries', inline: false },
+  STOCK_MOVEMENT: { label: '재고 조정', href: '/inventory/movements', inline: false },
 }
 
 function entityInfo(entityType: string) {

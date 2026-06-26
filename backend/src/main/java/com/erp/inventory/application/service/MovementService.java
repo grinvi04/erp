@@ -1,10 +1,16 @@
 package com.erp.inventory.application.service;
 
+import com.erp.common.audit.AuditLog;
+import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
+import com.erp.common.workflow.ApprovalRequest;
+import com.erp.common.workflow.ApprovalStep;
+import com.erp.common.workflow.repository.ApprovalRequestRepository;
 import com.erp.inventory.application.dto.MovementCreateRequest;
 import com.erp.inventory.application.dto.MovementLineRequest;
 import com.erp.inventory.application.dto.MovementLineResponse;
@@ -47,6 +53,12 @@ public class MovementService {
     private final ItemService itemService;
     private final LocationService locationService;
     private final PermissionChecker permissionChecker;
+    private final CurrentUserProvider currentUserProvider;
+    private final ApprovalRequestRepository approvalRequestRepository;
+    private final AuditService auditService;
+
+    // 결재선에 특정인을 사전 지정하지 않는다 — 결재함이 권한(role)으로 결재자를 산출한다(역할 sentinel).
+    private static final String ROLE_BASED_APPROVER = "@role:" + Permission.INVENTORY_MOVEMENT_APPROVE;
 
     public PageResponse<MovementResponse> findAll(MovementType type, MovementStatus status, Pageable pageable) {
         permissionChecker.require(Permission.INVENTORY_READ);
@@ -98,8 +110,65 @@ public class MovementService {
         permissionChecker.require(Permission.INVENTORY_WRITE);
         Movement movement = getOrThrow(id);
         movement.confirm();
+        List<MovementLine> lines = applyStockEffects(id);
+        return MovementResponse.from(movement, lines.stream().map(MovementLineResponse::from).toList());
+    }
 
-        List<MovementLine> lines = movementLineRepository.findByMovement_IdOrderByLineNoAsc(id);
+    /**
+     * 재고 조정 결재 상신: ADJUSTMENT DRAFT → PENDING_APPROVAL + ApprovalRequest(STOCK_MOVEMENT) 생성·링크.
+     * 조정 이동만 결재 대상이며(도메인 가드), 결재함 라우팅은 {@link StockMovementApprovalInboxContributor}가
+     * 권한(역할 sentinel)으로 산출한다.
+     */
+    @Transactional
+    public MovementResponse submitForApproval(Long id) {
+        permissionChecker.require(Permission.INVENTORY_WRITE);
+        String userId = currentUserProvider.getCurrentUserId();
+        Movement movement = getOrThrow(id);
+        movement.submitForApproval();
+        ApprovalStep step = ApprovalStep.of(1, "재고 조정 이동 승인", ROLE_BASED_APPROVER);
+        ApprovalRequest approvalRequest = ApprovalRequest.create(
+                "STOCK_MOVEMENT", movement.getId(),
+                "재고 조정 이동 승인: " + movement.getMovementNo(),
+                userId, new ArrayList<>(List.of(step)));
+        ApprovalRequest saved = approvalRequestRepository.save(approvalRequest);
+        movement.linkApprovalRequest(saved.getId());
+        List<MovementLineResponse> lines = movementLineRepository
+                .findByMovement_IdOrderByLineNoAsc(id).stream()
+                .map(MovementLineResponse::from).toList();
+        return MovementResponse.from(movement, lines);
+    }
+
+    /**
+     * 재고 조정 확정 결재: 결재권(inventory:movement:approve) 보유자만, 작성자≠결재자 충족 시
+     * ApprovalRequest 승인 후 PENDING_APPROVAL → CONFIRMED + 재고 증감 반영. 작성권(inventory:write)과 분리.
+     */
+    @Transactional
+    public MovementResponse approve(Long id) {
+        permissionChecker.require(Permission.INVENTORY_MOVEMENT_APPROVE);
+        String userId = currentUserProvider.getCurrentUserId();
+        if (userId == null) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
+        Movement movement = getOrThrow(id);
+        // 직무분리: 본인이 작성한 조정 이동은 확정 결재할 수 없다.
+        if (userId.equals(movement.getCreatedBy())) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
+        movement.confirmApproved();
+        List<MovementLine> lines = applyStockEffects(id);
+        if (movement.getApprovalRequestId() != null) {
+            ApprovalRequest approvalRequest = approvalRequestRepository
+                    .findById(movement.getApprovalRequestId())
+                    .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
+            approvalRequest.approve(userId, null);
+        }
+        auditService.record("STOCK_MOVEMENT", movement.getId(), AuditLog.AuditAction.APPROVE, null, null);
+        return MovementResponse.from(movement, lines.stream().map(MovementLineResponse::from).toList());
+    }
+
+    // 확정된 이동의 재고 증감 반영 — 직접 확정(confirm)·결재 승인(approve)이 공유한다.
+    private List<MovementLine> applyStockEffects(Long movementId) {
+        List<MovementLine> lines = movementLineRepository.findByMovement_IdOrderByLineNoAsc(movementId);
         for (MovementLine line : lines) {
             if (line.getFromLocation() != null) {
                 Stock stock = stockRepository.findByItemAndLocationAndLotNoAndSerialNo(
@@ -117,9 +186,7 @@ public class MovementService {
                 stockRepository.save(stock);
             }
         }
-
-        List<MovementLineResponse> lineResponses = lines.stream().map(MovementLineResponse::from).toList();
-        return MovementResponse.from(movement, lineResponses);
+        return lines;
     }
 
     @Transactional
