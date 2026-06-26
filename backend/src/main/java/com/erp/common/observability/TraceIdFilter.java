@@ -26,6 +26,9 @@ public class TraceIdFilter extends OncePerRequestFilter {
     public static final String TRACE_ID_HEADER = "X-Trace-Id";
     public static final String MDC_TRACE_ID = "traceId";
 
+    /** 해석한 traceId를 ASYNC 재디스패치 간 공유하기 위한 request attribute 키. */
+    private static final String ATTR_TRACE_ID = TraceIdFilter.class.getName() + ".traceId";
+
     /** W3C trace-id 길이 (16 bytes → 32 hex chars). */
     private static final int TRACE_ID_LENGTH = 32;
 
@@ -33,7 +36,13 @@ public class TraceIdFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
-        String traceId = resolveTraceId(request.getHeader(TRACEPARENT_HEADER));
+        // ASYNC 재디스패치에서도 같은 traceId를 쓰도록 request attribute에 캐시.
+        // traceparent 없는 요청이 재디스패치마다 다른 난수를 생성하는 것을 방지한다.
+        String traceId = (String) request.getAttribute(ATTR_TRACE_ID);
+        if (traceId == null) {
+            traceId = resolveTraceId(request.getHeader(TRACEPARENT_HEADER));
+            request.setAttribute(ATTR_TRACE_ID, traceId);
+        }
         MDC.put(MDC_TRACE_ID, traceId);
         response.setHeader(TRACE_ID_HEADER, traceId);
         try {
@@ -54,7 +63,8 @@ public class TraceIdFilter extends OncePerRequestFilter {
             if (parts.length >= 2) {
                 String traceId = parts[1];
                 if (isValidTraceId(traceId)) {
-                    return traceId;
+                    // W3C 규정: trace-id는 소문자 hex. 대문자 인바운드도 정규화해 재사용.
+                    return traceId.toLowerCase();
                 }
             }
         }
