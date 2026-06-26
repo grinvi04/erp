@@ -21,15 +21,17 @@ public class CrmSummaryService {
     private final OpportunityRepository opportunityRepository;
     private final LeadRepository leadRepository;
     private final ActivityRepository activityRepository;
+    private final CrmDataScopeResolver dataScopeResolver;
     private final PermissionChecker permissionChecker;
 
     public CrmSummaryResponse getSummary() {
         permissionChecker.require(Permission.CRM_READ);
-        BigDecimal openAmount = opportunityRepository.sumOpenAmount();
+        var s = dataScopeResolver.ownerScope();
+        BigDecimal openAmount = opportunityRepository.sumOpenAmount(s.scoped(), s.ownerIds());
         return new CrmSummaryResponse(
-                opportunityRepository.countOpen(),
+                opportunityRepository.countOpen(s.scoped(), s.ownerIds()),
                 openAmount != null ? openAmount : BigDecimal.ZERO,
-                leadRepository.countByStatus(LeadStatus.NEW),
-                activityRepository.countByStatus(ActivityStatus.OPEN));
+                leadRepository.countByStatus(LeadStatus.NEW, s.scoped(), s.ownerIds()),
+                activityRepository.countByStatus(ActivityStatus.OPEN, s.scoped(), s.ownerIds()));
     }
 }

@@ -39,5 +39,9 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
                           @Param("ownerIds") java.util.Collection<String> ownerIds,
                           Pageable pageable);
 
-    long countByStatus(ActivityStatus status);
+    @Query("SELECT COUNT(a) FROM Activity a WHERE a.status = :status AND "
+            + "(:scoped = false OR a.ownerId IN :ownerIds)")
+    long countByStatus(@Param("status") ActivityStatus status,
+                       @Param("scoped") boolean scoped,
+                       @Param("ownerIds") java.util.Collection<String> ownerIds);
 }

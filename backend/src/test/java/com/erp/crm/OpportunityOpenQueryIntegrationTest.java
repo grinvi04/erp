@@ -70,11 +70,11 @@ class OpportunityOpenQueryIntegrationTest extends AbstractIntegrationTest {
         // Closed-lost stage: amount=888 → excluded from both count and sum
         opportunity("Opp-ClosedLost", closedLostStage, BigDecimal.valueOf(888));
 
-        assertThat(opportunityRepository.countOpen())
+        assertThat(opportunityRepository.countOpen(false, java.util.Set.of()))
                 .as("3 open-stage opportunities (100, 200, null) should be counted; closed-won/lost excluded")
                 .isEqualTo(3L);
 
-        assertThat(opportunityRepository.sumOpenAmount())
+        assertThat(opportunityRepository.sumOpenAmount(false, java.util.Set.of()))
                 .as("100 + 200 + COALESCE(null, 0) = 300; closed opportunities excluded")
                 .isEqualByComparingTo(BigDecimal.valueOf(300));
     }
@@ -84,8 +84,8 @@ class OpportunityOpenQueryIntegrationTest extends AbstractIntegrationTest {
         opportunity("Opp-Won", closedWonStage, BigDecimal.valueOf(500));
         opportunity("Opp-Lost", closedLostStage, BigDecimal.valueOf(250));
 
-        assertThat(opportunityRepository.countOpen()).isEqualTo(0L);
-        assertThat(opportunityRepository.sumOpenAmount())
+        assertThat(opportunityRepository.countOpen(false, java.util.Set.of())).isEqualTo(0L);
+        assertThat(opportunityRepository.sumOpenAmount(false, java.util.Set.of()))
                 .as("COALESCE(SUM, 0) must return 0 when no open opportunities exist")
                 .isEqualByComparingTo(BigDecimal.ZERO);
     }
@@ -95,11 +95,11 @@ class OpportunityOpenQueryIntegrationTest extends AbstractIntegrationTest {
         // Single open opportunity with null amount
         opportunity("Opp-NullAmt", openStage, null);
 
-        assertThat(opportunityRepository.countOpen())
+        assertThat(opportunityRepository.countOpen(false, java.util.Set.of()))
                 .as("Null-amount opportunity is still an open opportunity")
                 .isEqualTo(1L);
 
-        assertThat(opportunityRepository.sumOpenAmount())
+        assertThat(opportunityRepository.sumOpenAmount(false, java.util.Set.of()))
                 .as("Null amount contributes 0 to sum via COALESCE")
                 .isEqualByComparingTo(BigDecimal.ZERO);
     }

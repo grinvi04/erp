@@ -24,10 +24,14 @@ public interface OpportunityRepository extends JpaRepository<Opportunity, Long> 
                              Pageable pageable);
 
     @Query("SELECT COUNT(o) FROM Opportunity o "
-            + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false")
-    long countOpen();
+            + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
+            + "(:scoped = false OR o.ownerId IN :ownerIds)")
+    long countOpen(@Param("scoped") boolean scoped,
+                   @Param("ownerIds") java.util.Collection<String> ownerIds);
 
     @Query("SELECT COALESCE(SUM(o.amount), 0) FROM Opportunity o "
-            + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false")
-    BigDecimal sumOpenAmount();
+            + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
+            + "(:scoped = false OR o.ownerId IN :ownerIds)")
+    BigDecimal sumOpenAmount(@Param("scoped") boolean scoped,
+                             @Param("ownerIds") java.util.Collection<String> ownerIds);
 }
