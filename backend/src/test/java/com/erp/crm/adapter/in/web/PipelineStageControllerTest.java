@@ -5,6 +5,7 @@ import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.crm.application.dto.PipelineStageCreateRequest;
 import com.erp.crm.application.dto.PipelineStageResponse;
+import com.erp.crm.application.dto.PipelineStageUpdateRequest;
 import com.erp.crm.application.service.PipelineStageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -38,11 +39,15 @@ class PipelineStageControllerTest {
     @MockBean private PipelineStageService stageService;
 
     private PipelineStageResponse buildResponse() {
-        return new PipelineStageResponse(1L, "탐색", 1, 20, false, false);
+        return new PipelineStageResponse(1L, "탐색", 1, 20, false, false, 0L);
     }
 
     private PipelineStageCreateRequest validCreate() {
         return new PipelineStageCreateRequest("탐색", 1, 20, false, false);
+    }
+
+    private PipelineStageUpdateRequest validUpdate() {
+        return new PipelineStageUpdateRequest("탐색", 1, 20, false, false, 0L);
     }
 
     @Test
@@ -125,7 +130,7 @@ class PipelineStageControllerTest {
 
         mockMvc.perform(put("/api/crm/pipeline-stages/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validCreate())))
+                        .content(objectMapper.writeValueAsString(validUpdate())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(1));
     }
@@ -137,7 +142,7 @@ class PipelineStageControllerTest {
 
         mockMvc.perform(put("/api/crm/pipeline-stages/99")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validCreate())))
+                        .content(objectMapper.writeValueAsString(validUpdate())))
                 .andExpect(status().isNotFound());
     }
 

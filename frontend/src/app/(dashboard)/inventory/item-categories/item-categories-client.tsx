@@ -72,6 +72,7 @@ export default function ItemCategoriesClient({ categories }: Props) {
         await updateItemCategory(cat.id, {
           code: cat.code, name: name.trim(),
           parentId: parentId ? Number(parentId) : null,
+          version: cat.version,
         })
         toast.success('품목분류가 수정되었습니다')
         close()

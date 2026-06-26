@@ -4,6 +4,7 @@ import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.inventory.application.dto.ItemCategoryCreateRequest;
 import com.erp.inventory.application.dto.ItemCategoryResponse;
+import com.erp.inventory.application.dto.ItemCategoryUpdateRequest;
 import com.erp.inventory.domain.model.ItemCategory;
 import com.erp.inventory.domain.repository.ItemCategoryRepository;
 import com.erp.inventory.domain.repository.ItemRepository;
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -59,6 +62,28 @@ class ItemCategoryServiceTest {
         ErpException ex = assertThrows(ErpException.class,
                 () -> itemCategoryService.create(new ItemCategoryCreateRequest("ELEC", "전자", null)));
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.ITEM_CATEGORY_CODE_DUPLICATE);
+    }
+
+    @Test
+    void update_existingCategory_appliesChanges() {
+        ItemCategory cat = ItemCategory.of("ELEC", "전자", null);
+        ReflectionTestUtils.setField(cat, "version", 1L);
+        given(categoryRepository.findById(1L)).willReturn(Optional.of(cat));
+
+        ItemCategoryResponse result = itemCategoryService.update(1L,
+                new ItemCategoryUpdateRequest("ELEC", "가전", null, 1L));
+
+        assertThat(result.name()).isEqualTo("가전");
+    }
+
+    @Test
+    void update_versionMismatch_throwsOptimisticLockConflict() {
+        ItemCategory cat = ItemCategory.of("ELEC", "전자", null);
+        ReflectionTestUtils.setField(cat, "version", 5L);
+        given(categoryRepository.findById(1L)).willReturn(Optional.of(cat));
+
+        assertThrows(ObjectOptimisticLockingFailureException.class, () ->
+                itemCategoryService.update(1L, new ItemCategoryUpdateRequest("ELEC", "가전", null, 3L)));
     }
 
     @Test

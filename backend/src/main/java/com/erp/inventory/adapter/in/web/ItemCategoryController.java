@@ -3,6 +3,7 @@ package com.erp.inventory.adapter.in.web;
 import com.erp.common.response.ApiResponse;
 import com.erp.inventory.application.dto.ItemCategoryCreateRequest;
 import com.erp.inventory.application.dto.ItemCategoryResponse;
+import com.erp.inventory.application.dto.ItemCategoryUpdateRequest;
 import com.erp.inventory.application.service.ItemCategoryService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -53,7 +54,7 @@ public class ItemCategoryController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ItemCategoryResponse>> update(@PathVariable Long id,
-            @Valid @RequestBody ItemCategoryCreateRequest req) {
+            @Valid @RequestBody ItemCategoryUpdateRequest req) {
         return ResponseEntity.ok(ApiResponse.ok(itemCategoryService.update(id, req)));
     }
 

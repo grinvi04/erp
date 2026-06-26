@@ -4,6 +4,7 @@ import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.crm.application.dto.PipelineStageCreateRequest;
 import com.erp.crm.application.dto.PipelineStageResponse;
+import com.erp.crm.application.dto.PipelineStageUpdateRequest;
 import com.erp.crm.domain.model.PipelineStage;
 import com.erp.crm.domain.repository.PipelineStageRepository;
 import java.util.List;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -66,9 +69,10 @@ class PipelineStageServiceTest {
     @Test
     void update_existingStage_appliesChanges() {
         PipelineStage stage = buildStage();
+        ReflectionTestUtils.setField(stage, "version", 2L);
         given(stageRepository.findById(1L)).willReturn(Optional.of(stage));
 
-        PipelineStageCreateRequest req = new PipelineStageCreateRequest("제안", 2, 60, false, false);
+        PipelineStageUpdateRequest req = new PipelineStageUpdateRequest("제안", 2, 60, false, false, 2L);
 
         PipelineStageResponse result = stageService.update(1L, req);
 
@@ -78,10 +82,22 @@ class PipelineStageServiceTest {
     }
 
     @Test
+    void update_versionMismatch_throwsOptimisticLockConflict() {
+        PipelineStage stage = buildStage();
+        ReflectionTestUtils.setField(stage, "version", 5L);
+        given(stageRepository.findById(1L)).willReturn(Optional.of(stage));
+
+        PipelineStageUpdateRequest req = new PipelineStageUpdateRequest("제안", 2, 60, false, false, 3L);
+
+        assertThrows(ObjectOptimisticLockingFailureException.class,
+                () -> stageService.update(1L, req));
+    }
+
+    @Test
     void update_notFound_throwsPipelineStageNotFound() {
         given(stageRepository.findById(99L)).willReturn(Optional.empty());
 
-        PipelineStageCreateRequest req = new PipelineStageCreateRequest("제안", 2, 60, false, false);
+        PipelineStageUpdateRequest req = new PipelineStageUpdateRequest("제안", 2, 60, false, false, 0L);
 
         ErpException ex = assertThrows(ErpException.class, () -> stageService.update(99L, req));
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.PIPELINE_STAGE_NOT_FOUND);

@@ -3,6 +3,7 @@ package com.erp.inventory.adapter.in.web;
 import com.erp.common.response.ApiResponse;
 import com.erp.inventory.application.dto.UomCreateRequest;
 import com.erp.inventory.application.dto.UomResponse;
+import com.erp.inventory.application.dto.UomUpdateRequest;
 import com.erp.inventory.application.service.UomService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -42,7 +43,7 @@ public class UomController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UomResponse>> update(@PathVariable Long id,
-            @Valid @RequestBody UomCreateRequest req) {
+            @Valid @RequestBody UomUpdateRequest req) {
         return ResponseEntity.ok(ApiResponse.ok(uomService.update(id, req)));
     }
 

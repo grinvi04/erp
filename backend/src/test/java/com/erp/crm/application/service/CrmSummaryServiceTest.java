@@ -7,14 +7,20 @@ import com.erp.crm.domain.repository.ActivityRepository;
 import com.erp.crm.domain.repository.LeadRepository;
 import com.erp.crm.domain.repository.OpportunityRepository;
 import java.math.BigDecimal;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class CrmSummaryServiceTest {
@@ -22,15 +28,21 @@ class CrmSummaryServiceTest {
     @Mock private OpportunityRepository opportunityRepository;
     @Mock private LeadRepository leadRepository;
     @Mock private ActivityRepository activityRepository;
+    @Mock private CrmDataScopeResolver dataScopeResolver;
     @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private CrmSummaryService crmSummaryService;
 
     @Test
     void getSummary_aggregatesPipelineLeadAndActivityCounts() {
-        given(opportunityRepository.countOpen()).willReturn(11L);
-        given(opportunityRepository.sumOpenAmount()).willReturn(new BigDecimal("9800000.00"));
-        given(leadRepository.countByStatus(LeadStatus.NEW)).willReturn(6L);
-        given(activityRepository.countByStatus(ActivityStatus.OPEN)).willReturn(15L);
+        given(dataScopeResolver.ownerScope())
+                .willReturn(new CrmDataScopeResolver.OwnerScope(false, Set.of()));
+        given(opportunityRepository.countOpen(anyBoolean(), anyCollection())).willReturn(11L);
+        given(opportunityRepository.sumOpenAmount(anyBoolean(), anyCollection()))
+                .willReturn(new BigDecimal("9800000.00"));
+        given(leadRepository.countByStatus(eq(LeadStatus.NEW), anyBoolean(), anyCollection()))
+                .willReturn(6L);
+        given(activityRepository.countByStatus(eq(ActivityStatus.OPEN), anyBoolean(), anyCollection()))
+                .willReturn(15L);
 
         CrmSummaryResponse result = crmSummaryService.getSummary();
 
@@ -42,13 +54,41 @@ class CrmSummaryServiceTest {
 
     @Test
     void getSummary_nullOpenAmount_defaultsToZero() {
-        given(opportunityRepository.countOpen()).willReturn(0L);
-        given(opportunityRepository.sumOpenAmount()).willReturn(null);
-        given(leadRepository.countByStatus(LeadStatus.NEW)).willReturn(0L);
-        given(activityRepository.countByStatus(ActivityStatus.OPEN)).willReturn(0L);
+        given(dataScopeResolver.ownerScope())
+                .willReturn(new CrmDataScopeResolver.OwnerScope(false, Set.of()));
+        given(opportunityRepository.countOpen(anyBoolean(), anyCollection())).willReturn(0L);
+        given(opportunityRepository.sumOpenAmount(anyBoolean(), anyCollection())).willReturn(null);
+        given(leadRepository.countByStatus(eq(LeadStatus.NEW), anyBoolean(), anyCollection()))
+                .willReturn(0L);
+        given(activityRepository.countByStatus(eq(ActivityStatus.OPEN), anyBoolean(), anyCollection()))
+                .willReturn(0L);
 
         CrmSummaryResponse result = crmSummaryService.getSummary();
 
         assertThat(result.openOpportunityAmount()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void getSummary_appliesOwnerScopeToAggregates() {
+        given(dataScopeResolver.ownerScope())
+                .willReturn(new CrmDataScopeResolver.OwnerScope(true, Set.of("user-1", "user-2")));
+        given(opportunityRepository.countOpen(anyBoolean(), anyCollection())).willReturn(1L);
+        given(opportunityRepository.sumOpenAmount(anyBoolean(), anyCollection()))
+                .willReturn(BigDecimal.TEN);
+        given(leadRepository.countByStatus(eq(LeadStatus.NEW), anyBoolean(), anyCollection()))
+                .willReturn(1L);
+        given(activityRepository.countByStatus(eq(ActivityStatus.OPEN), anyBoolean(), anyCollection()))
+                .willReturn(1L);
+
+        crmSummaryService.getSummary();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<java.util.Collection<String>> ownerIds =
+                ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(opportunityRepository).countOpen(eq(true), ownerIds.capture());
+        assertThat(ownerIds.getValue()).containsExactlyInAnyOrder("user-1", "user-2");
+        verify(opportunityRepository).sumOpenAmount(eq(true), anyCollection());
+        verify(leadRepository).countByStatus(eq(LeadStatus.NEW), eq(true), anyCollection());
+        verify(activityRepository).countByStatus(eq(ActivityStatus.OPEN), eq(true), anyCollection());
     }
 }

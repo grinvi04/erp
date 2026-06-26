@@ -23,11 +23,13 @@ public class CrmAnalyticsService {
 
     private final PipelineStageRepository pipelineStageRepository;
     private final LeadRepository leadRepository;
+    private final CrmDataScopeResolver dataScopeResolver;
     private final PermissionChecker permissionChecker;
 
     public List<PipelineDistributionResponse> getPipelineDistribution() {
         permissionChecker.require(Permission.CRM_READ);
-        return pipelineStageRepository.pipelineDistribution().stream()
+        var s = dataScopeResolver.ownerScope();
+        return pipelineStageRepository.pipelineDistribution(s.scoped(), s.ownerIds()).stream()
                 .map(r -> new PipelineDistributionResponse(
                         r.getStageId(),
                         r.getStageName(),
@@ -39,7 +41,8 @@ public class CrmAnalyticsService {
 
     public List<LeadStatusCountResponse> getLeadsByStatus() {
         permissionChecker.require(Permission.CRM_READ);
-        Map<LeadStatus, Long> countMap = leadRepository.countByStatusGrouped().stream()
+        var s = dataScopeResolver.ownerScope();
+        Map<LeadStatus, Long> countMap = leadRepository.countByStatusGrouped(s.scoped(), s.ownerIds()).stream()
                 .collect(Collectors.toMap(LeadStatusCountRow::getStatus, LeadStatusCountRow::getCount));
 
         return Arrays.stream(LeadStatus.values())

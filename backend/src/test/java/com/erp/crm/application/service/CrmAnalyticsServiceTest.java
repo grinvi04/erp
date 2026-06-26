@@ -12,14 +12,19 @@ import com.erp.crm.domain.repository.PipelineStageRepository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -28,8 +33,14 @@ class CrmAnalyticsServiceTest {
 
     @Mock private PipelineStageRepository pipelineStageRepository;
     @Mock private LeadRepository leadRepository;
+    @Mock private CrmDataScopeResolver dataScopeResolver;
     @Mock private PermissionChecker permissionChecker;
     @InjectMocks private CrmAnalyticsService crmAnalyticsService;
+
+    private void givenAllScope() {
+        given(dataScopeResolver.ownerScope())
+                .willReturn(new CrmDataScopeResolver.OwnerScope(false, Set.of()));
+    }
 
     private PipelineDistributionRow pipelineRow(
             Long stageId, String name, int order, long count, String amount) {
@@ -54,7 +65,9 @@ class CrmAnalyticsServiceTest {
         List<PipelineDistributionRow> rows = List.of(
                 pipelineRow(10L, "리드", 1, 4L, "1000000.00"),
                 pipelineRow(20L, "제안", 2, 2L, "5000000.00"));
-        given(pipelineStageRepository.pipelineDistribution()).willReturn(rows);
+        givenAllScope();
+        given(pipelineStageRepository.pipelineDistribution(anyBoolean(), anyCollection()))
+                .willReturn(rows);
 
         List<PipelineDistributionResponse> result = crmAnalyticsService.getPipelineDistribution();
 
@@ -67,7 +80,9 @@ class CrmAnalyticsServiceTest {
 
     @Test
     void getPipelineDistribution_requiresCrmRead() {
-        given(pipelineStageRepository.pipelineDistribution()).willReturn(List.of());
+        givenAllScope();
+        given(pipelineStageRepository.pipelineDistribution(anyBoolean(), anyCollection()))
+                .willReturn(List.of());
 
         crmAnalyticsService.getPipelineDistribution();
 
@@ -75,11 +90,28 @@ class CrmAnalyticsServiceTest {
     }
 
     @Test
+    void getPipelineDistribution_appliesOwnerScope() {
+        given(dataScopeResolver.ownerScope())
+                .willReturn(new CrmDataScopeResolver.OwnerScope(true, Set.of("user-1")));
+        given(pipelineStageRepository.pipelineDistribution(anyBoolean(), anyCollection()))
+                .willReturn(List.of());
+
+        crmAnalyticsService.getPipelineDistribution();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<java.util.Collection<String>> ownerIds =
+                ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(pipelineStageRepository).pipelineDistribution(eq(true), ownerIds.capture());
+        assertThat(ownerIds.getValue()).containsExactly("user-1");
+    }
+
+    @Test
     void getLeadsByStatus_returnsAllStatusesWithZeroForMissing() {
         List<LeadStatusCountRow> rows = List.of(
                 leadRow(LeadStatus.NEW, 5L),
                 leadRow(LeadStatus.QUALIFIED, 3L));
-        given(leadRepository.countByStatusGrouped()).willReturn(rows);
+        givenAllScope();
+        given(leadRepository.countByStatusGrouped(anyBoolean(), anyCollection())).willReturn(rows);
 
         List<LeadStatusCountResponse> result = crmAnalyticsService.getLeadsByStatus();
 
@@ -95,7 +127,8 @@ class CrmAnalyticsServiceTest {
 
     @Test
     void getLeadsByStatus_emptyRepository_allZero() {
-        given(leadRepository.countByStatusGrouped()).willReturn(List.of());
+        givenAllScope();
+        given(leadRepository.countByStatusGrouped(anyBoolean(), anyCollection())).willReturn(List.of());
 
         List<LeadStatusCountResponse> result = crmAnalyticsService.getLeadsByStatus();
 
@@ -105,10 +138,26 @@ class CrmAnalyticsServiceTest {
 
     @Test
     void getLeadsByStatus_requiresCrmRead() {
-        given(leadRepository.countByStatusGrouped()).willReturn(List.of());
+        givenAllScope();
+        given(leadRepository.countByStatusGrouped(anyBoolean(), anyCollection())).willReturn(List.of());
 
         crmAnalyticsService.getLeadsByStatus();
 
         verify(permissionChecker).require(Permission.CRM_READ);
+    }
+
+    @Test
+    void getLeadsByStatus_appliesOwnerScope() {
+        given(dataScopeResolver.ownerScope())
+                .willReturn(new CrmDataScopeResolver.OwnerScope(true, Set.of("user-1")));
+        given(leadRepository.countByStatusGrouped(anyBoolean(), anyCollection())).willReturn(List.of());
+
+        crmAnalyticsService.getLeadsByStatus();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<java.util.Collection<String>> ownerIds =
+                ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(leadRepository).countByStatusGrouped(eq(true), ownerIds.capture());
+        assertThat(ownerIds.getValue()).containsExactly("user-1");
     }
 }

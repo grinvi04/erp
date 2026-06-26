@@ -26,8 +26,14 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
                       @Param("ownerIds") java.util.Collection<String> ownerIds,
                       Pageable pageable);
 
-    long countByStatus(LeadStatus status);
+    @Query("SELECT COUNT(l) FROM Lead l WHERE l.status = :status AND "
+            + "(:scoped = false OR l.ownerId IN :ownerIds)")
+    long countByStatus(@Param("status") LeadStatus status,
+                       @Param("scoped") boolean scoped,
+                       @Param("ownerIds") java.util.Collection<String> ownerIds);
 
-    @Query("SELECT l.status AS status, COUNT(l) AS count FROM Lead l GROUP BY l.status")
-    List<LeadStatusCountRow> countByStatusGrouped();
+    @Query("SELECT l.status AS status, COUNT(l) AS count FROM Lead l WHERE "
+            + "(:scoped = false OR l.ownerId IN :ownerIds) GROUP BY l.status")
+    List<LeadStatusCountRow> countByStatusGrouped(@Param("scoped") boolean scoped,
+                                                  @Param("ownerIds") java.util.Collection<String> ownerIds);
 }

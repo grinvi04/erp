@@ -38,7 +38,7 @@ class ItemCategoryControllerTest {
     @Test
     void findAll_returnsOkWithList() throws Exception {
         given(itemCategoryService.findAll()).willReturn(
-                List.of(new ItemCategoryResponse(1L, "ELEC", "전자", null, null)));
+                List.of(new ItemCategoryResponse(1L, "ELEC", "전자", null, null, 0L)));
 
         mockMvc.perform(get("/api/inventory/item-categories"))
                 .andExpect(status().isOk())
@@ -48,7 +48,7 @@ class ItemCategoryControllerTest {
     @Test
     void create_validRequest_returns201() throws Exception {
         given(itemCategoryService.create(any())).willReturn(
-                new ItemCategoryResponse(1L, "ELEC", "전자", null, null));
+                new ItemCategoryResponse(1L, "ELEC", "전자", null, null, 0L));
 
         mockMvc.perform(post("/api/inventory/item-categories")
                         .contentType(MediaType.APPLICATION_JSON)

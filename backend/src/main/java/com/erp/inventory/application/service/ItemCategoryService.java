@@ -6,6 +6,7 @@ import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.inventory.application.dto.ItemCategoryCreateRequest;
 import com.erp.inventory.application.dto.ItemCategoryResponse;
+import com.erp.inventory.application.dto.ItemCategoryUpdateRequest;
 import com.erp.inventory.domain.model.ItemCategory;
 import com.erp.inventory.domain.repository.ItemCategoryRepository;
 import com.erp.inventory.domain.repository.ItemRepository;
@@ -56,9 +57,10 @@ public class ItemCategoryService {
     }
 
     @Transactional
-    public ItemCategoryResponse update(Long id, ItemCategoryCreateRequest req) {
+    public ItemCategoryResponse update(Long id, ItemCategoryUpdateRequest req) {
         permissionChecker.require(Permission.INVENTORY_WRITE);
         ItemCategory cat = getOrThrow(id);
+        cat.checkVersion(req.version());
         ItemCategory parent = req.parentId() != null ? getOrThrow(req.parentId()) : null;
         cat.update(req.name(), parent);
         return ItemCategoryResponse.from(cat);

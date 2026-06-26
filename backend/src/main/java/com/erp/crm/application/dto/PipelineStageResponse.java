@@ -8,10 +8,11 @@ public record PipelineStageResponse(
         int stageOrder,
         int probability,
         boolean isClosedWon,
-        boolean isClosedLost
+        boolean isClosedLost,
+        Long version
 ) {
     public static PipelineStageResponse from(PipelineStage s) {
         return new PipelineStageResponse(s.getId(), s.getName(), s.getStageOrder(),
-                s.getProbability(), s.isClosedWon(), s.isClosedLost());
+                s.getProbability(), s.isClosedWon(), s.isClosedLost(), s.getVersion());
     }
 }
