@@ -157,6 +157,15 @@ public class ApInvoiceService {
     public ApInvoiceResponse pay(Long id, ApInvoicePayRequest request) {
         permissionChecker.require(Permission.FINANCE_WRITE);
         ApInvoice invoice = getOrThrow(id);
+        // 직무분리(SoD): 본인이 작성한 전표는 지급(현금 유출) 처리할 수 없다.
+        String userId = currentUserProvider.getCurrentUserId();
+        if (userId == null || userId.equals(invoice.getCreatedBy())) {
+            throw new ErpException(ErrorCode.PAYMENT_SELF_FORBIDDEN);
+        }
+        // 전결규정(위임전결): 지급 금액이 본인 전결 한도를 초과하면 상위 전결권자만 지급 가능.
+        if (request.amount().compareTo(approvalAuthorityProvider.getApprovalLimit()) > 0) {
+            throw new ErpException(ErrorCode.APPROVAL_LIMIT_EXCEEDED);
+        }
         invoice.pay(request.amount());
         // 지급계정 제공 시 지급 분개 자동 생성 (차)외상매입금 /(대)현금·예금.
         if (request.cashAccountId() != null) {

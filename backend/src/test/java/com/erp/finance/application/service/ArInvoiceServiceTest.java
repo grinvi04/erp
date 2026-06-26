@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -137,10 +138,12 @@ class ArInvoiceServiceTest {
 
     @Test
     void pay_fullPayment_changeStatusToPaid() {
+        // 직무분리: 수금자(receiver-1)는 작성자(createdBy=null)와 다른 사용자
         ArInvoice invoice = buildInvoice();
         invoice.submit();
         invoice.approve();
         given(arInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("receiver-1");
 
         ArInvoiceResponse result = arInvoiceService.pay(1L, new ArInvoicePayRequest(new BigDecimal("100000"), null, null));
 
@@ -154,11 +157,29 @@ class ArInvoiceServiceTest {
         invoice.submit();
         invoice.approve();
         given(arInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("receiver-1");
 
         ErpException ex = assertThrows(ErpException.class, () ->
             arInvoiceService.pay(1L, new ArInvoicePayRequest(new BigDecimal("200000"), null, null)));
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVOICE_OVERPAYMENT);
+    }
+
+    @Test
+    void pay_bySelfCreator_throwsPaymentSelfForbidden() {
+        // 직무분리(SoD): 본인이 작성한 전표는 수금(현금 유입) 처리 불가
+        ArInvoice invoice = buildInvoice();
+        invoice.submit();
+        invoice.approve();
+        ReflectionTestUtils.setField(invoice, "createdBy", "user-1");
+        given(arInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("user-1");
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            arInvoiceService.pay(1L, new ArInvoicePayRequest(new BigDecimal("100000"), null, null)));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_SELF_FORBIDDEN);
+        assertThat(invoice.getStatus().name()).isEqualTo("APPROVED");
     }
 
     @Test

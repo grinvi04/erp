@@ -154,6 +154,12 @@ public class ArInvoiceService {
     public ArInvoiceResponse pay(Long id, ArInvoicePayRequest request) {
         permissionChecker.require(Permission.FINANCE_WRITE);
         ArInvoice invoice = getOrThrow(id);
+        // 직무분리(SoD): 본인이 작성한 전표는 수금(현금 유입) 처리할 수 없다.
+        // 수금은 현금 유입이므로 지출권한(전결한도)은 무의미 — 작성자 차단만 적용한다.
+        String userId = currentUserProvider.getCurrentUserId();
+        if (userId == null || userId.equals(invoice.getCreatedBy())) {
+            throw new ErpException(ErrorCode.PAYMENT_SELF_FORBIDDEN);
+        }
         invoice.pay(request.amount());
         // 수금계정 제공 시 수금 분개 자동 생성 (차)현금·예금 /(대)외상매출금.
         if (request.cashAccountId() != null) {

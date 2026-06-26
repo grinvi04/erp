@@ -147,7 +147,7 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
         // 현금 계정으로 지급 → (차)외상매입금 /(대)현금 분개
         Account cash = accountRepository.save(Account.of("10100", "현금",
                 AccountType.ASSET, NormalBalance.DEBIT, null, false));
-        authenticate("payer", BigDecimal.ZERO, "finance:write");
+        authenticate("payer", new BigDecimal("1000000"), "finance:write");
         apInvoiceService.pay(created.id(), new ApInvoicePayRequest(
                 new BigDecimal("100000"), cash.getId(), LocalDate.of(2025, 1, 20)));
 
