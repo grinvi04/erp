@@ -12,6 +12,7 @@ export interface Department {
   sortOrder: number
   headEmployeeId: number | null
   active: boolean
+  version: number
 }
 
 export interface Position {
@@ -19,6 +20,7 @@ export interface Position {
   code: string
   name: string
   levelOrder: number
+  version: number
 }
 
 export interface JobGrade {
@@ -28,6 +30,7 @@ export interface JobGrade {
   gradeOrder: number
   minSalary: number | null
   maxSalary: number | null
+  version: number
 }
 
 export interface Employee {
@@ -54,6 +57,7 @@ export interface Employee {
   workEmail: string
   managerId: number | null
   userId: string | null
+  version: number
 }
 
 export interface LeaveRequest {

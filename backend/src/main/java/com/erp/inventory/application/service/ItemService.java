@@ -60,6 +60,7 @@ public class ItemService {
     public ItemResponse update(Long id, ItemUpdateRequest req) {
         permissionChecker.require(Permission.INVENTORY_WRITE);
         Item item = getOrThrow(id);
+        item.checkVersion(req.version());
         ItemCategory category = req.categoryId() != null
                 ? itemCategoryService.getOrThrow(req.categoryId()) : null;
         UnitOfMeasure uom = uomService.getEntityOrThrow(req.uomId());

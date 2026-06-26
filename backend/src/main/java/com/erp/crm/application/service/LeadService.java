@@ -50,6 +50,7 @@ public class LeadService {
     public LeadResponse update(Long id, LeadUpdateRequest req) {
         permissionChecker.require(Permission.CRM_WRITE);
         Lead lead = getOrThrow(id);
+        lead.checkVersion(req.version());
         if (lead.isConverted()) {
             throw new ErpException(ErrorCode.LEAD_ALREADY_CONVERTED_UPDATE);
         }

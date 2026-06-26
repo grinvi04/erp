@@ -39,7 +39,7 @@ class OpportunityControllerTest {
         return new OpportunityResponse(1L, 1L, "테스트고객사", "2026 클라우드 전환",
                 1L, "탐색", new BigDecimal("50000000"), "KRW",
                 LocalDate.of(2026, 12, 31), 20, "sales-001", "REFERRAL", null,
-                LocalDateTime.now(), LocalDateTime.now());
+                LocalDateTime.now(), LocalDateTime.now(), 0L);
     }
 
     @Test

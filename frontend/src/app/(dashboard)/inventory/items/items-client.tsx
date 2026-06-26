@@ -119,7 +119,7 @@ export default function ItemsClient({ data, categories, uoms }: Props) {
     if (!validate()) return
     startTransition(async () => {
       try {
-        await updateItem(item.id, buildPayload())
+        await updateItem(item.id, { version: item.version, ...buildPayload() })
         toast.success('품목이 수정되었습니다')
         close()
       } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }

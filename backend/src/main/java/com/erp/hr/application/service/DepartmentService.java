@@ -57,6 +57,7 @@ public class DepartmentService {
     public DepartmentResponse update(Long id, DepartmentUpdateRequest request) {
         permissionChecker.require(Permission.HR_DEPARTMENT_WRITE);
         Department dept = getOrThrow(id);
+        dept.checkVersion(request.version());
         dept.rename(request.name());
         return DepartmentResponse.from(dept);
     }

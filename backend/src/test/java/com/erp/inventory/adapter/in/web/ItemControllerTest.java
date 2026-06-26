@@ -41,7 +41,7 @@ class ItemControllerTest {
         return new ItemResponse(1L, "SKU-001", "테스트품목", null, null, null,
                 1L, "EA", "개", CostMethod.WEIGHTED_AVG,
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, BigDecimal.ZERO, false, false, true);
+                BigDecimal.ZERO, BigDecimal.ZERO, false, false, true, 0L);
     }
 
     @Test

@@ -127,7 +127,7 @@ export default function LeadsClient({ data, accounts, currentUserId }: Props) {
     if (!validate()) return
     startTransition(async () => {
       try {
-        await updateLead(lead.id, buildPayload())
+        await updateLead(lead.id, { ...buildPayload(), version: lead.version })
         toast.success('리드가 수정되었습니다')
         close()
       } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }

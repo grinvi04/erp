@@ -37,7 +37,7 @@ class BudgetControllerTest {
     @Test
     void findByFiscalYear_returnsOkWithList() throws Exception {
         BudgetResponse response = new BudgetResponse(1L, 1L, 2025, 1L, "5100", "인건비",
-            null, new BigDecimal("5000000"), BigDecimal.ZERO, new BigDecimal("5000000"), false);
+            null, new BigDecimal("5000000"), BigDecimal.ZERO, new BigDecimal("5000000"), false, 0L);
         given(budgetService.findByFiscalYear(anyLong())).willReturn(List.of(response));
 
         mockMvc.perform(get("/api/finance/budgets?fiscalYearId=1"))
@@ -48,7 +48,7 @@ class BudgetControllerTest {
     @Test
     void create_validRequest_returns201() throws Exception {
         BudgetResponse response = new BudgetResponse(1L, 1L, 2025, 1L, "5100", "인건비",
-            null, new BigDecimal("5000000"), BigDecimal.ZERO, new BigDecimal("5000000"), false);
+            null, new BigDecimal("5000000"), BigDecimal.ZERO, new BigDecimal("5000000"), false, 0L);
         given(budgetService.create(any())).willReturn(response);
 
         mockMvc.perform(post("/api/finance/budgets")

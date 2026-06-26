@@ -20,6 +20,7 @@ export interface Warehouse {
   name: string
   address: string | null
   active: boolean
+  version: number
 }
 
 export interface Location {
@@ -31,6 +32,7 @@ export interface Location {
   parentId: number | null
   parentName: string | null
   active: boolean
+  version: number
 }
 
 export interface Item {
@@ -52,6 +54,7 @@ export interface Item {
   lotTracked: boolean
   serialTracked: boolean
   active: boolean
+  version: number
 }
 
 export type MovementType = 'RECEIPT' | 'ISSUE' | 'TRANSFER' | 'ADJUSTMENT'

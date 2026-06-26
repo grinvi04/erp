@@ -31,7 +31,8 @@ public record EmployeeResponse(
     BigDecimal baseSalary,
     String workEmail,
     Long managerId,
-    String userId
+    String userId,
+    Long version
 ) {
     public static EmployeeResponse from(Employee emp) {
         return new EmployeeResponse(
@@ -57,7 +58,8 @@ public record EmployeeResponse(
             emp.getBaseSalary(),
             emp.getWorkEmail(),
             emp.getManager() != null ? emp.getManager().getId() : null,
-            emp.getUserId()
+            emp.getUserId(),
+            emp.getVersion()
         );
     }
 }

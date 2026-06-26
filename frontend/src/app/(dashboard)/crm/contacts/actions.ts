@@ -23,7 +23,7 @@ export async function createContact(data: ContactPayload & { accountId: number }
   revalidatePath('/crm/contacts')
 }
 
-export async function updateContact(id: number, data: ContactPayload): Promise<void> {
+export async function updateContact(id: number, data: ContactPayload & { version: number }): Promise<void> {
   await apiPut(`/api/crm/contacts/${id}`, data)
   revalidatePath('/crm/contacts')
 }

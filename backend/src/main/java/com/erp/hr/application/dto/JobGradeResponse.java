@@ -10,7 +10,8 @@ public record JobGradeResponse(
     String name,
     int gradeOrder,
     BigDecimal minSalary,
-    BigDecimal maxSalary
+    BigDecimal maxSalary,
+    Long version
 ) {
     public static JobGradeResponse from(JobGrade grade) {
         return new JobGradeResponse(
@@ -19,7 +20,8 @@ public record JobGradeResponse(
             grade.getName(),
             grade.getGradeOrder(),
             grade.getMinSalary(),
-            grade.getMaxSalary()
+            grade.getMaxSalary(),
+            grade.getVersion()
         );
     }
 }

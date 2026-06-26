@@ -39,7 +39,7 @@ class AccountControllerTest {
         return new AccountResponse(1L, "ACC-001", "테스트고객사", null, "IT", null,
                 "02-000-0000", "서울시", 100, new BigDecimal("5000000000"),
                 AccountType.CUSTOMER, "user-001", true,
-                LocalDateTime.now(), LocalDateTime.now());
+                LocalDateTime.now(), LocalDateTime.now(), 0L);
     }
 
     @Test

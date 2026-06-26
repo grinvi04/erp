@@ -15,7 +15,8 @@ public record BudgetResponse(
     BigDecimal budgetAmount,
     BigDecimal actualAmount,
     BigDecimal remainingBudget,
-    boolean isOverBudget
+    boolean isOverBudget,
+    Long version
 ) {
     public static BudgetResponse from(Budget b) {
         return new BudgetResponse(
@@ -23,6 +24,7 @@ public record BudgetResponse(
             b.getFiscalYear().getId(), b.getFiscalYear().getYear(),
             b.getAccount().getId(), b.getAccount().getCode(), b.getAccount().getName(),
             b.getDepartmentId(),
-            b.getBudgetAmount(), b.getActualAmount(), b.getRemainingBudget(), b.isOverBudget());
+            b.getBudgetAmount(), b.getActualAmount(), b.getRemainingBudget(), b.isOverBudget(),
+            b.getVersion());
     }
 }

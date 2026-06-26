@@ -19,5 +19,6 @@ public record ItemUpdateRequest(
         @NotNull @DecimalMin("0") BigDecimal minStock,
         @NotNull @DecimalMin("0") BigDecimal maxStock,
         boolean lotTracked,
-        boolean serialTracked
+        boolean serialTracked,
+        @NotNull Long version
 ) {}

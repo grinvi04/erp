@@ -19,13 +19,15 @@ public record LeadResponse(
         Long convertedOpportunityId,
         LocalDateTime convertedAt,
         String note,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long version
 ) {
     public static LeadResponse from(Lead l) {
         return new LeadResponse(l.getId(), l.getLastName(), l.getFirstName(), l.getCompany(),
                 l.getTitle(), l.getEmail(), l.getPhone(), l.getSource(), l.getStatus(),
                 l.getOwnerId(),
                 l.getConvertedAccount() != null ? l.getConvertedAccount().getId() : null,
-                l.getConvertedOpportunityId(), l.getConvertedAt(), l.getNote(), l.getCreatedAt());
+                l.getConvertedOpportunityId(), l.getConvertedAt(), l.getNote(), l.getCreatedAt(),
+                l.getVersion());
     }
 }

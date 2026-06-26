@@ -53,6 +53,7 @@ public class ContactService {
     public ContactResponse update(Long id, ContactUpdateRequest req) {
         permissionChecker.require(Permission.CRM_WRITE);
         Contact contact = getOrThrow(id);
+        contact.checkVersion(req.version());
         if (Boolean.TRUE.equals(req.isPrimary())
                 && contactRepository.existsByAccount_IdAndIsPrimaryTrueAndIdNot(
                         contact.getAccount().getId(), id)) {

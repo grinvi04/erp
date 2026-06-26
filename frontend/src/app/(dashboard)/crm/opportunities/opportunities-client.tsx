@@ -125,7 +125,7 @@ export default function OpportunitiesClient({ data, accounts, stages, currentUse
     if (!validate()) return
     startTransition(async () => {
       try {
-        await updateOpportunity(opp.id, buildPayload())
+        await updateOpportunity(opp.id, { ...buildPayload(), version: opp.version })
         toast.success('영업 기회가 수정되었습니다')
         close()
       } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }

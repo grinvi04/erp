@@ -14,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -62,13 +64,25 @@ class WarehouseServiceTest {
     @Test
     void update_existingWarehouse_updatesFields() {
         Warehouse wh = Warehouse.of("WH-001", "본창고", "서울");
+        ReflectionTestUtils.setField(wh, "version", 3L);
         given(warehouseRepository.findById(1L)).willReturn(Optional.of(wh));
 
         WarehouseResponse result = warehouseService.update(1L,
-                new WarehouseUpdateRequest("수정창고", "부산"));
+                new WarehouseUpdateRequest("수정창고", "부산", 3L));
 
         assertThat(result.name()).isEqualTo("수정창고");
         assertThat(result.address()).isEqualTo("부산");
+        assertThat(result.version()).isEqualTo(3L);
+    }
+
+    @Test
+    void update_versionMismatch_throwsOptimisticLockConflict() {
+        Warehouse wh = Warehouse.of("WH-001", "본창고", "서울");
+        ReflectionTestUtils.setField(wh, "version", 5L);
+        given(warehouseRepository.findById(1L)).willReturn(Optional.of(wh));
+
+        assertThrows(ObjectOptimisticLockingFailureException.class,
+                () -> warehouseService.update(1L, new WarehouseUpdateRequest("수정창고", "부산", 3L)));
     }
 
     @Test

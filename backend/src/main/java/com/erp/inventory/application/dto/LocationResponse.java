@@ -12,7 +12,8 @@ public record LocationResponse(
         Long parentId,
         String parentName,
         LocationType locationType,
-        boolean active
+        boolean active,
+        Long version
 ) {
     public static LocationResponse from(Location loc) {
         Long parentId = loc.getParent() != null ? loc.getParent().getId() : null;
@@ -22,6 +23,6 @@ public record LocationResponse(
                 loc.getWarehouse().getId(), loc.getWarehouse().getName(),
                 loc.getCode(), loc.getName(),
                 parentId, parentName,
-                loc.getLocationType(), loc.isActive());
+                loc.getLocationType(), loc.isActive(), loc.getVersion());
     }
 }

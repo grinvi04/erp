@@ -18,5 +18,6 @@ public record OpportunityUpdateRequest(
         @Min(0) @Max(100) int probability,
         @NotBlank @Size(max = 100) String ownerId,
         @Size(max = 50) String source,
-        String description
+        String description,
+        @NotNull Long version
 ) {}

@@ -14,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -60,11 +62,23 @@ class AccountServiceTest {
     @Test
     void update_found_returnsUpdatedResponse() {
         Account account = Account.of("1100", "현금", AccountType.ASSET, NormalBalance.DEBIT, null, false);
+        ReflectionTestUtils.setField(account, "version", 3L);
         given(accountRepository.findById(1L)).willReturn(Optional.of(account));
 
-        AccountResponse result = accountService.update(1L, new AccountUpdateRequest("당좌현금", false));
+        AccountResponse result = accountService.update(1L, new AccountUpdateRequest("당좌현금", false, 3L));
 
         assertThat(result.name()).isEqualTo("당좌현금");
+        assertThat(result.version()).isEqualTo(3L);
+    }
+
+    @Test
+    void update_versionMismatch_throwsOptimisticLockConflict() {
+        Account account = Account.of("1100", "현금", AccountType.ASSET, NormalBalance.DEBIT, null, false);
+        ReflectionTestUtils.setField(account, "version", 5L);
+        given(accountRepository.findById(1L)).willReturn(Optional.of(account));
+
+        assertThrows(ObjectOptimisticLockingFailureException.class,
+            () -> accountService.update(1L, new AccountUpdateRequest("당좌현금", false, 3L)));
     }
 
     @Test

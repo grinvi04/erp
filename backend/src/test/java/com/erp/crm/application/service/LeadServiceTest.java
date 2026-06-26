@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -94,10 +95,11 @@ class LeadServiceTest {
         Account account = Account.of("ACC-001", "ABC주식회사", null, null, null, null, null,
                 null, null, AccountType.CUSTOMER, "sales-001");
         lead.convert(account, null);
+        ReflectionTestUtils.setField(lead, "version", 0L);
         given(leadRepository.findById(1L)).willReturn(Optional.of(lead));
 
         LeadUpdateRequest req = new LeadUpdateRequest("김", "철수", "ABC주식회사", "팀장",
-                "kim@abc.com", "010-0000-0000", "WEB", "sales-001", null);
+                "kim@abc.com", "010-0000-0000", "WEB", "sales-001", null, 0L);
 
         ErpException ex = assertThrows(ErpException.class, () -> leadService.update(1L, req));
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LEAD_ALREADY_CONVERTED_UPDATE);

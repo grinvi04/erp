@@ -39,7 +39,7 @@ class VendorControllerTest {
 
     @Test
     void findAll_returnsOkWithPage() throws Exception {
-        VendorResponse response = new VendorResponse(1L, "V001", "공급사", null, null, null, null, 30, true, null);
+        VendorResponse response = new VendorResponse(1L, "V001", "공급사", null, null, null, null, 30, true, null, 0L);
         given(vendorService.findAll(any())).willReturn(
             PageResponse.from(new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1)));
 
@@ -52,7 +52,7 @@ class VendorControllerTest {
     @Test
     void create_validRequest_returns201() throws Exception {
         VendorCreateRequest request = new VendorCreateRequest("V001", "공급사", null, null, null, null, 30, null);
-        VendorResponse response = new VendorResponse(1L, "V001", "공급사", null, null, null, null, 30, true, null);
+        VendorResponse response = new VendorResponse(1L, "V001", "공급사", null, null, null, null, 30, true, null, 0L);
         given(vendorService.create(any())).willReturn(response);
 
         mockMvc.perform(post("/api/finance/vendors")

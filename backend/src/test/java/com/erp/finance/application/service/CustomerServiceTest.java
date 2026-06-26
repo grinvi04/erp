@@ -12,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -63,13 +65,25 @@ class CustomerServiceTest {
     @Test
     void update_found_returnsUpdatedResponse() {
         Customer customer = Customer.of("C001", "기존고객사", null, null, null, null, 0);
+        ReflectionTestUtils.setField(customer, "version", 3L);
         given(customerRepository.findById(1L)).willReturn(Optional.of(customer));
 
         CustomerResponse result = customerService.update(1L,
-            new CustomerUpdateRequest("변경고객사", null, null, null, null, 60, null));
+            new CustomerUpdateRequest("변경고객사", null, null, null, null, 60, null, 3L));
 
         assertThat(result.name()).isEqualTo("변경고객사");
         assertThat(result.paymentTerms()).isEqualTo(60);
+        assertThat(result.version()).isEqualTo(3L);
+    }
+
+    @Test
+    void update_versionMismatch_throwsOptimisticLockConflict() {
+        Customer customer = Customer.of("C001", "기존고객사", null, null, null, null, 0);
+        ReflectionTestUtils.setField(customer, "version", 5L);
+        given(customerRepository.findById(1L)).willReturn(Optional.of(customer));
+
+        assertThrows(ObjectOptimisticLockingFailureException.class, () -> customerService.update(1L,
+            new CustomerUpdateRequest("변경고객사", null, null, null, null, 60, null, 3L)));
     }
 
     @Test

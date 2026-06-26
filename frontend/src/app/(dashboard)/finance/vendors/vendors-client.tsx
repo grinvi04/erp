@@ -90,6 +90,7 @@ export default function VendorsClient({ data, accounts }: Props) {
           contactEmail: contactEmail || null, contactPhone: contactPhone || null,
           paymentTerms: Number(paymentTerms) || 0,
           payablesAccountId: payablesAccountId ? Number(payablesAccountId) : null,
+          version: vendor.version,
         })
         toast.success('공급업체 정보가 수정되었습니다')
         close()

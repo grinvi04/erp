@@ -84,7 +84,7 @@ export default function AccountsClient({ accounts }: Props) {
     if (!name.trim()) { toast.error('계정과목명은 필수입니다'); return }
     startTransition(async () => {
       try {
-        await updateAccount(acc.id, { name: name.trim(), isSummary })
+        await updateAccount(acc.id, { name: name.trim(), isSummary, version: acc.version })
         toast.success('계정과목이 수정되었습니다')
         close()
       } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }

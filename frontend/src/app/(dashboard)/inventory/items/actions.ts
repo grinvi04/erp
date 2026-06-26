@@ -23,6 +23,7 @@ export async function createItem(data: {
 }
 
 export async function updateItem(id: number, data: {
+  version: number
   name: string
   description: string | null
   categoryId: number | null

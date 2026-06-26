@@ -19,6 +19,7 @@ export interface CrmAccount {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  version: number;
 }
 
 export interface Contact {
@@ -34,6 +35,7 @@ export interface Contact {
   mobile: string | null;
   isPrimary: boolean;
   createdAt: string;
+  version: number;
 }
 
 export interface Lead {
@@ -52,6 +54,7 @@ export interface Lead {
   convertedAt: string | null;
   note: string | null;
   createdAt: string;
+  version: number;
 }
 
 export interface PipelineStage {
@@ -79,6 +82,7 @@ export interface Opportunity {
   description: string | null;
   createdAt: string;
   updatedAt: string;
+  version: number;
 }
 
 export interface Activity {

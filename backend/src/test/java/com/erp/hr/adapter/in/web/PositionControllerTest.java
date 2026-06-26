@@ -53,7 +53,7 @@ class PositionControllerTest {
     @Test
     void create_validRequest_returns201() throws Exception {
         PositionCreateRequest request = new PositionCreateRequest("MGR", "과장", 3);
-        PositionResponse response = new PositionResponse(1L, "MGR", "과장", 3);
+        PositionResponse response = new PositionResponse(1L, "MGR", "과장", 3, 0L);
         given(positionService.create(any())).willReturn(response);
 
         mockMvc.perform(post("/api/hr/positions")
