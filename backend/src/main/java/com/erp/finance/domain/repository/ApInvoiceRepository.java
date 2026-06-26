@@ -54,9 +54,10 @@ public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
             + "GROUP BY i.currency ORDER BY i.currency")
     List<CurrencyAmount> sumUnpaidAmountByCurrency();
 
-    @Query("SELECT EXTRACT(MONTH FROM i.invoiceDate) AS month, COUNT(i) AS count, "
-            + "COALESCE(SUM(i.totalAmount), 0) AS totalAmount "
+    @Query("SELECT EXTRACT(MONTH FROM i.invoiceDate) AS month, i.currency AS currency, "
+            + "COUNT(i) AS count, COALESCE(SUM(i.totalAmount), 0) AS totalAmount "
             + "FROM ApInvoice i WHERE EXTRACT(YEAR FROM i.invoiceDate) = :year "
-            + "GROUP BY EXTRACT(MONTH FROM i.invoiceDate) ORDER BY EXTRACT(MONTH FROM i.invoiceDate)")
+            + "GROUP BY EXTRACT(MONTH FROM i.invoiceDate), i.currency "
+            + "ORDER BY i.currency, EXTRACT(MONTH FROM i.invoiceDate)")
     List<MonthlyInvoiceRow> monthlyInvoices(@Param("year") int year);
 }

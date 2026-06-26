@@ -48,8 +48,8 @@ class PipelineDistributionIntegrationTest extends AbstractIntegrationTest {
     private CrmAnalyticsService crmAnalyticsService;
 
     @Test
-    void pipelineDistribution_includesZeroOpportunityStages() {
-        // Stage A: order=1, 2 opportunities with amounts 100 and 200
+    void pipelineDistribution_separatesAmountsByCurrencyAndPreservesEmptyStages() {
+        // Stage A: order=1, KRW 2건(100+200) + USD 1건(500) — 혼합통화
         PipelineStage stageA = pipelineStageRepository.save(
                 PipelineStage.of("Prospecting", 1, 10, false, false));
         // Stage B: order=2, zero opportunities
@@ -64,6 +64,8 @@ class PipelineDistributionIntegrationTest extends AbstractIntegrationTest {
                 BigDecimal.valueOf(100), "KRW", LocalDate.of(2026, 12, 31), 10, "user1", null, null));
         opportunityRepository.save(Opportunity.of(account, "Opp 2", stageA,
                 BigDecimal.valueOf(200), "KRW", LocalDate.of(2026, 12, 31), 10, "user1", null, null));
+        opportunityRepository.save(Opportunity.of(account, "Opp 3", stageA,
+                BigDecimal.valueOf(500), "USD", LocalDate.of(2026, 12, 31), 10, "user1", null, null));
 
         List<PipelineDistributionResponse> result = crmAnalyticsService.getPipelineDistribution();
 
@@ -73,14 +75,20 @@ class PipelineDistributionIntegrationTest extends AbstractIntegrationTest {
                 .filter(r -> r.stageId().equals(stageA.getId()))
                 .findFirst()
                 .orElseThrow();
-        assertThat(rowA.count()).isEqualTo(2L);
-        assertThat(rowA.totalAmount()).isEqualByComparingTo(BigDecimal.valueOf(300));
+        // count는 통화 합산(KRW 2 + USD 1), amounts는 통화별로 분리
+        assertThat(rowA.count()).isEqualTo(3L);
+        assertThat(rowA.amounts()).hasSize(2);
+        assertThat(rowA.amounts().get(0).currency()).isEqualTo("KRW");
+        assertThat(rowA.amounts().get(0).amount()).isEqualByComparingTo(BigDecimal.valueOf(300));
+        assertThat(rowA.amounts().get(1).currency()).isEqualTo("USD");
+        assertThat(rowA.amounts().get(1).amount()).isEqualByComparingTo(BigDecimal.valueOf(500));
 
+        // 빈 단계는 count=0, amounts 빈 리스트로 보존
         PipelineDistributionResponse rowB = result.stream()
                 .filter(r -> r.stageId().equals(stageB.getId()))
                 .findFirst()
                 .orElseThrow();
         assertThat(rowB.count()).isEqualTo(0L);
-        assertThat(rowB.totalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(rowB.amounts()).isEmpty();
     }
 }

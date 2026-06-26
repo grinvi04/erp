@@ -6,6 +6,7 @@ public interface PipelineDistributionRow {
     Long getStageId();
     String getStageName();
     Integer getStageOrder();
+    String getCurrency();
     long getCount();
     BigDecimal getTotalAmount();
 }

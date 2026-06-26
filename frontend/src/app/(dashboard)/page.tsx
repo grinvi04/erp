@@ -1,28 +1,18 @@
 import Link from 'next/link'
 import { apiGet } from '@/lib/api'
+import { formatMoneyList } from '@/lib/money'
 import { Card } from '@/components/ui/card'
 import {
   Users, BarChart3, Package, TrendingUp, ChevronRight, AlertTriangle,
 } from 'lucide-react'
 import type {
-  HrSummary, FinanceSummary, InventorySummary, CrmSummary, CurrencyAmount,
+  HrSummary, FinanceSummary, InventorySummary, CrmSummary,
 } from '@/types/dashboard'
 
 export const metadata = { title: '대시보드 | ERP' }
 
 function fmtNum(n: number) {
   return n.toLocaleString('ko-KR')
-}
-function fmtMoneyOne(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat('ko-KR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
-  } catch {
-    return `${currency} ${amount.toLocaleString('ko-KR')}`
-  }
-}
-function fmtMoneyList(items: CurrencyAmount[]): string {
-  if (!items || items.length === 0) return fmtMoneyOne(0, 'KRW')
-  return items.map((i) => fmtMoneyOne(i.amount, i.currency)).join(' · ')
 }
 
 // 한 모듈의 요약 호출이 실패해도 나머지 대시보드는 정상 렌더되도록 개별적으로 처리한다.
@@ -107,7 +97,7 @@ export default async function DashboardPage() {
           title="재무(Finance)" href="/finance/invoices" icon={BarChart3} failed={finance === null}
           metrics={[
             { label: '미지급 인보이스', value: fmtNum(finance?.unpaidInvoices ?? 0) },
-            { label: '미지급 금액', value: fmtMoneyList(finance?.unpaidAmounts ?? []) },
+            { label: '미지급 금액', value: formatMoneyList(finance?.unpaidAmounts ?? []) },
             { label: '임시 전표', value: fmtNum(finance?.draftJournalEntries ?? 0) },
           ]}
         />
@@ -123,7 +113,7 @@ export default async function DashboardPage() {
           title="CRM" href="/crm/opportunities" icon={TrendingUp} failed={crm === null}
           metrics={[
             { label: '진행중 기회', value: fmtNum(crm?.openOpportunities ?? 0) },
-            { label: '파이프라인 금액', value: fmtMoneyList(crm?.openOpportunityAmounts ?? []) },
+            { label: '파이프라인 금액', value: formatMoneyList(crm?.openOpportunityAmounts ?? []) },
             { label: '미완료 활동', value: fmtNum(crm?.openActivities ?? 0) },
           ]}
         />

@@ -1,5 +1,6 @@
 package com.erp.crm.application.service;
 
+import com.erp.common.response.CurrencyAmount;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.LeadStatusCountResponse;
@@ -26,6 +27,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,13 +45,15 @@ class CrmAnalyticsServiceTest {
     }
 
     private PipelineDistributionRow pipelineRow(
-            Long stageId, String name, int order, long count, String amount) {
+            Long stageId, String name, int order, String currency, long count, String amount) {
         PipelineDistributionRow row = org.mockito.Mockito.mock(PipelineDistributionRow.class);
-        given(row.getStageId()).willReturn(stageId);
-        given(row.getStageName()).willReturn(name);
-        given(row.getStageOrder()).willReturn(order);
-        given(row.getCount()).willReturn(count);
-        given(row.getTotalAmount()).willReturn(new BigDecimal(amount));
+        // 단계 식별 컬럼은 그룹 첫 행에서만 읽히고, 금액은 currency!=null인 행에서만 읽히므로 lenient.
+        lenient().when(row.getStageId()).thenReturn(stageId);
+        lenient().when(row.getStageName()).thenReturn(name);
+        lenient().when(row.getStageOrder()).thenReturn(order);
+        lenient().when(row.getCurrency()).thenReturn(currency);
+        lenient().when(row.getCount()).thenReturn(count);
+        lenient().when(row.getTotalAmount()).thenReturn(amount == null ? null : new BigDecimal(amount));
         return row;
     }
 
@@ -63,8 +67,8 @@ class CrmAnalyticsServiceTest {
     @Test
     void getPipelineDistribution_mapsRowsToResponsesPreservingOrder() {
         List<PipelineDistributionRow> rows = List.of(
-                pipelineRow(10L, "리드", 1, 4L, "1000000.00"),
-                pipelineRow(20L, "제안", 2, 2L, "5000000.00"));
+                pipelineRow(10L, "리드", 1, "KRW", 4L, "1000000.00"),
+                pipelineRow(20L, "제안", 2, "KRW", 2L, "5000000.00"));
         givenAllScope();
         given(pipelineStageRepository.pipelineDistribution(anyBoolean(), anyCollection()))
                 .willReturn(rows);
@@ -73,9 +77,39 @@ class CrmAnalyticsServiceTest {
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0)).isEqualTo(
-                new PipelineDistributionResponse(10L, "리드", 1, 4L, new BigDecimal("1000000.00")));
+                new PipelineDistributionResponse(10L, "리드", 1, 4L,
+                        List.of(new CurrencyAmount("KRW", new BigDecimal("1000000.00")))));
         assertThat(result.get(1)).isEqualTo(
-                new PipelineDistributionResponse(20L, "제안", 2, 2L, new BigDecimal("5000000.00")));
+                new PipelineDistributionResponse(20L, "제안", 2, 2L,
+                        List.of(new CurrencyAmount("KRW", new BigDecimal("5000000.00")))));
+    }
+
+    @Test
+    void getPipelineDistribution_groupsCurrenciesPerStageAndPreservesEmptyStage() {
+        // 한 단계(리드)에 KRW·USD 두 통화 행 + 빈 단계(제안)는 currency=null·count=0 단일 행.
+        List<PipelineDistributionRow> rows = List.of(
+                pipelineRow(10L, "리드", 1, "KRW", 2L, "300.00"),
+                pipelineRow(10L, "리드", 1, "USD", 1L, "50.00"),
+                pipelineRow(20L, "제안", 2, null, 0L, null));
+        givenAllScope();
+        given(pipelineStageRepository.pipelineDistribution(anyBoolean(), anyCollection()))
+                .willReturn(rows);
+
+        List<PipelineDistributionResponse> result = crmAnalyticsService.getPipelineDistribution();
+
+        assertThat(result).hasSize(2);
+
+        PipelineDistributionResponse lead = result.get(0);
+        assertThat(lead.stageId()).isEqualTo(10L);
+        assertThat(lead.count()).isEqualTo(3L); // 통화 합산
+        assertThat(lead.amounts()).containsExactly(
+                new CurrencyAmount("KRW", new BigDecimal("300.00")),
+                new CurrencyAmount("USD", new BigDecimal("50.00")));
+
+        PipelineDistributionResponse empty = result.get(1);
+        assertThat(empty.stageId()).isEqualTo(20L);
+        assertThat(empty.count()).isEqualTo(0L);
+        assertThat(empty.amounts()).isEmpty();
     }
 
     @Test
