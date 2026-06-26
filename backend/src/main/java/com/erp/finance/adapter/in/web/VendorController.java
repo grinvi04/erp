@@ -9,6 +9,7 @@ import com.erp.finance.application.service.VendorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +31,7 @@ public class VendorController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<VendorResponse>>> findAll(
-        @PageableDefault(size = 20) Pageable pageable) {
+        @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(vendorService.findAll(pageable)));
     }
 

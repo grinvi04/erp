@@ -12,9 +12,22 @@ import org.springframework.data.repository.query.Param;
 
 public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
     boolean existsByInvoiceNo(String invoiceNo);
-    Page<ApInvoice> findByVendorId(Long vendorId, Pageable pageable);
-    Page<ApInvoice> findByStatus(ApInvoiceStatus status, Pageable pageable);
-    Page<ApInvoice> findByVendorIdAndStatus(Long vendorId, ApInvoiceStatus status, Pageable pageable);
+
+    // ApInvoiceResponse.from은 vendor를 역참조 — 목록 매핑 시 N+1 방지를 위해 vendor(@ManyToOne, LAZY)를
+    // 페이지 쿼리에서 함께 페치한다. 카운트는 페치 없는 별도 countQuery로 페이지네이션을 유지한다.
+    @Query(value = "SELECT i FROM ApInvoice i LEFT JOIN FETCH i.vendor v WHERE v.id = :vendorId",
+        countQuery = "SELECT COUNT(i) FROM ApInvoice i WHERE i.vendor.id = :vendorId")
+    Page<ApInvoice> findByVendorId(@Param("vendorId") Long vendorId, Pageable pageable);
+
+    @Query(value = "SELECT i FROM ApInvoice i LEFT JOIN FETCH i.vendor WHERE i.status = :status",
+        countQuery = "SELECT COUNT(i) FROM ApInvoice i WHERE i.status = :status")
+    Page<ApInvoice> findByStatus(@Param("status") ApInvoiceStatus status, Pageable pageable);
+
+    @Query(value = "SELECT i FROM ApInvoice i LEFT JOIN FETCH i.vendor v "
+            + "WHERE v.id = :vendorId AND i.status = :status",
+        countQuery = "SELECT COUNT(i) FROM ApInvoice i WHERE i.vendor.id = :vendorId AND i.status = :status")
+    Page<ApInvoice> findByVendorIdAndStatus(@Param("vendorId") Long vendorId,
+                                            @Param("status") ApInvoiceStatus status, Pageable pageable);
 
     /**
      * 전결규정상 현재 사용자가 결재할 수 있는 대기 전표 — 통합 결재함 라우팅용.

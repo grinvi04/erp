@@ -39,6 +39,12 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/erp}
 
+  # 목록 엔드포인트 하드닝: 클라이언트가 거대 page size를 요청해도 100으로 상한 적용.
+  data:
+    web:
+      pageable:
+        max-page-size: 100
+
 management:
   endpoints:
     web:
