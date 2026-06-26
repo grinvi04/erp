@@ -2,6 +2,9 @@ export type EmployeeStatus = 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED'
 export type EmploymentType = 'REGULAR' | 'CONTRACT' | 'PART_TIME' | 'INTERN' | 'DISPATCH'
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER'
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+export type ContractType = 'REGULAR' | 'CONTRACT' | 'PART_TIME' | 'INTERN' | 'DISPATCH'
+export type LeaveType =
+  | 'ANNUAL' | 'SICK' | 'PARENTAL' | 'BEREAVEMENT' | 'UNPAID' | 'COMPENSATORY'
 
 export interface Department {
   id: number
@@ -78,9 +81,35 @@ export interface LeavePolicy {
   id: number
   code: string
   name: string
-  leaveType: string
+  leaveType: LeaveType
   annualDays: number
   carryOverDays: number
   requiresApproval: boolean
   minNoticeDays: number
+}
+
+export interface Contract {
+  id: number
+  employeeId: number
+  contractType: ContractType
+  startDate: string
+  endDate: string | null
+  baseSalary: number | null
+  positionId: number
+  positionName: string
+  jobGradeId: number | null
+  jobGradeName: string | null
+  note: string | null
+}
+
+export interface LeaveBalance {
+  id: number
+  employeeId: number
+  leavePolicyId: number
+  leavePolicyName: string
+  year: number
+  entitledDays: number
+  usedDays: number
+  carryOverDays: number
+  remainingDays: number
 }
