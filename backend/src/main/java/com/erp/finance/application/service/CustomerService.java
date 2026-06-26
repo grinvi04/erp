@@ -26,9 +26,14 @@ public class CustomerService {
     private final AccountRepository accountRepository;
     private final PermissionChecker permissionChecker;
 
-    public PageResponse<CustomerResponse> findAll(Pageable pageable) {
+    public PageResponse<CustomerResponse> findAll(String keyword, Pageable pageable) {
         permissionChecker.require(Permission.FINANCE_READ);
-        return PageResponse.from(customerRepository.findByIsActiveTrue(pageable).map(CustomerResponse::from));
+        return PageResponse.from(
+            customerRepository.search(normalizeKeyword(keyword), pageable).map(CustomerResponse::from));
+    }
+
+    private static String normalizeKeyword(String keyword) {
+        return (keyword == null || keyword.isBlank()) ? null : keyword.trim().toLowerCase();
     }
 
     public CustomerResponse findById(Long id) {

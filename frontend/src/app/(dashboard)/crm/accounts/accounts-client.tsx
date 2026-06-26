@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { SearchInput } from '@/components/ui/search-input'
 import { createAccount, updateAccount, deactivateAccount, type AccountPayload } from './actions'
 import type { CrmAccount, AccountType } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
@@ -35,9 +36,10 @@ type DialogMode =
 
 interface Props {
   data: PageResponse<CrmAccount>
+  keyword: string
 }
 
-export default function AccountsClient({ data }: Props) {
+export default function AccountsClient({ data, keyword }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -206,7 +208,10 @@ export default function AccountsClient({ data }: Props) {
           <h1 className="text-2xl font-semibold text-gray-900">고객사</h1>
           <p className="text-sm text-gray-500 mt-1">고객사 및 잠재 고객 정보를 관리합니다</p>
         </div>
-        {canWrite && <Button onClick={openCreate}><PlusIcon />새 고객사</Button>}
+        <div className="flex items-center gap-2">
+          <SearchInput placeholder="이름·코드 검색" className="w-64" />
+          {canWrite && <Button onClick={openCreate}><PlusIcon />새 고객사</Button>}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg border overflow-hidden">
@@ -265,6 +270,7 @@ export default function AccountsClient({ data }: Props) {
           page={data.page} totalPages={data.totalPages}
           totalElements={data.totalElements} size={data.size}
           basePath="/crm/accounts"
+          searchParams={keyword ? { keyword } : undefined}
         />
       </div>
 

@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { SearchInput } from '@/components/ui/search-input'
 import {
   createEmployee, updateEmployee, transferEmployee,
   promoteEmployee, terminateEmployee, setEmployeeOnLeave, returnEmployeeFromLeave,
@@ -51,9 +52,10 @@ interface Props {
   departments: Department[]
   positions: Position[]
   jobGrades: JobGrade[]
+  keyword: string
 }
 
-export default function EmployeesClient({ data, departments, positions, jobGrades }: Props) {
+export default function EmployeesClient({ data, departments, positions, jobGrades, keyword }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.HR_EMPLOYEE_WRITE)
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
@@ -257,12 +259,15 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
           <h1 className="text-2xl font-semibold text-gray-900">직원 관리</h1>
           <p className="text-sm text-gray-500 mt-1">조직 내 직원 정보를 관리합니다</p>
         </div>
-        {canWrite && (
-          <Button onClick={openCreate}>
-            <PlusIcon />
-            새 직원
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <SearchInput placeholder="이름·코드 검색" className="w-64" />
+          {canWrite && (
+            <Button onClick={openCreate}>
+              <PlusIcon />
+              새 직원
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg border">
@@ -342,6 +347,7 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
           totalElements={data.totalElements}
           size={data.size}
           basePath="/hr/employees"
+          searchParams={keyword ? { keyword } : undefined}
         />
       </div>
 

@@ -52,7 +52,7 @@ class EmployeeControllerTest {
 
     @Test
     void findAll_returnsOkWithPage() throws Exception {
-        given(employeeService.findAll(any(), any(), any(Pageable.class)))
+        given(employeeService.findAll(any(), any(), any(), any(Pageable.class)))
             .willReturn(new PageImpl<>(List.of(sampleResponse())));
 
         mockMvc.perform(get("/api/hr/employees"))
