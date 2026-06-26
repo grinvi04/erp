@@ -52,6 +52,7 @@ public class VendorService {
     public VendorResponse update(Long id, VendorUpdateRequest request) {
         permissionChecker.require(Permission.FINANCE_WRITE);
         Vendor vendor = getOrThrow(id);
+        vendor.checkVersion(request.version());
         vendor.update(request.name(), request.businessNo(), request.contactName(),
             request.contactEmail(), request.contactPhone(), request.paymentTerms());
         applyPayablesAccount(vendor, request.payablesAccountId());

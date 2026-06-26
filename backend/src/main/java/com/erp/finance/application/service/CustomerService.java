@@ -52,6 +52,7 @@ public class CustomerService {
     public CustomerResponse update(Long id, CustomerUpdateRequest request) {
         permissionChecker.require(Permission.FINANCE_WRITE);
         Customer customer = getOrThrow(id);
+        customer.checkVersion(request.version());
         customer.update(request.name(), request.businessNo(), request.contactName(),
             request.contactEmail(), request.contactPhone(), request.paymentTerms());
         applyReceivablesAccount(customer, request.receivablesAccountId());

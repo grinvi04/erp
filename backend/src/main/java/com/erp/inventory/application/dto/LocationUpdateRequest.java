@@ -8,5 +8,6 @@ import jakarta.validation.constraints.Size;
 public record LocationUpdateRequest(
         @NotBlank @Size(max = 100) String name,
         Long parentId,
-        @NotNull LocationType locationType
+        @NotNull LocationType locationType,
+        @NotNull Long version
 ) {}

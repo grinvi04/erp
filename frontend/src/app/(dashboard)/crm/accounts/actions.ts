@@ -21,7 +21,7 @@ export async function createAccount(data: AccountPayload & { code: string }): Pr
   revalidatePath('/crm/accounts')
 }
 
-export async function updateAccount(id: number, data: AccountPayload): Promise<void> {
+export async function updateAccount(id: number, data: AccountPayload & { version: number }): Promise<void> {
   await apiPut(`/api/crm/accounts/${id}`, data)
   revalidatePath('/crm/accounts')
 }

@@ -52,6 +52,7 @@ public class OpportunityService {
     public OpportunityResponse update(Long id, OpportunityUpdateRequest req) {
         permissionChecker.require(Permission.CRM_WRITE);
         Opportunity opportunity = getOrThrow(id);
+        opportunity.checkVersion(req.version());
         opportunity.update(req.name(), stageService.getOrThrow(req.stageId()),
                 req.amount(), req.currency(), req.closeDate(), req.probability(),
                 req.ownerId(), req.source(), req.description());

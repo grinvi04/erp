@@ -10,7 +10,7 @@ export async function createWarehouse(data: {
 }
 
 export async function updateWarehouse(id: number, data: {
-  name: string; address: string | null
+  version: number; name: string; address: string | null
 }): Promise<void> {
   await apiPut(`/api/inventory/warehouses/${id}`, data)
   revalidatePath('/inventory/warehouses')

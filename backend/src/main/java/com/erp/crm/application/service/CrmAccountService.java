@@ -50,6 +50,7 @@ public class CrmAccountService {
     public AccountResponse update(Long id, AccountUpdateRequest req) {
         permissionChecker.require(Permission.CRM_WRITE);
         Account account = getOrThrow(id);
+        account.checkVersion(req.version());
         account.update(req.name(), req.businessNo(), req.industry(), req.website(),
                 req.phone(), req.address(), req.employeeCount(), req.annualRevenue(),
                 req.accountType(), req.ownerId());

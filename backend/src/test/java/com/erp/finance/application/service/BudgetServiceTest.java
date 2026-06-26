@@ -18,6 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -93,11 +95,25 @@ class BudgetServiceTest {
         FiscalYear fy = buildFiscalYear();
         Account account = buildAccount();
         Budget budget = Budget.of(fy, account, null, new BigDecimal("3000000"));
+        ReflectionTestUtils.setField(budget, "version", 3L);
         given(budgetRepository.findById(1L)).willReturn(Optional.of(budget));
 
-        BudgetResponse result = budgetService.update(1L, new BudgetUpdateRequest(new BigDecimal("6000000")));
+        BudgetResponse result = budgetService.update(1L, new BudgetUpdateRequest(new BigDecimal("6000000"), 3L));
 
         assertThat(result.budgetAmount()).isEqualByComparingTo("6000000");
+        assertThat(result.version()).isEqualTo(3L);
+    }
+
+    @Test
+    void update_versionMismatch_throwsOptimisticLockConflict() {
+        FiscalYear fy = buildFiscalYear();
+        Account account = buildAccount();
+        Budget budget = Budget.of(fy, account, null, new BigDecimal("3000000"));
+        ReflectionTestUtils.setField(budget, "version", 5L);
+        given(budgetRepository.findById(1L)).willReturn(Optional.of(budget));
+
+        assertThrows(ObjectOptimisticLockingFailureException.class,
+            () -> budgetService.update(1L, new BudgetUpdateRequest(new BigDecimal("6000000"), 3L)));
     }
 
     @Test

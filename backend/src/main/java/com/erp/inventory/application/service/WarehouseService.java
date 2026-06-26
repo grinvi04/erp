@@ -46,6 +46,7 @@ public class WarehouseService {
     public WarehouseResponse update(Long id, WarehouseUpdateRequest req) {
         permissionChecker.require(Permission.INVENTORY_WRITE);
         Warehouse w = getOrThrow(id);
+        w.checkVersion(req.version());
         w.update(req.name(), req.address());
         return WarehouseResponse.from(w);
     }

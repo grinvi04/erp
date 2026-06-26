@@ -13,13 +13,14 @@ public record AccountResponse(
     Long parentId,
     String parentCode,
     boolean isSummary,
-    boolean isActive
+    boolean isActive,
+    Long version
 ) {
     public static AccountResponse from(Account a) {
         return new AccountResponse(
             a.getId(), a.getCode(), a.getName(), a.getAccountType(), a.getNormalBalance(),
             a.getParent() != null ? a.getParent().getId() : null,
             a.getParent() != null ? a.getParent().getCode() : null,
-            a.isSummary(), a.isActive());
+            a.isSummary(), a.isActive(), a.getVersion());
     }
 }

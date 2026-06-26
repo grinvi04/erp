@@ -10,7 +10,8 @@ public record DepartmentResponse(
     int depth,
     int sortOrder,
     Long headEmployeeId,
-    boolean active
+    boolean active,
+    Long version
 ) {
     public static DepartmentResponse from(Department dept) {
         return new DepartmentResponse(
@@ -21,7 +22,8 @@ public record DepartmentResponse(
             dept.getDepth(),
             dept.getSortOrder(),
             dept.getHeadEmployeeId(),
-            dept.isActive()
+            dept.isActive(),
+            dept.getVersion()
         );
     }
 }

@@ -6,6 +6,7 @@ import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.Version;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.TenantId;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -55,6 +56,19 @@ public abstract class BaseEntity {
 
     public void softDelete() {
         this.deletedAt = LocalDateTime.now();
+    }
+
+    /**
+     * HTTP read-modify-write 충돌 감지 — 클라이언트가 폼 로드 시 받은 version과 현재 영속
+     * 엔티티의 version이 다르면 그 사이 다른 사용자가 수정한 것이므로 거부한다(lost update 방지).
+     * {@code @Version}만으로는 같은 트랜잭션 내 충돌만 잡으므로, 갱신 서비스가 이 메서드로
+     * 기대 version을 명시 검증한다. 불일치 시 {@link ObjectOptimisticLockingFailureException}
+     * → GlobalExceptionHandler가 409 OPTIMISTIC_LOCK_CONFLICT로 매핑.
+     */
+    public void checkVersion(Long expectedVersion) {
+        if (expectedVersion == null || !expectedVersion.equals(this.version)) {
+            throw new ObjectOptimisticLockingFailureException(getClass().getSimpleName(), null);
+        }
     }
 
     public boolean isDeleted() {

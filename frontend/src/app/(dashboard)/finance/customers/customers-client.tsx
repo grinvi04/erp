@@ -90,6 +90,7 @@ export default function CustomersClient({ data, accounts }: Props) {
           contactEmail: contactEmail || null, contactPhone: contactPhone || null,
           paymentTerms: Number(paymentTerms) || 0,
           receivablesAccountId: receivablesAccountId ? Number(receivablesAccountId) : null,
+          version: customer.version,
         })
         toast.success('고객 정보가 수정되었습니다')
         close()

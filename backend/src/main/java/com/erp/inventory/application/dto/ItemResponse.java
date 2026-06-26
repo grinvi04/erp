@@ -22,7 +22,8 @@ public record ItemResponse(
         BigDecimal maxStock,
         boolean lotTracked,
         boolean serialTracked,
-        boolean active
+        boolean active,
+        Long version
 ) {
     public static ItemResponse from(Item item) {
         Long categoryId = item.getCategory() != null ? item.getCategory().getId() : null;
@@ -34,6 +35,6 @@ public record ItemResponse(
                 item.getCostMethod(), item.getStandardCost(),
                 item.getReorderPoint(), item.getReorderQty(),
                 item.getMinStock(), item.getMaxStock(),
-                item.isLotTracked(), item.isSerialTracked(), item.isActive());
+                item.isLotTracked(), item.isSerialTracked(), item.isActive(), item.getVersion());
     }
 }

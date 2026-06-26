@@ -181,6 +181,7 @@ public class EmployeeService {
     public EmployeeResponse update(Long id, EmployeeUpdateRequest request) {
         permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
+        employee.checkVersion(request.version());
         if (employee.isTerminated()) {
             throw new ErpException(ErrorCode.EMPLOYEE_ALREADY_TERMINATED);
         }

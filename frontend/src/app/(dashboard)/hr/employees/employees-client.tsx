@@ -164,6 +164,7 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
           workEmail, baseSalary: baseSalary ? Number(baseSalary) : null,
           managerId: managerId ? Number(managerId) : null,
           userId: userId.trim() || null,
+          version: emp.version,
         })
         toast.success('직원 정보가 수정되었습니다')
         close()

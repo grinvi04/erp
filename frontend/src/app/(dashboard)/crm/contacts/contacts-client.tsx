@@ -123,7 +123,7 @@ export default function ContactsClient({ accounts }: Props) {
     if (!validate()) return
     startTransition(async () => {
       try {
-        await updateContact(ct.id, buildPayload())
+        await updateContact(ct.id, { ...buildPayload(), version: ct.version })
         toast.success('담당자가 수정되었습니다')
         close()
         reload()

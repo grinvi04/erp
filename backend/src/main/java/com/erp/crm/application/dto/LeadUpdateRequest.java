@@ -2,6 +2,7 @@ package com.erp.crm.application.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record LeadUpdateRequest(
@@ -13,5 +14,6 @@ public record LeadUpdateRequest(
         @Size(max = 30) String phone,
         @Size(max = 50) String source,
         @NotBlank @Size(max = 100) String ownerId,
-        String note
+        String note,
+        @NotNull Long version
 ) {}

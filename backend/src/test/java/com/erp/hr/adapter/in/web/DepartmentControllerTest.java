@@ -53,7 +53,7 @@ class DepartmentControllerTest {
     @Test
     void create_validRequest_returns201() throws Exception {
         DepartmentCreateRequest request = new DepartmentCreateRequest("DEV", "개발팀", null, 0);
-        DepartmentResponse response = new DepartmentResponse(1L, "DEV", "개발팀", null, 0, 0, null, true);
+        DepartmentResponse response = new DepartmentResponse(1L, "DEV", "개발팀", null, 0, 0, null, true, 0L);
         given(departmentService.create(any())).willReturn(response);
 
         mockMvc.perform(post("/api/hr/departments")

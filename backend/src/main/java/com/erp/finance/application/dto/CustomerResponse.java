@@ -12,12 +12,14 @@ public record CustomerResponse(
     String contactPhone,
     int paymentTerms,
     boolean isActive,
-    Long receivablesAccountId
+    Long receivablesAccountId,
+    Long version
 ) {
     public static CustomerResponse from(Customer c) {
         return new CustomerResponse(c.getId(), c.getCode(), c.getName(), c.getBusinessNo(),
             c.getContactName(), c.getContactEmail(), c.getContactPhone(),
             c.getPaymentTerms(), c.isActive(),
-            c.getReceivablesAccount() != null ? c.getReceivablesAccount().getId() : null);
+            c.getReceivablesAccount() != null ? c.getReceivablesAccount().getId() : null,
+            c.getVersion());
     }
 }

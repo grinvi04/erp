@@ -12,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -63,13 +65,25 @@ class VendorServiceTest {
     @Test
     void update_found_returnsUpdatedResponse() {
         Vendor vendor = Vendor.of("V001", "기존공급사", null, null, null, null, 0);
+        ReflectionTestUtils.setField(vendor, "version", 3L);
         given(vendorRepository.findById(1L)).willReturn(Optional.of(vendor));
 
         VendorResponse result = vendorService.update(1L,
-            new VendorUpdateRequest("변경공급사", null, null, null, null, 60, null));
+            new VendorUpdateRequest("변경공급사", null, null, null, null, 60, null, 3L));
 
         assertThat(result.name()).isEqualTo("변경공급사");
         assertThat(result.paymentTerms()).isEqualTo(60);
+        assertThat(result.version()).isEqualTo(3L);
+    }
+
+    @Test
+    void update_versionMismatch_throwsOptimisticLockConflict() {
+        Vendor vendor = Vendor.of("V001", "기존공급사", null, null, null, null, 0);
+        ReflectionTestUtils.setField(vendor, "version", 5L);
+        given(vendorRepository.findById(1L)).willReturn(Optional.of(vendor));
+
+        assertThrows(ObjectOptimisticLockingFailureException.class, () -> vendorService.update(1L,
+            new VendorUpdateRequest("변경공급사", null, null, null, null, 60, null, 3L)));
     }
 
     @Test

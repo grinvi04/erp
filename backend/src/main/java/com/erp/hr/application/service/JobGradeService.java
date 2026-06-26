@@ -54,6 +54,7 @@ public class JobGradeService {
     public JobGradeResponse update(Long id, JobGradeUpdateRequest request) {
         permissionChecker.require(Permission.HR_JOBGRADE_WRITE);
         JobGrade grade = getOrThrow(id);
+        grade.checkVersion(request.version());
         grade.update(request.name(), request.gradeOrder(), request.minSalary(), request.maxSalary());
         return JobGradeResponse.from(grade);
     }

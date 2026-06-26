@@ -47,7 +47,7 @@ class EmployeeControllerTest {
             1L, "개발팀", 1L, "Engineer", null, null,
             LocalDate.of(2020, 3, 1), null,
             EmploymentType.REGULAR, EmployeeStatus.ACTIVE,
-            BigDecimal.valueOf(50000000), "dev@test.com", null, null);
+            BigDecimal.valueOf(50000000), "dev@test.com", null, null, 0L);
     }
 
     @Test

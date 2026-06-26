@@ -17,6 +17,7 @@ export interface Account {
   parentCode: string | null
   isSummary: boolean
   isActive: boolean
+  version: number
 }
 
 export interface Vendor {
@@ -30,6 +31,7 @@ export interface Vendor {
   paymentTerms: number
   isActive: boolean
   payablesAccountId: number | null
+  version: number
 }
 
 export interface JournalLine {
@@ -90,6 +92,7 @@ export interface Customer {
   paymentTerms: number
   isActive: boolean
   receivablesAccountId: number | null
+  version: number
 }
 
 export interface ArInvoice {
