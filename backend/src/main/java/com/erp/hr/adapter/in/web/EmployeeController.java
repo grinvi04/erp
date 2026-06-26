@@ -37,9 +37,10 @@ public class EmployeeController {
     public ResponseEntity<ApiResponse<PageResponse<EmployeeResponse>>> findAll(
         @RequestParam(required = false) EmployeeStatus status,
         @RequestParam(required = false) Long departmentId,
+        @RequestParam(required = false) String keyword,
         @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(
-            PageResponse.from(employeeService.findAll(status, departmentId, pageable))));
+            PageResponse.from(employeeService.findAll(status, departmentId, keyword, pageable))));
     }
 
     @GetMapping("/{id}")

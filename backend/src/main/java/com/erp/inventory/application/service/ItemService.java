@@ -13,7 +13,6 @@ import com.erp.inventory.domain.model.ItemCategory;
 import com.erp.inventory.domain.model.UnitOfMeasure;
 import com.erp.inventory.domain.repository.ItemRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,12 +27,14 @@ public class ItemService {
     private final UomService uomService;
     private final PermissionChecker permissionChecker;
 
-    public PageResponse<ItemResponse> findAll(Long categoryId, Pageable pageable) {
+    public PageResponse<ItemResponse> findAll(Long categoryId, String keyword, Pageable pageable) {
         permissionChecker.require(Permission.INVENTORY_READ);
-        Page<Item> page = categoryId != null
-                ? itemRepository.findByCategory_Id(categoryId, pageable)
-                : itemRepository.findAll(pageable);
-        return PageResponse.from(page.map(ItemResponse::from));
+        return PageResponse.from(
+                itemRepository.search(normalizeKeyword(keyword), categoryId, pageable).map(ItemResponse::from));
+    }
+
+    private static String normalizeKeyword(String keyword) {
+        return (keyword == null || keyword.isBlank()) ? null : keyword.trim().toLowerCase();
     }
 
     public ItemResponse findById(Long id) {

@@ -46,7 +46,7 @@ class ItemControllerTest {
 
     @Test
     void findAll_returnsOkWithPage() throws Exception {
-        given(itemService.findAll(isNull(), any())).willReturn(
+        given(itemService.findAll(isNull(), isNull(), any())).willReturn(
                 new PageResponse<>(List.of(buildItemResponse()), 0, 10, 1, 1, true, true));
 
         mockMvc.perform(get("/api/inventory/items"))

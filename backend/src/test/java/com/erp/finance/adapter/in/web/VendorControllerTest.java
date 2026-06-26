@@ -40,7 +40,7 @@ class VendorControllerTest {
     @Test
     void findAll_returnsOkWithPage() throws Exception {
         VendorResponse response = new VendorResponse(1L, "V001", "공급사", null, null, null, null, 30, true, null, 0L);
-        given(vendorService.findAll(any())).willReturn(
+        given(vendorService.findAll(any(), any())).willReturn(
             PageResponse.from(new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1)));
 
         mockMvc.perform(get("/api/finance/vendors"))

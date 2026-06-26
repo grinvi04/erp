@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { SearchInput } from '@/components/ui/search-input'
 import { createItem, updateItem, deactivateItem } from './actions'
 import type { Item, ItemCategory, Uom, CostMethod } from '@/types/inventory'
 import type { PageResponse } from '@/types/api'
@@ -38,11 +39,12 @@ interface Props {
   data: PageResponse<Item>
   categories: ItemCategory[]
   uoms: Uom[]
+  keyword: string
 }
 
 function fmtNum(n: number) { return n.toLocaleString('ko-KR') }
 
-export default function ItemsClient({ data, categories, uoms }: Props) {
+export default function ItemsClient({ data, categories, uoms, keyword }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.INVENTORY_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -242,7 +244,10 @@ export default function ItemsClient({ data, categories, uoms }: Props) {
           <h1 className="text-2xl font-semibold text-gray-900">품목 관리</h1>
           <p className="text-sm text-gray-500 mt-1">재고 품목 마스터를 관리합니다</p>
         </div>
-        {canWrite && <Button onClick={openCreate}><PlusIcon />새 품목</Button>}
+        <div className="flex items-center gap-2">
+          <SearchInput placeholder="이름·코드 검색" className="w-64" />
+          {canWrite && <Button onClick={openCreate}><PlusIcon />새 품목</Button>}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg border overflow-hidden">
@@ -311,6 +316,7 @@ export default function ItemsClient({ data, categories, uoms }: Props) {
           page={data.page} totalPages={data.totalPages}
           totalElements={data.totalElements} size={data.size}
           basePath="/inventory/items"
+          searchParams={keyword ? { keyword } : undefined}
         />
       </div>
 

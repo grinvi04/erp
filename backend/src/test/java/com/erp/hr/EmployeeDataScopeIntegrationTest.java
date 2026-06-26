@@ -93,7 +93,7 @@ class EmployeeDataScopeIntegrationTest extends AbstractIntegrationTest {
     }
 
     private List<String> findAllEmpNos() {
-        Page<EmployeeResponse> page = employeeService.findAll(null, null, PageRequest.of(0, 50));
+        Page<EmployeeResponse> page = employeeService.findAll(null, null, null, PageRequest.of(0, 50));
         return page.getContent().stream().map(EmployeeResponse::employeeNo).toList();
     }
 
