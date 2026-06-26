@@ -17,6 +17,5 @@ public record AccountCreateRequest(
         @Size(max = 500) String address,
         @PositiveOrZero Integer employeeCount,
         @PositiveOrZero BigDecimal annualRevenue,
-        @NotNull AccountType accountType,
-        @NotBlank @Size(max = 100) String ownerId
+        @NotNull AccountType accountType
 ) {}

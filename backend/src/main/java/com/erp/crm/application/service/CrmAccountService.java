@@ -3,6 +3,7 @@ package com.erp.crm.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.AccountCreateRequest;
@@ -23,6 +24,7 @@ public class CrmAccountService {
     private final CrmAccountRepository accountRepository;
     private final PermissionChecker permissionChecker;
     private final CrmDataScopeResolver dataScopeResolver;
+    private final CurrentUserProvider currentUserProvider;
 
     public PageResponse<AccountResponse> search(String keyword, Boolean isActive, Pageable pageable) {
         permissionChecker.require(Permission.CRM_READ);
@@ -47,7 +49,7 @@ public class CrmAccountService {
         }
         Account account = Account.of(req.code(), req.name(), req.businessNo(), req.industry(),
                 req.website(), req.phone(), req.address(), req.employeeCount(),
-                req.annualRevenue(), req.accountType(), req.ownerId());
+                req.annualRevenue(), req.accountType(), currentUserProvider.getCurrentUserId());
         return AccountResponse.from(accountRepository.save(account));
     }
 

@@ -16,7 +16,7 @@ export interface AccountPayload {
   ownerId: string
 }
 
-export async function createAccount(data: AccountPayload & { code: string }): Promise<void> {
+export async function createAccount(data: Omit<AccountPayload, 'ownerId'> & { code: string }): Promise<void> {
   await apiPost('/api/crm/accounts', data)
   revalidatePath('/crm/accounts')
 }

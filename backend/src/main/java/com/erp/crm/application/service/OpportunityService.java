@@ -3,6 +3,7 @@ package com.erp.crm.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.OpportunityCreateRequest;
@@ -25,6 +26,7 @@ public class OpportunityService {
     private final PipelineStageService stageService;
     private final PermissionChecker permissionChecker;
     private final CrmDataScopeResolver dataScopeResolver;
+    private final CurrentUserProvider currentUserProvider;
 
     public PageResponse<OpportunityResponse> search(Long accountId, Long stageId, Pageable pageable) {
         permissionChecker.require(Permission.CRM_READ);
@@ -49,7 +51,7 @@ public class OpportunityService {
                 req.name(),
                 stageService.getOrThrow(req.stageId()),
                 req.amount(), req.currency(), req.closeDate(), req.probability(),
-                req.ownerId(), req.source(), req.description());
+                currentUserProvider.getCurrentUserId(), req.source(), req.description());
         return OpportunityResponse.from(opportunityRepository.save(opportunity));
     }
 

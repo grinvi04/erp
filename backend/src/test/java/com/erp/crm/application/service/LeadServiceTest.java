@@ -31,6 +31,7 @@ class LeadServiceTest {
     @Mock private CrmAccountService accountService;
     @Mock private OpportunityService opportunityService;
     @Mock private com.erp.common.security.PermissionChecker permissionChecker;
+    @Mock private com.erp.common.security.CurrentUserProvider currentUserProvider;
     @InjectMocks private LeadService leadService;
 
     private Lead buildLead() {
@@ -39,17 +40,18 @@ class LeadServiceTest {
     }
 
     @Test
-    void create_validRequest_savesWithNewStatus() {
-        Lead lead = buildLead();
-        given(leadRepository.save(any())).willReturn(lead);
+    void create_validRequest_savesWithNewStatusAndCurrentUserAsOwner() {
+        given(currentUserProvider.getCurrentUserId()).willReturn("auth-user-sub");
+        given(leadRepository.save(any(Lead.class))).willAnswer(inv -> inv.getArgument(0));
 
         LeadCreateRequest req = new LeadCreateRequest("김", "철수", "ABC주식회사", "팀장",
-                "kim@abc.com", "010-0000-0000", "WEB", "sales-001", null);
+                "kim@abc.com", "010-0000-0000", "WEB", null);
 
         LeadResponse result = leadService.create(req);
 
         assertThat(result.status()).isEqualTo(LeadStatus.NEW);
         assertThat(result.lastName()).isEqualTo("김");
+        assertThat(result.ownerId()).isEqualTo("auth-user-sub");
     }
 
     @Test

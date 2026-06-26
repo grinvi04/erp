@@ -7,7 +7,6 @@ export interface ActivityPayload {
   activityType: ActivityType
   subject: string
   accountId: number | null
-  ownerId: string
   dueDate: string | null
   description: string | null
 }
