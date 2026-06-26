@@ -34,6 +34,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
 
+    // Metrics — /actuator/prometheus 노출 (버전은 Spring Boot BOM 관리)
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
     // Database
     runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'
