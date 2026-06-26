@@ -20,6 +20,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { formatMoneyOne } from '@/lib/money'
 import { createJournalEntry, postJournalEntry } from './actions'
 import type {
   FiscalYear, FiscalPeriod, JournalEntry, JournalEntryStatus,
@@ -37,7 +38,6 @@ const STATUS_VARIANT: Record<JournalEntryStatus, 'default' | 'secondary' | 'dest
   DRAFT: 'secondary', POSTED: 'default', REVERSED: 'destructive',
 }
 
-function fmtMoney(n: number) { return n.toLocaleString('ko-KR') }
 
 interface LineRow { accountId: string; debitAmount: string; creditAmount: string; description: string }
 const emptyLine = (): LineRow => ({ accountId: '', debitAmount: '', creditAmount: '', description: '' })
@@ -106,7 +106,7 @@ export default function JournalEntriesClient({
       return
     }
     if (!balanced) {
-      toast.error(`차변(${fmtMoney(totalDebit)})과 대변(${fmtMoney(totalCredit)})이 일치해야 합니다`)
+      toast.error(`차변(${formatMoneyOne(totalDebit, currency)})과 대변(${formatMoneyOne(totalCredit, currency)})이 일치해야 합니다`)
       return
     }
     if (selectedPeriodId == null) { toast.error('회계 기간을 먼저 선택해주세요'); return }
@@ -231,10 +231,10 @@ export default function JournalEntriesClient({
                   <TableCell className="text-sm">{ENTRY_TYPE_LABEL[entry.entryType]}</TableCell>
                   <TableCell className="text-sm max-w-xs truncate">{entry.description}</TableCell>
                   <TableCell className="text-right font-mono text-sm">
-                    {fmtMoney(entry.totalDebit)}
+                    {formatMoneyOne(entry.totalDebit, entry.currency)}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm">
-                    {fmtMoney(entry.totalCredit)}
+                    {formatMoneyOne(entry.totalCredit, entry.currency)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[entry.status]}>{STATUS_LABEL[entry.status]}</Badge>
@@ -370,8 +370,8 @@ export default function JournalEntriesClient({
               </div>
               {/* Balance indicator */}
               <div className="mt-2 flex justify-end gap-6 text-sm font-mono">
-                <span>차변 합계: <strong>{fmtMoney(totalDebit)}</strong></span>
-                <span>대변 합계: <strong>{fmtMoney(totalCredit)}</strong></span>
+                <span>차변 합계: <strong>{formatMoneyOne(totalDebit, currency)}</strong></span>
+                <span>대변 합계: <strong>{formatMoneyOne(totalCredit, currency)}</strong></span>
                 <span className={balanced ? 'text-green-600' : 'text-destructive'}>
                   {balanced ? '✓ 균형' : '✗ 불일치'}
                 </span>
