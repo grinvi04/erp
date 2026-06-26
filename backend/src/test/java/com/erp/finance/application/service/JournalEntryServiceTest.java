@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class JournalEntryServiceTest {
@@ -44,9 +45,22 @@ class JournalEntryServiceTest {
     @Mock private AccountRepository accountRepository;
     @Mock private CurrentUserProvider currentUserProvider;
     @Mock private com.erp.common.security.PermissionChecker permissionChecker;
+    @Mock private com.erp.common.workflow.repository.ApprovalRequestRepository approvalRequestRepository;
+    @Mock private com.erp.common.security.ApprovalAuthorityProvider approvalAuthorityProvider;
+    @Mock private com.erp.common.audit.AuditService auditService;
 
     @InjectMocks
     private JournalEntryService journalEntryService;
+
+    private JournalEntry buildBalancedDraft(FiscalPeriod period, Account account) {
+        JournalEntry entry = JournalEntry.create("JE-20250101-00001",
+            LocalDate.of(2025, 1, 1), period, "설명", JournalEntryType.MANUAL, "KRW");
+        entry.addLine(com.erp.finance.domain.model.JournalLine.of(entry, 1, account,
+            new BigDecimal("1000"), BigDecimal.ZERO, null, null));
+        entry.addLine(com.erp.finance.domain.model.JournalLine.of(entry, 2, account,
+            BigDecimal.ZERO, new BigDecimal("1000"), null, null));
+        return entry;
+    }
 
     private FiscalYear buildFiscalYear() {
         return FiscalYear.of(2025, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
@@ -135,23 +149,100 @@ class JournalEntryServiceTest {
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOURNAL_LINE_AMOUNTS_INVALID);
     }
 
+    // AC-1: DRAFT 전표 상신 → PENDING_APPROVAL + ApprovalRequest(GL_ENTRY) 생성·링크
     @Test
-    void post_draftEntry_postsSuccessfully() {
+    void submitForApproval_draftEntry_transitionsToPendingApprovalAndCreatesApprovalRequest() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("creator");
+        com.erp.common.workflow.ApprovalRequest saved =
+            com.erp.common.workflow.ApprovalRequest.create("GL_ENTRY", 1L, "t", "creator",
+                new java.util.ArrayList<>(List.of(
+                    com.erp.common.workflow.ApprovalStep.of(1, "GL 전표 전기 승인", "@role:finance:gl:approve"))));
+        given(approvalRequestRepository.save(any())).willReturn(saved);
+
+        JournalEntryResponse result = journalEntryService.submitForApproval(1L);
+
+        assertThat(result.status().name()).isEqualTo("PENDING_APPROVAL");
+        verify(approvalRequestRepository).save(any());
+    }
+
+    // AC-2: 불균형 전표 상신 거부 (상태 불변)
+    @Test
+    void submitForApproval_unbalancedEntry_throwsJournalEntryNotBalanced() {
         FiscalPeriod period = buildOpenPeriod();
         Account account = buildAccount("1100");
         JournalEntry entry = JournalEntry.create("JE-20250101-00001",
             LocalDate.of(2025, 1, 1), period, "설명", JournalEntryType.MANUAL, "KRW");
         entry.addLine(com.erp.finance.domain.model.JournalLine.of(entry, 1, account,
             new BigDecimal("1000"), BigDecimal.ZERO, null, null));
-        entry.addLine(com.erp.finance.domain.model.JournalLine.of(entry, 2, account,
-            BigDecimal.ZERO, new BigDecimal("1000"), null, null));
-
         given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
-        given(currentUserProvider.getCurrentUserId()).willReturn("user-1");
 
-        JournalEntryResponse result = journalEntryService.post(1L);
+        ErpException ex = assertThrows(ErpException.class, () -> journalEntryService.submitForApproval(1L));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOURNAL_ENTRY_NOT_BALANCED);
+        assertThat(entry.getStatus().name()).isEqualTo("DRAFT");
+    }
+
+    // AC-2: 마감된 회계기간 상신 거부
+    @Test
+    void submitForApproval_closedPeriod_throwsFiscalPeriodClosed() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+        period.close();
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+
+        ErpException ex = assertThrows(ErpException.class, () -> journalEntryService.submitForApproval(1L));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FISCAL_PERIOD_CLOSED);
+    }
+
+    // AC-3: PENDING_APPROVAL 전표 승인 → POSTED
+    @Test
+    void approve_pendingEntry_transitionsToPosted() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+        entry.submitForApproval();
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("approver");
+        given(approvalAuthorityProvider.getApprovalLimit()).willReturn(new BigDecimal("1000000"));
+
+        JournalEntryResponse result = journalEntryService.approve(1L);
 
         assertThat(result.status().name()).isEqualTo("POSTED");
+        verify(permissionChecker).require(com.erp.common.security.Permission.FINANCE_GL_APPROVE);
+    }
+
+    // AC-5: 차변 합계가 전결 한도 초과 시 거부
+    @Test
+    void approve_amountExceedsApprovalLimit_throwsLimitExceeded() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+        entry.submitForApproval();
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("approver");
+        given(approvalAuthorityProvider.getApprovalLimit()).willReturn(new BigDecimal("500"));
+
+        ErpException ex = assertThrows(ErpException.class, () -> journalEntryService.approve(1L));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVAL_LIMIT_EXCEEDED);
+        assertThat(entry.getStatus().name()).isEqualTo("PENDING_APPROVAL");
+    }
+
+    // AC-6: 직접 전기 차단 — DRAFT(미상신) 전표 approve 시도는 도메인 가드로 거부
+    @Test
+    void approve_draftEntryNotSubmitted_throwsNotPendingApproval() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("approver");
+        given(approvalAuthorityProvider.getApprovalLimit()).willReturn(new BigDecimal("1000000"));
+
+        ErpException ex = assertThrows(ErpException.class, () -> journalEntryService.approve(1L));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOURNAL_ENTRY_NOT_PENDING_APPROVAL);
     }
 
     @Test

@@ -16,6 +16,7 @@ export const PERM = {
   FINANCE_WRITE: 'finance:write',
   FINANCE_INVOICE_APPROVE: 'finance:invoice:approve',
   FINANCE_INVOICE_PAY: 'finance:invoice:pay',
+  FINANCE_GL_APPROVE: 'finance:gl:approve',
   INVENTORY_READ: 'inventory:read',
   INVENTORY_WRITE: 'inventory:write',
   CRM_READ: 'crm:read',
