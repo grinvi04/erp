@@ -1,10 +1,11 @@
 package com.erp.finance.application.dto;
 
-import java.math.BigDecimal;
+import com.erp.common.response.CurrencyAmount;
+import java.util.List;
 
 public record FinanceSummaryResponse(
         long unpaidInvoices,
-        BigDecimal unpaidAmount,
+        List<CurrencyAmount> unpaidAmounts,
         long draftJournalEntries
 ) {
 }

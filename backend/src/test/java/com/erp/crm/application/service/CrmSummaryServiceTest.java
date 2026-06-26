@@ -1,5 +1,6 @@
 package com.erp.crm.application.service;
 
+import com.erp.common.response.CurrencyAmount;
 import com.erp.crm.application.dto.CrmSummaryResponse;
 import com.erp.crm.domain.model.ActivityStatus;
 import com.erp.crm.domain.model.LeadStatus;
@@ -7,6 +8,7 @@ import com.erp.crm.domain.repository.ActivityRepository;
 import com.erp.crm.domain.repository.LeadRepository;
 import com.erp.crm.domain.repository.OpportunityRepository;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,8 +39,10 @@ class CrmSummaryServiceTest {
         given(dataScopeResolver.ownerScope())
                 .willReturn(new CrmDataScopeResolver.OwnerScope(false, Set.of()));
         given(opportunityRepository.countOpen(anyBoolean(), anyCollection())).willReturn(11L);
-        given(opportunityRepository.sumOpenAmount(anyBoolean(), anyCollection()))
-                .willReturn(new BigDecimal("9800000.00"));
+        given(opportunityRepository.sumOpenAmountByCurrency(anyBoolean(), anyCollection()))
+                .willReturn(List.of(
+                        new CurrencyAmount("KRW", new BigDecimal("9800000.00")),
+                        new CurrencyAmount("USD", new BigDecimal("1500.00"))));
         given(leadRepository.countByStatus(eq(LeadStatus.NEW), anyBoolean(), anyCollection()))
                 .willReturn(6L);
         given(activityRepository.countByStatus(eq(ActivityStatus.OPEN), anyBoolean(), anyCollection()))
@@ -47,7 +51,11 @@ class CrmSummaryServiceTest {
         CrmSummaryResponse result = crmSummaryService.getSummary();
 
         assertThat(result.openOpportunities()).isEqualTo(11L);
-        assertThat(result.openOpportunityAmount()).isEqualByComparingTo("9800000.00");
+        assertThat(result.openOpportunityAmounts())
+                .extracting(CurrencyAmount::currency)
+                .containsExactly("KRW", "USD");
+        assertThat(result.openOpportunityAmounts().get(0).amount()).isEqualByComparingTo("9800000.00");
+        assertThat(result.openOpportunityAmounts().get(1).amount()).isEqualByComparingTo("1500.00");
         assertThat(result.newLeads()).isEqualTo(6L);
         assertThat(result.openActivities()).isEqualTo(15L);
     }
@@ -57,7 +65,8 @@ class CrmSummaryServiceTest {
         given(dataScopeResolver.ownerScope())
                 .willReturn(new CrmDataScopeResolver.OwnerScope(false, Set.of()));
         given(opportunityRepository.countOpen(anyBoolean(), anyCollection())).willReturn(0L);
-        given(opportunityRepository.sumOpenAmount(anyBoolean(), anyCollection())).willReturn(null);
+        given(opportunityRepository.sumOpenAmountByCurrency(anyBoolean(), anyCollection()))
+                .willReturn(List.of());
         given(leadRepository.countByStatus(eq(LeadStatus.NEW), anyBoolean(), anyCollection()))
                 .willReturn(0L);
         given(activityRepository.countByStatus(eq(ActivityStatus.OPEN), anyBoolean(), anyCollection()))
@@ -65,7 +74,7 @@ class CrmSummaryServiceTest {
 
         CrmSummaryResponse result = crmSummaryService.getSummary();
 
-        assertThat(result.openOpportunityAmount()).isEqualByComparingTo("0");
+        assertThat(result.openOpportunityAmounts()).isEmpty();
     }
 
     @Test
@@ -73,8 +82,8 @@ class CrmSummaryServiceTest {
         given(dataScopeResolver.ownerScope())
                 .willReturn(new CrmDataScopeResolver.OwnerScope(true, Set.of("user-1", "user-2")));
         given(opportunityRepository.countOpen(anyBoolean(), anyCollection())).willReturn(1L);
-        given(opportunityRepository.sumOpenAmount(anyBoolean(), anyCollection()))
-                .willReturn(BigDecimal.TEN);
+        given(opportunityRepository.sumOpenAmountByCurrency(anyBoolean(), anyCollection()))
+                .willReturn(List.of(new CurrencyAmount("KRW", BigDecimal.TEN)));
         given(leadRepository.countByStatus(eq(LeadStatus.NEW), anyBoolean(), anyCollection()))
                 .willReturn(1L);
         given(activityRepository.countByStatus(eq(ActivityStatus.OPEN), anyBoolean(), anyCollection()))
@@ -87,7 +96,7 @@ class CrmSummaryServiceTest {
                 ArgumentCaptor.forClass(java.util.Collection.class);
         verify(opportunityRepository).countOpen(eq(true), ownerIds.capture());
         assertThat(ownerIds.getValue()).containsExactlyInAnyOrder("user-1", "user-2");
-        verify(opportunityRepository).sumOpenAmount(eq(true), anyCollection());
+        verify(opportunityRepository).sumOpenAmountByCurrency(eq(true), anyCollection());
         verify(leadRepository).countByStatus(eq(LeadStatus.NEW), eq(true), anyCollection());
         verify(activityRepository).countByStatus(eq(ActivityStatus.OPEN), eq(true), anyCollection());
     }

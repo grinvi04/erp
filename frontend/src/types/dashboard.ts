@@ -1,3 +1,8 @@
+export interface CurrencyAmount {
+  currency: string
+  amount: number
+}
+
 export interface HrSummary {
   activeEmployees: number
   onLeaveEmployees: number
@@ -6,7 +11,7 @@ export interface HrSummary {
 
 export interface FinanceSummary {
   unpaidInvoices: number
-  unpaidAmount: number
+  unpaidAmounts: CurrencyAmount[]
   draftJournalEntries: number
 }
 
@@ -18,7 +23,7 @@ export interface InventorySummary {
 
 export interface CrmSummary {
   openOpportunities: number
-  openOpportunityAmount: number
+  openOpportunityAmounts: CurrencyAmount[]
   newLeads: number
   openActivities: number
 }

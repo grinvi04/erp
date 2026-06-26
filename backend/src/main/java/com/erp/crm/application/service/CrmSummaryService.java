@@ -1,5 +1,6 @@
 package com.erp.crm.application.service;
 
+import com.erp.common.response.CurrencyAmount;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.CrmSummaryResponse;
@@ -8,7 +9,7 @@ import com.erp.crm.domain.model.LeadStatus;
 import com.erp.crm.domain.repository.ActivityRepository;
 import com.erp.crm.domain.repository.LeadRepository;
 import com.erp.crm.domain.repository.OpportunityRepository;
-import java.math.BigDecimal;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,10 +28,11 @@ public class CrmSummaryService {
     public CrmSummaryResponse getSummary() {
         permissionChecker.require(Permission.CRM_READ);
         var s = dataScopeResolver.ownerScope();
-        BigDecimal openAmount = opportunityRepository.sumOpenAmount(s.scoped(), s.ownerIds());
+        List<CurrencyAmount> openAmounts =
+                opportunityRepository.sumOpenAmountByCurrency(s.scoped(), s.ownerIds());
         return new CrmSummaryResponse(
                 opportunityRepository.countOpen(s.scoped(), s.ownerIds()),
-                openAmount != null ? openAmount : BigDecimal.ZERO,
+                openAmounts,
                 leadRepository.countByStatus(LeadStatus.NEW, s.scoped(), s.ownerIds()),
                 activityRepository.countByStatus(ActivityStatus.OPEN, s.scoped(), s.ownerIds()));
     }

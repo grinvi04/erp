@@ -1,12 +1,13 @@
 package com.erp.finance.application.service;
 
+import com.erp.common.response.CurrencyAmount;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.FinanceSummaryResponse;
 import com.erp.finance.domain.model.JournalEntryStatus;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
-import java.math.BigDecimal;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,10 +23,10 @@ public class FinanceSummaryService {
 
     public FinanceSummaryResponse getSummary() {
         permissionChecker.require(Permission.FINANCE_READ);
-        BigDecimal unpaidAmount = apInvoiceRepository.sumUnpaidAmount();
+        List<CurrencyAmount> unpaidAmounts = apInvoiceRepository.sumUnpaidAmountByCurrency();
         return new FinanceSummaryResponse(
                 apInvoiceRepository.countUnpaid(),
-                unpaidAmount != null ? unpaidAmount : BigDecimal.ZERO,
+                unpaidAmounts,
                 journalEntryRepository.countByStatus(JournalEntryStatus.DRAFT));
     }
 }
