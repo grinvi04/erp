@@ -1,7 +1,6 @@
-export interface CurrencyAmount {
-  currency: string
-  amount: number
-}
+import type { CurrencyAmount } from '@/types/money'
+
+export type { CurrencyAmount }
 
 export interface HrSummary {
   activeEmployees: number

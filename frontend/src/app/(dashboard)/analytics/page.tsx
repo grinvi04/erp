@@ -1,8 +1,9 @@
 import { apiGet } from '@/lib/api'
+import { formatMoneyList } from '@/lib/money'
 import type {
   PipelineDistributionResponse,
   LeadStatusCountResponse,
-  MonthlyInvoiceResponse,
+  MonthlyInvoiceByCurrencyResponse,
 } from '@/types/analytics'
 
 export const metadata = { title: '분석 | ERP' }
@@ -14,10 +15,6 @@ async function safeGetArray<T>(path: string): Promise<T[]> {
   } catch {
     return []
   }
-}
-
-function fmtMoney(n: number) {
-  return `₩${n.toLocaleString('ko-KR')}`
 }
 
 const LEAD_STATUS_LABELS: Record<string, string> = {
@@ -72,7 +69,7 @@ export default async function AnalyticsPage() {
   const [pipeline, leads, monthly] = await Promise.all([
     safeGetArray<PipelineDistributionResponse>('/api/crm/analytics/pipeline'),
     safeGetArray<LeadStatusCountResponse>('/api/crm/analytics/leads-by-status'),
-    safeGetArray<MonthlyInvoiceResponse>(`/api/finance/analytics/monthly-invoices?year=${currentYear}`),
+    safeGetArray<MonthlyInvoiceByCurrencyResponse>(`/api/finance/analytics/monthly-invoices?year=${currentYear}`),
   ])
 
   // Pipeline: scale by count
@@ -80,9 +77,6 @@ export default async function AnalyticsPage() {
 
   // Leads: scale by count
   const maxLeadCount = Math.max(...leads.map((r) => r.count), 1)
-
-  // Monthly: scale by totalAmount
-  const maxMonthlyAmount = Math.max(...monthly.map((r) => r.totalAmount), 1)
 
   return (
     <div className="p-6">
@@ -101,7 +95,7 @@ export default async function AnalyticsPage() {
               <HorizontalBar
                 key={r.stageId}
                 label={r.stageName}
-                subLabel={`${r.count}건 · ${fmtMoney(r.totalAmount)}`}
+                subLabel={`${r.count}건${r.amounts.length ? ' · ' + formatMoneyList(r.amounts) : ''}`}
                 pct={maxPipelineCount === 0 ? 0 : Math.round((r.count / maxPipelineCount) * 100)}
                 color="bg-blue-500"
               />
@@ -126,34 +120,45 @@ export default async function AnalyticsPage() {
           )}
         </SectionCard>
 
-        {/* Monthly Invoice Trend */}
-        <SectionCard title={`월별 매입 인보이스 추이 (${currentYear}년)`}>
-          {monthly.length === 0 ? (
+        {/* Monthly Invoice Trend — 통화별 카드로 분리(막대 비교는 같은 통화 안에서만 의미) */}
+        {monthly.length === 0 ? (
+          <SectionCard title={`월별 매입 인보이스 추이 (${currentYear}년)`}>
             <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            <div className="flex items-end gap-2">
-              {monthly.map((r, idx) => {
-                const heightPct = maxMonthlyAmount === 0 ? 0 : (r.totalAmount / maxMonthlyAmount) * 100
-                return (
-                  <div key={r.month} className="flex flex-col items-center flex-1">
-                    {/* 막대 영역: 고정 높이(h-40)를 기준으로 % 높이가 해석되도록 한다. */}
-                    <div className="relative group flex h-40 w-full items-end justify-center">
-                      <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                        {r.count}건<br />{fmtMoney(r.totalAmount)}
+          </SectionCard>
+        ) : (
+          monthly.map((series) => {
+            // 막대 높이는 그 통화 내 최대 금액으로 스케일
+            const maxAmount = Math.max(...series.months.map((m) => m.totalAmount), 1)
+            return (
+              <SectionCard
+                key={series.currency}
+                title={`월별 매입 인보이스 추이 (${currentYear}년) · ${series.currency}`}
+              >
+                <div className="flex items-end gap-2">
+                  {series.months.map((r, idx) => {
+                    const heightPct = maxAmount === 0 ? 0 : (r.totalAmount / maxAmount) * 100
+                    return (
+                      <div key={r.month} className="flex flex-col items-center flex-1">
+                        {/* 막대 영역: 고정 높이(h-40)를 기준으로 % 높이가 해석되도록 한다. */}
+                        <div className="relative group flex h-40 w-full items-end justify-center">
+                          <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                            {r.count}건<br />{formatMoneyList([{ currency: series.currency, amount: r.totalAmount }])}
+                          </div>
+                          <div
+                            className="bg-violet-500 rounded-t w-full"
+                            style={{ height: `${heightPct}%`, minHeight: r.totalAmount > 0 ? '4px' : '0px' }}
+                          />
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
+                        <div className="text-xs text-gray-600 font-medium">{r.count}</div>
                       </div>
-                      <div
-                        className="bg-violet-500 rounded-t w-full"
-                        style={{ height: `${heightPct}%`, minHeight: r.totalAmount > 0 ? '4px' : '0px' }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
-                    <div className="text-xs text-gray-600 font-medium">{r.count}</div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </SectionCard>
+                    )
+                  })}
+                </div>
+              </SectionCard>
+            )
+          })
+        )}
       </div>
     </div>
   )
