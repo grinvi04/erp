@@ -152,7 +152,7 @@ public class ArInvoiceService {
 
     @Transactional
     public ArInvoiceResponse pay(Long id, ArInvoicePayRequest request) {
-        permissionChecker.require(Permission.FINANCE_WRITE);
+        permissionChecker.require(Permission.FINANCE_INVOICE_PAY);
         ArInvoice invoice = getOrThrow(id);
         // 직무분리(SoD): 본인이 작성한 전표는 수금(현금 유입) 처리할 수 없다.
         // 수금은 현금 유입이므로 지출권한(전결한도)은 무의미 — 작성자 차단만 적용한다.
