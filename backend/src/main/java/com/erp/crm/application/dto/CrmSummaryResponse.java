@@ -1,10 +1,11 @@
 package com.erp.crm.application.dto;
 
-import java.math.BigDecimal;
+import com.erp.common.response.CurrencyAmount;
+import java.util.List;
 
 public record CrmSummaryResponse(
         long openOpportunities,
-        BigDecimal openOpportunityAmount,
+        List<CurrencyAmount> openOpportunityAmounts,
         long newLeads,
         long openActivities
 ) {

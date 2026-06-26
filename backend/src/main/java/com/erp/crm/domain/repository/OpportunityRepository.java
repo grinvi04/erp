@@ -1,7 +1,8 @@
 package com.erp.crm.domain.repository;
 
+import com.erp.common.response.CurrencyAmount;
 import com.erp.crm.domain.model.Opportunity;
-import java.math.BigDecimal;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -29,9 +30,11 @@ public interface OpportunityRepository extends JpaRepository<Opportunity, Long> 
     long countOpen(@Param("scoped") boolean scoped,
                    @Param("ownerIds") java.util.Collection<String> ownerIds);
 
-    @Query("SELECT COALESCE(SUM(o.amount), 0) FROM Opportunity o "
+    @Query("SELECT new com.erp.common.response.CurrencyAmount("
+            + "o.currency, COALESCE(SUM(o.amount), 0)) FROM Opportunity o "
             + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
-            + "(:scoped = false OR o.ownerId IN :ownerIds)")
-    BigDecimal sumOpenAmount(@Param("scoped") boolean scoped,
-                             @Param("ownerIds") java.util.Collection<String> ownerIds);
+            + "(:scoped = false OR o.ownerId IN :ownerIds) "
+            + "GROUP BY o.currency ORDER BY o.currency")
+    List<CurrencyAmount> sumOpenAmountByCurrency(@Param("scoped") boolean scoped,
+                                                 @Param("ownerIds") java.util.Collection<String> ownerIds);
 }

@@ -1,10 +1,12 @@
 package com.erp.finance.application.service;
 
+import com.erp.common.response.CurrencyAmount;
 import com.erp.finance.application.dto.FinanceSummaryResponse;
 import com.erp.finance.domain.model.JournalEntryStatus;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,24 +27,30 @@ class FinanceSummaryServiceTest {
     @Test
     void getSummary_aggregatesInvoiceAndJournalCounts() {
         given(apInvoiceRepository.countUnpaid()).willReturn(5L);
-        given(apInvoiceRepository.sumUnpaidAmount()).willReturn(new BigDecimal("12345.67"));
+        given(apInvoiceRepository.sumUnpaidAmountByCurrency()).willReturn(List.of(
+                new CurrencyAmount("KRW", new BigDecimal("12345.67")),
+                new CurrencyAmount("USD", new BigDecimal("89.00"))));
         given(journalEntryRepository.countByStatus(JournalEntryStatus.DRAFT)).willReturn(2L);
 
         FinanceSummaryResponse result = financeSummaryService.getSummary();
 
         assertThat(result.unpaidInvoices()).isEqualTo(5L);
-        assertThat(result.unpaidAmount()).isEqualByComparingTo("12345.67");
+        assertThat(result.unpaidAmounts())
+                .extracting(CurrencyAmount::currency)
+                .containsExactly("KRW", "USD");
+        assertThat(result.unpaidAmounts().get(0).amount()).isEqualByComparingTo("12345.67");
+        assertThat(result.unpaidAmounts().get(1).amount()).isEqualByComparingTo("89.00");
         assertThat(result.draftJournalEntries()).isEqualTo(2L);
     }
 
     @Test
-    void getSummary_nullUnpaidAmount_defaultsToZero() {
+    void getSummary_noUnpaidInvoices_returnsEmptyList() {
         given(apInvoiceRepository.countUnpaid()).willReturn(0L);
-        given(apInvoiceRepository.sumUnpaidAmount()).willReturn(null);
+        given(apInvoiceRepository.sumUnpaidAmountByCurrency()).willReturn(List.of());
         given(journalEntryRepository.countByStatus(JournalEntryStatus.DRAFT)).willReturn(0L);
 
         FinanceSummaryResponse result = financeSummaryService.getSummary();
 
-        assertThat(result.unpaidAmount()).isEqualByComparingTo("0");
+        assertThat(result.unpaidAmounts()).isEmpty();
     }
 }

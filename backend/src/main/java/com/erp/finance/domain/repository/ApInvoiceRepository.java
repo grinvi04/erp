@@ -1,5 +1,6 @@
 package com.erp.finance.domain.repository;
 
+import com.erp.common.response.CurrencyAmount;
 import com.erp.finance.domain.model.ApInvoice;
 import com.erp.finance.domain.model.ApInvoiceStatus;
 import java.math.BigDecimal;
@@ -45,11 +46,13 @@ public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
             + "AND i.totalAmount > i.paidAmount")
     long countUnpaid();
 
-    @Query("SELECT COALESCE(SUM(i.totalAmount - i.paidAmount), 0) FROM ApInvoice i "
+    @Query("SELECT new com.erp.common.response.CurrencyAmount("
+            + "i.currency, COALESCE(SUM(i.totalAmount - i.paidAmount), 0)) FROM ApInvoice i "
             + "WHERE i.status NOT IN (com.erp.finance.domain.model.ApInvoiceStatus.PAID, "
             + "com.erp.finance.domain.model.ApInvoiceStatus.CANCELLED) "
-            + "AND i.totalAmount > i.paidAmount")
-    BigDecimal sumUnpaidAmount();
+            + "AND i.totalAmount > i.paidAmount "
+            + "GROUP BY i.currency ORDER BY i.currency")
+    List<CurrencyAmount> sumUnpaidAmountByCurrency();
 
     @Query("SELECT EXTRACT(MONTH FROM i.invoiceDate) AS month, COUNT(i) AS count, "
             + "COALESCE(SUM(i.totalAmount), 0) AS totalAmount "
