@@ -1,5 +1,7 @@
 package com.erp.crm.application.service;
 
+import com.erp.common.exception.ErpException;
+import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.DataScope;
 import com.erp.common.security.DataScopeProvider;
@@ -46,5 +48,17 @@ public class CrmDataScopeResolver {
                 yield new OwnerScope(true, ids);
             }
         };
+    }
+
+    /**
+     * 단건 조회(detail) 스코프 검증 — 목록(search)만 좁히면 id 순회로 우회 가능(IDOR)하므로,
+     * 상세 조회도 owner가 스코프 밖이면 존재를 드러내지 않도록 RESOURCE_NOT_FOUND로 거부한다.
+     * 쓰기(update/delete)는 정책상 스코프 미적용(기능 권한이 통제) — 읽기에만 사용.
+     */
+    public void requireOwnerAccess(String ownerId) {
+        OwnerScope s = ownerScope();
+        if (s.scoped() && !s.ownerIds().contains(ownerId)) {
+            throw new ErpException(ErrorCode.RESOURCE_NOT_FOUND);
+        }
     }
 }

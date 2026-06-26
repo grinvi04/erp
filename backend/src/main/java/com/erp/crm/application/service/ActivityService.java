@@ -44,7 +44,9 @@ public class ActivityService {
 
     public ActivityResponse findById(Long id) {
         permissionChecker.require(Permission.CRM_READ);
-        return ActivityResponse.from(getOrThrow(id));
+        var activity = getOrThrow(id);
+        dataScopeResolver.requireOwnerAccess(activity.getOwnerId());
+        return ActivityResponse.from(activity);
     }
 
     @Transactional

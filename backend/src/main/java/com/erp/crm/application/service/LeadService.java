@@ -38,7 +38,9 @@ public class LeadService {
 
     public LeadResponse findById(Long id) {
         permissionChecker.require(Permission.CRM_READ);
-        return LeadResponse.from(getOrThrow(id));
+        var lead = getOrThrow(id);
+        dataScopeResolver.requireOwnerAccess(lead.getOwnerId());
+        return LeadResponse.from(lead);
     }
 
     @Transactional

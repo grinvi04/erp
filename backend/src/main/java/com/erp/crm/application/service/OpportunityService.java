@@ -36,7 +36,9 @@ public class OpportunityService {
 
     public OpportunityResponse findById(Long id) {
         permissionChecker.require(Permission.CRM_READ);
-        return OpportunityResponse.from(getOrThrow(id));
+        var opp = getOrThrow(id);
+        dataScopeResolver.requireOwnerAccess(opp.getOwnerId());
+        return OpportunityResponse.from(opp);
     }
 
     @Transactional

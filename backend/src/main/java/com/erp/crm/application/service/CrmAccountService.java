@@ -34,7 +34,9 @@ public class CrmAccountService {
 
     public AccountResponse findById(Long id) {
         permissionChecker.require(Permission.CRM_READ);
-        return AccountResponse.from(getOrThrow(id));
+        var account = getOrThrow(id);
+        dataScopeResolver.requireOwnerAccess(account.getOwnerId());
+        return AccountResponse.from(account);
     }
 
     @Transactional

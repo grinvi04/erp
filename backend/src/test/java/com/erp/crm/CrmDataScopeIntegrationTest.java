@@ -1,6 +1,8 @@
 package com.erp.crm;
 
 import com.erp.common.AbstractIntegrationTest;
+import com.erp.common.exception.ErpException;
+import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.DataScope;
 import com.erp.common.security.Permission;
 import com.erp.common.security.UserAccessProfile;
@@ -22,6 +24,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * CRM 데이터 스코프 격리 — 현재 사용자의 DataScope(SELF/DEPARTMENT/ALL)에 따라 Lead 조회가
@@ -104,6 +107,19 @@ class CrmDataScopeIntegrationTest extends AbstractIntegrationTest {
         List<LeadResponse> visible = search();
 
         assertThat(visible).extracting(LeadResponse::ownerId).containsExactly(ALICE);
+    }
+
+    @Test
+    void self_scope_findById_otherOwner_isNotFound() {
+        // 목록만 좁히면 id 순회로 우회 가능 — 상세조회도 스코프 밖이면 RESOURCE_NOT_FOUND.
+        LeadResponse bobLead = leadService.create(new LeadCreateRequest(
+                "Lead", BOB, null, null, null, null, null, BOB, null));
+        setScope(DataScope.SELF);
+
+        assertThatThrownBy(() -> leadService.findById(bobLead.id()))
+                .isInstanceOf(ErpException.class)
+                .extracting(e -> ((ErpException) e).getErrorCode())
+                .isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
     }
 
     private List<LeadResponse> search() {
