@@ -6,12 +6,14 @@ export interface ItemCategory {
   name: string
   parentId: number | null
   parentName: string | null
+  version: number
 }
 
 export interface Uom {
   id: number
   code: string
   name: string
+  version: number
 }
 
 export interface Warehouse {

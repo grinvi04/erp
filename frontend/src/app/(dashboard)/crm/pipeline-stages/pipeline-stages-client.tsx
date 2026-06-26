@@ -88,7 +88,7 @@ export default function PipelineStagesClient({ stages }: Props) {
     if (!validate()) return
     startTransition(async () => {
       try {
-        await updatePipelineStage(stage.id, buildPayload())
+        await updatePipelineStage(stage.id, { ...buildPayload(), version: stage.version })
         toast.success('단계가 수정되었습니다')
         close()
       } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }

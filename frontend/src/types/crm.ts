@@ -72,6 +72,7 @@ export interface PipelineStage {
   probability: number;
   isClosedWon: boolean;
   isClosedLost: boolean;
+  version: number;
 }
 
 export interface Opportunity {

@@ -35,7 +35,7 @@ class UomControllerTest {
 
     @Test
     void findAll_returnsOkWithList() throws Exception {
-        given(uomService.findAll()).willReturn(List.of(new UomResponse(1L, "EA", "개")));
+        given(uomService.findAll()).willReturn(List.of(new UomResponse(1L, "EA", "개", 0L)));
 
         mockMvc.perform(get("/api/inventory/uoms"))
                 .andExpect(status().isOk())
@@ -44,7 +44,7 @@ class UomControllerTest {
 
     @Test
     void create_validRequest_returns201() throws Exception {
-        given(uomService.create(any())).willReturn(new UomResponse(1L, "EA", "개"));
+        given(uomService.create(any())).willReturn(new UomResponse(1L, "EA", "개", 0L));
 
         mockMvc.perform(post("/api/inventory/uoms")
                         .contentType(MediaType.APPLICATION_JSON)

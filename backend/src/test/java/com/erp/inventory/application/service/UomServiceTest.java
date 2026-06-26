@@ -4,6 +4,7 @@ import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.inventory.application.dto.UomCreateRequest;
 import com.erp.inventory.application.dto.UomResponse;
+import com.erp.inventory.application.dto.UomUpdateRequest;
 import com.erp.inventory.domain.model.UnitOfMeasure;
 import com.erp.inventory.domain.repository.UnitOfMeasureRepository;
 import java.util.List;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -63,6 +66,27 @@ class UomServiceTest {
 
         ErpException ex = assertThrows(ErpException.class, () -> uomService.findById(99L));
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.UOM_NOT_FOUND);
+    }
+
+    @Test
+    void update_existingUom_appliesChanges() {
+        UnitOfMeasure uom = UnitOfMeasure.of("EA", "개");
+        ReflectionTestUtils.setField(uom, "version", 1L);
+        given(uomRepository.findById(1L)).willReturn(Optional.of(uom));
+
+        UomResponse result = uomService.update(1L, new UomUpdateRequest("EA", "박스", 1L));
+
+        assertThat(result.name()).isEqualTo("박스");
+    }
+
+    @Test
+    void update_versionMismatch_throwsOptimisticLockConflict() {
+        UnitOfMeasure uom = UnitOfMeasure.of("EA", "개");
+        ReflectionTestUtils.setField(uom, "version", 5L);
+        given(uomRepository.findById(1L)).willReturn(Optional.of(uom));
+
+        assertThrows(ObjectOptimisticLockingFailureException.class,
+                () -> uomService.update(1L, new UomUpdateRequest("EA", "박스", 3L)));
     }
 
     @Test
