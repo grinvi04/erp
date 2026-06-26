@@ -155,7 +155,7 @@ public class ApInvoiceService {
 
     @Transactional
     public ApInvoiceResponse pay(Long id, ApInvoicePayRequest request) {
-        permissionChecker.require(Permission.FINANCE_WRITE);
+        permissionChecker.require(Permission.FINANCE_INVOICE_PAY);
         ApInvoice invoice = getOrThrow(id);
         // 직무분리(SoD): 본인이 작성한 전표는 지급(현금 유출) 처리할 수 없다.
         String userId = currentUserProvider.getCurrentUserId();

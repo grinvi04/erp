@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -180,6 +181,18 @@ class ArInvoiceServiceTest {
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_SELF_FORBIDDEN);
         assertThat(invoice.getStatus().name()).isEqualTo("APPROVED");
+    }
+
+    @Test
+    void pay_withoutPayPermission_throwsForbidden() {
+        // 권한 분리: 수금은 finance:invoice:pay 전용 권한을 요구한다 — 작성권(finance:write)만으론 불가.
+        willThrow(new ErpException(ErrorCode.FORBIDDEN))
+            .given(permissionChecker).require(Permission.FINANCE_INVOICE_PAY);
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            arInvoiceService.pay(1L, new ArInvoicePayRequest(new BigDecimal("100000"), null, null)));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
     }
 
     @Test

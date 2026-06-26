@@ -157,7 +157,7 @@ class ArInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
         // 현금 계정으로 수금 → (차)현금 /(대)외상매출금 분개 (AP 지급의 반전)
         Account cash = accountRepository.save(Account.of("10100", "현금",
                 AccountType.ASSET, NormalBalance.DEBIT, null, false));
-        authenticate("receiver", BigDecimal.ZERO, "finance:write");
+        authenticate("receiver", BigDecimal.ZERO, "finance:invoice:pay");
         arInvoiceService.pay(created.id(), new ArInvoicePayRequest(
                 new BigDecimal("100000"), cash.getId(), LocalDate.of(2025, 1, 20)));
 

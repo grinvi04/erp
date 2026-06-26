@@ -55,6 +55,8 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
   const canWrite = can(PERM.FINANCE_WRITE)
   // 결재(전결)는 작성권과 분리 — 별도 전결권 보유자만. 서버가 전결 한도까지 최종 검증한다.
   const canApprove = can(PERM.FINANCE_INVOICE_APPROVE)
+  // 지급(현금이동)은 작성권과 분리 — 별도 지급권 보유자만. 서버가 SoD·전결 한도까지 최종 검증한다.
+  const canPay = can(PERM.FINANCE_INVOICE_PAY)
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
@@ -258,7 +260,7 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
                         )}
                       </>
                     )}
-                    {canWrite && inv.status === 'APPROVED' && (
+                    {canPay && inv.status === 'APPROVED' && (
                       <Button variant="ghost" size="sm" title="지급처리"
                         onClick={() => { setPayAmount(String(inv.outstandingAmount)); setPayCashAccountId(''); setPayDate(new Date().toISOString().slice(0, 10)); setDialog({ type: 'pay', inv }) }}
                         disabled={isPending}>
