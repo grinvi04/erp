@@ -53,6 +53,16 @@ public class MovementController {
         return ResponseEntity.ok(ApiResponse.ok(movementService.confirm(id)));
     }
 
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<ApiResponse<MovementResponse>> submit(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(movementService.submitForApproval(id)));
+    }
+
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<ApiResponse<MovementResponse>> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(movementService.approve(id)));
+    }
+
     @PostMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<MovementResponse>> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(movementService.cancel(id)));

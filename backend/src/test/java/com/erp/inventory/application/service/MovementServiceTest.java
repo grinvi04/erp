@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class MovementServiceTest {
@@ -45,8 +46,16 @@ class MovementServiceTest {
     @Mock private ItemService itemService;
     @Mock private LocationService locationService;
     @Mock private com.erp.common.security.PermissionChecker permissionChecker;
+    @Mock private com.erp.common.security.CurrentUserProvider currentUserProvider;
+    @Mock private com.erp.common.workflow.repository.ApprovalRequestRepository approvalRequestRepository;
+    @Mock private com.erp.common.audit.AuditService auditService;
 
     @InjectMocks private MovementService movementService;
+
+    private Movement buildAdjustmentMovement() {
+        return Movement.of("MOV-20260624-44444", MovementType.ADJUSTMENT,
+                LocalDate.of(2026, 6, 24), null, null, "조정");
+    }
 
     private Item buildItem() {
         return Item.of("SKU-001", "테스트품목", null, null, UnitOfMeasure.of("EA", "개"),
@@ -216,5 +225,87 @@ class MovementServiceTest {
 
         ErpException ex = assertThrows(ErpException.class, () -> movementService.create(req));
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LOT_NO_REQUIRED);
+    }
+
+    // AC-9: ADJUSTMENT DRAFT 상신 → PENDING_APPROVAL + ApprovalRequest(STOCK_MOVEMENT) 생성·링크
+    @Test
+    void submitForApproval_adjustmentDraft_transitionsToPendingApprovalAndCreatesApprovalRequest() {
+        Movement movement = buildAdjustmentMovement();
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+        given(currentUserProvider.getCurrentUserId()).willReturn("creator");
+        given(movementLineRepository.findByMovement_IdOrderByLineNoAsc(1L)).willReturn(List.of());
+        com.erp.common.workflow.ApprovalRequest saved =
+                com.erp.common.workflow.ApprovalRequest.create("STOCK_MOVEMENT", 1L, "t", "creator",
+                        new java.util.ArrayList<>(List.of(
+                                com.erp.common.workflow.ApprovalStep.of(1, "재고 조정 이동 승인",
+                                        "@role:inventory:movement:approve"))));
+        given(approvalRequestRepository.save(any())).willReturn(saved);
+
+        MovementResponse result = movementService.submitForApproval(1L);
+
+        assertThat(result.status()).isEqualTo(MovementStatus.PENDING_APPROVAL);
+        verify(approvalRequestRepository).save(any());
+        verify(permissionChecker).require(com.erp.common.security.Permission.INVENTORY_WRITE);
+    }
+
+    // AC-13: 비-ADJUSTMENT 이동 상신 거부 (결재 미적용)
+    @Test
+    void submitForApproval_nonAdjustment_throwsApprovalNotApplicable() {
+        Movement movement = buildDraftMovement(); // RECEIPT
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+
+        ErpException ex = assertThrows(ErpException.class, () -> movementService.submitForApproval(1L));
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.MOVEMENT_APPROVAL_NOT_APPLICABLE);
+        assertThat(movement.getStatus()).isEqualTo(MovementStatus.DRAFT);
+    }
+
+    // AC-10: PENDING_APPROVAL ADJUSTMENT 승인 → CONFIRMED + 재고 증감 반영
+    @Test
+    void approve_pendingAdjustment_transitionsToConfirmedAndAppliesStock() {
+        Item item = buildItem();
+        Location toLoc = buildLocation();
+        Movement movement = buildAdjustmentMovement();
+        movement.submitForApproval(); // DRAFT → PENDING_APPROVAL
+        MovementLine line = MovementLine.of(movement, 1, item, null, toLoc, null, null,
+                BigDecimal.TEN, BigDecimal.ONE);
+
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+        given(currentUserProvider.getCurrentUserId()).willReturn("approver");
+        given(movementLineRepository.findByMovement_IdOrderByLineNoAsc(1L)).willReturn(List.of(line));
+        given(stockRepository.findByItemAndLocationAndLotNoAndSerialNo(item, toLoc, null, null))
+                .willReturn(Optional.empty());
+        given(stockRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        MovementResponse result = movementService.approve(1L);
+
+        assertThat(result.status()).isEqualTo(MovementStatus.CONFIRMED);
+        verify(permissionChecker).require(com.erp.common.security.Permission.INVENTORY_MOVEMENT_APPROVE);
+        verify(stockRepository).save(any());
+    }
+
+    // AC-13: 직무분리 — 작성자 본인은 자신의 조정 이동을 결재할 수 없다
+    @Test
+    void approve_approverIsCreator_throwsApproverNotAuthorized() {
+        Movement movement = buildAdjustmentMovement();
+        movement.submitForApproval();
+        org.springframework.test.util.ReflectionTestUtils.setField(movement, "createdBy", "creator");
+
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+        given(currentUserProvider.getCurrentUserId()).willReturn("creator");
+
+        ErpException ex = assertThrows(ErpException.class, () -> movementService.approve(1L));
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        assertThat(movement.getStatus()).isEqualTo(MovementStatus.PENDING_APPROVAL);
+    }
+
+    // AC-12: ADJUSTMENT 직접 확정 차단 — 결재 경유 강제
+    @Test
+    void confirm_adjustment_throwsRequiresApproval() {
+        Movement movement = buildAdjustmentMovement();
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+
+        ErpException ex = assertThrows(ErpException.class, () -> movementService.confirm(1L));
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.MOVEMENT_REQUIRES_APPROVAL);
+        assertThat(movement.getStatus()).isEqualTo(MovementStatus.DRAFT);
     }
 }

@@ -27,4 +27,15 @@ public interface MovementRepository extends JpaRepository<Movement, Long> {
             @Param("type") MovementType type,
             @Param("status") MovementStatus status,
             Pageable pageable);
+
+    /**
+     * 현재 사용자가 확정 결재할 수 있는 대기 조정 이동 — 통합 결재함 라우팅용.
+     * 상태=대기, 유형=ADJUSTMENT, 작성자≠본인(직무분리). 재고는 금액 전결한도 미적용.
+     * 테넌트 필터는 자동 적용.
+     */
+    @Query("SELECT m FROM Movement m WHERE m.status = :status "
+            + "AND m.movementType = com.erp.inventory.domain.model.MovementType.ADJUSTMENT "
+            + "AND m.createdBy <> :userId")
+    List<Movement> findPendingApprovableBy(@Param("status") MovementStatus status,
+                                           @Param("userId") String userId);
 }

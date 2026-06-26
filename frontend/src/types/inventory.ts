@@ -63,7 +63,7 @@ export interface Item {
 }
 
 export type MovementType = 'RECEIPT' | 'ISSUE' | 'TRANSFER' | 'ADJUSTMENT'
-export type MovementStatus = 'DRAFT' | 'CONFIRMED' | 'CANCELLED'
+export type MovementStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'CONFIRMED' | 'CANCELLED'
 
 export interface MovementLine {
   id: number
