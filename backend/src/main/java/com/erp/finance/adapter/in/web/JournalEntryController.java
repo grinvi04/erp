@@ -9,6 +9,7 @@ import com.erp.finance.application.service.JournalEntryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +33,7 @@ public class JournalEntryController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<JournalEntryResponse>>> findByFiscalPeriod(
         @RequestParam Long fiscalPeriodId,
-        @PageableDefault(size = 20) Pageable pageable) {
+        @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(journalEntryService.findByFiscalPeriod(fiscalPeriodId, pageable)));
     }
 

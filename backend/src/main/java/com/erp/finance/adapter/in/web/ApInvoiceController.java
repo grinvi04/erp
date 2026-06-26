@@ -10,6 +10,7 @@ import com.erp.finance.domain.model.ApInvoiceStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class ApInvoiceController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ApInvoiceResponse>>> findAll(
         @RequestParam(required = false) ApInvoiceStatus status,
-        @PageableDefault(size = 20) Pageable pageable) {
+        @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.findAll(status, pageable)));
     }
 
@@ -43,7 +44,7 @@ public class ApInvoiceController {
     @GetMapping("/vendor/{vendorId}")
     public ResponseEntity<ApiResponse<PageResponse<ApInvoiceResponse>>> findByVendor(
         @PathVariable Long vendorId,
-        @PageableDefault(size = 20) Pageable pageable) {
+        @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.findByVendor(vendorId, pageable)));
     }
 

@@ -13,6 +13,7 @@ import com.erp.hr.domain.model.EmployeeStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,7 +37,7 @@ public class EmployeeController {
     public ResponseEntity<ApiResponse<PageResponse<EmployeeResponse>>> findAll(
         @RequestParam(required = false) EmployeeStatus status,
         @RequestParam(required = false) Long departmentId,
-        @PageableDefault(size = 20) Pageable pageable) {
+        @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(
             PageResponse.from(employeeService.findAll(status, departmentId, pageable))));
     }

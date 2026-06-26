@@ -91,7 +91,7 @@ class IamServiceTest {
 
     @Test
     void listRoles_requiresIamRead() {
-        given(roleRepository.findByTenantIdOrderByCodeAsc(1L)).willReturn(java.util.List.of());
+        given(roleRepository.findByTenantIdWithPermissionsOrderByCodeAsc(1L)).willReturn(java.util.List.of());
 
         iamService.listRoles();
 
