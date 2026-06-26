@@ -26,16 +26,21 @@ public class LeadService {
     private final CrmAccountService accountService;
     private final OpportunityService opportunityService;
     private final PermissionChecker permissionChecker;
+    private final CrmDataScopeResolver dataScopeResolver;
 
     public PageResponse<LeadResponse> search(LeadStatus status, String keyword, Pageable pageable) {
         permissionChecker.require(Permission.CRM_READ);
-        return PageResponse.from(leadRepository.search(status, keyword, pageable)
+        var s = dataScopeResolver.ownerScope();
+        return PageResponse.from(
+                leadRepository.search(status, keyword, s.scoped(), s.ownerIds(), pageable)
                 .map(LeadResponse::from));
     }
 
     public LeadResponse findById(Long id) {
         permissionChecker.require(Permission.CRM_READ);
-        return LeadResponse.from(getOrThrow(id));
+        var lead = getOrThrow(id);
+        dataScopeResolver.requireOwnerAccess(lead.getOwnerId());
+        return LeadResponse.from(lead);
     }
 
     @Transactional

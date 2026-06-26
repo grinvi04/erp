@@ -12,8 +12,11 @@ public interface CrmAccountRepository extends JpaRepository<Account, Long> {
 
     @Query("SELECT a FROM CrmAccount a WHERE "
             + "(:keyword IS NULL OR a.name LIKE %:keyword% OR a.code LIKE %:keyword%) AND "
-            + "(:isActive IS NULL OR a.isActive = :isActive)")
+            + "(:isActive IS NULL OR a.isActive = :isActive) AND "
+            + "(:scoped = false OR a.ownerId IN :ownerIds)")
     Page<Account> search(@Param("keyword") String keyword,
                          @Param("isActive") Boolean isActive,
+                         @Param("scoped") boolean scoped,
+                         @Param("ownerIds") java.util.Collection<String> ownerIds,
                          Pageable pageable);
 }
