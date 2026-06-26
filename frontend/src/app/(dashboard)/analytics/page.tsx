@@ -4,6 +4,12 @@ import type {
   PipelineDistributionResponse,
   LeadStatusCountResponse,
   MonthlyInvoiceByCurrencyResponse,
+  EmployeeStatusCountResponse,
+  DepartmentHeadcountResponse,
+  PositionHeadcountResponse,
+  EmploymentTypeCountResponse,
+  MonthlyHiresTerminationsResponse,
+  LeaveTypeStatResponse,
 } from '@/types/analytics'
 
 export const metadata = { title: '분석 | ERP' }
@@ -23,6 +29,30 @@ const LEAD_STATUS_LABELS: Record<string, string> = {
   QUALIFIED: '적격',
   CONVERTED: '전환',
   DISQUALIFIED: '불량',
+}
+
+const EMPLOYEE_STATUS_LABELS: Record<string, string> = {
+  ACTIVE: '재직',
+  ON_LEAVE: '휴직',
+  SUSPENDED: '정직',
+  TERMINATED: '퇴직',
+}
+
+const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
+  REGULAR: '정규직',
+  CONTRACT: '계약직',
+  PART_TIME: '파트타임',
+  INTERN: '인턴',
+  DISPATCH: '파견직',
+}
+
+const LEAVE_TYPE_LABELS: Record<string, string> = {
+  ANNUAL: '연차',
+  SICK: '병가',
+  PARENTAL: '육아휴직',
+  BEREAVEMENT: '경조사',
+  UNPAID: '무급',
+  COMPENSATORY: '보상휴가',
 }
 
 const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
@@ -66,10 +96,26 @@ function SectionCard({ title, children }: { title: string; children: React.React
 export default async function AnalyticsPage() {
   const currentYear = new Date().getFullYear()
 
-  const [pipeline, leads, monthly] = await Promise.all([
+  const [
+    pipeline,
+    leads,
+    monthly,
+    hrStatus,
+    hrByDept,
+    hrByPosition,
+    hrByEmploymentType,
+    hrHiresTerms,
+    hrLeaves,
+  ] = await Promise.all([
     safeGetArray<PipelineDistributionResponse>('/api/crm/analytics/pipeline'),
     safeGetArray<LeadStatusCountResponse>('/api/crm/analytics/leads-by-status'),
     safeGetArray<MonthlyInvoiceByCurrencyResponse>(`/api/finance/analytics/monthly-invoices?year=${currentYear}`),
+    safeGetArray<EmployeeStatusCountResponse>('/api/hr/analytics/status-distribution'),
+    safeGetArray<DepartmentHeadcountResponse>('/api/hr/analytics/by-department'),
+    safeGetArray<PositionHeadcountResponse>('/api/hr/analytics/by-position'),
+    safeGetArray<EmploymentTypeCountResponse>('/api/hr/analytics/by-employment-type'),
+    safeGetArray<MonthlyHiresTerminationsResponse>(`/api/hr/analytics/hires-terminations?year=${currentYear}`),
+    safeGetArray<LeaveTypeStatResponse>('/api/hr/analytics/leaves-by-type'),
   ])
 
   // Pipeline: scale by count
@@ -78,11 +124,22 @@ export default async function AnalyticsPage() {
   // Leads: scale by count
   const maxLeadCount = Math.max(...leads.map((r) => r.count), 1)
 
+  // HR scaling
+  const maxHrStatus = Math.max(...hrStatus.map((r) => r.count), 1)
+  const maxHrDept = Math.max(...hrByDept.map((r) => r.count), 1)
+  const maxHrPosition = Math.max(...hrByPosition.map((r) => r.count), 1)
+  const maxHrEmploymentType = Math.max(...hrByEmploymentType.map((r) => r.count), 1)
+  const maxHrLeaveDays = Math.max(...hrLeaves.map((r) => r.totalDays), 1)
+  const maxHiresTerms = Math.max(
+    ...hrHiresTerms.map((r) => Math.max(r.hires, r.terminations)),
+    1,
+  )
+
   return (
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">분석</h1>
-        <p className="text-sm text-gray-500 mt-1">영업 파이프라인, 리드 현황, 매입 인보이스 추이</p>
+        <p className="text-sm text-gray-500 mt-1">영업 파이프라인, 리드 현황, 매입 인보이스 추이, 인사 현황</p>
       </div>
 
       <div className="space-y-6">
@@ -159,6 +216,130 @@ export default async function AnalyticsPage() {
             )
           })
         )}
+
+        {/* ===== HR ===== */}
+        <div className="pt-2">
+          <h2 className="text-base font-semibold text-gray-700">인사 현황</h2>
+        </div>
+
+        {/* 재직 상태 분포 */}
+        <SectionCard title="재직 상태 분포">
+          {hrStatus.length === 0 ? (
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          ) : (
+            hrStatus.map((r) => (
+              <HorizontalBar
+                key={r.status}
+                label={EMPLOYEE_STATUS_LABELS[r.status] ?? r.status}
+                subLabel={`${r.count}명`}
+                pct={Math.round((r.count / maxHrStatus) * 100)}
+                color="bg-blue-500"
+              />
+            ))
+          )}
+        </SectionCard>
+
+        {/* 부서별 인원 */}
+        <SectionCard title="부서별 인원 (재직)">
+          {hrByDept.length === 0 ? (
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          ) : (
+            hrByDept.map((r) => (
+              <HorizontalBar
+                key={r.departmentId}
+                label={r.departmentName}
+                subLabel={`${r.count}명`}
+                pct={Math.round((r.count / maxHrDept) * 100)}
+                color="bg-sky-500"
+              />
+            ))
+          )}
+        </SectionCard>
+
+        {/* 직위별 인원 */}
+        <SectionCard title="직위별 인원 (재직)">
+          {hrByPosition.length === 0 ? (
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          ) : (
+            hrByPosition.map((r) => (
+              <HorizontalBar
+                key={r.positionId}
+                label={r.positionName}
+                subLabel={`${r.count}명`}
+                pct={Math.round((r.count / maxHrPosition) * 100)}
+                color="bg-indigo-500"
+              />
+            ))
+          )}
+        </SectionCard>
+
+        {/* 고용형태별 분포 */}
+        <SectionCard title="고용형태별 분포">
+          {hrByEmploymentType.length === 0 ? (
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          ) : (
+            hrByEmploymentType.map((r) => (
+              <HorizontalBar
+                key={r.employmentType}
+                label={EMPLOYMENT_TYPE_LABELS[r.employmentType] ?? r.employmentType}
+                subLabel={`${r.count}명`}
+                pct={Math.round((r.count / maxHrEmploymentType) * 100)}
+                color="bg-teal-500"
+              />
+            ))
+          )}
+        </SectionCard>
+
+        {/* 월별 입사/퇴사 추이 — 입사(emerald)·퇴사(rose) 두 시리즈를 월별 그룹 막대로 */}
+        <SectionCard title={`월별 입사/퇴사 추이 (${currentYear}년)`}>
+          {hrHiresTerms.length === 0 ? (
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          ) : (
+            <>
+              <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-emerald-500" />입사</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-rose-500" />퇴사</span>
+              </div>
+              <div className="flex items-end gap-2">
+                {hrHiresTerms.map((r, idx) => (
+                  <div key={r.month} className="flex flex-col items-center flex-1">
+                    <div className="relative group flex h-40 w-full items-end justify-center gap-0.5">
+                      <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                        입사 {r.hires}명<br />퇴사 {r.terminations}명
+                      </div>
+                      <div
+                        className="bg-emerald-500 rounded-t w-1/2"
+                        style={{ height: `${(r.hires / maxHiresTerms) * 100}%`, minHeight: r.hires > 0 ? '4px' : '0px' }}
+                      />
+                      <div
+                        className="bg-rose-500 rounded-t w-1/2"
+                        style={{ height: `${(r.terminations / maxHiresTerms) * 100}%`, minHeight: r.terminations > 0 ? '4px' : '0px' }}
+                      />
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </SectionCard>
+
+        {/* 휴가 유형별 신청 (승인 기준) */}
+        <SectionCard title="휴가 유형별 신청 (승인)">
+          {hrLeaves.length === 0 ? (
+            <p className="text-sm text-gray-400">데이터 없음</p>
+          ) : (
+            hrLeaves.map((r) => (
+              <HorizontalBar
+                key={r.leaveType}
+                label={LEAVE_TYPE_LABELS[r.leaveType] ?? r.leaveType}
+                subLabel={`${r.count}건 · ${r.totalDays}일`}
+                pct={Math.round((r.totalDays / maxHrLeaveDays) * 100)}
+                color="bg-amber-500"
+              />
+            ))
+          )}
+        </SectionCard>
       </div>
     </div>
   )
