@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -137,10 +138,13 @@ class ApInvoiceServiceTest {
 
     @Test
     void pay_fullPayment_changeStatusToPaid() {
+        // 직무분리: 지급자(payer-1)는 작성자(createdBy=null)와 다른 사용자
         ApInvoice invoice = buildInvoice();
         invoice.submit();
         invoice.approve();
         given(apInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("payer-1");
+        given(approvalAuthorityProvider.getApprovalLimit()).willReturn(new BigDecimal("1000000"));
 
         ApInvoiceResponse result = apInvoiceService.pay(1L, new ApInvoicePayRequest(new BigDecimal("100000"), null, null));
 
@@ -154,11 +158,47 @@ class ApInvoiceServiceTest {
         invoice.submit();
         invoice.approve();
         given(apInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("payer-1");
+        given(approvalAuthorityProvider.getApprovalLimit()).willReturn(new BigDecimal("1000000"));
 
         ErpException ex = assertThrows(ErpException.class, () ->
             apInvoiceService.pay(1L, new ApInvoicePayRequest(new BigDecimal("200000"), null, null)));
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVOICE_OVERPAYMENT);
+    }
+
+    @Test
+    void pay_bySelfCreator_throwsPaymentSelfForbidden() {
+        // 직무분리(SoD): 본인이 작성한 전표는 지급(현금 유출) 처리 불가
+        ApInvoice invoice = buildInvoice();
+        invoice.submit();
+        invoice.approve();
+        ReflectionTestUtils.setField(invoice, "createdBy", "user-1");
+        given(apInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("user-1");
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            apInvoiceService.pay(1L, new ApInvoicePayRequest(new BigDecimal("100000"), null, null)));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_SELF_FORBIDDEN);
+        assertThat(invoice.getStatus().name()).isEqualTo("APPROVED");
+    }
+
+    @Test
+    void pay_amountExceedsApprovalLimit_throwsLimitExceeded() {
+        // 전결규정: 지급 금액(10만)이 전결 한도(5만)를 초과하면 상위 전결권자만 지급 가능
+        ApInvoice invoice = buildInvoice();
+        invoice.submit();
+        invoice.approve();
+        given(apInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("payer-1");
+        given(approvalAuthorityProvider.getApprovalLimit()).willReturn(new BigDecimal("50000"));
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            apInvoiceService.pay(1L, new ApInvoicePayRequest(new BigDecimal("100000"), null, null)));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVAL_LIMIT_EXCEEDED);
+        assertThat(invoice.getStatus().name()).isEqualTo("APPROVED");
     }
 
     @Test

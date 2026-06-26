@@ -62,6 +62,7 @@ public enum ErrorCode {
     FISCAL_PERIOD_DATE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "F028", "회계기간 날짜가 회계연도 범위를 벗어납니다"),
     CUSTOMER_NOT_FOUND(HttpStatus.NOT_FOUND, "F029", "고객을 찾을 수 없습니다"),
     CUSTOMER_CODE_DUPLICATE(HttpStatus.CONFLICT, "F030", "이미 사용 중인 고객 코드입니다"),
+    PAYMENT_SELF_FORBIDDEN(HttpStatus.FORBIDDEN, "F031", "본인이 작성한 전표는 지급·수금 처리할 수 없습니다 (직무분리)"),
 
     // Inventory
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "품목을 찾을 수 없습니다"),
