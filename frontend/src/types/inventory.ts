@@ -23,6 +23,8 @@ export interface Warehouse {
   version: number
 }
 
+export type LocationType = 'ZONE' | 'AISLE' | 'RACK' | 'BIN'
+
 export interface Location {
   id: number
   warehouseId: number
@@ -31,6 +33,7 @@ export interface Location {
   name: string
   parentId: number | null
   parentName: string | null
+  locationType: LocationType
   active: boolean
   version: number
 }
