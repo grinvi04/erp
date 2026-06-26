@@ -4,6 +4,7 @@ import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.crm.application.dto.AccountCreateRequest;
 import com.erp.crm.application.dto.AccountResponse;
+import com.erp.crm.application.dto.AccountUpdateRequest;
 import com.erp.crm.domain.model.Account;
 import com.erp.crm.domain.model.AccountType;
 import com.erp.crm.domain.repository.CrmAccountRepository;
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -65,6 +68,35 @@ class AccountServiceTest {
 
         ErpException ex = assertThrows(ErpException.class, () -> accountService.findById(99L));
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.ACCOUNT_COMPANY_NOT_FOUND);
+    }
+
+    @Test
+    void update_matchingVersion_appliesChanges() {
+        Account account = buildAccount();
+        ReflectionTestUtils.setField(account, "version", 0L);
+        given(accountRepository.findById(1L)).willReturn(Optional.of(account));
+
+        AccountUpdateRequest req = new AccountUpdateRequest("변경된고객사", null, "금융", null,
+                "02-999-9999", "부산시", 200, new BigDecimal("9000000000"),
+                AccountType.PARTNER, "user-sub-002", 0L);
+
+        AccountResponse result = accountService.update(1L, req);
+
+        assertThat(result.name()).isEqualTo("변경된고객사");
+        assertThat(result.accountType()).isEqualTo(AccountType.PARTNER);
+    }
+
+    @Test
+    void update_staleVersion_throwsOptimisticLock() {
+        Account account = buildAccount();
+        ReflectionTestUtils.setField(account, "version", 3L);
+        given(accountRepository.findById(1L)).willReturn(Optional.of(account));
+
+        AccountUpdateRequest req = new AccountUpdateRequest("변경된고객사", null, null, null,
+                null, null, null, null, AccountType.PARTNER, "user-sub-002", 1L);
+
+        assertThrows(ObjectOptimisticLockingFailureException.class,
+                () -> accountService.update(1L, req));
     }
 
     @Test
