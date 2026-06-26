@@ -22,10 +22,13 @@ public class CrmAccountService {
 
     private final CrmAccountRepository accountRepository;
     private final PermissionChecker permissionChecker;
+    private final CrmDataScopeResolver dataScopeResolver;
 
     public PageResponse<AccountResponse> search(String keyword, Boolean isActive, Pageable pageable) {
         permissionChecker.require(Permission.CRM_READ);
-        return PageResponse.from(accountRepository.search(keyword, isActive, pageable)
+        var s = dataScopeResolver.ownerScope();
+        return PageResponse.from(
+                accountRepository.search(keyword, isActive, s.scoped(), s.ownerIds(), pageable)
                 .map(AccountResponse::from));
     }
 

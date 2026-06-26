@@ -24,10 +24,13 @@ public class OpportunityService {
     private final CrmAccountService accountService;
     private final PipelineStageService stageService;
     private final PermissionChecker permissionChecker;
+    private final CrmDataScopeResolver dataScopeResolver;
 
     public PageResponse<OpportunityResponse> search(Long accountId, Long stageId, Pageable pageable) {
         permissionChecker.require(Permission.CRM_READ);
-        return PageResponse.from(opportunityRepository.search(accountId, stageId, pageable)
+        var s = dataScopeResolver.ownerScope();
+        return PageResponse.from(
+                opportunityRepository.search(accountId, stageId, s.scoped(), s.ownerIds(), pageable)
                 .map(OpportunityResponse::from));
     }
 

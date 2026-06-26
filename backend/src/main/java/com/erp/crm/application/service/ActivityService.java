@@ -29,13 +29,16 @@ public class ActivityService {
     private final ContactService contactService;
     private final OpportunityService opportunityService;
     private final PermissionChecker permissionChecker;
+    private final CrmDataScopeResolver dataScopeResolver;
 
     public PageResponse<ActivityResponse> search(Long opportunityId, Long accountId,
                                                  ActivityType activityType, ActivityStatus status,
                                                  Pageable pageable) {
         permissionChecker.require(Permission.CRM_READ);
+        var s = dataScopeResolver.ownerScope();
         return PageResponse.from(activityRepository
-                .search(opportunityId, accountId, activityType, status, pageable)
+                .search(opportunityId, accountId, activityType, status,
+                        s.scoped(), s.ownerIds(), pageable)
                 .map(ActivityResponse::from));
     }
 

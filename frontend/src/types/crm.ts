@@ -22,6 +22,14 @@ export interface CrmAccount {
   version: number;
 }
 
+export interface SalesTeam {
+  id: number;
+  code: string;
+  name: string;
+  memberUserIds: string[];
+  version: number;
+}
+
 export interface Contact {
   id: number;
   accountId: number;

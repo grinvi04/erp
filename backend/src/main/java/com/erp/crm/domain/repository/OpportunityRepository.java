@@ -11,12 +11,16 @@ import org.springframework.data.repository.query.Param;
 public interface OpportunityRepository extends JpaRepository<Opportunity, Long> {
     @Query(value = "SELECT o FROM Opportunity o JOIN FETCH o.account a JOIN FETCH o.stage s WHERE "
             + "(:accountId IS NULL OR a.id = :accountId) AND "
-            + "(:stageId IS NULL OR s.id = :stageId)",
+            + "(:stageId IS NULL OR s.id = :stageId) AND "
+            + "(:scoped = false OR o.ownerId IN :ownerIds)",
            countQuery = "SELECT COUNT(o) FROM Opportunity o WHERE "
             + "(:accountId IS NULL OR o.account.id = :accountId) AND "
-            + "(:stageId IS NULL OR o.stage.id = :stageId)")
+            + "(:stageId IS NULL OR o.stage.id = :stageId) AND "
+            + "(:scoped = false OR o.ownerId IN :ownerIds)")
     Page<Opportunity> search(@Param("accountId") Long accountId,
                              @Param("stageId") Long stageId,
+                             @Param("scoped") boolean scoped,
+                             @Param("ownerIds") java.util.Collection<String> ownerIds,
                              Pageable pageable);
 
     @Query("SELECT COUNT(o) FROM Opportunity o "
