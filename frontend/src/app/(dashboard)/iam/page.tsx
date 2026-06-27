@@ -1,5 +1,5 @@
-import { apiGet } from '@/lib/api'
-import { getMyPermissions, PERM } from '@/lib/permissions'
+import { apiGet, getMyPermissions } from '@/lib/api'
+import { PERM } from '@/lib/permissions'
 import type { Role } from '@/types/iam'
 import IamClient from './iam-client'
 

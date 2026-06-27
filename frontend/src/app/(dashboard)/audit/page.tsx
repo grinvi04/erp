@@ -1,5 +1,5 @@
-import { apiGetPage } from '@/lib/api'
-import { getMyPermissions, PERM } from '@/lib/permissions'
+import { apiGetPage, getMyPermissions } from '@/lib/api'
+import { PERM } from '@/lib/permissions'
 import type { PageResponse } from '@/types/api'
 import type { AuditLog } from '@/types/audit'
 import AuditClient from './audit-client'
