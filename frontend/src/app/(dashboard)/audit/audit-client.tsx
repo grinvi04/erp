@@ -46,8 +46,8 @@ export default function AuditClient({
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">감사 로그</h1>
-          <p className="mt-1 text-sm text-gray-500">누가 무엇을 언제 결재·변경했는지 추적합니다.</p>
+          <h1 className="text-2xl font-semibold text-foreground">감사 로그</h1>
+          <p className="mt-1 text-sm text-muted-foreground">누가 무엇을 언제 결재·변경했는지 추적합니다.</p>
         </div>
         <Select value={entityType || ALL} onValueChange={onFilterChange}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
@@ -63,7 +63,7 @@ export default function AuditClient({
         </Select>
       </div>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -78,7 +78,7 @@ export default function AuditClient({
           <TableBody>
             {data.content.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-sm text-gray-400 py-8">
+                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
                   감사 로그가 없습니다.
                 </TableCell>
               </TableRow>
@@ -92,7 +92,7 @@ export default function AuditClient({
                     <Badge variant={ACTION_VARIANT[log.action]}>{ACTION_LABEL[log.action]}</Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs">{log.performedBy}</TableCell>
-                  <TableCell className="text-gray-400">{log.ipAddress ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{log.ipAddress ?? '—'}</TableCell>
                 </TableRow>
               ))
             )}

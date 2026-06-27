@@ -12,10 +12,10 @@ test.describe('인증된 사용자 — 렌더 스모크', () => {
     await page.goto('/')
     await expect(page).not.toHaveURL(/\/login/)
     await expect(page.getByRole('heading', { name: '대시보드', level: 1 })).toBeVisible()
-    // 4개 모듈 요약 카드 헤딩.
-    await expect(page.getByRole('heading', { name: '인사(HR)' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: '재무(Finance)' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'CRM' })).toBeVisible()
+    // KPI 카드 라벨 + 차트 카드 헤딩(차트 중심 대시보드).
+    await expect(page.getByText('재직 직원')).toBeVisible()
+    await expect(page.getByRole('heading', { name: '월별 매입 인보이스 추이' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '영업 파이프라인' })).toBeVisible()
   })
 
   test('사이드바 1차 네비게이션(결재함·분석)이 보인다', async ({ page }) => {
@@ -24,19 +24,22 @@ test.describe('인증된 사용자 — 렌더 스모크', () => {
     await expect(page.getByRole('link', { name: '분석' })).toBeVisible()
   })
 
-  test('사이드바 모듈 네비게이션 항목이 보인다', async ({ page }) => {
+  test('사이드바 모듈 그룹이 접이식으로 펼쳐진다', async ({ page }) => {
     await page.goto('/')
-    // 각 모듈 그룹의 대표 하위 링크.
-    await expect(page.getByRole('link', { name: '직원', exact: true })).toBeVisible()
+    // 모듈 그룹 토글 버튼(기본 접힘).
+    await expect(page.getByRole('button', { name: '재무' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'CRM' })).toBeVisible()
+    // 그룹을 펼치면 하위 링크가 나타난다.
+    await page.getByRole('button', { name: '재무' }).click()
     await expect(page.getByRole('link', { name: '재무제표' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'FX 설정' })).toBeVisible()
-    await expect(page.getByRole('link', { name: '영업 기회' })).toBeVisible()
   })
 
-  test('헤더에 세션 사용자·로그아웃이 표시된다', async ({ page }) => {
+  test('헤더에 세션 사용자·계정 메뉴(로그아웃 보유)가 표시된다', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByText('e2e@test.local')).toBeVisible()
-    await expect(page.getByRole('button', { name: '로그아웃' })).toBeVisible()
+    // 로그아웃은 이 계정 드롭다운 메뉴 안에 있다(헤더 재설계).
+    await expect(page.getByRole('button', { name: '계정' })).toBeVisible()
   })
 
   test('결재함(/approvals)이 인증 상태로 렌더된다', async ({ page }) => {

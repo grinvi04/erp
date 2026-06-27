@@ -127,13 +127,13 @@ export default function PipelineStagesClient({ stages }: Props) {
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={isClosedWon}
             onChange={(e) => { setIsClosedWon(e.target.checked); if (e.target.checked) setIsClosedLost(false) }}
-            className="h-4 w-4 rounded border-gray-300" />
+            className="h-4 w-4 rounded border-input" />
           <span className="text-sm">성공 종결</span>
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={isClosedLost}
             onChange={(e) => { setIsClosedLost(e.target.checked); if (e.target.checked) setIsClosedWon(false) }}
-            className="h-4 w-4 rounded border-gray-300" />
+            className="h-4 w-4 rounded border-input" />
           <span className="text-sm">실패 종결</span>
         </label>
       </div>
@@ -144,13 +144,13 @@ export default function PipelineStagesClient({ stages }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">파이프라인 단계</h1>
-          <p className="text-sm text-gray-500 mt-1">영업 기회의 진행 단계를 정의합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">파이프라인 단계</h1>
+          <p className="text-sm text-muted-foreground mt-1">영업 기회의 진행 단계를 정의합니다</p>
         </div>
         {canWrite && <Button onClick={openCreate}><PlusIcon />새 단계</Button>}
       </div>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -164,7 +164,7 @@ export default function PipelineStagesClient({ stages }: Props) {
           <TableBody>
             {stages.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
                   등록된 단계가 없습니다
                 </TableCell>
               </TableRow>
@@ -177,7 +177,7 @@ export default function PipelineStagesClient({ stages }: Props) {
                 <TableCell>
                   {stage.isClosedWon && <Badge>성공</Badge>}
                   {stage.isClosedLost && <Badge variant="destructive">실패</Badge>}
-                  {!stage.isClosedWon && !stage.isClosedLost && <span className="text-sm text-gray-400">진행</span>}
+                  {!stage.isClosedWon && !stage.isClosedLost && <span className="text-sm text-muted-foreground">진행</span>}
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
@@ -228,7 +228,7 @@ export default function PipelineStagesClient({ stages }: Props) {
         <DialogContent>
           <DialogHeader><DialogTitle>단계 삭제</DialogTitle></DialogHeader>
           {dialog.type === 'delete' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.stage.name}</strong> 단계를 삭제하시겠습니까?
               해당 단계를 사용하는 영업 기회가 있으면 삭제할 수 없습니다.
             </p>

@@ -256,8 +256,8 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">직원 관리</h1>
-          <p className="text-sm text-gray-500 mt-1">조직 내 직원 정보를 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">직원 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">조직 내 직원 정보를 관리합니다</p>
         </div>
         <div className="flex items-center gap-2">
           <SearchInput placeholder="이름·코드 검색" className="w-64" />
@@ -270,7 +270,7 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border">
+      <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -287,7 +287,7 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
           <TableBody>
             {data.content.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                   등록된 직원이 없습니다
                 </TableCell>
               </TableRow>
@@ -298,7 +298,7 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
                 <TableCell className="font-medium">{emp.fullName}</TableCell>
                 <TableCell className="text-sm">{emp.departmentName}</TableCell>
                 <TableCell className="text-sm">{emp.positionName}</TableCell>
-                <TableCell className="text-sm text-gray-600">{emp.workEmail}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{emp.workEmail}</TableCell>
                 <TableCell className="text-sm">{emp.hireDate}</TableCell>
                 <TableCell>
                   <Badge variant={STATUS_VARIANT[emp.status]}>

@@ -112,8 +112,8 @@ export default function DepartmentsClient({ departments }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">부서 관리</h1>
-          <p className="text-sm text-gray-500 mt-1">조직 부서 구조를 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">부서 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">조직 부서 구조를 관리합니다</p>
         </div>
         <Button onClick={openCreate}>
           <PlusIcon />
@@ -121,7 +121,7 @@ export default function DepartmentsClient({ departments }: Props) {
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg border">
+      <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -136,7 +136,7 @@ export default function DepartmentsClient({ departments }: Props) {
           <TableBody>
             {departments.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                   등록된 부서가 없습니다
                 </TableCell>
               </TableRow>
@@ -148,14 +148,14 @@ export default function DepartmentsClient({ departments }: Props) {
                   <TableCell className="font-mono text-sm">{dept.code}</TableCell>
                   <TableCell className="font-medium">
                     {dept.depth > 0 && (
-                      <span className="text-gray-300 mr-1">{'└'.padStart(dept.depth * 2)}</span>
+                      <span className="text-muted-foreground mr-1">{'└'.padStart(dept.depth * 2)}</span>
                     )}
                     {dept.name}
                   </TableCell>
-                  <TableCell className="text-sm text-gray-500">
+                  <TableCell className="text-sm text-muted-foreground">
                     {parent?.name ?? '—'}
                   </TableCell>
-                  <TableCell className="text-right text-sm text-gray-600">
+                  <TableCell className="text-right text-sm text-muted-foreground">
                     {dept.sortOrder}
                   </TableCell>
                   <TableCell>
@@ -272,7 +272,7 @@ export default function DepartmentsClient({ departments }: Props) {
           <DialogHeader>
             <DialogTitle>부서 삭제</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600 py-2">
+          <p className="text-sm text-muted-foreground py-2">
             {dialog.type === 'delete' && (
               <>
                 <strong>{dialog.dept.name}</strong> 부서를 삭제하시겠습니까?

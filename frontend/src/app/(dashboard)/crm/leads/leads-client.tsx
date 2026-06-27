@@ -208,13 +208,13 @@ export default function LeadsClient({ data, accounts }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">리드</h1>
-          <p className="text-sm text-gray-500 mt-1">잠재 고객 리드를 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">리드</h1>
+          <p className="text-sm text-muted-foreground mt-1">잠재 고객 리드를 관리합니다</p>
         </div>
         {canWrite && <Button onClick={openCreate}><PlusIcon />새 리드</Button>}
       </div>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -231,7 +231,7 @@ export default function LeadsClient({ data, accounts }: Props) {
           <TableBody>
             {data.content.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                   등록된 리드가 없습니다
                 </TableCell>
               </TableRow>
@@ -241,16 +241,16 @@ export default function LeadsClient({ data, accounts }: Props) {
                 <TableCell className="font-medium">
                   {lead.lastName}{lead.firstName}
                 </TableCell>
-                <TableCell className="text-sm text-gray-600">{lead.company ?? '—'}</TableCell>
-                <TableCell className="text-sm text-gray-600">{lead.title ?? '—'}</TableCell>
-                <TableCell className="text-sm text-gray-600">{lead.email ?? '—'}</TableCell>
-                <TableCell className="text-sm text-gray-600">{lead.source ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{lead.company ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{lead.title ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{lead.email ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{lead.source ?? '—'}</TableCell>
                 <TableCell>
                   <Badge variant={STATUS_VARIANT[lead.status]}>
                     {STATUS_LABEL[lead.status]}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-gray-600">
+                <TableCell className="text-sm text-muted-foreground">
                   {lead.createdAt.slice(0, 10)}
                 </TableCell>
                 <TableCell>
@@ -346,7 +346,7 @@ export default function LeadsClient({ data, accounts }: Props) {
         <DialogContent>
           <DialogHeader><DialogTitle>리드 삭제</DialogTitle></DialogHeader>
           {dialog.type === 'delete' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.lead.lastName}{dialog.lead.firstName}</strong> 리드를 삭제하시겠습니까?
             </p>
           )}

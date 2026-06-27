@@ -1,5 +1,12 @@
 import { safeGet, safeGetArray } from '@/lib/api'
 import { formatMoneyList, formatMoneyOne } from '@/lib/money'
+import { PageHeader } from '@/components/ui/page-header'
+import { ChartCard } from '@/components/ui/chart-card'
+import { EmptyState } from '@/components/ui/empty-state'
+import { DonutChart } from '@/components/charts/donut-chart'
+import { CategoryBarChart } from '@/components/charts/category-bar-chart'
+import { MonthlyBarChart } from '@/components/charts/monthly-bar-chart'
+import { PackageX } from 'lucide-react'
 import type {
   PipelineAnalyticsResponse,
   LeadStatusCountResponse,
@@ -61,84 +68,6 @@ const MOVEMENT_TYPE_LABELS: Record<string, string> = {
 
 const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
 
-function HorizontalBar({
-  label,
-  subLabel,
-  pct,
-  color = 'bg-blue-500',
-}: {
-  label: string
-  subLabel: string
-  pct: number
-  color?: string
-}) {
-  return (
-    <div className="mb-3">
-      <div className="flex justify-between text-sm text-gray-700 mb-1">
-        <span className="font-medium">{label}</span>
-        <span className="text-gray-500">{subLabel}</span>
-      </div>
-      <div className="w-full bg-gray-100 rounded h-6">
-        <div
-          className={`${color} h-6 rounded transition-all`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  )
-}
-
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">{title}</h2>
-      {children}
-    </div>
-  )
-}
-
-// 월별 세로 막대차트. 단일 시리즈(w-full 막대 1개) 또는 다중 시리즈(그룹 막대) 지원.
-// 막대 높이는 모든 시리즈 값을 통틀어 계산한 최대값으로 스케일한다(≥1 보장).
-function MonthlyBarChart<T extends { month: number }>({
-  rows,
-  bars,
-  renderTooltip,
-  renderFooter,
-}: {
-  rows: T[]
-  bars: { value: (r: T) => number; color: string; width: string }[]
-  renderTooltip: (r: T) => React.ReactNode
-  renderFooter?: (r: T) => React.ReactNode
-}) {
-  const max = Math.max(...rows.flatMap((r) => bars.map((b) => b.value(r))), 1)
-  const groupGap = bars.length > 1 ? ' gap-0.5' : ''
-  return (
-    <div className="flex items-end gap-2">
-      {rows.map((r, idx) => (
-        <div key={r.month} className="flex flex-col items-center flex-1">
-          <div className={`relative group flex h-40 w-full items-end justify-center${groupGap}`}>
-            <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-              {renderTooltip(r)}
-            </div>
-            {bars.map((b, bi) => {
-              const v = b.value(r)
-              return (
-                <div
-                  key={bi}
-                  className={`${b.color} rounded-t ${b.width}`}
-                  style={{ height: `${(v / max) * 100}%`, minHeight: v > 0 ? '4px' : '0px' }}
-                />
-              )
-            })}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
-          {renderFooter?.(r)}
-        </div>
-      ))}
-    </div>
-  )
-}
-
 export default async function AnalyticsPage() {
   const currentYear = new Date().getFullYear()
 
@@ -176,360 +105,269 @@ export default async function AnalyticsPage() {
 
   // 통화별 분리는 유지하고 기준통화 합계를 추가 표시한다(래퍼에서 시리즈를 꺼낸다).
   const pipeline = pipelineData?.stages ?? []
-  const pipelineBaseCurrency = pipelineData?.baseCurrency ?? 'KRW'
   const monthly = monthlyData?.byCurrency ?? []
   const monthlyBaseTotals = monthlyData?.baseMonthlyTotals ?? []
   const monthlyBaseCurrency = monthlyData?.baseCurrency ?? 'KRW'
 
-  // Pipeline: scale by count
-  const maxPipelineCount = Math.max(...pipeline.map((r) => r.count), 1)
-
-  // Leads: scale by count
-  const maxLeadCount = Math.max(...leads.map((r) => r.count), 1)
-
-  // HR scaling
-  const maxHrStatus = Math.max(...hrStatus.map((r) => r.count), 1)
-  const maxHrDept = Math.max(...hrByDept.map((r) => r.count), 1)
-  const maxHrPosition = Math.max(...hrByPosition.map((r) => r.count), 1)
-  const maxHrEmploymentType = Math.max(...hrByEmploymentType.map((r) => r.count), 1)
-  const maxHrLeaveDays = Math.max(...hrLeaves.map((r) => r.totalDays), 1)
-
-  // Inventory scaling
-  const maxInvCategory = Math.max(...invByCategory.map((r) => r.count), 1)
-  const maxInvWhValue = Math.max(...invByWarehouse.map((r) => r.totalValue), 1)
-  const maxInvWhQty = Math.max(...invByWarehouse.map((r) => r.totalQty), 1)
-  const maxInvMovementType = Math.max(...invMovementsByType.map((r) => r.count), 1)
-
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">분석</h1>
-        <p className="text-sm text-gray-500 mt-1">영업 파이프라인, 리드 현황, 매입 인보이스 추이, 인사 현황, 재고 현황</p>
-      </div>
+    <div className="space-y-8 p-6">
+      <PageHeader title="분석" description="영업·재무·인사·재고 핵심 지표" />
 
-      <div className="space-y-6">
-        {/* Pipeline Distribution */}
-        <SectionCard title="영업 파이프라인 분포">
-          {pipeline.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            pipeline.map((r) => (
-              <HorizontalBar
-                key={r.stageId}
-                label={r.stageName}
-                subLabel={`${r.count}건${r.amounts.length ? ' · ' + formatMoneyList(r.amounts) : ''}`
-                  + (r.baseTotal != null ? ` · ≈ ${formatMoneyOne(r.baseTotal, pipelineBaseCurrency)}` : '')}
-                pct={Math.round((r.count / maxPipelineCount) * 100)}
-                color="bg-blue-500"
+      {/* ===== 영업 (CRM) ===== */}
+      <section>
+        <h2 className="mb-3 text-base font-semibold text-foreground">영업</h2>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ChartCard title="영업 파이프라인 분포" description="단계별 진행중 기회">
+            {pipeline.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <CategoryBarChart
+                data={pipeline.map((s) => ({
+                  label: s.stageName,
+                  value: s.count,
+                  display: `${s.count}건${s.amounts.length ? ` · ${formatMoneyList(s.amounts)}` : ''}`,
+                }))}
+                color="var(--chart-1)"
               />
-            ))
-          )}
-        </SectionCard>
-
-        {/* Leads by Status */}
-        <SectionCard title="리드 상태 분포">
-          {leads.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            leads.map((r) => (
-              <HorizontalBar
-                key={r.status}
-                label={LEAD_STATUS_LABELS[r.status] ?? r.status}
-                subLabel={`${r.count}건`}
-                pct={Math.round((r.count / maxLeadCount) * 100)}
-                color="bg-emerald-500"
+            )}
+          </ChartCard>
+          <ChartCard title="리드 상태 분포" description="상태별 리드 수">
+            {leads.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <DonutChart
+                data={leads.map((r) => ({ label: LEAD_STATUS_LABELS[r.status] ?? r.status, value: r.count }))}
+                valueFormat={{ kind: 'suffix', suffix: '건' }}
+                centerLabel="리드"
               />
-            ))
-          )}
-        </SectionCard>
-
-        {/* Monthly Invoice Trend — 통화별 카드로 분리(막대 비교는 같은 통화 안에서만 의미) */}
-        {monthly.length === 0 ? (
-          <SectionCard title={`월별 매입 인보이스 추이 (${currentYear}년)`}>
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          </SectionCard>
-        ) : (
-          monthly.map((series) => (
-            <SectionCard
-              key={series.currency}
-              title={`월별 매입 인보이스 추이 (${currentYear}년) · ${series.currency}`}
-            >
-              {/* 막대 높이는 그 통화 내 최대 금액으로 스케일 */}
-              <MonthlyBarChart
-                rows={series.months}
-                bars={[{ value: (r) => r.totalAmount, color: 'bg-violet-500', width: 'w-full' }]}
-                renderTooltip={(r) => (
-                  <>
-                    {r.count}건<br />{formatMoneyList([{ currency: series.currency, amount: r.totalAmount }])}
-                  </>
-                )}
-                renderFooter={(r) => <div className="text-xs text-gray-600 font-medium">{r.count}</div>}
-              />
-            </SectionCard>
-          ))
-        )}
-
-        {/* 월별 기준통화 합계 추이 — 모든 통화를 기준통화로 환산해 합산(산정분만). 통화별 카드와 별개로 추가. */}
-        {monthlyBaseTotals.length > 0 && (
-          <SectionCard
-            title={`월별 매입 인보이스 추이 (${currentYear}년) · 기준통화 합계(${monthlyBaseCurrency})`}
-          >
-            <MonthlyBarChart
-              rows={monthlyBaseTotals}
-              bars={[{ value: (r) => r.totalAmount, color: 'bg-indigo-500', width: 'w-full' }]}
-              renderTooltip={(r) => <>≈ {formatMoneyOne(r.totalAmount, monthlyBaseCurrency)}</>}
-            />
-          </SectionCard>
-        )}
-
-        {/* ===== HR ===== */}
-        <div className="pt-2">
-          <h2 className="text-base font-semibold text-gray-700">인사 현황</h2>
+            )}
+          </ChartCard>
         </div>
+      </section>
 
-        {/* 재직 상태 분포 */}
-        <SectionCard title="재직 상태 분포">
-          {hrStatus.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+      {/* ===== 재무 ===== */}
+      <section>
+        <h2 className="mb-3 text-base font-semibold text-foreground">재무</h2>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {monthly.length === 0 ? (
+            <ChartCard title={`월별 매입 인보이스 (${currentYear}년)`}>
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            </ChartCard>
           ) : (
-            hrStatus.map((r) => (
-              <HorizontalBar
-                key={r.status}
-                label={EMPLOYEE_STATUS_LABELS[r.status] ?? r.status}
-                subLabel={`${r.count}명`}
-                pct={Math.round((r.count / maxHrStatus) * 100)}
-                color="bg-blue-500"
-              />
+            monthly.map((series) => (
+              <ChartCard key={series.currency} title={`월별 매입 인보이스 · ${series.currency}`} description={`${currentYear}년`}>
+                <MonthlyBarChart
+                  data={series.months.map((r, i) => ({ month: MONTH_LABELS[i], amount: r.totalAmount }))}
+                  series={[{ key: 'amount', label: '매입액', color: 'var(--chart-5)' }]}
+                  valueFormat={{ kind: 'money', currency: series.currency }}
+                />
+              </ChartCard>
             ))
           )}
-        </SectionCard>
-
-        {/* 부서별 인원 */}
-        <SectionCard title="부서별 인원 (재직)">
-          {hrByDept.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            hrByDept.map((r) => (
-              <HorizontalBar
-                key={r.departmentId}
-                label={r.departmentName}
-                subLabel={`${r.count}명`}
-                pct={Math.round((r.count / maxHrDept) * 100)}
-                color="bg-sky-500"
-              />
-            ))
-          )}
-        </SectionCard>
-
-        {/* 직위별 인원 */}
-        <SectionCard title="직위별 인원 (재직)">
-          {hrByPosition.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            hrByPosition.map((r) => (
-              <HorizontalBar
-                key={r.positionId}
-                label={r.positionName}
-                subLabel={`${r.count}명`}
-                pct={Math.round((r.count / maxHrPosition) * 100)}
-                color="bg-indigo-500"
-              />
-            ))
-          )}
-        </SectionCard>
-
-        {/* 고용형태별 분포 */}
-        <SectionCard title="고용형태별 분포">
-          {hrByEmploymentType.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            hrByEmploymentType.map((r) => (
-              <HorizontalBar
-                key={r.employmentType}
-                label={EMPLOYMENT_TYPE_LABELS[r.employmentType] ?? r.employmentType}
-                subLabel={`${r.count}명`}
-                pct={Math.round((r.count / maxHrEmploymentType) * 100)}
-                color="bg-teal-500"
-              />
-            ))
-          )}
-        </SectionCard>
-
-        {/* 월별 입사/퇴사 추이 — 입사(emerald)·퇴사(rose) 두 시리즈를 월별 그룹 막대로 */}
-        <SectionCard title={`월별 입사/퇴사 추이 (${currentYear}년)`}>
-          {hrHiresTerms.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            <>
-              <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
-                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-emerald-500" />입사</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-rose-500" />퇴사</span>
-              </div>
+          {monthlyBaseTotals.length > 0 && (
+            <ChartCard title="월별 매입 · 기준통화 합계" description={`${currentYear}년 · ${monthlyBaseCurrency} 환산`}>
               <MonthlyBarChart
-                rows={hrHiresTerms}
-                bars={[
-                  { value: (r) => r.hires, color: 'bg-emerald-500', width: 'w-1/2' },
-                  { value: (r) => r.terminations, color: 'bg-rose-500', width: 'w-1/2' },
+                data={monthlyBaseTotals.map((r, i) => ({ month: MONTH_LABELS[i], amount: r.totalAmount }))}
+                series={[{ key: 'amount', label: `기준통화(${monthlyBaseCurrency})`, color: 'var(--chart-1)' }]}
+                valueFormat={{ kind: 'money', currency: monthlyBaseCurrency }}
+              />
+            </ChartCard>
+          )}
+        </div>
+      </section>
+
+      {/* ===== 인사 (HR) ===== */}
+      <section>
+        <h2 className="mb-3 text-base font-semibold text-foreground">인사</h2>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ChartCard title="재직 상태 분포" description="상태별 직원 수">
+            {hrStatus.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <DonutChart
+                data={hrStatus.map((r) => ({ label: EMPLOYEE_STATUS_LABELS[r.status] ?? r.status, value: r.count }))}
+                valueFormat={{ kind: 'suffix', suffix: '명' }}
+                centerLabel="직원"
+              />
+            )}
+          </ChartCard>
+          <ChartCard title="고용형태별 분포" description="형태별 직원 수">
+            {hrByEmploymentType.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <DonutChart
+                data={hrByEmploymentType.map((r) => ({
+                  label: EMPLOYMENT_TYPE_LABELS[r.employmentType] ?? r.employmentType,
+                  value: r.count,
+                }))}
+                valueFormat={{ kind: 'suffix', suffix: '명' }}
+              />
+            )}
+          </ChartCard>
+          <ChartCard title="부서별 인원" description="재직 기준">
+            {hrByDept.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <CategoryBarChart
+                data={hrByDept.map((r) => ({ label: r.departmentName, value: r.count, display: `${r.count}명` }))}
+                color="var(--chart-1)"
+              />
+            )}
+          </ChartCard>
+          <ChartCard title="직위별 인원" description="재직 기준">
+            {hrByPosition.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <CategoryBarChart
+                data={hrByPosition.map((r) => ({ label: r.positionName, value: r.count, display: `${r.count}명` }))}
+                color="var(--chart-2)"
+              />
+            )}
+          </ChartCard>
+          <ChartCard title="월별 입사/퇴사" description={`${currentYear}년 인력 변동`} className="lg:col-span-2">
+            {hrHiresTerms.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <MonthlyBarChart
+                data={hrHiresTerms.map((r, i) => ({ month: MONTH_LABELS[i], hires: r.hires, terminations: r.terminations }))}
+                series={[
+                  { key: 'hires', label: '입사', color: 'var(--chart-2)' },
+                  { key: 'terminations', label: '퇴사', color: 'var(--chart-4)' },
                 ]}
-                renderTooltip={(r) => (
-                  <>
-                    입사 {r.hires}명<br />퇴사 {r.terminations}명
-                  </>
-                )}
+                valueFormat={{ kind: 'suffix', suffix: '명' }}
               />
-            </>
-          )}
-        </SectionCard>
-
-        {/* 휴가 유형별 신청 (승인 기준) */}
-        <SectionCard title="휴가 유형별 신청 (승인)">
-          {hrLeaves.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            hrLeaves.map((r) => (
-              <HorizontalBar
-                key={r.leaveType}
-                label={LEAVE_TYPE_LABELS[r.leaveType] ?? r.leaveType}
-                subLabel={`${r.count}건 · ${r.totalDays}일`}
-                pct={Math.round((r.totalDays / maxHrLeaveDays) * 100)}
-                color="bg-amber-500"
+            )}
+          </ChartCard>
+          <ChartCard title="휴가 유형별 신청(승인)" description="유형별 신청 건·일수">
+            {hrLeaves.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <CategoryBarChart
+                data={hrLeaves.map((r) => ({
+                  label: LEAVE_TYPE_LABELS[r.leaveType] ?? r.leaveType,
+                  value: r.totalDays,
+                  display: `${r.count}건 · ${r.totalDays}일`,
+                }))}
+                color="var(--chart-3)"
               />
-            ))
-          )}
-        </SectionCard>
-
-        {/* ===== Inventory ===== */}
-        <div className="pt-2">
-          <h2 className="text-base font-semibold text-gray-700">재고 현황</h2>
+            )}
+          </ChartCard>
         </div>
+      </section>
 
-        {/* 카테고리별 활성 품목 수 */}
-        <SectionCard title="카테고리별 활성 품목 수">
-          {invByCategory.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            invByCategory.map((r) => (
-              <HorizontalBar
-                key={r.categoryId}
-                label={r.categoryName}
-                subLabel={`${r.count}개`}
-                pct={Math.round((r.count / maxInvCategory) * 100)}
-                color="bg-cyan-500"
+      {/* ===== 재고 (Inventory) ===== */}
+      <section>
+        <h2 className="mb-3 text-base font-semibold text-foreground">재고</h2>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ChartCard title="카테고리별 활성 품목" description="카테고리별 품목 수">
+            {invByCategory.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <CategoryBarChart
+                data={invByCategory.map((r) => ({ label: r.categoryName, value: r.count, display: `${r.count}개` }))}
+                color="var(--chart-2)"
               />
+            )}
+          </ChartCard>
+          <ChartCard title="이동유형별 건수(확정)" description="유형별 이동 건수">
+            {invMovementsByType.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <DonutChart
+                data={invMovementsByType.map((r) => ({
+                  label: MOVEMENT_TYPE_LABELS[r.movementType] ?? r.movementType,
+                  value: r.count,
+                }))}
+                valueFormat={{ kind: 'suffix', suffix: '건' }}
+              />
+            )}
+          </ChartCard>
+          <ChartCard title="창고별 재고 가치" description="기준통화(KRW)">
+            {invByWarehouse.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <CategoryBarChart
+                data={invByWarehouse.map((r) => ({
+                  label: r.warehouseName,
+                  value: r.totalValue,
+                  display: formatMoneyOne(r.totalValue, 'KRW'),
+                }))}
+                color="var(--chart-5)"
+              />
+            )}
+          </ChartCard>
+          <ChartCard title="창고별 재고 수량" description="창고별 보유 수량">
+            {invByWarehouse.length === 0 ? (
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            ) : (
+              <CategoryBarChart
+                data={invByWarehouse.map((r) => ({
+                  label: r.warehouseName,
+                  value: r.totalQty,
+                  display: `${r.totalQty.toLocaleString('ko-KR')}개`,
+                }))}
+                color="var(--chart-5)"
+              />
+            )}
+          </ChartCard>
+          {invMonthlyMovements.length === 0 ? (
+            <ChartCard title={`월별 입출고 (${currentYear}년)`}>
+              <EmptyState title="데이터가 없습니다" className="py-10" />
+            </ChartCard>
+          ) : (
+            invMonthlyMovements.map((series) => (
+              <ChartCard
+                key={series.movementType}
+                title={`월별 입출고 · ${MOVEMENT_TYPE_LABELS[series.movementType] ?? series.movementType}`}
+                description={`${currentYear}년`}
+              >
+                <MonthlyBarChart
+                  data={series.months.map((r, i) => ({ month: MONTH_LABELS[i], qty: r.totalQty }))}
+                  series={[{ key: 'qty', label: '수량', color: 'var(--chart-3)' }]}
+                  valueFormat={{ kind: 'suffix', suffix: '개' }}
+                />
+              </ChartCard>
             ))
           )}
-        </SectionCard>
-
-        {/* 창고별 재고 가치 (₩ 단일 기준통화) — 수량은 sublabel */}
-        <SectionCard title="창고별 재고 가치">
-          {invByWarehouse.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            invByWarehouse.map((r) => (
-              <HorizontalBar
-                key={r.warehouseId}
-                label={r.warehouseName}
-                subLabel={`${formatMoneyOne(r.totalValue, 'KRW')} · ${r.totalQty.toLocaleString('ko-KR')}개`}
-                pct={Math.round((r.totalValue / maxInvWhValue) * 100)}
-                color="bg-fuchsia-500"
-              />
-            ))
-          )}
-        </SectionCard>
-
-        {/* 창고별 재고 수량 */}
-        <SectionCard title="창고별 재고 수량">
-          {invByWarehouse.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            invByWarehouse.map((r) => (
-              <HorizontalBar
-                key={r.warehouseId}
-                label={r.warehouseName}
-                subLabel={`${r.totalQty.toLocaleString('ko-KR')}개`}
-                pct={Math.round((r.totalQty / maxInvWhQty) * 100)}
-                color="bg-purple-500"
-              />
-            ))
-          )}
-        </SectionCard>
-
-        {/* 이동유형별 건수 (확정) */}
-        <SectionCard title="이동유형별 건수 (확정)">
-          {invMovementsByType.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            invMovementsByType.map((r) => (
-              <HorizontalBar
-                key={r.movementType}
-                label={MOVEMENT_TYPE_LABELS[r.movementType] ?? r.movementType}
-                subLabel={`${r.count}건`}
-                pct={Math.round((r.count / maxInvMovementType) * 100)}
-                color="bg-orange-500"
-              />
-            ))
-          )}
-        </SectionCard>
-
-        {/* 월별 입출고 추이 — 이동유형별 카드(수량 기준 막대) */}
-        {invMonthlyMovements.length === 0 ? (
-          <SectionCard title={`월별 입출고 추이 (${currentYear}년)`}>
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          </SectionCard>
-        ) : (
-          invMonthlyMovements.map((series) => (
-            <SectionCard
-              key={series.movementType}
-              title={`월별 입출고 추이 (${currentYear}년) · ${MOVEMENT_TYPE_LABELS[series.movementType] ?? series.movementType}`}
-            >
-              <MonthlyBarChart
-                rows={series.months}
-                bars={[{ value: (r) => r.totalQty, color: 'bg-amber-600', width: 'w-full' }]}
-                renderTooltip={(r) => (
-                  <>
-                    {r.count}건<br />수량 {r.totalQty.toLocaleString('ko-KR')}
-                  </>
-                )}
-                renderFooter={(r) => <div className="text-xs text-gray-600 font-medium">{r.count}</div>}
-              />
-            </SectionCard>
-          ))
-        )}
-
-        {/* 저재고 품목 목록 (Σ현재고 ≤ 재주문점) */}
-        <SectionCard title="저재고 품목">
-          {invLowStock.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-gray-500 border-b border-gray-200">
-                    <th className="py-2 pr-4 font-medium">SKU</th>
-                    <th className="py-2 pr-4 font-medium">품목명</th>
-                    <th className="py-2 pr-4 font-medium">카테고리</th>
-                    <th className="py-2 pr-4 font-medium text-right">현재고</th>
-                    <th className="py-2 font-medium text-right">재주문점</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invLowStock.map((r) => (
-                    <tr key={r.sku} className="border-b border-gray-100">
-                      <td className="py-2 pr-4 font-mono text-gray-700">{r.sku}</td>
-                      <td className="py-2 pr-4 text-gray-700">{r.name}</td>
-                      <td className="py-2 pr-4 text-gray-500">{r.categoryName ?? '-'}</td>
-                      <td className="py-2 pr-4 text-right text-rose-600 font-medium">
-                        {r.currentQty.toLocaleString('ko-KR')}
-                      </td>
-                      <td className="py-2 text-right text-gray-500">{r.reorderPoint.toLocaleString('ko-KR')}</td>
+          <ChartCard
+            title="저재고 품목"
+            description="Σ현재고 ≤ 재주문점"
+            className="lg:col-span-2"
+            action={invLowStock.length > 0 ? <span className="text-sm font-medium text-warning">{invLowStock.length}건</span> : undefined}
+          >
+            {invLowStock.length === 0 ? (
+              <EmptyState icon={PackageX} title="저재고 품목이 없습니다" className="py-10" />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-muted-foreground border-b border-border">
+                      <th className="py-2 pr-4 font-medium">SKU</th>
+                      <th className="py-2 pr-4 font-medium">품목명</th>
+                      <th className="py-2 pr-4 font-medium">카테고리</th>
+                      <th className="py-2 pr-4 font-medium text-right">현재고</th>
+                      <th className="py-2 font-medium text-right">재주문점</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </SectionCard>
-      </div>
+                  </thead>
+                  <tbody>
+                    {invLowStock.map((r) => (
+                      <tr key={r.sku} className="border-b border-border">
+                        <td className="py-2 pr-4 font-mono text-foreground">{r.sku}</td>
+                        <td className="py-2 pr-4 text-foreground">{r.name}</td>
+                        <td className="py-2 pr-4 text-muted-foreground">{r.categoryName ?? '-'}</td>
+                        <td className="py-2 pr-4 text-right text-destructive font-medium">
+                          {r.currentQty.toLocaleString('ko-KR')}
+                        </td>
+                        <td className="py-2 text-right text-muted-foreground">{r.reorderPoint.toLocaleString('ko-KR')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </ChartCard>
+        </div>
+      </section>
     </div>
   )
 }

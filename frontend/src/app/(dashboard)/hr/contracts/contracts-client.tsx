@@ -113,8 +113,8 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">근로 계약</h1>
-          <p className="text-sm text-gray-500 mt-1">직원별 근로 계약 이력을 조회·등록합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">근로 계약</h1>
+          <p className="text-sm text-muted-foreground mt-1">직원별 근로 계약 이력을 조회·등록합니다</p>
         </div>
         <Button onClick={openCreate} disabled={!empId}>
           <PlusIcon />
@@ -138,7 +138,7 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
         </Select>
       </div>
 
-      <div className="bg-white rounded-lg border">
+      <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -154,21 +154,21 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
           <TableBody>
             {!empId && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                   직원을 선택하면 계약 이력이 표시됩니다
                 </TableCell>
               </TableRow>
             )}
             {empId && loading && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                   불러오는 중...
                 </TableCell>
               </TableRow>
             )}
             {empId && !loading && contracts.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                   등록된 계약이 없습니다
                 </TableCell>
               </TableRow>
@@ -179,13 +179,13 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
                   <Badge variant="secondary">{CONTRACT_TYPE_LABEL[c.contractType]}</Badge>
                 </TableCell>
                 <TableCell className="text-sm">{c.startDate}</TableCell>
-                <TableCell className="text-sm text-gray-500">{c.endDate ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{c.endDate ?? '—'}</TableCell>
                 <TableCell className="text-sm">{c.positionName}</TableCell>
                 <TableCell className="text-sm">{c.jobGradeName ?? '—'}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">
+                <TableCell className="text-right text-sm text-muted-foreground">
                   {fmt(c.baseSalary)}
                 </TableCell>
-                <TableCell className="text-sm text-gray-500">{c.note ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{c.note ?? '—'}</TableCell>
               </TableRow>
             ))}
           </TableBody>

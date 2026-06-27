@@ -101,14 +101,14 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">FX 설정</h1>
-        <p className="text-sm text-gray-500 mt-1">기준통화와 환율을 관리합니다 (혼합통화 거래의 환산 기준)</p>
+        <h1 className="text-2xl font-semibold text-foreground">FX 설정</h1>
+        <p className="text-sm text-muted-foreground mt-1">기준통화와 환율을 관리합니다 (혼합통화 거래의 환산 기준)</p>
       </div>
 
-      <div className="bg-white rounded-lg border p-5 mb-6">
+      <div className="bg-card rounded-lg border p-5 mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm text-gray-500">기준통화</div>
+            <div className="text-sm text-muted-foreground">기준통화</div>
             <div className="text-2xl font-semibold font-mono mt-1">{baseCurrency}</div>
           </div>
           {canWrite && (
@@ -117,9 +117,9 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border p-5 mb-6">
-        <div className="mb-1 text-sm font-medium text-gray-900">환차손익 계정 (실현)</div>
-        <p className="text-xs text-gray-500 mb-4">
+      <div className="bg-card rounded-lg border p-5 mb-6">
+        <div className="mb-1 text-sm font-medium text-foreground">환차손익 계정 (실현)</div>
+        <p className="text-xs text-muted-foreground mb-4">
           외화 결제 시 결제환율과 인보이스 환율의 차액을 분개할 계정입니다. 둘 다 설정해야 환차 분개가 적용됩니다.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -157,9 +157,9 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
         )}
       </div>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h2 className="font-medium text-gray-900">환율</h2>
+          <h2 className="font-medium text-foreground">환율</h2>
           {canWrite && <Button onClick={openRate}><PlusIcon />환율 등록</Button>}
         </div>
         <Table>
@@ -174,14 +174,14 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
           <TableBody>
             {rates.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
                   등록된 환율이 없습니다
                 </TableCell>
               </TableRow>
             )}
             {rates.map((r) => (
               <TableRow key={r.id}>
-                <TableCell className="text-sm text-gray-600">{r.effectiveDate}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{r.effectiveDate}</TableCell>
                 <TableCell className="font-mono text-sm">{r.fromCurrency}</TableCell>
                 <TableCell className="font-mono text-sm">{r.toCurrency}</TableCell>
                 <TableCell className="text-right font-mono text-sm">{r.rate}</TableCell>

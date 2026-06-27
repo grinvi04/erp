@@ -96,7 +96,7 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
       <div className="flex justify-end items-center gap-1">
         {showApprove && (
           <Button variant="ghost" size="sm" title="승인" onClick={() => openApprove(a)} disabled={isPending}>
-            <CheckIcon className="text-emerald-600" />승인
+            <CheckIcon className="text-success" />승인
           </Button>
         )}
         {showReject && (
@@ -107,7 +107,7 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
         )}
         {showLink && (
           <Link href={info.href}
-            className="text-sm text-blue-600 hover:underline flex items-center">
+            className="text-sm text-primary hover:underline flex items-center">
             처리하러 가기<ChevronRight className="h-3 w-3" />
           </Link>
         )}
@@ -119,7 +119,7 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
     rows: ApprovalSummary[], emptyText: string, showRequester: boolean,
     failed: boolean, actionable: boolean,
   ) => (
-    <div className="bg-white rounded-lg border overflow-hidden">
+    <div className="bg-card rounded-lg border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -136,7 +136,7 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
           {rows.length === 0 && (
             <TableRow>
               <TableCell colSpan={showRequester ? 7 : 6}
-                className={`text-center py-10 ${failed ? 'text-destructive' : 'text-gray-400'}`}>
+                className={`text-center py-10 ${failed ? 'text-destructive' : 'text-muted-foreground'}`}>
                 {failed ? '결재 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.' : emptyText}
               </TableCell>
             </TableRow>
@@ -145,14 +145,14 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
             <TableRow key={a.id}>
               <TableCell><Badge variant="secondary">{entityInfo(a.entityType).label}</Badge></TableCell>
               <TableCell className="font-medium max-w-xs truncate">{a.title}</TableCell>
-              <TableCell className="text-sm text-gray-600">
+              <TableCell className="text-sm text-muted-foreground">
                 {a.currentStep}/{a.totalSteps}{a.currentStepName ? ` · ${a.currentStepName}` : ''}
               </TableCell>
               {showRequester && (
-                <TableCell className="text-sm text-gray-500 font-mono">{a.requesterId}</TableCell>
+                <TableCell className="text-sm text-muted-foreground font-mono">{a.requesterId}</TableCell>
               )}
               <TableCell><Badge variant={STATUS_VARIANT[a.status]}>{STATUS_LABEL[a.status]}</Badge></TableCell>
-              <TableCell className="text-sm text-gray-600">{a.requestedAt.slice(0, 10)}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">{a.requestedAt.slice(0, 10)}</TableCell>
               <TableCell>{renderActionCell(a, actionable)}</TableCell>
             </TableRow>
           ))}
@@ -166,19 +166,19 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
   return (
     <div className="p-6 space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">결재함</h1>
-        <p className="text-sm text-gray-500 mt-1">내가 처리할 결재와 내가 상신한 결재를 한 곳에서 확인합니다</p>
+        <h1 className="text-2xl font-semibold text-foreground">결재함</h1>
+        <p className="text-sm text-muted-foreground mt-1">내가 처리할 결재와 내가 상신한 결재를 한 곳에서 확인합니다</p>
       </div>
 
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          처리 대기 <span className="text-blue-600">{pending.length}</span>
+        <h2 className="text-lg font-semibold text-foreground mb-3">
+          처리 대기 <span className="text-primary">{pending.length}</span>
         </h2>
         {renderTable(pending, '처리할 결재가 없습니다', true, pendingFailed, true)}
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">내가 상신한 결재</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-3">내가 상신한 결재</h2>
         {renderTable(mine, '상신한 결재가 없습니다', false, mineFailed, false)}
       </section>
 
@@ -190,7 +190,7 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
           </DialogHeader>
           {dialogItem && (
             <div className="space-y-3 py-2">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 <strong>{dialogItem.title}</strong>
               </p>
               <div className="grid gap-1.5">

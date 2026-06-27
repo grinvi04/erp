@@ -35,8 +35,8 @@ export default function StocksClient({ warehouses, warehouseId, data }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">재고 현황</h1>
-          <p className="text-sm text-gray-500 mt-1">창고별 품목 재고 보유·예약·가용 수량을 조회합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">재고 현황</h1>
+          <p className="text-sm text-muted-foreground mt-1">창고별 품목 재고 보유·예약·가용 수량을 조회합니다</p>
         </div>
         <div className="w-64">
           <Select value={warehouseId} onValueChange={onWarehouseChange}>
@@ -51,12 +51,12 @@ export default function StocksClient({ warehouses, warehouseId, data }: Props) {
       </div>
 
       {!warehouseId || !data ? (
-        <div className="bg-white rounded-lg border flex flex-col items-center justify-center text-center py-20">
-          <PackageSearchIcon className="h-10 w-10 text-gray-300 mb-3" />
-          <p className="text-sm text-gray-500">조회할 창고를 선택해주세요</p>
+        <div className="bg-card rounded-lg border flex flex-col items-center justify-center text-center py-20">
+          <PackageSearchIcon className="h-10 w-10 text-muted-foreground mb-3" />
+          <p className="text-sm text-muted-foreground">조회할 창고를 선택해주세요</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg border overflow-hidden">
+        <div className="bg-card rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
@@ -73,7 +73,7 @@ export default function StocksClient({ warehouses, warehouseId, data }: Props) {
             <TableBody>
               {data.content.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-gray-400 py-10">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                     재고 내역이 없습니다
                   </TableCell>
                 </TableRow>
@@ -82,15 +82,15 @@ export default function StocksClient({ warehouses, warehouseId, data }: Props) {
                 <TableRow key={s.id}>
                   <TableCell className="font-mono text-sm">{s.itemSku}</TableCell>
                   <TableCell className="font-medium">{s.itemName}</TableCell>
-                  <TableCell className="text-sm text-gray-600">
+                  <TableCell className="text-sm text-muted-foreground">
                     {s.locationCode}
-                    {s.locationName ? <span className="text-gray-400"> — {s.locationName}</span> : null}
+                    {s.locationName ? <span className="text-muted-foreground"> — {s.locationName}</span> : null}
                   </TableCell>
-                  <TableCell className="text-sm text-gray-500">
+                  <TableCell className="text-sm text-muted-foreground">
                     {s.lotNo ?? s.serialNo ?? '—'}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm">{fmtNum(s.qtyOnHand)}</TableCell>
-                  <TableCell className="text-right font-mono text-sm text-gray-500">
+                  <TableCell className="text-right font-mono text-sm text-muted-foreground">
                     {fmtNum(s.qtyReserved)}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm font-medium">

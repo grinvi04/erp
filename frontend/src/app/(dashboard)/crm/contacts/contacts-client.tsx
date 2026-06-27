@@ -181,7 +181,7 @@ export default function ContactsClient({ accounts }: Props) {
       <label className="flex items-center gap-2 cursor-pointer">
         <input type="checkbox" checked={isPrimary}
           onChange={(e) => setIsPrimary(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300" />
+          className="h-4 w-4 rounded border-input" />
         <span className="text-sm">주 담당자</span>
       </label>
     </div>
@@ -191,8 +191,8 @@ export default function ContactsClient({ accounts }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">담당자</h1>
-          <p className="text-sm text-gray-500 mt-1">고객사 담당자 정보를 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">담당자</h1>
+          <p className="text-sm text-muted-foreground mt-1">고객사 담당자 정보를 관리합니다</p>
         </div>
         {canWrite && (
           <Button onClick={openCreate} disabled={!selectedAccountId}>
@@ -219,11 +219,11 @@ export default function ContactsClient({ accounts }: Props) {
       </div>
 
       {!selectedAccountId ? (
-        <div className="bg-white rounded-lg border py-16 text-center text-gray-400">
+        <div className="bg-card rounded-lg border py-16 text-center text-muted-foreground">
           고객사를 선택하면 담당자 목록이 표시됩니다
         </div>
       ) : (
-        <div className="bg-white rounded-lg border overflow-hidden">
+        <div className="bg-card rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
@@ -240,13 +240,13 @@ export default function ContactsClient({ accounts }: Props) {
             <TableBody>
               {isLoadingContacts ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-gray-400 py-10">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                     불러오는 중...
                   </TableCell>
                 </TableRow>
               ) : contacts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-gray-400 py-10">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                     등록된 담당자가 없습니다
                   </TableCell>
                 </TableRow>
@@ -254,11 +254,11 @@ export default function ContactsClient({ accounts }: Props) {
                 contacts.map((ct) => (
                   <TableRow key={ct.id}>
                     <TableCell className="font-medium">{ct.lastName}{ct.firstName}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{ct.title ?? '—'}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{ct.department ?? '—'}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{ct.email ?? '—'}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{ct.phone ?? '—'}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{ct.mobile ?? '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{ct.title ?? '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{ct.department ?? '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{ct.email ?? '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{ct.phone ?? '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{ct.mobile ?? '—'}</TableCell>
                     <TableCell>{ct.isPrimary && <Badge>주 담당자</Badge>}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
@@ -311,7 +311,7 @@ export default function ContactsClient({ accounts }: Props) {
         <DialogContent>
           <DialogHeader><DialogTitle>담당자 삭제</DialogTitle></DialogHeader>
           {dialog.type === 'delete' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.contact.lastName}{dialog.contact.firstName}</strong> 담당자를 삭제하시겠습니까?
             </p>
           )}
