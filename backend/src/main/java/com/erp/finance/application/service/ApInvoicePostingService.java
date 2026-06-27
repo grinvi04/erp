@@ -1,5 +1,6 @@
 package com.erp.finance.application.service;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.finance.application.dto.JournalEntryCreateRequest;
@@ -66,7 +67,7 @@ public class ApInvoicePostingService {
         Long journalEntryId = journalEntryService.createInternal(request).id();
         // GL 전표가 원천 문서(AP 전표)를 역참조하도록 연결(실무: 보조원장 ↔ GL 추적).
         journalEntryRepository.findById(journalEntryId)
-            .ifPresent(je -> je.linkReference("AP_INVOICE", invoice.getId()));
+            .ifPresent(je -> je.linkReference(ReferenceTypes.AP_INVOICE, invoice.getId()));
         return journalEntryId;
     }
 
@@ -98,7 +99,7 @@ public class ApInvoicePostingService {
 
         Long journalEntryId = journalEntryService.createInternal(request).id();
         journalEntryRepository.findById(journalEntryId)
-            .ifPresent(je -> je.linkReference("AP_PAYMENT", invoice.getId()));
+            .ifPresent(je -> je.linkReference(ReferenceTypes.AP_PAYMENT, invoice.getId()));
         return journalEntryId;
     }
 }

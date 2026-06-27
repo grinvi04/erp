@@ -1,5 +1,6 @@
 package com.erp.finance;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.AbstractIntegrationTest;
 import com.erp.common.security.DataScope;
 import com.erp.common.security.UserAccessProfile;
@@ -96,7 +97,7 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
         assertThat(je.isBalanced()).isTrue();
         assertThat(je.getTotalDebit()).isEqualByComparingTo("100000");
         assertThat(je.getTotalCredit()).isEqualByComparingTo("100000");
-        assertThat(je.getReferenceType()).isEqualTo("AP_INVOICE");
+        assertThat(je.getReferenceType()).isEqualTo(ReferenceTypes.AP_INVOICE);
         assertThat(je.getReferenceId()).isEqualTo(created.id());
     }
 
@@ -137,7 +138,7 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("100000"), cash.getId(), LocalDate.of(2025, 1, 20)));
 
         JournalEntry payJe = journalEntryRepository
-                .findByReferenceTypeAndReferenceId("AP_PAYMENT", created.id()).orElseThrow();
+                .findByReferenceTypeAndReferenceId(ReferenceTypes.AP_PAYMENT, created.id()).orElseThrow();
         assertThat(payJe.getStatus().name()).isEqualTo("DRAFT");
         assertThat(payJe.isBalanced()).isTrue();
         assertThat(payJe.getTotalDebit()).isEqualByComparingTo("100000");

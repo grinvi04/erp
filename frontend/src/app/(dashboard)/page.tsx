@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { apiGet } from '@/lib/api'
+import { safeGet } from '@/lib/api'
 import { formatMoneyList, formatMoneyOne } from '@/lib/money'
 import { Card } from '@/components/ui/card'
 import {
@@ -13,15 +13,6 @@ export const metadata = { title: '대시보드 | ERP' }
 
 function fmtNum(n: number) {
   return n.toLocaleString('ko-KR')
-}
-
-// 한 모듈의 요약 호출이 실패해도 나머지 대시보드는 정상 렌더되도록 개별적으로 처리한다.
-async function safeGet<T>(path: string): Promise<T | null> {
-  try {
-    return await apiGet<T>(path)
-  } catch {
-    return null
-  }
 }
 
 interface Metric {

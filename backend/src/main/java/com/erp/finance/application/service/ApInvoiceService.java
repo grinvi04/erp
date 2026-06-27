@@ -1,5 +1,6 @@
 package com.erp.finance.application.service;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.audit.AuditLog;
 import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
@@ -116,7 +117,7 @@ public class ApInvoiceService {
         // 사람 단위 결재함(findPendingForApprover)에 작성자로 잘못 노출되지 않도록 역할 sentinel.
         ApprovalStep step = ApprovalStep.of(1, "AP 전표 승인", ROLE_BASED_APPROVER);
         ApprovalRequest approvalRequest = ApprovalRequest.create(
-            "AP_INVOICE", invoice.getId(),
+            ReferenceTypes.AP_INVOICE, invoice.getId(),
             "AP 전표 승인: " + invoice.getInvoiceNo(),
             userId, new ArrayList<>(List.of(step))
         );
@@ -154,7 +155,7 @@ public class ApInvoiceService {
         if (journalEntryId != null) {
             invoice.linkJournalEntry(journalEntryId);
         }
-        auditService.record("AP_INVOICE", invoice.getId(),
+        auditService.record(ReferenceTypes.AP_INVOICE, invoice.getId(),
             AuditLog.AuditAction.APPROVE, null, null);
         log.atInfo().addKeyValue("event", "AP_INVOICE_APPROVED")
             .addKeyValue("apInvoiceId", invoice.getId())

@@ -1,5 +1,6 @@
 package com.erp.finance;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.AbstractIntegrationTest;
 import com.erp.common.security.DataScope;
 import com.erp.common.security.UserAccessProfile;
@@ -101,7 +102,7 @@ class ArInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
         assertThat(je.getTotalDebit()).isEqualByComparingTo("100000");
         assertThat(je.getTotalCredit()).isEqualByComparingTo("100000");
         // 역참조: AR_INVOICE
-        assertThat(je.getReferenceType()).isEqualTo("AR_INVOICE");
+        assertThat(je.getReferenceType()).isEqualTo(ReferenceTypes.AR_INVOICE);
         assertThat(je.getReferenceId()).isEqualTo(created.id());
         // 차변 측이 외상매출금 계정임을 확인 (AP와 반전)
         boolean debitIsReceivables = je.getLines().stream()
@@ -147,7 +148,7 @@ class ArInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
                 new BigDecimal("100000"), cash.getId(), LocalDate.of(2025, 1, 20)));
 
         JournalEntry payJe = journalEntryRepository
-                .findByReferenceTypeAndReferenceId("AR_PAYMENT", created.id()).orElseThrow();
+                .findByReferenceTypeAndReferenceId(ReferenceTypes.AR_PAYMENT, created.id()).orElseThrow();
         assertThat(payJe.getStatus().name()).isEqualTo("DRAFT");
         assertThat(payJe.isBalanced()).isTrue();
         assertThat(payJe.getTotalDebit()).isEqualByComparingTo("100000");

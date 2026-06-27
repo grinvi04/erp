@@ -1,5 +1,6 @@
 package com.erp.inventory.application.service;
 
+import com.erp.inventory.application.ReferenceTypes;
 import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
@@ -43,7 +44,7 @@ public class StockMovementApprovalInboxContributor implements PendingApprovalCon
 
     private ApprovalSummaryResponse toSummary(Movement m) {
         return new ApprovalSummaryResponse(
-                m.getApprovalRequestId(), "STOCK_MOVEMENT", m.getId(),
+                m.getApprovalRequestId(), ReferenceTypes.STOCK_MOVEMENT, m.getId(),
                 "재고 조정 이동 승인: " + m.getMovementNo(),
                 ApprovalStatus.PENDING, m.getCreatedBy(),
                 1, 1, "재고 조정 이동 승인", null,

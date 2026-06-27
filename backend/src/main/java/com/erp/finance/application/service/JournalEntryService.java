@@ -1,5 +1,6 @@
 package com.erp.finance.application.service;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.audit.AuditLog;
 import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
@@ -34,6 +35,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
@@ -42,8 +44,9 @@ import java.util.List;
 public class JournalEntryService {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final long ENTRY_NO_MODULUS = 100000L;
     private static final int ENTRY_NO_MAX_RETRIES = 10;
+    private static final int ENTRY_NO_SUFFIX_MIN = 10000;
+    private static final int ENTRY_NO_SUFFIX_MAX = 99999;
 
     private final JournalEntryRepository journalEntryRepository;
     private final JournalLineRepository journalLineRepository;
@@ -145,7 +148,7 @@ public class JournalEntryService {
         entry.submitForApproval();
         ApprovalStep step = ApprovalStep.of(1, "GL 전표 전기 승인", ROLE_BASED_APPROVER);
         ApprovalRequest approvalRequest = ApprovalRequest.create(
-            "GL_ENTRY", entry.getId(),
+            ReferenceTypes.GL_ENTRY, entry.getId(),
             "GL 전표 전기 승인: " + entry.getEntryNo(),
             userId, new ArrayList<>(List.of(step)));
         ApprovalRequest saved = approvalRequestRepository.save(approvalRequest);
@@ -184,7 +187,7 @@ public class JournalEntryService {
             approvalRequest.approve(userId, null);
         }
         entry.post(userId);
-        auditService.record("GL_ENTRY", entry.getId(), AuditLog.AuditAction.APPROVE, null, null);
+        auditService.record(ReferenceTypes.GL_ENTRY, entry.getId(), AuditLog.AuditAction.APPROVE, null, null);
         log.atInfo().addKeyValue("event", "JOURNAL_ENTRY_POSTED")
             .addKeyValue("journalEntryId", entry.getId())
             .addKeyValue("entryNo", entry.getEntryNo())
@@ -219,7 +222,7 @@ public class JournalEntryService {
                 .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
             approvalRequest.reject(userId, comment);
         }
-        auditService.record("GL_ENTRY", entry.getId(), AuditLog.AuditAction.REJECT, null, null);
+        auditService.record(ReferenceTypes.GL_ENTRY, entry.getId(), AuditLog.AuditAction.REJECT, null, null);
         log.atInfo().addKeyValue("event", "JOURNAL_ENTRY_REJECTED")
             .addKeyValue("journalEntryId", entry.getId())
             .addKeyValue("entryNo", entry.getEntryNo())
@@ -247,7 +250,7 @@ public class JournalEntryService {
                 .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
             approvalRequest.cancel(userId, null);
         }
-        auditService.record("GL_ENTRY", entry.getId(), AuditLog.AuditAction.WITHDRAW, null, null);
+        auditService.record(ReferenceTypes.GL_ENTRY, entry.getId(), AuditLog.AuditAction.WITHDRAW, null, null);
         log.atInfo().addKeyValue("event", "JOURNAL_ENTRY_WITHDRAWN")
             .addKeyValue("journalEntryId", entry.getId())
             .addKeyValue("entryNo", entry.getEntryNo())
@@ -263,7 +266,8 @@ public class JournalEntryService {
     private String generateEntryNo(LocalDate date) {
         String base = "JE-" + date.format(DATE_FMT) + "-";
         for (int i = 0; i < ENTRY_NO_MAX_RETRIES; i++) {
-            String entryNo = base + String.format("%05d", System.currentTimeMillis() % ENTRY_NO_MODULUS);
+            int suffix = ThreadLocalRandom.current().nextInt(ENTRY_NO_SUFFIX_MIN, ENTRY_NO_SUFFIX_MAX + 1);
+            String entryNo = base + suffix;
             if (!journalEntryRepository.existsByEntryNo(entryNo)) {
                 return entryNo;
             }
