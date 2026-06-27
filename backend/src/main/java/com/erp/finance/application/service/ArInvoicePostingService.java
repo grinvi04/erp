@@ -34,6 +34,7 @@ public class ArInvoicePostingService {
     private final JournalEntryService journalEntryService;
     private final FiscalPeriodRepository fiscalPeriodRepository;
     private final JournalEntryRepository journalEntryRepository;
+    private final FxPaymentJournalFactory fxPaymentJournalFactory;
 
     /**
      * 승인된 AR 전표의 DRAFT 분개를 생성하고 분개 ID를 반환한다. 라인이 없거나 고객에
@@ -79,6 +80,10 @@ public class ArInvoicePostingService {
     /**
      * 수금 시 DRAFT 분개(AP 지급의 반전): <pre>(차) 현금·예금 [수금계정]  (대) 외상매출금 [고객 통제계정] = 수금액</pre>
      * 외상매출금 통제계정·수금계정이 없으면 전기하지 않고 {@code null}을 반환한다.
+     *
+     * <p>외화 수금으로 수금환율이 인보이스 스냅샷 환율과 다르면 실현 환차손익 라인을 추가해 기준통화로 기록한다
+     * (AP 지급의 부호 반전 — 더 수금 시 환차이익, 덜 수금 시 환차손). 조건 미충족 시 원통화 2라인으로 폴백
+     * ({@link FxPaymentJournalFactory}).
      */
     @Transactional
     public Long postPaymentDraft(ArInvoice invoice, BigDecimal amount, Account cashAccount, LocalDate paymentDate) {
@@ -90,15 +95,13 @@ public class ArInvoicePostingService {
             .findByStartDateLessThanEqualAndEndDateGreaterThanEqual(paymentDate, paymentDate)
             .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_PERIOD_NOT_FOUND));
 
-        List<JournalLineRequest> lines = List.of(
-            new JournalLineRequest(cashAccount.getId(), amount, BigDecimal.ZERO,
-                "수금: " + invoice.getInvoiceNo(), null),
-            new JournalLineRequest(receivables.getId(), BigDecimal.ZERO, amount,
-                "외상매출금 회수: " + invoice.getInvoiceNo(), null));
+        FxPaymentJournalFactory.PaymentLines payment = fxPaymentJournalFactory.build(
+            FxPaymentJournalFactory.Side.AR, invoice.getInvoiceNo(), invoice.getCurrency(),
+            invoice.getExchangeRate(), receivables, cashAccount, amount, paymentDate);
 
         JournalEntryCreateRequest request = new JournalEntryCreateRequest(
             paymentDate, period.getId(),
-            "AR 수금 " + invoice.getInvoiceNo(), JournalEntryType.AR, invoice.getCurrency(), lines);
+            "AR 수금 " + invoice.getInvoiceNo(), JournalEntryType.AR, payment.currency(), payment.lines());
 
         Long journalEntryId = journalEntryService.createInternal(request).id();
         journalEntryRepository.findById(journalEntryId)

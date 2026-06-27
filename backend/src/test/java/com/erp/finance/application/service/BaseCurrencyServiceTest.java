@@ -6,7 +6,11 @@ import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.BaseCurrencyResponse;
 import com.erp.finance.application.dto.BaseCurrencyUpdateRequest;
+import com.erp.finance.application.dto.FxGainLossAccountResponse;
+import com.erp.finance.application.dto.FxGainLossAccountUpdateRequest;
+import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.TenantBaseCurrency;
+import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
@@ -24,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class BaseCurrencyServiceTest {
@@ -32,6 +37,7 @@ class BaseCurrencyServiceTest {
     @Mock private ApInvoiceRepository apInvoiceRepository;
     @Mock private ArInvoiceRepository arInvoiceRepository;
     @Mock private JournalEntryRepository journalEntryRepository;
+    @Mock private AccountRepository accountRepository;
     @Mock private PermissionChecker permissionChecker;
 
     @InjectMocks private BaseCurrencyService baseCurrencyService;
@@ -113,6 +119,66 @@ class BaseCurrencyServiceTest {
 
         ErpException ex = assertThrows(ErpException.class, () ->
             baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("USD")));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+    }
+
+    @Test
+    void getFxGainLossAccounts_existing_returnsAccountIds() {
+        // AC-1 조회: 설정된 환차이익·환차손 계정 ID 반환.
+        Account gain = mock(Account.class);
+        Account loss = mock(Account.class);
+        given(gain.getId()).willReturn(10L);
+        given(loss.getId()).willReturn(20L);
+        TenantBaseCurrency entity = TenantBaseCurrency.of("USD");
+        entity.assignFxAccounts(gain, loss);
+        given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(entity));
+
+        FxGainLossAccountResponse result = baseCurrencyService.getFxGainLossAccounts();
+
+        assertThat(result.fxGainAccountId()).isEqualTo(10L);
+        assertThat(result.fxLossAccountId()).isEqualTo(20L);
+    }
+
+    @Test
+    void getFxGainLossAccounts_noSetting_returnsNulls() {
+        given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.empty());
+
+        FxGainLossAccountResponse result = baseCurrencyService.getFxGainLossAccounts();
+
+        assertThat(result.fxGainAccountId()).isNull();
+        assertThat(result.fxLossAccountId()).isNull();
+    }
+
+    @Test
+    void updateFxGainLossAccounts_setsBothAccounts() {
+        // AC-1 변경: 환차이익·환차손 계정 지정 → 설정 저장·응답.
+        Account gain = mock(Account.class);
+        Account loss = mock(Account.class);
+        given(gain.getId()).willReturn(10L);
+        given(loss.getId()).willReturn(20L);
+        given(accountRepository.findById(10L)).willReturn(Optional.of(gain));
+        given(accountRepository.findById(20L)).willReturn(Optional.of(loss));
+        TenantBaseCurrency entity = TenantBaseCurrency.of("USD");
+        given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(entity));
+
+        FxGainLossAccountResponse result = baseCurrencyService.updateFxGainLossAccounts(
+            new FxGainLossAccountUpdateRequest(10L, 20L));
+
+        assertThat(result.fxGainAccountId()).isEqualTo(10L);
+        assertThat(result.fxLossAccountId()).isEqualTo(20L);
+        assertThat(entity.getFxGainAccount()).isSameAs(gain);
+        assertThat(entity.getFxLossAccount()).isSameAs(loss);
+    }
+
+    @Test
+    void updateFxGainLossAccounts_withoutPermission_throwsForbidden() {
+        // AC-10: FINANCE_SETTING_WRITE 없으면 403.
+        doThrow(new ErpException(ErrorCode.FORBIDDEN))
+            .when(permissionChecker).require(Permission.FINANCE_SETTING_WRITE);
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            baseCurrencyService.updateFxGainLossAccounts(new FxGainLossAccountUpdateRequest(10L, 20L)));
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
     }

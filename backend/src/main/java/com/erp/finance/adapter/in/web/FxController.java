@@ -5,6 +5,8 @@ import com.erp.finance.application.dto.BaseCurrencyResponse;
 import com.erp.finance.application.dto.BaseCurrencyUpdateRequest;
 import com.erp.finance.application.dto.ExchangeRateCreateRequest;
 import com.erp.finance.application.dto.ExchangeRateResponse;
+import com.erp.finance.application.dto.FxGainLossAccountResponse;
+import com.erp.finance.application.dto.FxGainLossAccountUpdateRequest;
 import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.application.service.ExchangeRateService;
 import jakarta.validation.Valid;
@@ -40,6 +42,17 @@ public class FxController {
     public ResponseEntity<ApiResponse<BaseCurrencyResponse>> updateBaseCurrency(
         @Valid @RequestBody BaseCurrencyUpdateRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(baseCurrencyService.updateBaseCurrency(request)));
+    }
+
+    @GetMapping("/gain-loss-accounts")
+    public ResponseEntity<ApiResponse<FxGainLossAccountResponse>> getFxGainLossAccounts() {
+        return ResponseEntity.ok(ApiResponse.ok(baseCurrencyService.getFxGainLossAccounts()));
+    }
+
+    @PutMapping("/gain-loss-accounts")
+    public ResponseEntity<ApiResponse<FxGainLossAccountResponse>> updateFxGainLossAccounts(
+        @Valid @RequestBody FxGainLossAccountUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(baseCurrencyService.updateFxGainLossAccounts(request)));
     }
 
     @GetMapping("/rates")
