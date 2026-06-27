@@ -24,6 +24,7 @@ import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.CustomerRepository;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -151,6 +153,11 @@ public class ArInvoiceService {
         }
         auditService.record("AR_INVOICE", invoice.getId(),
             AuditLog.AuditAction.APPROVE, null, null);
+        log.atInfo().addKeyValue("event", "AR_INVOICE_APPROVED")
+            .addKeyValue("arInvoiceId", invoice.getId())
+            .addKeyValue("invoiceNo", invoice.getInvoiceNo())
+            .addKeyValue("totalAmount", invoice.getTotalAmount())
+            .log("AR 인보이스 승인");
         return ArInvoiceResponse.from(invoice);
     }
 
@@ -174,6 +181,11 @@ public class ArInvoiceService {
                 ? request.paymentDate() : invoice.getInvoiceDate();
             arInvoicePostingService.postPaymentDraft(invoice, request.amount(), cashAccount, paymentDate);
         }
+        log.atInfo().addKeyValue("event", "AR_INVOICE_COLLECTED")
+            .addKeyValue("arInvoiceId", invoice.getId())
+            .addKeyValue("invoiceNo", invoice.getInvoiceNo())
+            .addKeyValue("collectedAmount", request.amount())
+            .log("AR 인보이스 수금");
         return ArInvoiceResponse.from(invoice);
     }
 
