@@ -16,14 +16,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -153,6 +148,69 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
   // 부모 선택지: 같은 창고의 로케이션 중 자기 자신 제외
   const parentOptions = (selfId?: number) => locations.filter((l) => l.id !== selfId)
 
+  const columns: Column<Location>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (l) => l.code,
+      cell: (l) => <span className="font-mono text-sm">{l.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '로케이션명',
+      sortable: true,
+      sortValue: (l) => l.name,
+      cell: (l) => <span className="font-medium">{l.name}</span>,
+    },
+    {
+      key: 'type',
+      header: '유형',
+      sortable: true,
+      sortValue: (l) => l.locationType,
+      cell: (l) => <span className="text-sm text-muted-foreground">{l.locationType}</span>,
+    },
+    {
+      key: 'parent',
+      header: '상위 로케이션',
+      cell: (l) => <span className="text-sm text-muted-foreground">{l.parentName ?? '—'}</span>,
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (l) => (l.active ? 0 : 1),
+      cell: (l) => (
+        <Badge variant={l.active ? 'default' : 'secondary'}>{l.active ? '활성' : '비활성'}</Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (loc) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(loc)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && loc.active && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="비활성화"
+              onClick={() => setDialog({ type: 'deactivate', loc })}
+            >
+              <BanIcon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   const locationForm = (selfId?: number) => (
     <div className="grid gap-4 py-2">
       {dialog.type === 'create' && (
@@ -213,19 +271,17 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">로케이션 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            창고 내 보관 위치(로케이션)를 관리합니다
-          </p>
-        </div>
+      <PageHeader
+        title="로케이션 관리"
+        description="창고 내 보관 위치(로케이션)를 관리합니다"
+        className="mb-6"
+      >
         {canWrite && hasWarehouse && (
           <Button onClick={openCreate}>
             <PlusIcon />새 로케이션
           </Button>
         )}
-      </div>
+      </PageHeader>
 
       <div className="mb-4 flex items-center gap-2">
         <Label className="text-sm text-muted-foreground">창고</Label>
@@ -247,75 +303,19 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
         </Select>
       </div>
 
-      <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>로케이션명</TableHead>
-              <TableHead>유형</TableHead>
-              <TableHead>상위 로케이션</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {!hasWarehouse && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                  창고를 먼저 등록해주세요
-                </TableCell>
-              </TableRow>
-            )}
-            {hasWarehouse && locations.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                  등록된 로케이션이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {locations.map((loc) => (
-              <TableRow key={loc.id}>
-                <TableCell className="font-mono text-sm">{loc.code}</TableCell>
-                <TableCell className="font-medium">{loc.name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{loc.locationType}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {loc.parentName ?? '—'}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={loc.active ? 'default' : 'secondary'}>
-                    {loc.active ? '활성' : '비활성'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="수정"
-                        onClick={() => openEdit(loc)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && loc.active && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="비활성화"
-                        onClick={() => setDialog({ type: 'deactivate', loc })}
-                      >
-                        <BanIcon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={locations}
+        columns={columns}
+        getRowId={(l) => l.id}
+        empty={
+          <EmptyState
+            title={hasWarehouse ? '등록된 로케이션이 없습니다' : '창고를 먼저 등록해주세요'}
+            description={
+              hasWarehouse && canWrite ? '우측 상단에서 새 로케이션을 등록하세요.' : undefined
+            }
+          />
+        }
+      />
 
       {/* Create Dialog */}
       <Dialog

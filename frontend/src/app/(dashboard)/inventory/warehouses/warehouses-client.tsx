@@ -16,14 +16,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import { createWarehouse, updateWarehouse, deactivateWarehouse } from './actions'
 import type { Warehouse } from '@/types/inventory'
 
@@ -113,80 +108,87 @@ export default function WarehousesClient({ warehouses }: Props) {
     })
   }
 
+  const columns: Column<Warehouse>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (w) => w.code,
+      cell: (w) => <span className="font-mono text-sm">{w.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '창고명',
+      sortable: true,
+      sortValue: (w) => w.name,
+      cell: (w) => <span className="font-medium">{w.name}</span>,
+    },
+    {
+      key: 'address',
+      header: '주소',
+      cell: (w) => (
+        <span className="block max-w-xs truncate text-sm text-muted-foreground">
+          {w.address ?? '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (w) => (w.active ? 0 : 1),
+      cell: (w) => (
+        <Badge variant={w.active ? 'default' : 'secondary'}>{w.active ? '활성' : '비활성'}</Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (wh) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(wh)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && wh.active && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="비활성화"
+              onClick={() => setDialog({ type: 'deactivate', wh })}
+            >
+              <BanIcon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">창고 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">물류 창고 정보를 관리합니다</p>
-        </div>
+      <PageHeader title="창고 관리" description="물류 창고 정보를 관리합니다" className="mb-6">
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 창고
           </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>창고명</TableHead>
-              <TableHead>주소</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {warehouses.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                  등록된 창고가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {warehouses.map((wh) => (
-              <TableRow key={wh.id}>
-                <TableCell className="font-mono text-sm">{wh.code}</TableCell>
-                <TableCell className="font-medium">{wh.name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                  {wh.address ?? '—'}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={wh.active ? 'default' : 'secondary'}>
-                    {wh.active ? '활성' : '비활성'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="수정"
-                        onClick={() => openEdit(wh)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && wh.active && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="비활성화"
-                        onClick={() => setDialog({ type: 'deactivate', wh })}
-                      >
-                        <BanIcon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={warehouses}
+        columns={columns}
+        getRowId={(w) => w.id}
+        empty={
+          <EmptyState
+            title="등록된 창고가 없습니다"
+            description={canWrite ? '우측 상단에서 새 창고를 등록하세요.' : undefined}
+          />
+        }
+      />
 
       {/* Create Dialog */}
       <Dialog

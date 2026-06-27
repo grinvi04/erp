@@ -14,14 +14,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -125,6 +120,53 @@ export default function ItemCategoriesClient({ categories }: Props) {
   // 부모 선택지: 자기 자신 제외 (순환 방지)
   const parentOptions = (selfId?: number) => categories.filter((c) => c.id !== selfId)
 
+  const columns: Column<ItemCategory>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (c) => c.code,
+      cell: (c) => <span className="font-mono text-sm">{c.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '분류명',
+      sortable: true,
+      sortValue: (c) => c.name,
+      cell: (c) => <span className="font-medium">{c.name}</span>,
+    },
+    {
+      key: 'parent',
+      header: '상위분류',
+      cell: (c) => <span className="text-sm text-muted-foreground">{c.parentName ?? '—'}</span>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (cat) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(cat)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="삭제"
+              onClick={() => setDialog({ type: 'delete', cat })}
+            >
+              <Trash2Icon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   const parentField = (selfId?: number) => (
     <div className="grid gap-1.5">
       <Label>상위분류</Label>
@@ -149,72 +191,25 @@ export default function ItemCategoriesClient({ categories }: Props) {
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">품목분류 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">품목 분류 체계를 관리합니다</p>
-        </div>
+      <PageHeader title="품목분류 관리" description="품목 분류 체계를 관리합니다" className="mb-6">
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 분류
           </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>분류명</TableHead>
-              <TableHead>상위분류</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categories.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
-                  등록된 품목분류가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {categories.map((cat) => (
-              <TableRow key={cat.id}>
-                <TableCell className="font-mono text-sm">{cat.code}</TableCell>
-                <TableCell className="font-medium">{cat.name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {cat.parentName ?? '—'}
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="수정"
-                        onClick={() => openEdit(cat)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="삭제"
-                        onClick={() => setDialog({ type: 'delete', cat })}
-                      >
-                        <Trash2Icon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={categories}
+        columns={columns}
+        getRowId={(c) => c.id}
+        empty={
+          <EmptyState
+            title="등록된 품목분류가 없습니다"
+            description={canWrite ? '우측 상단에서 새 분류를 등록하세요.' : undefined}
+          />
+        }
+      />
 
       {/* Create Dialog */}
       <Dialog
