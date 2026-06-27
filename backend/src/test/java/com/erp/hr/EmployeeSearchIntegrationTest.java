@@ -14,15 +14,10 @@ import com.erp.hr.domain.model.Position;
 import com.erp.hr.domain.repository.DepartmentRepository;
 import com.erp.hr.domain.repository.EmployeeRepository;
 import com.erp.hr.domain.repository.PositionRepository;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -50,11 +45,6 @@ class EmployeeSearchIntegrationTest extends AbstractIntegrationTest {
         authenticate("user-search");
     }
 
-    @AfterEach
-    void clearAuth() {
-        SecurityContextHolder.clearContext();
-    }
-
     private void save(String empNo, String lastName, String firstName, Department dept, Position pos) {
         PersonalInfo info = new PersonalInfo(lastName, firstName, LocalDate.of(1990, 1, 1),
                 PersonalInfo.Gender.MALE, null, null, null);
@@ -65,10 +55,7 @@ class EmployeeSearchIntegrationTest extends AbstractIntegrationTest {
     }
 
     private void authenticate(String sub) {
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject(sub)
-                .claim("sub", sub).claim("tenant_id", TEST_TENANT_ID).build();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
-                List.of(new SimpleGrantedAuthority("hr:employee:read"))));
+        authenticate(sub, "hr:employee:read");
         accessProfileRepository.save(UserAccessProfile.of(TEST_TENANT_ID, sub, DataScope.ALL, null, null));
     }
 

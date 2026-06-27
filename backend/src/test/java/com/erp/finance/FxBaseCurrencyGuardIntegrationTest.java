@@ -11,16 +11,8 @@ import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.VendorRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,19 +29,6 @@ class FxBaseCurrencyGuardIntegrationTest extends AbstractIntegrationTest {
     @Autowired private BaseCurrencyService baseCurrencyService;
     @Autowired private ApInvoiceRepository apInvoiceRepository;
     @Autowired private VendorRepository vendorRepository;
-
-    @AfterEach
-    void clear() {
-        SecurityContextHolder.clearContext();
-    }
-
-    private void authenticate(String sub, String... authorities) {
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none")
-            .subject(sub).claim("sub", sub).claim("tenant_id", TEST_TENANT_ID).build();
-        List<GrantedAuthority> auths = Arrays.stream(authorities)
-            .map(a -> (GrantedAuthority) new SimpleGrantedAuthority(a)).toList();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, auths));
-    }
 
     private void seedPricedApInvoice() {
         Vendor vendor = vendorRepository.save(Vendor.of(

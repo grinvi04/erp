@@ -32,14 +32,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,17 +64,8 @@ class InventoryAnalyticsIntegrationTest extends AbstractIntegrationTest {
     private Warehouse whInactive;
     private Location locX;
 
-    @AfterEach
-    void clearAuth() {
-        SecurityContextHolder.clearContext();
-    }
-
     private void authenticate(List<String> permissions) {
-        String sub = "user-inv";
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject(sub)
-                .claim("sub", sub).claim("tenant_id", TEST_TENANT_ID).build();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
-                permissions.stream().map(SimpleGrantedAuthority::new).toList()));
+        authenticate("user-inv", permissions.toArray(new String[0]));
     }
 
     private void authenticated() {

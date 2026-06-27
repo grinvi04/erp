@@ -13,16 +13,10 @@ import com.erp.hr.domain.repository.DepartmentRepository;
 import com.erp.hr.domain.repository.PositionRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,19 +41,7 @@ class EmployeeOptimisticLockIntegrationTest extends AbstractIntegrationTest {
     void setUp() {
         deptId = departmentRepository.save(Department.createRoot("DEV", "개발팀")).getId();
         posId = positionRepository.save(Position.of("P001", "Engineer", 2)).getId();
-        authenticate("hr-admin");
-    }
-
-    @AfterEach
-    void clear() {
-        SecurityContextHolder.clearContext();
-    }
-
-    private void authenticate(String sub) {
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject(sub).claim("sub", sub).build();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
-                List.of(new SimpleGrantedAuthority("hr:employee:write"),
-                        new SimpleGrantedAuthority("hr:employee:read"))));
+        authenticate("hr-admin", "hr:employee:write", "hr:employee:read");
     }
 
     private EmployeeResponse createEmployee() {
