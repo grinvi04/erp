@@ -1,17 +1,13 @@
-version: '3.9'
-
 # 로컬 개발 인프라: PostgreSQL + Keycloak
 # 앱(백엔드·프론트엔드)은 로컬에서 직접 실행한다.
 #
 # 사용법:
 #   docker compose up -d
+#   ./scripts/keycloak-setup.sh        # realm erp · client · 테스트 계정 (최초 1회·멱등)
 #   헬스체크: curl -sf http://localhost:8080/actuator/health   (백엔드 기동 후)
-#              curl -sf http://localhost:8180/health/ready      (Keycloak)
 #
-# Keycloak 초기 설정 (최초 1회):
-#   http://localhost:8180 → admin/admin 로그인 → Create realm: erp
-#   → Create client: erp-frontend (OpenID Connect, Standard flow)
-#   → Client secret 복사 → frontend/.env.local 에 AUTH_KEYCLOAK_SECRET 설정
+# postgres 최초 기동 시 init 스크립트가 Keycloak용 `keycloak` 스키마를 생성한다
+# (Keycloak 26은 KC_DB_SCHEMA 스키마를 자동 생성하지 않으므로 필수). 상세 셋업은 README.
 
 services:
   postgres:
@@ -25,6 +21,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # 최초 기동 시 Keycloak 스키마 자동 생성 (docker compose down -v 후 재기동 시에도)
+      - ./scripts/init-keycloak-schema.sql:/docker-entrypoint-initdb.d/init-keycloak-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U erp -d erp"]
       interval: 10s
@@ -49,7 +47,10 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health/ready || exit 1"]
+      # Keycloak 26 이미지에는 curl/wget이 없고 9000 health 엔드포인트도 기본 비활성이라
+      # HTTP 프로브는 항상 실패(unhealthy 오탐)한다. 컨테이너 sh의 /dev/tcp로 8080 리슨을
+      # TCP 프로브한다.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080"]
       interval: 15s
       timeout: 5s
       retries: 10
