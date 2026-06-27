@@ -52,6 +52,14 @@ export function DataTable<T>({
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(initialSort ?? null)
   const [selected, setSelected] = useState<Set<string | number>>(new Set())
 
+  // 데이터(페이지·검색)가 바뀌면 선택 초기화 — 서버 페이지네이션 간 선택 누수 방지.
+  // effect 대신 렌더 중 prop 변경 감지(React 권장 "이전 값 저장" 패턴).
+  const [prevData, setPrevData] = useState(data)
+  if (prevData !== data) {
+    setPrevData(data)
+    setSelected(new Set())
+  }
+
   const sorted = useMemo(() => {
     if (!sort) return data
     const col = columns.find((c) => c.key === sort.key)
@@ -123,19 +131,26 @@ export function DataTable<T>({
                     checked={allChecked}
                     indeterminate={someChecked}
                     onCheckedChange={() => toggleAll()}
-                    aria-label="전체 선택"
+                    aria-label="이 페이지 전체 선택"
                   />
                 </TableHead>
               )}
-              {columns.map((col) => (
+              {columns.map((col) => {
+                const isSortable = col.sortable && !!col.sortValue
+                const ariaSort = isSortable
+                  ? (sort?.key === col.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none')
+                  : undefined
+                return (
                 <TableHead
                   key={col.key}
+                  aria-sort={ariaSort}
                   className={cn(col.align === 'right' && 'text-right', col.align === 'center' && 'text-center', col.headerClassName)}
                 >
-                  {col.sortable && col.sortValue ? (
+                  {isSortable ? (
                     <button
                       type="button"
                       onClick={() => toggleSort(col.key)}
+                      aria-label={`${typeof col.header === 'string' ? col.header : col.key} 기준 정렬`}
                       className={cn('inline-flex items-center gap-1 font-medium transition-colors hover:text-foreground', col.align === 'right' && 'flex-row-reverse')}
                     >
                       {col.header}
@@ -147,7 +162,8 @@ export function DataTable<T>({
                     col.header
                   )}
                 </TableHead>
-              ))}
+                )
+              })}
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -14,6 +14,7 @@ import {
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import { FormField } from '@/components/ui/form-field'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -49,10 +50,12 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
   const [contactPhone, setContactPhone] = useState('')
   const [paymentTerms, setPaymentTerms] = useState('30')
   const [payablesAccountId, setPayablesAccountId] = useState('')
+  const [errors, setErrors] = useState<{ code?: string; name?: string }>({})
 
   const openCreate = () => {
     setCode(''); setName(''); setBusinessNo(''); setContactName('')
     setContactEmail(''); setContactPhone(''); setPaymentTerms('30'); setPayablesAccountId('')
+    setErrors({})
     setDialog({ type: 'create' })
   }
 
@@ -61,11 +64,16 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
     setContactName(vendor.contactName ?? ''); setContactEmail(vendor.contactEmail ?? '')
     setContactPhone(vendor.contactPhone ?? ''); setPaymentTerms(String(vendor.paymentTerms))
     setPayablesAccountId(vendor.payablesAccountId != null ? String(vendor.payablesAccountId) : '')
+    setErrors({})
     setDialog({ type: 'edit', vendor })
   }
 
   const handleCreate = () => {
-    if (!code.trim() || !name.trim()) { toast.error('코드와 업체명은 필수입니다'); return }
+    const errs: { code?: string; name?: string } = {}
+    if (!code.trim()) errs.code = '코드를 입력하세요'
+    if (!name.trim()) errs.name = '업체명을 입력하세요'
+    setErrors(errs)
+    if (errs.code || errs.name) return
     startTransition(async () => {
       try {
         await createVendor({
@@ -82,7 +90,8 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
   }
 
   const handleUpdate = (vendor: Vendor) => {
-    if (!name.trim()) { toast.error('업체명은 필수입니다'); return }
+    if (!name.trim()) { setErrors({ name: '업체명을 입력하세요' }); return }
+    setErrors({})
     startTransition(async () => {
       try {
         await updateVendor(vendor.id, {
@@ -149,14 +158,18 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
   const vendorForm = (
     <div className="grid gap-4 py-2">
       <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>코드 *</Label>
-          <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="V001" disabled={dialog.type === 'edit'} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>업체명 *</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
+        <FormField label="코드" required error={errors.code}>
+          <Input
+            value={code} placeholder="V001" disabled={dialog.type === 'edit'} aria-invalid={!!errors.code}
+            onChange={(e) => { setCode(e.target.value); if (errors.code) setErrors((p) => ({ ...p, code: undefined })) }}
+          />
+        </FormField>
+        <FormField label="업체명" required error={errors.name}>
+          <Input
+            value={name} aria-invalid={!!errors.name}
+            onChange={(e) => { setName(e.target.value); if (errors.name) setErrors((p) => ({ ...p, name: undefined })) }}
+          />
+        </FormField>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-1.5">

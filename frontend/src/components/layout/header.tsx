@@ -1,8 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import { useTheme } from 'next-themes'
-import { Menu, Search, Bell, Sun, Moon, LogOut, UserRound } from 'lucide-react'
+import { Menu, Search, Sun, Moon, LogOut, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -12,11 +13,24 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SidebarNav } from '@/components/layout/sidebar'
+import { CommandPalette } from '@/components/layout/command-palette'
 
 export function Header() {
   const { data: session } = useSession()
   const email = session?.user?.email ?? ''
   const initials = email ? email.slice(0, 2).toUpperCase() : 'ER'
+
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((o) => !o)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur-md lg:px-6">
@@ -33,26 +47,23 @@ export function Header() {
         </SheetContent>
       </Sheet>
 
-      {/* 검색 트리거 */}
+      {/* 검색 — 커맨드 팔레트 트리거 */}
       <button
         type="button"
+        onClick={() => setPaletteOpen(true)}
         className="group flex h-9 w-full max-w-xs items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted"
       >
         <Search className="h-4 w-4" />
-        <span className="flex-1 text-left">검색…</span>
+        <span className="flex-1 text-left">페이지 검색…</span>
         <kbd className="hidden items-center gap-0.5 rounded border border-border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-flex">
           ⌘K
         </kbd>
       </button>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
 
       <div className="flex-1" />
 
       <ThemeToggle />
-
-      <Button variant="ghost" size="icon" className="relative" aria-label="알림">
-        <Bell className="h-[18px] w-[18px]" />
-        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
-      </Button>
 
       <Separator orientation="vertical" className="h-6" />
 

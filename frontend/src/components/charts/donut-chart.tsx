@@ -1,6 +1,6 @@
 'use client'
 
-import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { formatMoneyOne } from '@/lib/money'
 
 export type DonutDatum = { label: string; value: number; color?: string }
@@ -49,6 +49,12 @@ export function DonutChart({
                 <Cell key={i} fill={d.color} />
               ))}
             </Pie>
+            {total > 0 && (
+              <Tooltip
+                cursor={false}
+                content={({ active, payload }) => <DonutTooltip active={active} payload={payload} valueFormat={valueFormat} />}
+              />
+            )}
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
@@ -77,4 +83,25 @@ function formatValue(v: number, fmt: ValueFormat): string {
     case 'suffix': return `${v.toLocaleString('ko-KR')}${fmt.suffix}`
     default: return v.toLocaleString('ko-KR')
   }
+}
+
+function DonutTooltip({
+  active, payload, valueFormat,
+}: {
+  active?: boolean
+  payload?: ReadonlyArray<{ payload?: { label?: string; value?: number; color?: string } }>
+  valueFormat: ValueFormat
+}) {
+  if (!active || !payload?.length) return null
+  const d = payload[0]?.payload
+  if (!d) return null
+  return (
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md">
+      <div className="flex items-center gap-2">
+        <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: d.color }} />
+        <span className="text-muted-foreground">{d.label}</span>
+        <span className="ml-1 font-medium tabular-nums text-popover-foreground">{formatValue(d.value ?? 0, valueFormat)}</span>
+      </div>
+    </div>
+  )
 }
