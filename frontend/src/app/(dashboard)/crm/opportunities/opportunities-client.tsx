@@ -16,14 +16,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -283,88 +278,111 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
     </div>
   )
 
+  const columns: Column<Opportunity>[] = [
+    {
+      key: 'name',
+      header: '기회명',
+      sortable: true,
+      sortValue: (opp) => opp.name,
+      cell: (opp) => <span className="font-medium">{opp.name}</span>,
+    },
+    {
+      key: 'accountName',
+      header: '고객사',
+      sortable: true,
+      sortValue: (opp) => opp.accountName,
+      cell: (opp) => <span className="text-sm text-foreground">{opp.accountName}</span>,
+    },
+    {
+      key: 'stage',
+      header: '단계',
+      sortable: true,
+      sortValue: (opp) => opp.stageName,
+      cell: (opp) => <Badge variant="secondary">{opp.stageName}</Badge>,
+    },
+    {
+      key: 'amount',
+      header: '금액',
+      align: 'right',
+      sortable: true,
+      sortValue: (opp) => opp.amount,
+      cell: (opp) => (
+        <span className="font-mono text-sm">{formatAmount(opp.amount, opp.currency)}</span>
+      ),
+    },
+    {
+      key: 'probability',
+      header: '확률(%)',
+      align: 'right',
+      sortable: true,
+      sortValue: (opp) => opp.probability,
+      cell: (opp) => <span className="text-sm">{opp.probability}%</span>,
+    },
+    {
+      key: 'closeDate',
+      header: '예상 종결일',
+      sortable: true,
+      sortValue: (opp) => opp.closeDate,
+      cell: (opp) => <span className="text-sm text-muted-foreground">{opp.closeDate ?? '—'}</span>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (opp) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <>
+              <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(opp)}>
+                <PencilIcon />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                title="삭제"
+                onClick={() => setDialog({ type: 'delete', opp })}
+              >
+                <Trash2Icon className="text-destructive" />
+              </Button>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">영업 기회</h1>
-          <p className="text-sm text-muted-foreground mt-1">영업 파이프라인을 관리합니다</p>
-        </div>
+      <PageHeader title="영업 기회" description="영업 파이프라인을 관리합니다" className="mb-6">
         {canWrite && (
           <Button onClick={openCreate} disabled={stages.length === 0}>
             <PlusIcon />새 영업기회
           </Button>
         )}
-      </div>
+      </PageHeader>
       {stages.length === 0 && (
         <div className="mb-4 rounded-md border border-warning/20 bg-warning/10 px-4 py-2 text-sm text-warning">
           영업 기회를 등록하려면 먼저 파이프라인 단계를 1개 이상 정의해야 합니다.
         </div>
       )}
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>기회명</TableHead>
-              <TableHead>고객사</TableHead>
-              <TableHead>단계</TableHead>
-              <TableHead className="text-right">금액</TableHead>
-              <TableHead className="text-right">확률(%)</TableHead>
-              <TableHead>예상 종결일</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
-                  등록된 영업 기회가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((opp) => (
-              <TableRow key={opp.id}>
-                <TableCell className="font-medium">{opp.name}</TableCell>
-                <TableCell className="text-sm text-foreground">{opp.accountName}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{opp.stageName}</Badge>
-                </TableCell>
-                <TableCell className="text-right font-mono text-sm">
-                  {formatAmount(opp.amount, opp.currency)}
-                </TableCell>
-                <TableCell className="text-right text-sm">{opp.probability}%</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {opp.closeDate ?? '—'}
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="수정"
-                          onClick={() => openEdit(opp)}
-                        >
-                          <PencilIcon />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="삭제"
-                          onClick={() => setDialog({ type: 'delete', opp })}
-                        >
-                          <Trash2Icon className="text-destructive" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(opp) => opp.id}
+          empty={
+            <EmptyState
+              title="등록된 영업 기회가 없습니다"
+              description={
+                canWrite && stages.length > 0
+                  ? '우측 상단에서 새 영업 기회를 등록하세요.'
+                  : undefined
+              }
+            />
+          }
+        />
         <PaginationBar
           page={data.page}
           totalPages={data.totalPages}

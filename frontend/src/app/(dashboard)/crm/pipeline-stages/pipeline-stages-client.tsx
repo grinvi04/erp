@@ -15,14 +15,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   createPipelineStage,
   updatePipelineStage,
@@ -196,80 +191,96 @@ export default function PipelineStagesClient({ stages }: Props) {
     </div>
   )
 
+  const columns: Column<PipelineStage>[] = [
+    {
+      key: 'stageOrder',
+      header: '순서',
+      headerClassName: 'w-20',
+      sortable: true,
+      sortValue: (stage) => stage.stageOrder,
+      cell: (stage) => <span className="font-mono text-sm">{stage.stageOrder}</span>,
+    },
+    {
+      key: 'name',
+      header: '단계명',
+      sortable: true,
+      sortValue: (stage) => stage.name,
+      cell: (stage) => <span className="font-medium">{stage.name}</span>,
+    },
+    {
+      key: 'probability',
+      header: '기본 확률',
+      align: 'right',
+      sortable: true,
+      sortValue: (stage) => stage.probability,
+      cell: (stage) => <span className="text-sm">{stage.probability}%</span>,
+    },
+    {
+      key: 'closed',
+      header: '종결',
+      cell: (stage) => (
+        <>
+          {stage.isClosedWon && <Badge>성공</Badge>}
+          {stage.isClosedLost && <Badge variant="destructive">실패</Badge>}
+          {!stage.isClosedWon && !stage.isClosedLost && (
+            <span className="text-sm text-muted-foreground">진행</span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (stage) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <>
+              <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(stage)}>
+                <PencilIcon />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                title="삭제"
+                onClick={() => setDialog({ type: 'delete', stage })}
+              >
+                <Trash2Icon className="text-destructive" />
+              </Button>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">파이프라인 단계</h1>
-          <p className="text-sm text-muted-foreground mt-1">영업 기회의 진행 단계를 정의합니다</p>
-        </div>
+      <PageHeader
+        title="파이프라인 단계"
+        description="영업 기회의 진행 단계를 정의합니다"
+        className="mb-6"
+      >
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 단계
           </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-20">순서</TableHead>
-              <TableHead>단계명</TableHead>
-              <TableHead className="text-right">기본 확률</TableHead>
-              <TableHead>종결</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {stages.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                  등록된 단계가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {stages.map((stage) => (
-              <TableRow key={stage.id}>
-                <TableCell className="font-mono text-sm">{stage.stageOrder}</TableCell>
-                <TableCell className="font-medium">{stage.name}</TableCell>
-                <TableCell className="text-right text-sm">{stage.probability}%</TableCell>
-                <TableCell>
-                  {stage.isClosedWon && <Badge>성공</Badge>}
-                  {stage.isClosedLost && <Badge variant="destructive">실패</Badge>}
-                  {!stage.isClosedWon && !stage.isClosedLost && (
-                    <span className="text-sm text-muted-foreground">진행</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="수정"
-                          onClick={() => openEdit(stage)}
-                        >
-                          <PencilIcon />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="삭제"
-                          onClick={() => setDialog({ type: 'delete', stage })}
-                        >
-                          <Trash2Icon className="text-destructive" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={stages}
+        columns={columns}
+        getRowId={(stage) => stage.id}
+        initialSort={{ key: 'stageOrder', dir: 'asc' }}
+        empty={
+          <EmptyState
+            title="등록된 단계가 없습니다"
+            description={canWrite ? '우측 상단에서 새 단계를 등록하세요.' : undefined}
+          />
+        }
+      />
 
       {/* Create */}
       <Dialog

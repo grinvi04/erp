@@ -16,14 +16,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -211,97 +206,113 @@ export default function ActivitiesClient({ data, accounts }: Props) {
     </div>
   )
 
+  const columns: Column<Activity>[] = [
+    {
+      key: 'activityType',
+      header: '유형',
+      sortable: true,
+      sortValue: (act) => TYPE_LABEL[act.activityType],
+      cell: (act) => <Badge variant="secondary">{TYPE_LABEL[act.activityType]}</Badge>,
+    },
+    {
+      key: 'subject',
+      header: '제목',
+      sortable: true,
+      sortValue: (act) => act.subject,
+      cell: (act) => <span className="font-medium max-w-xs truncate block">{act.subject}</span>,
+    },
+    {
+      key: 'accountName',
+      header: '고객사',
+      cell: (act) => (
+        <span className="text-sm text-muted-foreground">{act.accountName ?? '—'}</span>
+      ),
+    },
+    {
+      key: 'contactName',
+      header: '담당자',
+      cell: (act) => (
+        <span className="text-sm text-muted-foreground">{act.contactName ?? '—'}</span>
+      ),
+    },
+    {
+      key: 'dueDate',
+      header: '마감일',
+      sortable: true,
+      sortValue: (act) => act.dueDate,
+      cell: (act) => <span className="text-sm text-muted-foreground">{act.dueDate ?? '—'}</span>,
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (act) => STATUS_LABEL[act.status],
+      cell: (act) => <Badge variant={STATUS_VARIANT[act.status]}>{STATUS_LABEL[act.status]}</Badge>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-28',
+      cell: (act) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && act.status === 'OPEN' && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                title="완료"
+                onClick={() => setDialog({ type: 'complete', activity: act })}
+              >
+                <CheckIcon />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                title="취소"
+                onClick={() => setDialog({ type: 'cancel', activity: act })}
+              >
+                <BanIcon />
+              </Button>
+            </>
+          )}
+          {canWrite && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="삭제"
+              onClick={() => setDialog({ type: 'delete', activity: act })}
+            >
+              <Trash2Icon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">활동</h1>
-          <p className="text-sm text-muted-foreground mt-1">영업 활동 이력을 관리합니다</p>
-        </div>
+      <PageHeader title="활동" description="영업 활동 이력을 관리합니다" className="mb-6">
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 활동
           </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>유형</TableHead>
-              <TableHead>제목</TableHead>
-              <TableHead>고객사</TableHead>
-              <TableHead>담당자</TableHead>
-              <TableHead>마감일</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-28" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
-                  등록된 활동이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((act) => (
-              <TableRow key={act.id}>
-                <TableCell>
-                  <Badge variant="secondary">{TYPE_LABEL[act.activityType]}</Badge>
-                </TableCell>
-                <TableCell className="font-medium max-w-xs truncate">{act.subject}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {act.accountName ?? '—'}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {act.contactName ?? '—'}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {act.dueDate ?? '—'}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={STATUS_VARIANT[act.status]}>{STATUS_LABEL[act.status]}</Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && act.status === 'OPEN' && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="완료"
-                          onClick={() => setDialog({ type: 'complete', activity: act })}
-                        >
-                          <CheckIcon />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="취소"
-                          onClick={() => setDialog({ type: 'cancel', activity: act })}
-                        >
-                          <BanIcon />
-                        </Button>
-                      </>
-                    )}
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="삭제"
-                        onClick={() => setDialog({ type: 'delete', activity: act })}
-                      >
-                        <Trash2Icon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(act) => act.id}
+          empty={
+            <EmptyState
+              title="등록된 활동이 없습니다"
+              description={canWrite ? '우측 상단에서 새 활동을 등록하세요.' : undefined}
+            />
+          }
+        />
         <PaginationBar
           page={data.page}
           totalPages={data.totalPages}

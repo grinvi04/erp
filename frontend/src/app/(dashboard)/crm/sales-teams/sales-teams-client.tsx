@@ -15,14 +15,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   createSalesTeam,
   updateSalesTeam,
@@ -154,84 +149,88 @@ export default function SalesTeamsClient({ teams }: Props) {
   const membersTeam =
     dialog.type === 'members' ? (teams.find((t) => t.id === dialog.team.id) ?? dialog.team) : null
 
+  const columns: Column<SalesTeam>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (team) => team.code,
+      cell: (team) => <span className="font-mono text-sm">{team.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '팀명',
+      sortable: true,
+      sortValue: (team) => team.name,
+      cell: (team) => <span className="font-medium">{team.name}</span>,
+    },
+    {
+      key: 'members',
+      header: '멤버',
+      sortable: true,
+      sortValue: (team) => team.memberUserIds.length,
+      cell: (team) => <Badge variant="secondary">{team.memberUserIds.length}명</Badge>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-28',
+      cell: (team) => (
+        <div className="flex justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            title="멤버 관리"
+            onClick={() => openMembers(team)}
+          >
+            <UsersIcon />
+          </Button>
+          {canWrite && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(team)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="삭제"
+              onClick={() => setDialog({ type: 'delete', team })}
+            >
+              <Trash2Icon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">영업팀</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            영업팀과 팀 멤버(데이터 스코프)를 관리합니다
-          </p>
-        </div>
+      <PageHeader
+        title="영업팀"
+        description="영업팀과 팀 멤버(데이터 스코프)를 관리합니다"
+        className="mb-6"
+      >
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 영업팀
           </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>팀명</TableHead>
-              <TableHead>멤버</TableHead>
-              <TableHead className="w-28" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {teams.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
-                  등록된 영업팀이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {teams.map((team) => (
-              <TableRow key={team.id}>
-                <TableCell className="font-mono text-sm">{team.code}</TableCell>
-                <TableCell className="font-medium">{team.name}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{team.memberUserIds.length}명</Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      title="멤버 관리"
-                      onClick={() => openMembers(team)}
-                    >
-                      <UsersIcon />
-                    </Button>
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="수정"
-                        onClick={() => openEdit(team)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="삭제"
-                        onClick={() => setDialog({ type: 'delete', team })}
-                      >
-                        <Trash2Icon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={teams}
+        columns={columns}
+        getRowId={(team) => team.id}
+        empty={
+          <EmptyState
+            title="등록된 영업팀이 없습니다"
+            description={canWrite ? '우측 상단에서 새 영업팀을 등록하세요.' : undefined}
+          />
+        }
+      />
 
       {/* Create */}
       <Dialog
