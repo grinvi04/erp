@@ -18,6 +18,9 @@ spring:
       max-lifetime: 1800000
 
   jpa:
+    # 영속성 컨텍스트를 뷰 렌더까지 열어두는 안티패턴 비활성화.
+    # DTO 매핑은 @Transactional 서비스 내 Response.from()으로 끝나므로 안전.
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     show-sql: false
