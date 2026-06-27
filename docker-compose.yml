@@ -47,7 +47,10 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health/ready || exit 1"]
+      # Keycloak 26 이미지에는 curl/wget이 없고 9000 health 엔드포인트도 기본 비활성이라
+      # HTTP 프로브는 항상 실패(unhealthy 오탐)한다. 컨테이너 sh의 /dev/tcp로 8080 리슨을
+      # TCP 프로브한다.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080"]
       interval: 15s
       timeout: 5s
       retries: 10

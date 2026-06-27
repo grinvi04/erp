@@ -4,14 +4,25 @@ import { test, expect } from '@playwright/test'
 // (dashboard) 레이아웃의 auth()가 세션 없는 요청을 /login으로 리다이렉트한다.
 
 test.describe('인증 게이트', () => {
+  // 4개 모듈 + 공통 화면의 대표 보호 라우트. (dashboard) 그룹 전체가 레이아웃에서
+  // 게이트되므로 모듈별로 골고루 표본을 둔다.
   const protectedRoutes = [
     '/',
     '/approvals',
     '/analytics',
+    '/audit',
+    '/iam',
     '/hr/employees',
+    '/hr/departments',
+    '/finance/accounts',
     '/finance/invoices',
+    '/finance/journal-entries',
+    '/finance/reports',
+    '/finance/fx',
     '/inventory/items',
+    '/inventory/movements',
     '/crm/accounts',
+    '/crm/opportunities',
   ]
 
   for (const route of protectedRoutes) {
