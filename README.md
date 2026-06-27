@@ -2,13 +2,13 @@
 
 [![ci-gate](https://github.com/grinvi04/erp/actions/workflows/ci-gate.yml/badge.svg)](https://github.com/grinvi04/erp/actions/workflows/ci-gate.yml)
 ![e2e](https://img.shields.io/badge/e2e-32%20passed-brightgreen)
-![version](https://img.shields.io/badge/version-v0.4.0-blue)
+![version](https://img.shields.io/badge/version-v0.4.1-blue)
 ![deploy](https://img.shields.io/badge/deploy-local%20only-lightgrey)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
 > **"수백 개 기업의 인사·재무·재고·영업을 한 플랫폼에서 — 테넌트별 완전 격리로."**
 
-HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS ERP. Spring Boot + Next.js 풀스택. 운영 미배포(로컬 풀스택 실행 지원), 현재 `v0.4.0`.
+HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS ERP. Spring Boot + Next.js 풀스택. 운영 미배포(로컬 풀스택 실행 지원), 현재 `v0.4.1`.
 
 ---
 
