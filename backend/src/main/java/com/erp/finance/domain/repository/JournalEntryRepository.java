@@ -13,6 +13,9 @@ import java.util.Optional;
 public interface JournalEntryRepository extends JpaRepository<JournalEntry, Long> {
     boolean existsByEntryNo(String entryNo);
 
+    // 기준통화 변경 가드 — base_amount 스냅샷이 하나라도 있으면 변경 거부(현재 테넌트는 @TenantId 자동 필터).
+    boolean existsByBaseAmountIsNotNull();
+
     // JournalEntryResponse.from은 fiscalPeriod를 역참조 — 목록 매핑 시 N+1 방지를 위해
     // fiscalPeriod(@ManyToOne, LAZY)를 페이지 쿼리에서 함께 페치한다. 카운트는 페치 없는 별도 countQuery 유지.
     @Query(value = "SELECT j FROM JournalEntry j LEFT JOIN FETCH j.fiscalPeriod p WHERE p.id = :fiscalPeriodId",

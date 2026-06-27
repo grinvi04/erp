@@ -66,6 +66,7 @@ public enum ErrorCode {
     JOURNAL_ENTRY_NOT_PENDING_APPROVAL(HttpStatus.CONFLICT, "F032", "결재 상신된 전표만 전기할 수 있습니다"),
     EXCHANGE_RATE_DUPLICATE(HttpStatus.CONFLICT, "F033", "이미 등록된 통화쌍·일자의 환율입니다"),
     CURRENCY_RATE_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "F034", "해당 통화·일자의 환율이 없어 기준통화로 환산할 수 없습니다"),
+    BASE_CURRENCY_CHANGE_NOT_ALLOWED(HttpStatus.CONFLICT, "F035", "이미 환산된 거래가 있어 기준통화를 변경할 수 없습니다"),
 
     // Inventory
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "품목을 찾을 수 없습니다"),
