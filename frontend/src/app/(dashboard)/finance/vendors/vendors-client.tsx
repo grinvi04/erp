@@ -158,7 +158,7 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-gray-400">설정 시 AP 전표 승인이 이 계정으로 자동 분개됩니다.</p>
+          <p className="text-xs text-muted-foreground">설정 시 AP 전표 승인이 이 계정으로 자동 분개됩니다.</p>
         </div>
       </div>
     </div>
@@ -168,8 +168,8 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">공급업체</h1>
-          <p className="text-sm text-gray-500 mt-1">매입 거래처 정보를 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">공급업체</h1>
+          <p className="text-sm text-muted-foreground mt-1">매입 거래처 정보를 관리합니다</p>
         </div>
         <div className="flex items-center gap-2">
           <SearchInput placeholder="이름·코드 검색" className="w-64" />
@@ -177,7 +177,7 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -194,7 +194,7 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
           <TableBody>
             {data.content.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                   등록된 공급업체가 없습니다
                 </TableCell>
               </TableRow>
@@ -203,10 +203,10 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
               <TableRow key={v.id}>
                 <TableCell className="font-mono text-sm">{v.code}</TableCell>
                 <TableCell className="font-medium">{v.name}</TableCell>
-                <TableCell className="text-sm text-gray-600">{v.businessNo ?? '—'}</TableCell>
-                <TableCell className="text-sm text-gray-600">{v.contactEmail ?? '—'}</TableCell>
-                <TableCell className="text-sm text-gray-600">{v.contactPhone ?? '—'}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">{v.paymentTerms}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{v.businessNo ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{v.contactEmail ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{v.contactPhone ?? '—'}</TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">{v.paymentTerms}</TableCell>
                 <TableCell>
                   <Badge variant={v.isActive ? 'default' : 'secondary'}>
                     {v.isActive ? '활성' : '비활성'}
@@ -277,7 +277,7 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
         <DialogContent>
           <DialogHeader><DialogTitle>공급업체 비활성화</DialogTitle></DialogHeader>
           {dialog.type === 'deactivate' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.vendor.name}</strong>을(를) 비활성화하시겠습니까?
             </p>
           )}

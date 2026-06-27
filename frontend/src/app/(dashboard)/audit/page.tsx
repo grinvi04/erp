@@ -16,8 +16,8 @@ export default async function AuditPage(props: {
   if (!perms.includes(PERM.AUDIT_READ)) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-semibold text-gray-900">감사 로그</h1>
-        <p className="mt-4 text-sm text-gray-500">
+        <h1 className="text-2xl font-semibold text-foreground">감사 로그</h1>
+        <p className="mt-4 text-sm text-muted-foreground">
           접근 권한이 없습니다. 감사 로그 조회에는 <code>audit:read</code> 권한이 필요합니다.
         </p>
       </div>

@@ -10,8 +10,8 @@ export default async function IamPage() {
   if (!perms.includes(PERM.IAM_READ)) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-semibold text-gray-900">역할·권한 관리</h1>
-        <p className="mt-4 text-sm text-gray-500">
+        <h1 className="text-2xl font-semibold text-foreground">역할·권한 관리</h1>
+        <p className="mt-4 text-sm text-muted-foreground">
           접근 권한이 없습니다. 관리에는 <code>iam:read</code>/<code>iam:write</code> 권한이 필요합니다.
         </p>
       </div>

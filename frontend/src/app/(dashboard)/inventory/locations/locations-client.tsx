@@ -167,14 +167,14 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">로케이션 관리</h1>
-          <p className="text-sm text-gray-500 mt-1">창고 내 보관 위치(로케이션)를 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">로케이션 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">창고 내 보관 위치(로케이션)를 관리합니다</p>
         </div>
         {canWrite && hasWarehouse && <Button onClick={openCreate}><PlusIcon />새 로케이션</Button>}
       </div>
 
       <div className="mb-4 flex items-center gap-2">
-        <Label className="text-sm text-gray-600">창고</Label>
+        <Label className="text-sm text-muted-foreground">창고</Label>
         <Select value={selectedWarehouseId} onValueChange={onWarehouseChange} disabled={warehouses.length === 0}>
           <SelectTrigger className="w-64"><SelectValue placeholder="창고 선택" /></SelectTrigger>
           <SelectContent>
@@ -185,7 +185,7 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
         </Select>
       </div>
 
-      <div className="bg-white rounded-lg border">
+      <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -200,14 +200,14 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
           <TableBody>
             {!hasWarehouse && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                   창고를 먼저 등록해주세요
                 </TableCell>
               </TableRow>
             )}
             {hasWarehouse && locations.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                   등록된 로케이션이 없습니다
                 </TableCell>
               </TableRow>
@@ -216,8 +216,8 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
               <TableRow key={loc.id}>
                 <TableCell className="font-mono text-sm">{loc.code}</TableCell>
                 <TableCell className="font-medium">{loc.name}</TableCell>
-                <TableCell className="text-sm text-gray-500">{loc.locationType}</TableCell>
-                <TableCell className="text-sm text-gray-600">{loc.parentName ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{loc.locationType}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{loc.parentName ?? '—'}</TableCell>
                 <TableCell>
                   <Badge variant={loc.active ? 'default' : 'secondary'}>
                     {loc.active ? '활성' : '비활성'}
@@ -282,7 +282,7 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
         <DialogContent>
           <DialogHeader><DialogTitle>로케이션 비활성화</DialogTitle></DialogHeader>
           {dialog.type === 'deactivate' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.loc.code} {dialog.loc.name}</strong>을(를) 비활성화하시겠습니까?
             </p>
           )}

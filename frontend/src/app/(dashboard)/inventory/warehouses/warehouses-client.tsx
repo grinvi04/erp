@@ -85,13 +85,13 @@ export default function WarehousesClient({ warehouses }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">창고 관리</h1>
-          <p className="text-sm text-gray-500 mt-1">물류 창고 정보를 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">창고 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">물류 창고 정보를 관리합니다</p>
         </div>
         {canWrite && <Button onClick={openCreate}><PlusIcon />새 창고</Button>}
       </div>
 
-      <div className="bg-white rounded-lg border">
+      <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -105,7 +105,7 @@ export default function WarehousesClient({ warehouses }: Props) {
           <TableBody>
             {warehouses.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
                   등록된 창고가 없습니다
                 </TableCell>
               </TableRow>
@@ -114,7 +114,7 @@ export default function WarehousesClient({ warehouses }: Props) {
               <TableRow key={wh.id}>
                 <TableCell className="font-mono text-sm">{wh.code}</TableCell>
                 <TableCell className="font-medium">{wh.name}</TableCell>
-                <TableCell className="text-sm text-gray-500 max-w-xs truncate">
+                <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
                   {wh.address ?? '—'}
                 </TableCell>
                 <TableCell>
@@ -204,7 +204,7 @@ export default function WarehousesClient({ warehouses }: Props) {
         <DialogContent>
           <DialogHeader><DialogTitle>창고 비활성화</DialogTitle></DialogHeader>
           {dialog.type === 'deactivate' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.wh.code} {dialog.wh.name}</strong>을(를) 비활성화하시겠습니까?
             </p>
           )}

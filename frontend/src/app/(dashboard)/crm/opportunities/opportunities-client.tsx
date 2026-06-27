@@ -218,8 +218,8 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">영업 기회</h1>
-          <p className="text-sm text-gray-500 mt-1">영업 파이프라인을 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">영업 기회</h1>
+          <p className="text-sm text-muted-foreground mt-1">영업 파이프라인을 관리합니다</p>
         </div>
         {canWrite && (
           <Button onClick={openCreate} disabled={stages.length === 0}>
@@ -228,12 +228,12 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
         )}
       </div>
       {stages.length === 0 && (
-        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+        <div className="mb-4 rounded-md border border-warning/20 bg-warning/10 px-4 py-2 text-sm text-warning">
           영업 기회를 등록하려면 먼저 파이프라인 단계를 1개 이상 정의해야 합니다.
         </div>
       )}
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -249,7 +249,7 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
           <TableBody>
             {data.content.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                   등록된 영업 기회가 없습니다
                 </TableCell>
               </TableRow>
@@ -257,13 +257,13 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
             {data.content.map((opp) => (
               <TableRow key={opp.id}>
                 <TableCell className="font-medium">{opp.name}</TableCell>
-                <TableCell className="text-sm text-gray-700">{opp.accountName}</TableCell>
+                <TableCell className="text-sm text-foreground">{opp.accountName}</TableCell>
                 <TableCell><Badge variant="secondary">{opp.stageName}</Badge></TableCell>
                 <TableCell className="text-right font-mono text-sm">
                   {formatAmount(opp.amount, opp.currency)}
                 </TableCell>
                 <TableCell className="text-right text-sm">{opp.probability}%</TableCell>
-                <TableCell className="text-sm text-gray-600">{opp.closeDate ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{opp.closeDate ?? '—'}</TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     {canWrite && (
@@ -320,7 +320,7 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
         <DialogContent>
           <DialogHeader><DialogTitle>영업 기회 삭제</DialogTitle></DialogHeader>
           {dialog.type === 'delete' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.opp.name}</strong>을(를) 삭제하시겠습니까?
             </p>
           )}

@@ -105,13 +105,13 @@ export default function AccountsClient({ accounts }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">계정과목</h1>
-          <p className="text-sm text-gray-500 mt-1">회계 계정과목 체계를 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">계정과목</h1>
+          <p className="text-sm text-muted-foreground mt-1">회계 계정과목 체계를 관리합니다</p>
         </div>
         {canWrite && <Button onClick={openCreate}><PlusIcon />새 계정과목</Button>}
       </div>
 
-      <div className="bg-white rounded-lg border">
+      <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -128,7 +128,7 @@ export default function AccountsClient({ accounts }: Props) {
           <TableBody>
             {accounts.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                   등록된 계정과목이 없습니다
                 </TableCell>
               </TableRow>
@@ -140,11 +140,11 @@ export default function AccountsClient({ accounts }: Props) {
                   <TableCell className="font-mono text-sm">{acc.code}</TableCell>
                   <TableCell className="font-medium">{acc.name}</TableCell>
                   <TableCell><Badge variant="secondary">{TYPE_LABEL[acc.accountType]}</Badge></TableCell>
-                  <TableCell className="text-sm text-gray-600">{NORMAL_LABEL[acc.normalBalance]}</TableCell>
-                  <TableCell className="text-sm text-gray-500 font-mono">
+                  <TableCell className="text-sm text-muted-foreground">{NORMAL_LABEL[acc.normalBalance]}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground font-mono">
                     {parent ? `${parent.code} ${parent.name}` : '—'}
                   </TableCell>
-                  <TableCell className="text-sm text-gray-600">{acc.isSummary ? 'Y' : 'N'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{acc.isSummary ? 'Y' : 'N'}</TableCell>
                   <TableCell>
                     <Badge variant={acc.isActive ? 'default' : 'secondary'}>
                       {acc.isActive ? '활성' : '비활성'}
@@ -227,7 +227,7 @@ export default function AccountsClient({ accounts }: Props) {
               <input
                 id="isSummary" type="checkbox"
                 checked={isSummary} onChange={(e) => setIsSummary(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
+                className="h-4 w-4 rounded border-input"
               />
               <Label htmlFor="isSummary">집계 계정 (하위 계정 합산용)</Label>
             </div>
@@ -255,7 +255,7 @@ export default function AccountsClient({ accounts }: Props) {
               <input
                 id="isSummaryEdit" type="checkbox"
                 checked={isSummary} onChange={(e) => setIsSummary(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
+                className="h-4 w-4 rounded border-input"
               />
               <Label htmlFor="isSummaryEdit">집계 계정</Label>
             </div>
@@ -276,7 +276,7 @@ export default function AccountsClient({ accounts }: Props) {
         <DialogContent>
           <DialogHeader><DialogTitle>계정과목 비활성화</DialogTitle></DialogHeader>
           {dialog.type === 'deactivate' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.acc.code} {dialog.acc.name}</strong>을(를) 비활성화하시겠습니까?
               하위 계정이 있으면 비활성화할 수 없습니다.
             </p>

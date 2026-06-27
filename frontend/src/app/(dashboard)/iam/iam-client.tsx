@@ -105,7 +105,7 @@ export default function IamClient({
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-900">역할·권한 관리</h1>
+      <h1 className="text-2xl font-semibold text-foreground">역할·권한 관리</h1>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -125,7 +125,7 @@ export default function IamClient({
             <TableBody>
               {roles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-gray-400 py-8">역할이 없습니다.</TableCell>
+                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">역할이 없습니다.</TableCell>
                 </TableRow>
               ) : roles.map((role) => (
                 <TableRow key={role.id}>
@@ -181,7 +181,7 @@ export default function IamClient({
               <div className="max-h-64 overflow-y-auto space-y-3 border rounded-md p-3">
                 {Object.entries(grouped).map(([mod, perms]) => (
                   <div key={mod}>
-                    <div className="text-xs font-semibold text-gray-500 uppercase mb-1">{mod}</div>
+                    <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">{mod}</div>
                     <div className="grid grid-cols-2 gap-1">
                       {perms.map((p) => (
                         <label key={p} className="flex items-center gap-2 text-sm">
@@ -288,7 +288,7 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
                     <label key={role.id} className="flex items-center gap-2 text-sm">
                       <input type="checkbox" checked={has} disabled={!canWrite || isPending}
                         onChange={() => toggleRole(role.id, has)} />
-                      <span>{role.name} <span className="text-gray-400 font-mono text-xs">({role.code})</span></span>
+                      <span>{role.name} <span className="text-muted-foreground font-mono text-xs">({role.code})</span></span>
                     </label>
                   )
                 })}

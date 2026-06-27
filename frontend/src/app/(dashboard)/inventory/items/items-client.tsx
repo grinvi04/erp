@@ -225,12 +225,12 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
       <div className="flex gap-6">
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={lotTracked} onChange={(e) => setLotTracked(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300" />
+            className="h-4 w-4 rounded border-input" />
           <span className="text-sm">LOT 추적</span>
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={serialTracked} onChange={(e) => setSerialTracked(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300" />
+            className="h-4 w-4 rounded border-input" />
           <span className="text-sm">시리얼 추적</span>
         </label>
       </div>
@@ -241,8 +241,8 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">품목 관리</h1>
-          <p className="text-sm text-gray-500 mt-1">재고 품목 마스터를 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">품목 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">재고 품목 마스터를 관리합니다</p>
         </div>
         <div className="flex items-center gap-2">
           <SearchInput placeholder="이름·코드 검색" className="w-64" />
@@ -250,7 +250,7 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -269,7 +269,7 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
           <TableBody>
             {data.content.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-10">
                   등록된 품목이 없습니다
                 </TableCell>
               </TableRow>
@@ -278,9 +278,9 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
               <TableRow key={item.id}>
                 <TableCell className="font-mono text-sm">{item.sku}</TableCell>
                 <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="text-sm text-gray-600">{item.categoryName ?? '—'}</TableCell>
-                <TableCell className="text-sm text-gray-600">{item.uomCode}</TableCell>
-                <TableCell className="text-sm text-gray-500">{item.costMethod}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{item.categoryName ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{item.uomCode}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{item.costMethod}</TableCell>
                 <TableCell className="text-right font-mono text-sm">
                   {fmtNum(item.standardCost)}
                 </TableCell>
@@ -356,7 +356,7 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
         <DialogContent>
           <DialogHeader><DialogTitle>품목 비활성화</DialogTitle></DialogHeader>
           {dialog.type === 'deactivate' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.item.sku} {dialog.item.name}</strong>을(를) 비활성화하시겠습니까?
             </p>
           )}

@@ -96,8 +96,8 @@ export default function LeavePoliciesClient({ policies }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">휴가 정책</h1>
-          <p className="text-sm text-gray-500 mt-1">휴가 종류별 부여 일수·승인 규칙을 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">휴가 정책</h1>
+          <p className="text-sm text-muted-foreground mt-1">휴가 종류별 부여 일수·승인 규칙을 관리합니다</p>
         </div>
         <Button onClick={openCreate}>
           <PlusIcon />
@@ -105,7 +105,7 @@ export default function LeavePoliciesClient({ policies }: Props) {
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg border">
+      <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -122,7 +122,7 @@ export default function LeavePoliciesClient({ policies }: Props) {
           <TableBody>
             {policies.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                   등록된 휴가 정책이 없습니다
                 </TableCell>
               </TableRow>
@@ -134,9 +134,9 @@ export default function LeavePoliciesClient({ policies }: Props) {
                 <TableCell className="text-sm">
                   {LEAVE_TYPE_LABEL[p.leaveType] ?? p.leaveType}
                 </TableCell>
-                <TableCell className="text-right text-sm text-gray-600">{p.annualDays}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">{p.carryOverDays}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">{p.minNoticeDays}</TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">{p.annualDays}</TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">{p.carryOverDays}</TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">{p.minNoticeDays}</TableCell>
                 <TableCell>
                   <Badge variant={p.requiresApproval ? 'default' : 'secondary'}>
                     {p.requiresApproval ? '필요' : '불필요'}
@@ -255,7 +255,7 @@ export default function LeavePoliciesClient({ policies }: Props) {
           <DialogHeader>
             <DialogTitle>휴가 정책 삭제</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600 py-2">
+          <p className="text-sm text-muted-foreground py-2">
             {dialog.type === 'delete' && (
               <>
                 <strong>{dialog.policy.name}</strong> 정책을 삭제하시겠습니까?

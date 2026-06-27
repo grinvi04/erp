@@ -113,8 +113,8 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">휴가 신청</h1>
-          <p className="text-sm text-gray-500 mt-1">직원 휴가 신청 현황을 조회하고 결재합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">휴가 신청</h1>
+          <p className="text-sm text-muted-foreground mt-1">직원 휴가 신청 현황을 조회하고 결재합니다</p>
         </div>
         <Button onClick={openCreate}>
           <PlusIcon />
@@ -122,7 +122,7 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -138,7 +138,7 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
           <TableBody>
             {requests.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                   휴가 신청 내역이 없습니다
                 </TableCell>
               </TableRow>
@@ -164,7 +164,7 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
                         title="승인"
                         onClick={() => { setComment(''); setDialog({ type: 'approve', req: lr }) }}
                       >
-                        <CheckIcon className="text-green-600" />
+                        <CheckIcon className="text-success" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -265,7 +265,7 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
             <DialogTitle>휴가 승인</DialogTitle>
           </DialogHeader>
           {dialog.type === 'approve' && (
-            <div className="text-sm text-gray-600 py-1">
+            <div className="text-sm text-muted-foreground py-1">
               <strong>{dialog.req.employeeName}</strong>의{' '}
               <strong>{dialog.req.leavePolicyName}</strong> 신청
               ({dialog.req.startDate} ~ {dialog.req.endDate}, {dialog.req.requestedDays}일)을
@@ -291,7 +291,7 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
             <DialogTitle>휴가 반려</DialogTitle>
           </DialogHeader>
           {dialog.type === 'reject' && (
-            <div className="text-sm text-gray-600 py-1">
+            <div className="text-sm text-muted-foreground py-1">
               <strong>{dialog.req.employeeName}</strong>의{' '}
               <strong>{dialog.req.leavePolicyName}</strong> 신청을 반려하시겠습니까?
             </div>

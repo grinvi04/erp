@@ -16,7 +16,7 @@ export default function YearSelect({ year, years }: { year: number; years: numbe
       value={String(year)}
       onValueChange={(v) => startTransition(() => router.push(`/finance/reports?year=${v}`))}
     >
-      <SelectTrigger className="w-32 bg-white" disabled={pending}>
+      <SelectTrigger className="w-32 bg-card" disabled={pending}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

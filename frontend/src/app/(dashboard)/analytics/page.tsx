@@ -65,7 +65,7 @@ function HorizontalBar({
   label,
   subLabel,
   pct,
-  color = 'bg-blue-500',
+  color = 'bg-chart-1',
 }: {
   label: string
   subLabel: string
@@ -74,11 +74,11 @@ function HorizontalBar({
 }) {
   return (
     <div className="mb-3">
-      <div className="flex justify-between text-sm text-gray-700 mb-1">
+      <div className="flex justify-between text-sm text-foreground mb-1">
         <span className="font-medium">{label}</span>
-        <span className="text-gray-500">{subLabel}</span>
+        <span className="text-muted-foreground">{subLabel}</span>
       </div>
-      <div className="w-full bg-gray-100 rounded h-6">
+      <div className="w-full bg-muted rounded h-6">
         <div
           className={`${color} h-6 rounded transition-all`}
           style={{ width: `${pct}%` }}
@@ -90,8 +90,8 @@ function HorizontalBar({
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">{title}</h2>
+    <div className="bg-card rounded-lg border border-border p-6">
+      <h2 className="text-lg font-semibold text-foreground mb-4">{title}</h2>
       {children}
     </div>
   )
@@ -117,7 +117,7 @@ function MonthlyBarChart<T extends { month: number }>({
       {rows.map((r, idx) => (
         <div key={r.month} className="flex flex-col items-center flex-1">
           <div className={`relative group flex h-40 w-full items-end justify-center${groupGap}`}>
-            <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+            <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground border border-border shadow-md text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
               {renderTooltip(r)}
             </div>
             {bars.map((b, bi) => {
@@ -131,7 +131,7 @@ function MonthlyBarChart<T extends { month: number }>({
               )
             })}
           </div>
-          <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
+          <div className="text-xs text-muted-foreground mt-1">{MONTH_LABELS[idx]}</div>
           {renderFooter?.(r)}
         </div>
       ))}
@@ -203,15 +203,15 @@ export default async function AnalyticsPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">분석</h1>
-        <p className="text-sm text-gray-500 mt-1">영업 파이프라인, 리드 현황, 매입 인보이스 추이, 인사 현황, 재고 현황</p>
+        <h1 className="text-2xl font-semibold text-foreground">분석</h1>
+        <p className="text-sm text-muted-foreground mt-1">영업 파이프라인, 리드 현황, 매입 인보이스 추이, 인사 현황, 재고 현황</p>
       </div>
 
       <div className="space-y-6">
         {/* Pipeline Distribution */}
         <SectionCard title="영업 파이프라인 분포">
           {pipeline.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             pipeline.map((r) => (
               <HorizontalBar
@@ -220,7 +220,7 @@ export default async function AnalyticsPage() {
                 subLabel={`${r.count}건${r.amounts.length ? ' · ' + formatMoneyList(r.amounts) : ''}`
                   + (r.baseTotal != null ? ` · ≈ ${formatMoneyOne(r.baseTotal, pipelineBaseCurrency)}` : '')}
                 pct={Math.round((r.count / maxPipelineCount) * 100)}
-                color="bg-blue-500"
+                color="bg-chart-1"
               />
             ))
           )}
@@ -229,7 +229,7 @@ export default async function AnalyticsPage() {
         {/* Leads by Status */}
         <SectionCard title="리드 상태 분포">
           {leads.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             leads.map((r) => (
               <HorizontalBar
@@ -237,7 +237,7 @@ export default async function AnalyticsPage() {
                 label={LEAD_STATUS_LABELS[r.status] ?? r.status}
                 subLabel={`${r.count}건`}
                 pct={Math.round((r.count / maxLeadCount) * 100)}
-                color="bg-emerald-500"
+                color="bg-chart-2"
               />
             ))
           )}
@@ -246,7 +246,7 @@ export default async function AnalyticsPage() {
         {/* Monthly Invoice Trend — 통화별 카드로 분리(막대 비교는 같은 통화 안에서만 의미) */}
         {monthly.length === 0 ? (
           <SectionCard title={`월별 매입 인보이스 추이 (${currentYear}년)`}>
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           </SectionCard>
         ) : (
           monthly.map((series) => (
@@ -257,13 +257,13 @@ export default async function AnalyticsPage() {
               {/* 막대 높이는 그 통화 내 최대 금액으로 스케일 */}
               <MonthlyBarChart
                 rows={series.months}
-                bars={[{ value: (r) => r.totalAmount, color: 'bg-violet-500', width: 'w-full' }]}
+                bars={[{ value: (r) => r.totalAmount, color: 'bg-chart-5', width: 'w-full' }]}
                 renderTooltip={(r) => (
                   <>
                     {r.count}건<br />{formatMoneyList([{ currency: series.currency, amount: r.totalAmount }])}
                   </>
                 )}
-                renderFooter={(r) => <div className="text-xs text-gray-600 font-medium">{r.count}</div>}
+                renderFooter={(r) => <div className="text-xs text-muted-foreground font-medium">{r.count}</div>}
               />
             </SectionCard>
           ))
@@ -276,7 +276,7 @@ export default async function AnalyticsPage() {
           >
             <MonthlyBarChart
               rows={monthlyBaseTotals}
-              bars={[{ value: (r) => r.totalAmount, color: 'bg-indigo-500', width: 'w-full' }]}
+              bars={[{ value: (r) => r.totalAmount, color: 'bg-chart-1', width: 'w-full' }]}
               renderTooltip={(r) => <>≈ {formatMoneyOne(r.totalAmount, monthlyBaseCurrency)}</>}
             />
           </SectionCard>
@@ -284,13 +284,13 @@ export default async function AnalyticsPage() {
 
         {/* ===== HR ===== */}
         <div className="pt-2">
-          <h2 className="text-base font-semibold text-gray-700">인사 현황</h2>
+          <h2 className="text-base font-semibold text-foreground">인사 현황</h2>
         </div>
 
         {/* 재직 상태 분포 */}
         <SectionCard title="재직 상태 분포">
           {hrStatus.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             hrStatus.map((r) => (
               <HorizontalBar
@@ -298,7 +298,7 @@ export default async function AnalyticsPage() {
                 label={EMPLOYEE_STATUS_LABELS[r.status] ?? r.status}
                 subLabel={`${r.count}명`}
                 pct={Math.round((r.count / maxHrStatus) * 100)}
-                color="bg-blue-500"
+                color="bg-chart-1"
               />
             ))
           )}
@@ -307,7 +307,7 @@ export default async function AnalyticsPage() {
         {/* 부서별 인원 */}
         <SectionCard title="부서별 인원 (재직)">
           {hrByDept.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             hrByDept.map((r) => (
               <HorizontalBar
@@ -315,7 +315,7 @@ export default async function AnalyticsPage() {
                 label={r.departmentName}
                 subLabel={`${r.count}명`}
                 pct={Math.round((r.count / maxHrDept) * 100)}
-                color="bg-sky-500"
+                color="bg-chart-1"
               />
             ))
           )}
@@ -324,7 +324,7 @@ export default async function AnalyticsPage() {
         {/* 직위별 인원 */}
         <SectionCard title="직위별 인원 (재직)">
           {hrByPosition.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             hrByPosition.map((r) => (
               <HorizontalBar
@@ -332,7 +332,7 @@ export default async function AnalyticsPage() {
                 label={r.positionName}
                 subLabel={`${r.count}명`}
                 pct={Math.round((r.count / maxHrPosition) * 100)}
-                color="bg-indigo-500"
+                color="bg-chart-1"
               />
             ))
           )}
@@ -341,7 +341,7 @@ export default async function AnalyticsPage() {
         {/* 고용형태별 분포 */}
         <SectionCard title="고용형태별 분포">
           {hrByEmploymentType.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             hrByEmploymentType.map((r) => (
               <HorizontalBar
@@ -349,7 +349,7 @@ export default async function AnalyticsPage() {
                 label={EMPLOYMENT_TYPE_LABELS[r.employmentType] ?? r.employmentType}
                 subLabel={`${r.count}명`}
                 pct={Math.round((r.count / maxHrEmploymentType) * 100)}
-                color="bg-teal-500"
+                color="bg-chart-2"
               />
             ))
           )}
@@ -358,18 +358,18 @@ export default async function AnalyticsPage() {
         {/* 월별 입사/퇴사 추이 — 입사(emerald)·퇴사(rose) 두 시리즈를 월별 그룹 막대로 */}
         <SectionCard title={`월별 입사/퇴사 추이 (${currentYear}년)`}>
           {hrHiresTerms.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             <>
-              <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
-                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-emerald-500" />입사</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-rose-500" />퇴사</span>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-chart-2" />입사</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-chart-4" />퇴사</span>
               </div>
               <MonthlyBarChart
                 rows={hrHiresTerms}
                 bars={[
-                  { value: (r) => r.hires, color: 'bg-emerald-500', width: 'w-1/2' },
-                  { value: (r) => r.terminations, color: 'bg-rose-500', width: 'w-1/2' },
+                  { value: (r) => r.hires, color: 'bg-chart-2', width: 'w-1/2' },
+                  { value: (r) => r.terminations, color: 'bg-chart-4', width: 'w-1/2' },
                 ]}
                 renderTooltip={(r) => (
                   <>
@@ -384,7 +384,7 @@ export default async function AnalyticsPage() {
         {/* 휴가 유형별 신청 (승인 기준) */}
         <SectionCard title="휴가 유형별 신청 (승인)">
           {hrLeaves.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             hrLeaves.map((r) => (
               <HorizontalBar
@@ -392,7 +392,7 @@ export default async function AnalyticsPage() {
                 label={LEAVE_TYPE_LABELS[r.leaveType] ?? r.leaveType}
                 subLabel={`${r.count}건 · ${r.totalDays}일`}
                 pct={Math.round((r.totalDays / maxHrLeaveDays) * 100)}
-                color="bg-amber-500"
+                color="bg-chart-3"
               />
             ))
           )}
@@ -400,13 +400,13 @@ export default async function AnalyticsPage() {
 
         {/* ===== Inventory ===== */}
         <div className="pt-2">
-          <h2 className="text-base font-semibold text-gray-700">재고 현황</h2>
+          <h2 className="text-base font-semibold text-foreground">재고 현황</h2>
         </div>
 
         {/* 카테고리별 활성 품목 수 */}
         <SectionCard title="카테고리별 활성 품목 수">
           {invByCategory.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             invByCategory.map((r) => (
               <HorizontalBar
@@ -414,7 +414,7 @@ export default async function AnalyticsPage() {
                 label={r.categoryName}
                 subLabel={`${r.count}개`}
                 pct={Math.round((r.count / maxInvCategory) * 100)}
-                color="bg-cyan-500"
+                color="bg-chart-2"
               />
             ))
           )}
@@ -423,7 +423,7 @@ export default async function AnalyticsPage() {
         {/* 창고별 재고 가치 (₩ 단일 기준통화) — 수량은 sublabel */}
         <SectionCard title="창고별 재고 가치">
           {invByWarehouse.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             invByWarehouse.map((r) => (
               <HorizontalBar
@@ -431,7 +431,7 @@ export default async function AnalyticsPage() {
                 label={r.warehouseName}
                 subLabel={`${formatMoneyOne(r.totalValue, 'KRW')} · ${r.totalQty.toLocaleString('ko-KR')}개`}
                 pct={Math.round((r.totalValue / maxInvWhValue) * 100)}
-                color="bg-fuchsia-500"
+                color="bg-chart-5"
               />
             ))
           )}
@@ -440,7 +440,7 @@ export default async function AnalyticsPage() {
         {/* 창고별 재고 수량 */}
         <SectionCard title="창고별 재고 수량">
           {invByWarehouse.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             invByWarehouse.map((r) => (
               <HorizontalBar
@@ -448,7 +448,7 @@ export default async function AnalyticsPage() {
                 label={r.warehouseName}
                 subLabel={`${r.totalQty.toLocaleString('ko-KR')}개`}
                 pct={Math.round((r.totalQty / maxInvWhQty) * 100)}
-                color="bg-purple-500"
+                color="bg-chart-5"
               />
             ))
           )}
@@ -457,7 +457,7 @@ export default async function AnalyticsPage() {
         {/* 이동유형별 건수 (확정) */}
         <SectionCard title="이동유형별 건수 (확정)">
           {invMovementsByType.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             invMovementsByType.map((r) => (
               <HorizontalBar
@@ -465,7 +465,7 @@ export default async function AnalyticsPage() {
                 label={MOVEMENT_TYPE_LABELS[r.movementType] ?? r.movementType}
                 subLabel={`${r.count}건`}
                 pct={Math.round((r.count / maxInvMovementType) * 100)}
-                color="bg-orange-500"
+                color="bg-chart-3"
               />
             ))
           )}
@@ -474,7 +474,7 @@ export default async function AnalyticsPage() {
         {/* 월별 입출고 추이 — 이동유형별 카드(수량 기준 막대) */}
         {invMonthlyMovements.length === 0 ? (
           <SectionCard title={`월별 입출고 추이 (${currentYear}년)`}>
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           </SectionCard>
         ) : (
           invMonthlyMovements.map((series) => (
@@ -484,13 +484,13 @@ export default async function AnalyticsPage() {
             >
               <MonthlyBarChart
                 rows={series.months}
-                bars={[{ value: (r) => r.totalQty, color: 'bg-amber-600', width: 'w-full' }]}
+                bars={[{ value: (r) => r.totalQty, color: 'bg-chart-3', width: 'w-full' }]}
                 renderTooltip={(r) => (
                   <>
                     {r.count}건<br />수량 {r.totalQty.toLocaleString('ko-KR')}
                   </>
                 )}
-                renderFooter={(r) => <div className="text-xs text-gray-600 font-medium">{r.count}</div>}
+                renderFooter={(r) => <div className="text-xs text-muted-foreground font-medium">{r.count}</div>}
               />
             </SectionCard>
           ))
@@ -499,12 +499,12 @@ export default async function AnalyticsPage() {
         {/* 저재고 품목 목록 (Σ현재고 ≤ 재주문점) */}
         <SectionCard title="저재고 품목">
           {invLowStock.length === 0 ? (
-            <p className="text-sm text-gray-400">데이터 없음</p>
+            <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-gray-500 border-b border-gray-200">
+                  <tr className="text-left text-muted-foreground border-b border-border">
                     <th className="py-2 pr-4 font-medium">SKU</th>
                     <th className="py-2 pr-4 font-medium">품목명</th>
                     <th className="py-2 pr-4 font-medium">카테고리</th>
@@ -514,14 +514,14 @@ export default async function AnalyticsPage() {
                 </thead>
                 <tbody>
                   {invLowStock.map((r) => (
-                    <tr key={r.sku} className="border-b border-gray-100">
-                      <td className="py-2 pr-4 font-mono text-gray-700">{r.sku}</td>
-                      <td className="py-2 pr-4 text-gray-700">{r.name}</td>
-                      <td className="py-2 pr-4 text-gray-500">{r.categoryName ?? '-'}</td>
-                      <td className="py-2 pr-4 text-right text-rose-600 font-medium">
+                    <tr key={r.sku} className="border-b border-border">
+                      <td className="py-2 pr-4 font-mono text-foreground">{r.sku}</td>
+                      <td className="py-2 pr-4 text-foreground">{r.name}</td>
+                      <td className="py-2 pr-4 text-muted-foreground">{r.categoryName ?? '-'}</td>
+                      <td className="py-2 pr-4 text-right text-destructive font-medium">
                         {r.currentQty.toLocaleString('ko-KR')}
                       </td>
-                      <td className="py-2 text-right text-gray-500">{r.reorderPoint.toLocaleString('ko-KR')}</td>
+                      <td className="py-2 text-right text-muted-foreground">{r.reorderPoint.toLocaleString('ko-KR')}</td>
                     </tr>
                   ))}
                 </tbody>

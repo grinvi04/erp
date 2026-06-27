@@ -164,8 +164,8 @@ export default function JournalEntriesClient({
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">분개장</h1>
-          <p className="text-sm text-gray-500 mt-1">회계 기간을 선택하여 분개 내역을 조회합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">분개장</h1>
+          <p className="text-sm text-muted-foreground mt-1">회계 기간을 선택하여 분개 내역을 조회합니다</p>
         </div>
         {canWrite && selectedPeriodId != null && (
           <Button onClick={openCreate} disabled={isPending || isPeriodClosed} title={isPeriodClosed ? '마감된 기간에는 분개를 등록할 수 없습니다' : undefined}>
@@ -177,12 +177,12 @@ export default function JournalEntriesClient({
       {/* Fiscal Period Selector */}
       <div className="mb-6 flex gap-4">
         <div className="w-48">
-          <Label className="text-xs text-gray-500 mb-1 block">회계연도</Label>
+          <Label className="text-xs text-muted-foreground mb-1 block">회계연도</Label>
           <Select
             value={selectedYearId != null ? String(selectedYearId) : ''}
             onValueChange={onYearChange}
           >
-            <SelectTrigger className="w-full bg-white">
+            <SelectTrigger className="w-full bg-card">
               <SelectValue placeholder="연도 선택" />
             </SelectTrigger>
             <SelectContent>
@@ -196,12 +196,12 @@ export default function JournalEntriesClient({
         </div>
         {selectedYearId != null && periods.length > 0 && (
           <div className="w-56">
-            <Label className="text-xs text-gray-500 mb-1 block">회계 기간</Label>
+            <Label className="text-xs text-muted-foreground mb-1 block">회계 기간</Label>
             <Select
               value={selectedPeriodId != null ? String(selectedPeriodId) : ''}
               onValueChange={onPeriodChange}
             >
-              <SelectTrigger className="w-full bg-white">
+              <SelectTrigger className="w-full bg-card">
                 <SelectValue placeholder="기간 선택" />
               </SelectTrigger>
               <SelectContent>
@@ -219,11 +219,11 @@ export default function JournalEntriesClient({
 
       {/* Entry Table */}
       {selectedPeriodId == null ? (
-        <div className="bg-white rounded-lg border py-20 text-center text-gray-400">
+        <div className="bg-card rounded-lg border py-20 text-center text-muted-foreground">
           회계 기간을 선택해주세요
         </div>
       ) : (
-        <div className="bg-white rounded-lg border overflow-hidden">
+        <div className="bg-card rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
@@ -240,7 +240,7 @@ export default function JournalEntriesClient({
             <TableBody>
               {(!entries || entries.content.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-gray-400 py-10">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                     등록된 분개가 없습니다
                   </TableCell>
                 </TableRow>
@@ -347,7 +347,7 @@ export default function JournalEntriesClient({
               <div className="border rounded overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-50">
+                    <TableRow className="bg-muted/40">
                       <TableHead className="w-48">계정과목 *</TableHead>
                       <TableHead className="text-right w-32">차변</TableHead>
                       <TableHead className="text-right w-32">대변</TableHead>
@@ -405,7 +405,7 @@ export default function JournalEntriesClient({
               <div className="mt-2 flex justify-end gap-6 text-sm font-mono">
                 <span>차변 합계: <strong>{formatMoneyOne(totalDebit, currency)}</strong></span>
                 <span>대변 합계: <strong>{formatMoneyOne(totalCredit, currency)}</strong></span>
-                <span className={balanced ? 'text-green-600' : 'text-destructive'}>
+                <span className={balanced ? 'text-success' : 'text-destructive'}>
                   {balanced ? '✓ 균형' : '✗ 불일치'}
                 </span>
               </div>

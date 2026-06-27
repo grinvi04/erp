@@ -184,13 +184,13 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">재고 이동</h1>
-          <p className="text-sm text-gray-500 mt-1">재고 입출고 및 이전 내역을 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">재고 이동</h1>
+          <p className="text-sm text-muted-foreground mt-1">재고 입출고 및 이전 내역을 관리합니다</p>
         </div>
         {canWrite && <Button onClick={openCreate}><PlusIcon />새 이동 등록</Button>}
       </div>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -206,7 +206,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
           <TableBody>
             {data.content.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                   재고 이동 내역이 없습니다
                 </TableCell>
               </TableRow>
@@ -217,7 +217,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                 <TableCell>
                   <Badge variant="secondary">{TYPE_LABEL[mv.movementType]}</Badge>
                 </TableCell>
-                <TableCell className="text-sm text-gray-700">
+                <TableCell className="text-sm text-foreground">
                   {mv.lines && mv.lines.length > 0
                     ? mv.lines.length === 1
                       ? mv.lines[0].itemName
@@ -225,7 +225,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                     : '—'}
                 </TableCell>
                 <TableCell className="text-sm">{mv.movementDate}</TableCell>
-                <TableCell className="text-sm text-gray-500 max-w-xs truncate">
+                <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
                   {mv.note ?? '—'}
                 </TableCell>
                 <TableCell>
@@ -330,7 +330,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
               <div className="border rounded overflow-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-50">
+                    <TableRow className="bg-muted/40">
                       <TableHead className="w-48">품목 *</TableHead>
                       {needsFrom && <TableHead className="w-36">출고 위치</TableHead>}
                       {needsTo && <TableHead className="w-36">입고 위치</TableHead>}
@@ -428,7 +428,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
         <DialogContent>
           <DialogHeader><DialogTitle>재고 이동 취소</DialogTitle></DialogHeader>
           {dialog.type === 'cancel' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               이동번호 <strong>{dialog.mv.movementNo}</strong>을(를) 취소하시겠습니까?
               이 작업은 되돌릴 수 없습니다.
             </p>

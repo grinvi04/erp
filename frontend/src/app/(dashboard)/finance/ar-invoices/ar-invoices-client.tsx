@@ -181,13 +181,13 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">매출 인보이스</h1>
-          <p className="text-sm text-gray-500 mt-1">고객 인보이스 및 수금 현황을 관리합니다</p>
+          <h1 className="text-2xl font-semibold text-foreground">매출 인보이스</h1>
+          <p className="text-sm text-muted-foreground mt-1">고객 인보이스 및 수금 현황을 관리합니다</p>
         </div>
         {canWrite && <Button onClick={openCreate}><PlusIcon />새 인보이스</Button>}
       </div>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -204,7 +204,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
           <TableBody>
             {data.content.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                   등록된 인보이스가 없습니다
                 </TableCell>
               </TableRow>
@@ -225,7 +225,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                   <span className="inline-flex items-center gap-1">
                     <Badge variant={STATUS_VARIANT[inv.status]}>{STATUS_LABEL[inv.status]}</Badge>
                     {inv.journalEntryId && (
-                      <span title={`연결 분개 #${inv.journalEntryId}`} className="inline-flex items-center text-gray-400">
+                      <span title={`연결 분개 #${inv.journalEntryId}`} className="inline-flex items-center text-muted-foreground">
                         <BookOpenIcon className="size-3.5" />
                       </span>
                     )}
@@ -237,7 +237,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                       <>
                         <Button variant="ghost" size="icon-xs" title="결재상신"
                           onClick={() => handleSubmit(inv)} disabled={isPending}>
-                          <SendIcon className="text-blue-600" />
+                          <SendIcon className="text-primary" />
                         </Button>
                         <Button variant="ghost" size="icon-xs" title="취소"
                           onClick={() => setDialog({ type: 'cancel', inv })} disabled={isPending}>
@@ -250,7 +250,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                         {canApprove && (
                           <Button variant="ghost" size="icon-xs" title="승인"
                             onClick={() => handleApprove(inv)} disabled={isPending}>
-                            <CheckIcon className="text-green-600" />
+                            <CheckIcon className="text-success" />
                           </Button>
                         )}
                         {canWrite && (
@@ -319,7 +319,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                 <Input type="number" min={0.01} step={0.01} value={effectiveTotal}
                   readOnly={lines.length > 0}
                   onChange={(e) => setTotalAmount(e.target.value)} placeholder="0"
-                  className={lines.length > 0 ? 'bg-gray-50 text-gray-600' : undefined} />
+                  className={lines.length > 0 ? 'bg-muted/40 text-muted-foreground' : undefined} />
               </div>
               <div className="grid gap-1.5">
                 <Label>통화</Label>
@@ -343,7 +343,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                 </Button>
               </div>
               {lines.length === 0 ? (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   라인을 추가하면 승인 시 GL 분개가 자동 생성됩니다 (차변은 고객 외상매출금 계정).
                   미입력 시 분개 없이 전표만 등록됩니다.
                 </p>
@@ -369,7 +369,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                         onClick={() => removeLine(i)}><Trash2Icon className="text-destructive" /></Button>
                     </div>
                   ))}
-                  <div className="text-right text-sm text-gray-600">
+                  <div className="text-right text-sm text-muted-foreground">
                     공급가 합계: <span className="font-medium">{fmt(supplyTotal, currency)}</span>
                   </div>
                 </div>
@@ -378,11 +378,11 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
 
             {/* 부가세 자동 split — 부가세예수금 대변 라인을 자동 생성. 10% 자동, 실제 세액으로 수정 가능. */}
             {lines.length > 0 && (
-              <div className="grid gap-2 rounded-md border bg-gray-50/60 p-3">
+              <div className="grid gap-2 rounded-md border bg-muted/40 p-3">
                 <Label>부가세 (자동 분개)</Label>
                 <div className="flex gap-2 items-end">
                   <div className="flex-1 grid gap-1.5">
-                    <span className="text-xs text-gray-500">부가세예수금 계정</span>
+                    <span className="text-xs text-muted-foreground">부가세예수금 계정</span>
                     <Select value={vatAccountId} onValueChange={(v) => setVatAccountId(v ?? '')}>
                       <SelectTrigger className="w-full"><SelectValue placeholder="(부가세 없으면 비워두기)" /></SelectTrigger>
                       <SelectContent>
@@ -393,7 +393,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                     </Select>
                   </div>
                   <div className="grid gap-1.5 w-36">
-                    <span className="text-xs text-gray-500">세액</span>
+                    <span className="text-xs text-muted-foreground">세액</span>
                     <Input type="number" min={0} step={0.01} placeholder="0"
                       value={vatAmount} onChange={(e) => setVatAmount(e.target.value)} />
                   </div>
@@ -402,8 +402,8 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                   </Button>
                 </div>
                 <div className="text-right text-sm">
-                  <span className="text-gray-500">공급가 {fmt(supplyTotal, currency)} + 부가세 {fmt(vatNum, currency)} = </span>
-                  <span className="font-semibold text-gray-900">합계 {fmt(grandTotal, currency)}</span>
+                  <span className="text-muted-foreground">공급가 {fmt(supplyTotal, currency)} + 부가세 {fmt(vatNum, currency)} = </span>
+                  <span className="font-semibold text-foreground">합계 {fmt(grandTotal, currency)}</span>
                 </div>
               </div>
             )}
@@ -425,7 +425,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
           <DialogHeader><DialogTitle>수금 처리</DialogTitle></DialogHeader>
           {dialog.type === 'collect' && (
             <div className="grid gap-4 py-2">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 <strong>{dialog.inv.customerName}</strong> — {dialog.inv.invoiceNo}
                 <br />미수금액: <strong>{fmt(dialog.inv.outstandingAmount, dialog.inv.currency)}</strong>
               </div>
@@ -450,7 +450,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                 <Label>수금일</Label>
                 <Input type="date" value={collectDate} onChange={(e) => setCollectDate(e.target.value)} />
               </div>
-              <p className="text-xs text-gray-400">계정 선택 시 지급/수금 분개가 자동 생성됩니다.</p>
+              <p className="text-xs text-muted-foreground">계정 선택 시 지급/수금 분개가 자동 생성됩니다.</p>
             </div>
           )}
           <DialogFooter showCloseButton>
@@ -469,7 +469,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
         <DialogContent>
           <DialogHeader><DialogTitle>인보이스 취소</DialogTitle></DialogHeader>
           {dialog.type === 'cancel' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.inv.invoiceNo}</strong>을(를) 취소하시겠습니까?
             </p>
           )}

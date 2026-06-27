@@ -63,8 +63,8 @@ export default function LeaveBalancesClient({ employees }: Props) {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">휴가 잔여</h1>
-        <p className="text-sm text-gray-500 mt-1">직원별 연도 휴가 부여·사용·잔여 현황을 조회합니다</p>
+        <h1 className="text-2xl font-semibold text-foreground">휴가 잔여</h1>
+        <p className="text-sm text-muted-foreground mt-1">직원별 연도 휴가 부여·사용·잔여 현황을 조회합니다</p>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-4">
@@ -96,7 +96,7 @@ export default function LeaveBalancesClient({ employees }: Props) {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border">
+      <div className="bg-card rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -110,21 +110,21 @@ export default function LeaveBalancesClient({ employees }: Props) {
           <TableBody>
             {!empId && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
                   직원을 선택하면 휴가 잔여가 표시됩니다
                 </TableCell>
               </TableRow>
             )}
             {empId && loading && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
                   불러오는 중...
                 </TableCell>
               </TableRow>
             )}
             {empId && !loading && searched && balances.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-400 py-10">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
                   해당 연도의 휴가 잔여 내역이 없습니다
                 </TableCell>
               </TableRow>
@@ -132,9 +132,9 @@ export default function LeaveBalancesClient({ employees }: Props) {
             {empId && !loading && balances.map((b) => (
               <TableRow key={b.id}>
                 <TableCell className="font-medium">{b.leavePolicyName}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">{b.entitledDays}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">{b.carryOverDays}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">{b.usedDays}</TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">{b.entitledDays}</TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">{b.carryOverDays}</TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">{b.usedDays}</TableCell>
                 <TableCell className="text-right text-sm font-medium">{b.remainingDays}</TableCell>
               </TableRow>
             ))}
