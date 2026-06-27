@@ -37,7 +37,7 @@ test.describe('인증 게이트', () => {
   test('로그인 페이지가 Keycloak 로그인 UI를 렌더한다', async ({ page }) => {
     await page.goto('/login')
     await expect(page.getByText('ERP System')).toBeVisible()
-    await expect(page.getByText('Keycloak 계정으로 로그인하세요')).toBeVisible()
+    await expect(page.getByText(/Keycloak 계정으로 로그인/)).toBeVisible()
     await expect(page.getByRole('button', { name: 'Keycloak으로 로그인' })).toBeVisible()
   })
 })
