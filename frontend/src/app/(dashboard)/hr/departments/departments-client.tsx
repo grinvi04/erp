@@ -13,14 +13,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -121,84 +116,92 @@ export default function DepartmentsClient({ departments }: Props) {
     })
   }
 
+  // 부서명은 계층(depth) 들여쓰기로 트리 순서를 표현하므로 정렬 대상에서 제외.
+  const columns: Column<Department>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (dept) => dept.code,
+      cell: (dept) => <span className="font-mono text-sm">{dept.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '부서명',
+      cell: (dept) => (
+        <span className="font-medium">
+          {dept.depth > 0 && (
+            <span className="text-muted-foreground mr-1">{'└'.padStart(dept.depth * 2)}</span>
+          )}
+          {dept.name}
+        </span>
+      ),
+    },
+    {
+      key: 'parent',
+      header: '상위 부서',
+      cell: (dept) => {
+        const parent = dept.parentId != null ? deptById.get(dept.parentId) : undefined
+        return <span className="text-sm text-muted-foreground">{parent?.name ?? '—'}</span>
+      },
+    },
+    {
+      key: 'sortOrder',
+      header: '정렬순서',
+      align: 'right',
+      sortable: true,
+      sortValue: (dept) => dept.sortOrder,
+      cell: (dept) => <span className="text-sm text-muted-foreground">{dept.sortOrder}</span>,
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (dept) => (dept.active ? 0 : 1),
+      cell: (dept) => (
+        <Badge variant={dept.active ? 'default' : 'secondary'}>
+          {dept.active ? '활성' : '비활성'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-24',
+      cell: (dept) => (
+        <div className="flex justify-end gap-1">
+          <Button variant="ghost" size="icon-xs" onClick={() => openEdit(dept)}>
+            <PencilIcon />
+            <span className="sr-only">수정</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setDialog({ type: 'delete', dept })}
+          >
+            <Trash2Icon className="text-destructive" />
+            <span className="sr-only">삭제</span>
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">부서 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">조직 부서 구조를 관리합니다</p>
-        </div>
+      <PageHeader title="부서 관리" description="조직 부서 구조를 관리합니다" className="mb-6">
         <Button onClick={openCreate}>
           <PlusIcon />새 부서
         </Button>
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>부서명</TableHead>
-              <TableHead>상위 부서</TableHead>
-              <TableHead className="text-right">정렬순서</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-24" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {departments.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                  등록된 부서가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {departments.map((dept) => {
-              const parent = dept.parentId != null ? deptById.get(dept.parentId) : undefined
-              return (
-                <TableRow key={dept.id}>
-                  <TableCell className="font-mono text-sm">{dept.code}</TableCell>
-                  <TableCell className="font-medium">
-                    {dept.depth > 0 && (
-                      <span className="text-muted-foreground mr-1">
-                        {'└'.padStart(dept.depth * 2)}
-                      </span>
-                    )}
-                    {dept.name}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {parent?.name ?? '—'}
-                  </TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground">
-                    {dept.sortOrder}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={dept.active ? 'default' : 'secondary'}>
-                      {dept.active ? '활성' : '비활성'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon-xs" onClick={() => openEdit(dept)}>
-                        <PencilIcon />
-                        <span className="sr-only">수정</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => setDialog({ type: 'delete', dept })}
-                      >
-                        <Trash2Icon className="text-destructive" />
-                        <span className="sr-only">삭제</span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={departments}
+        columns={columns}
+        getRowId={(dept) => dept.id}
+        empty={<EmptyState title="등록된 부서가 없습니다" />}
+      />
 
       {/* Create / Edit Dialog */}
       <Dialog

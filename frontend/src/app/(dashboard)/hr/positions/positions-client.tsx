@@ -12,14 +12,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import { createPosition, updatePosition, deletePosition } from './actions'
 import type { Position } from '@/types/hr'
 
@@ -108,64 +103,67 @@ export default function PositionsClient({ positions }: Props) {
     })
   }
 
+  const columns: Column<Position>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (p) => p.code,
+      cell: (p) => <span className="font-mono text-sm">{p.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '직위명',
+      sortable: true,
+      sortValue: (p) => p.name,
+      cell: (p) => <span className="font-medium">{p.name}</span>,
+    },
+    {
+      key: 'levelOrder',
+      header: '레벨',
+      align: 'right',
+      sortable: true,
+      sortValue: (p) => p.levelOrder,
+      cell: (p) => <span className="text-sm text-muted-foreground">{p.levelOrder}</span>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-24',
+      cell: (position) => (
+        <div className="flex justify-end gap-1">
+          <Button variant="ghost" size="icon-xs" onClick={() => openEdit(position)}>
+            <PencilIcon />
+            <span className="sr-only">수정</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setDialog({ type: 'delete', position })}
+          >
+            <Trash2Icon className="text-destructive" />
+            <span className="sr-only">삭제</span>
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">직위 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">직위(직책) 체계를 관리합니다</p>
-        </div>
+      <PageHeader title="직위 관리" description="직위(직책) 체계를 관리합니다" className="mb-6">
         <Button onClick={openCreate}>
           <PlusIcon />새 직위
         </Button>
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>직위명</TableHead>
-              <TableHead className="text-right">레벨</TableHead>
-              <TableHead className="w-24" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {positions.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
-                  등록된 직위가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {positions.map((position) => (
-              <TableRow key={position.id}>
-                <TableCell className="font-mono text-sm">{position.code}</TableCell>
-                <TableCell className="font-medium">{position.name}</TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">
-                  {position.levelOrder}
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon-xs" onClick={() => openEdit(position)}>
-                      <PencilIcon />
-                      <span className="sr-only">수정</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => setDialog({ type: 'delete', position })}
-                    >
-                      <Trash2Icon className="text-destructive" />
-                      <span className="sr-only">삭제</span>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={positions}
+        columns={columns}
+        getRowId={(p) => p.id}
+        empty={<EmptyState title="등록된 직위가 없습니다" />}
+      />
 
       {/* Create / Edit Dialog */}
       <Dialog

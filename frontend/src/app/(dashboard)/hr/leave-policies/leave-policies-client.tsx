@@ -13,14 +13,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -107,80 +102,99 @@ export default function LeavePoliciesClient({ policies }: Props) {
     })
   }
 
+  const columns: Column<LeavePolicy>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (p) => p.code,
+      cell: (p) => <span className="font-mono text-sm">{p.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '정책명',
+      sortable: true,
+      sortValue: (p) => p.name,
+      cell: (p) => <span className="font-medium">{p.name}</span>,
+    },
+    {
+      key: 'leaveType',
+      header: '휴가 종류',
+      cell: (p) => <span className="text-sm">{LEAVE_TYPE_LABEL[p.leaveType] ?? p.leaveType}</span>,
+    },
+    {
+      key: 'annualDays',
+      header: '연간 일수',
+      align: 'right',
+      sortable: true,
+      sortValue: (p) => p.annualDays,
+      cell: (p) => <span className="text-sm text-muted-foreground">{p.annualDays}</span>,
+    },
+    {
+      key: 'carryOverDays',
+      header: '이월 일수',
+      align: 'right',
+      sortable: true,
+      sortValue: (p) => p.carryOverDays,
+      cell: (p) => <span className="text-sm text-muted-foreground">{p.carryOverDays}</span>,
+    },
+    {
+      key: 'minNoticeDays',
+      header: '최소 통보일',
+      align: 'right',
+      sortable: true,
+      sortValue: (p) => p.minNoticeDays,
+      cell: (p) => <span className="text-sm text-muted-foreground">{p.minNoticeDays}</span>,
+    },
+    {
+      key: 'requiresApproval',
+      header: '승인 필요',
+      sortable: true,
+      sortValue: (p) => (p.requiresApproval ? 0 : 1),
+      cell: (p) => (
+        <Badge variant={p.requiresApproval ? 'default' : 'secondary'}>
+          {p.requiresApproval ? '필요' : '불필요'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-16',
+      cell: (p) => (
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setDialog({ type: 'delete', policy: p })}
+          >
+            <Trash2Icon className="text-destructive" />
+            <span className="sr-only">삭제</span>
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">휴가 정책</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            휴가 종류별 부여 일수·승인 규칙을 관리합니다
-          </p>
-        </div>
+      <PageHeader
+        title="휴가 정책"
+        description="휴가 종류별 부여 일수·승인 규칙을 관리합니다"
+        className="mb-6"
+      >
         <Button onClick={openCreate}>
           <PlusIcon />새 정책
         </Button>
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>정책명</TableHead>
-              <TableHead>휴가 종류</TableHead>
-              <TableHead className="text-right">연간 일수</TableHead>
-              <TableHead className="text-right">이월 일수</TableHead>
-              <TableHead className="text-right">최소 통보일</TableHead>
-              <TableHead>승인 필요</TableHead>
-              <TableHead className="w-16" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {policies.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                  등록된 휴가 정책이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {policies.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className="font-mono text-sm">{p.code}</TableCell>
-                <TableCell className="font-medium">{p.name}</TableCell>
-                <TableCell className="text-sm">
-                  {LEAVE_TYPE_LABEL[p.leaveType] ?? p.leaveType}
-                </TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">
-                  {p.annualDays}
-                </TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">
-                  {p.carryOverDays}
-                </TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">
-                  {p.minNoticeDays}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={p.requiresApproval ? 'default' : 'secondary'}>
-                    {p.requiresApproval ? '필요' : '불필요'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end">
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => setDialog({ type: 'delete', policy: p })}
-                    >
-                      <Trash2Icon className="text-destructive" />
-                      <span className="sr-only">삭제</span>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={policies}
+        columns={columns}
+        getRowId={(p) => p.id}
+        empty={<EmptyState title="등록된 휴가 정책이 없습니다" />}
+      />
 
       {/* Create Dialog */}
       <Dialog
