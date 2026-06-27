@@ -176,6 +176,59 @@ public class JournalEntryService {
         return JournalEntryResponse.from(entry);
     }
 
+    /**
+     * 전기 결재 반려: 전결권(finance:gl:approve) 보유자만, 작성자≠결재자 충족 시 반려 사유와 함께
+     * ApprovalRequest를 REJECTED로 종료하고 전표를 PENDING_APPROVAL → DRAFT로 되돌린다(수정·재상신 가능).
+     */
+    @Transactional
+    public JournalEntryResponse reject(Long id, String comment) {
+        permissionChecker.require(Permission.FINANCE_GL_APPROVE);
+        String userId = currentUserProvider.getCurrentUserId();
+        if (userId == null) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
+        if (comment == null || comment.isBlank()) {
+            throw new ErpException(ErrorCode.INVALID_INPUT);
+        }
+        JournalEntry entry = getOrThrow(id);
+        // 직무분리: 본인이 작성한 전표는 반려(결재 행위)할 수 없다 — 철회(withdraw)로 처리한다.
+        if (userId.equals(entry.getCreatedBy())) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
+        entry.returnToDraft();
+        if (entry.getApprovalRequestId() != null) {
+            ApprovalRequest approvalRequest = approvalRequestRepository
+                .findById(entry.getApprovalRequestId())
+                .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
+            approvalRequest.reject(userId, comment);
+        }
+        auditService.record("GL_ENTRY", entry.getId(), AuditLog.AuditAction.REJECT, null, null);
+        return JournalEntryResponse.from(entry);
+    }
+
+    /**
+     * 전기 결재 철회: 상신자 본인(작성권 finance:write)만, ApprovalRequest를 CANCELLED로 종료하고
+     * 전표를 PENDING_APPROVAL → DRAFT로 되돌린다(수정·재상신 가능). 타인은 철회할 수 없다.
+     */
+    @Transactional
+    public JournalEntryResponse withdraw(Long id) {
+        permissionChecker.require(Permission.FINANCE_WRITE);
+        String userId = currentUserProvider.getCurrentUserId();
+        JournalEntry entry = getOrThrow(id);
+        // 상신자 본인만 철회 가능.
+        if (userId == null || !userId.equals(entry.getCreatedBy())) {
+            throw new ErpException(ErrorCode.FORBIDDEN);
+        }
+        entry.returnToDraft();
+        if (entry.getApprovalRequestId() != null) {
+            ApprovalRequest approvalRequest = approvalRequestRepository
+                .findById(entry.getApprovalRequestId())
+                .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
+            approvalRequest.cancel(userId, null);
+        }
+        return JournalEntryResponse.from(entry);
+    }
+
     private JournalEntry getOrThrow(Long id) {
         return journalEntryRepository.findById(id)
             .orElseThrow(() -> new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_FOUND));

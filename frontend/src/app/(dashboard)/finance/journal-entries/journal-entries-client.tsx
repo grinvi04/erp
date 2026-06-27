@@ -21,7 +21,9 @@ import {
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { formatMoneyOne } from '@/lib/money'
-import { createJournalEntry, submitJournalEntry, approveJournalEntry } from './actions'
+import {
+  createJournalEntry, submitJournalEntry, approveJournalEntry, withdrawJournalEntry,
+} from './actions'
 import type {
   FiscalYear, FiscalPeriod, JournalEntry, JournalEntryStatus,
   JournalEntryType, Account,
@@ -149,6 +151,15 @@ export default function JournalEntriesClient({
     })
   }
 
+  const handleWithdraw = (entry: JournalEntry) => {
+    startTransition(async () => {
+      try {
+        await withdrawJournalEntry(entry.id)
+        toast.success('상신을 철회했습니다')
+      } catch (e) { toast.error(e instanceof Error ? e.message : '철회 중 오류가 발생했습니다') }
+    })
+  }
+
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -260,6 +271,12 @@ export default function JournalEntriesClient({
                       <Button variant="ghost" size="sm" onClick={() => handleApprove(entry)}
                         disabled={isPending} title="승인">
                         승인
+                      </Button>
+                    )}
+                    {canWrite && entry.status === 'PENDING_APPROVAL' && (
+                      <Button variant="ghost" size="sm" onClick={() => handleWithdraw(entry)}
+                        disabled={isPending} title="철회" className="text-destructive">
+                        철회
                       </Button>
                     )}
                   </TableCell>

@@ -3,6 +3,7 @@ package com.erp.inventory.adapter.in.web;
 import com.erp.common.response.ApiResponse;
 import com.erp.common.response.PageResponse;
 import com.erp.inventory.application.dto.MovementCreateRequest;
+import com.erp.inventory.application.dto.MovementRejectRequest;
 import com.erp.inventory.application.dto.MovementResponse;
 import com.erp.inventory.application.service.MovementService;
 import com.erp.inventory.domain.model.MovementStatus;
@@ -66,5 +67,16 @@ public class MovementController {
     @PostMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<MovementResponse>> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(movementService.cancel(id)));
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<MovementResponse>> reject(
+            @PathVariable Long id, @Valid @RequestBody MovementRejectRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(movementService.reject(id, request.comment())));
+    }
+
+    @PostMapping("/{id}/withdraw")
+    public ResponseEntity<ApiResponse<MovementResponse>> withdraw(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(movementService.withdraw(id)));
     }
 }

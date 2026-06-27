@@ -298,6 +298,160 @@ class JournalEntryServiceTest {
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOURNAL_ENTRY_NOT_PENDING_APPROVAL);
     }
 
+    // --- 반려(reject) ---
+
+    private com.erp.common.workflow.ApprovalRequest buildApprovalRequest() {
+        return com.erp.common.workflow.ApprovalRequest.create("GL_ENTRY", 1L, "t", "creator",
+            new java.util.ArrayList<>(List.of(
+                com.erp.common.workflow.ApprovalStep.of(1, "GL 전표 전기 승인", "@role:finance:gl:approve"))));
+    }
+
+    // 결재자 반려 → DRAFT 복귀 + ApprovalRequest REJECTED(사유 저장)
+    @Test
+    void reject_pendingEntry_returnsToDraftAndMarksApprovalRejected() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+        org.springframework.test.util.ReflectionTestUtils.setField(entry, "createdBy", "creator");
+        entry.submitForApproval();
+        entry.linkApprovalRequest(10L);
+        com.erp.common.workflow.ApprovalRequest req = buildApprovalRequest();
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("approver");
+        given(approvalRequestRepository.findById(10L)).willReturn(Optional.of(req));
+
+        JournalEntryResponse result = journalEntryService.reject(1L, "증빙 누락");
+
+        assertThat(result.status().name()).isEqualTo("DRAFT");
+        assertThat(req.getStatus()).isEqualTo(com.erp.common.workflow.ApprovalStatus.REJECTED);
+        assertThat(req.getSteps().get(0).getComment()).isEqualTo("증빙 누락");
+        verify(permissionChecker).require(com.erp.common.security.Permission.FINANCE_GL_APPROVE);
+    }
+
+    // 작성자 본인 반려 차단
+    @Test
+    void reject_approverIsCreator_throwsApproverNotAuthorized() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+        org.springframework.test.util.ReflectionTestUtils.setField(entry, "createdBy", "creator");
+        entry.submitForApproval();
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("creator");
+
+        ErpException ex = assertThrows(ErpException.class, () -> journalEntryService.reject(1L, "사유"));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        assertThat(entry.getStatus().name()).isEqualTo("PENDING_APPROVAL");
+    }
+
+    // 권한 없음 → 403 FORBIDDEN
+    @Test
+    void reject_noApprovePermission_throwsForbidden() {
+        org.mockito.BDDMockito.willThrow(new ErpException(ErrorCode.FORBIDDEN))
+            .given(permissionChecker).require(com.erp.common.security.Permission.FINANCE_GL_APPROVE);
+
+        ErpException ex = assertThrows(ErpException.class, () -> journalEntryService.reject(1L, "사유"));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+    }
+
+    // PENDING_APPROVAL 아닌 상태(DRAFT 미상신) 반려 거부
+    @Test
+    void reject_notPendingApproval_throwsNotPendingApproval() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+        org.springframework.test.util.ReflectionTestUtils.setField(entry, "createdBy", "creator");
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("approver");
+
+        ErpException ex = assertThrows(ErpException.class, () -> journalEntryService.reject(1L, "사유"));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOURNAL_ENTRY_NOT_PENDING_APPROVAL);
+    }
+
+    // 반려 사유 필수
+    @Test
+    void reject_blankComment_throwsInvalidInput() {
+        given(currentUserProvider.getCurrentUserId()).willReturn("approver");
+
+        ErpException ex = assertThrows(ErpException.class, () -> journalEntryService.reject(1L, "  "));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT);
+    }
+
+    // --- 철회(withdraw) ---
+
+    // 상신자 본인 철회 → DRAFT + ApprovalRequest CANCELLED
+    @Test
+    void withdraw_bySubmitter_returnsToDraftAndCancelsApproval() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+        org.springframework.test.util.ReflectionTestUtils.setField(entry, "createdBy", "creator");
+        entry.submitForApproval();
+        entry.linkApprovalRequest(10L);
+        com.erp.common.workflow.ApprovalRequest req = buildApprovalRequest();
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("creator");
+        given(approvalRequestRepository.findById(10L)).willReturn(Optional.of(req));
+
+        JournalEntryResponse result = journalEntryService.withdraw(1L);
+
+        assertThat(result.status().name()).isEqualTo("DRAFT");
+        assertThat(req.getStatus()).isEqualTo(com.erp.common.workflow.ApprovalStatus.CANCELLED);
+        verify(permissionChecker).require(com.erp.common.security.Permission.FINANCE_WRITE);
+    }
+
+    // 타인 철회 차단
+    @Test
+    void withdraw_byNonSubmitter_throwsForbidden() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+        org.springframework.test.util.ReflectionTestUtils.setField(entry, "createdBy", "creator");
+        entry.submitForApproval();
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("someone-else");
+
+        ErpException ex = assertThrows(ErpException.class, () -> journalEntryService.withdraw(1L));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+        assertThat(entry.getStatus().name()).isEqualTo("PENDING_APPROVAL");
+    }
+
+    // PENDING_APPROVAL 아닌 상태 철회 거부
+    @Test
+    void withdraw_notPendingApproval_throwsNotPendingApproval() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+        org.springframework.test.util.ReflectionTestUtils.setField(entry, "createdBy", "creator");
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("creator");
+
+        ErpException ex = assertThrows(ErpException.class, () -> journalEntryService.withdraw(1L));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.JOURNAL_ENTRY_NOT_PENDING_APPROVAL);
+    }
+
+    // 되돌린 DRAFT 재상신 가능
+    @Test
+    void withdrawnEntry_canBeResubmitted() {
+        FiscalPeriod period = buildOpenPeriod();
+        JournalEntry entry = buildBalancedDraft(period, buildAccount("1100"));
+        org.springframework.test.util.ReflectionTestUtils.setField(entry, "createdBy", "creator");
+        entry.submitForApproval();
+        entry.linkApprovalRequest(10L);
+        com.erp.common.workflow.ApprovalRequest req = buildApprovalRequest();
+        given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
+        given(currentUserProvider.getCurrentUserId()).willReturn("creator");
+        given(approvalRequestRepository.findById(10L)).willReturn(Optional.of(req));
+
+        journalEntryService.withdraw(1L);
+        assertThat(entry.getStatus().name()).isEqualTo("DRAFT");
+
+        given(approvalRequestRepository.save(any())).willReturn(buildApprovalRequest());
+        JournalEntryResponse resubmitted = journalEntryService.submitForApproval(1L);
+
+        assertThat(resubmitted.status().name()).isEqualTo("PENDING_APPROVAL");
+    }
+
     @Test
     void findById_notFound_throwsJournalEntryNotFound() {
         given(journalEntryRepository.findById(99L)).willReturn(Optional.empty());

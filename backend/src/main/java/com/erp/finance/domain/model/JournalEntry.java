@@ -134,6 +134,17 @@ public class JournalEntry extends BaseEntity {
         this.status = JournalEntryStatus.PENDING_APPROVAL;
     }
 
+    /**
+     * 결재 반려·철회 시 되돌리기: PENDING_APPROVAL → DRAFT. 되돌린 전표는 수정 후 재상신할 수 있다.
+     * 상신되지 않은(PENDING_APPROVAL 아님) 전표는 되돌릴 수 없다.
+     */
+    public void returnToDraft() {
+        if (status != JournalEntryStatus.PENDING_APPROVAL) {
+            throw new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_PENDING_APPROVAL);
+        }
+        this.status = JournalEntryStatus.DRAFT;
+    }
+
     public void post(String postedBy) {
         // 직무분리: 작성자가 DRAFT를 직접 전기할 수 없다 — 결재 상신(PENDING_APPROVAL) 후에만 전기.
         if (status != JournalEntryStatus.PENDING_APPROVAL) {

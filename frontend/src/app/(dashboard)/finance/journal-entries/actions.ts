@@ -34,3 +34,9 @@ export async function approveJournalEntry(id: number): Promise<void> {
   await apiPost<JournalEntry>(`/api/finance/journal-entries/${id}/approve`, {})
   revalidatePath(PATH)
 }
+
+// 철회: 상신자 본인이 결재 대기 전표를 DRAFT로 되돌린다(본인 검증은 서버가 최종 수행).
+export async function withdrawJournalEntry(id: number): Promise<void> {
+  await apiPost<JournalEntry>(`/api/finance/journal-entries/${id}/withdraw`, {})
+  revalidatePath(PATH)
+}

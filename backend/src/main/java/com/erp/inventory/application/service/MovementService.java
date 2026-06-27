@@ -248,6 +248,66 @@ public class MovementService {
         throw new ErpException(ErrorCode.INTERNAL_ERROR);
     }
 
+    /**
+     * 재고 조정 결재 반려: 결재권(inventory:movement:approve) 보유자만, 작성자≠결재자 충족 시 반려 사유와 함께
+     * ApprovalRequest를 REJECTED로 종료하고 이동을 PENDING_APPROVAL → DRAFT로 되돌린다(수정·재상신 가능).
+     */
+    @Transactional
+    public MovementResponse reject(Long id, String comment) {
+        permissionChecker.require(Permission.INVENTORY_MOVEMENT_APPROVE);
+        String userId = currentUserProvider.getCurrentUserId();
+        if (userId == null) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
+        if (comment == null || comment.isBlank()) {
+            throw new ErpException(ErrorCode.INVALID_INPUT);
+        }
+        Movement movement = getOrThrow(id);
+        // 직무분리: 본인이 작성한 조정 이동은 반려(결재 행위)할 수 없다 — 철회(withdraw)로 처리한다.
+        if (userId.equals(movement.getCreatedBy())) {
+            throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        }
+        movement.returnToDraft();
+        if (movement.getApprovalRequestId() != null) {
+            ApprovalRequest approvalRequest = approvalRequestRepository
+                    .findById(movement.getApprovalRequestId())
+                    .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
+            approvalRequest.reject(userId, comment);
+        }
+        auditService.record("STOCK_MOVEMENT", movement.getId(), AuditLog.AuditAction.REJECT, null, null);
+        return toResponse(id, movement);
+    }
+
+    /**
+     * 재고 조정 결재 철회: 상신자 본인(작성권 inventory:write)만, ApprovalRequest를 CANCELLED로 종료하고
+     * 이동을 PENDING_APPROVAL → DRAFT로 되돌린다(수정·재상신 가능). 타인은 철회할 수 없다.
+     */
+    @Transactional
+    public MovementResponse withdraw(Long id) {
+        permissionChecker.require(Permission.INVENTORY_WRITE);
+        String userId = currentUserProvider.getCurrentUserId();
+        Movement movement = getOrThrow(id);
+        // 상신자 본인만 철회 가능.
+        if (userId == null || !userId.equals(movement.getCreatedBy())) {
+            throw new ErpException(ErrorCode.FORBIDDEN);
+        }
+        movement.returnToDraft();
+        if (movement.getApprovalRequestId() != null) {
+            ApprovalRequest approvalRequest = approvalRequestRepository
+                    .findById(movement.getApprovalRequestId())
+                    .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
+            approvalRequest.cancel(userId, null);
+        }
+        return toResponse(id, movement);
+    }
+
+    private MovementResponse toResponse(Long id, Movement movement) {
+        List<MovementLineResponse> lines = movementLineRepository
+                .findByMovement_IdOrderByLineNoAsc(id).stream()
+                .map(MovementLineResponse::from).toList();
+        return MovementResponse.from(movement, lines);
+    }
+
     private Movement getOrThrow(Long id) {
         return movementRepository.findById(id)
                 .orElseThrow(() -> new ErpException(ErrorCode.MOVEMENT_NOT_FOUND));
