@@ -1,9 +1,9 @@
 import { apiGet } from '@/lib/api'
 import { formatMoneyList, formatMoneyOne } from '@/lib/money'
 import type {
-  PipelineDistributionResponse,
+  PipelineAnalyticsResponse,
   LeadStatusCountResponse,
-  MonthlyInvoiceByCurrencyResponse,
+  MonthlyInvoiceAnalyticsResponse,
   EmployeeStatusCountResponse,
   DepartmentHeadcountResponse,
   PositionHeadcountResponse,
@@ -25,6 +25,14 @@ async function safeGetArray<T>(path: string): Promise<T[]> {
     return Array.isArray(data) ? data : []
   } catch {
     return []
+  }
+}
+
+async function safeGet<T>(path: string): Promise<T | null> {
+  try {
+    return await apiGet<T>(path)
+  } catch {
+    return null
   }
 }
 
@@ -110,9 +118,9 @@ export default async function AnalyticsPage() {
   const currentYear = new Date().getFullYear()
 
   const [
-    pipeline,
+    pipelineData,
     leads,
-    monthly,
+    monthlyData,
     hrStatus,
     hrByDept,
     hrByPosition,
@@ -125,9 +133,9 @@ export default async function AnalyticsPage() {
     invMonthlyMovements,
     invLowStock,
   ] = await Promise.all([
-    safeGetArray<PipelineDistributionResponse>('/api/crm/analytics/pipeline'),
+    safeGet<PipelineAnalyticsResponse>('/api/crm/analytics/pipeline'),
     safeGetArray<LeadStatusCountResponse>('/api/crm/analytics/leads-by-status'),
-    safeGetArray<MonthlyInvoiceByCurrencyResponse>(`/api/finance/analytics/monthly-invoices?year=${currentYear}`),
+    safeGet<MonthlyInvoiceAnalyticsResponse>(`/api/finance/analytics/monthly-invoices?year=${currentYear}`),
     safeGetArray<EmployeeStatusCountResponse>('/api/hr/analytics/status-distribution'),
     safeGetArray<DepartmentHeadcountResponse>('/api/hr/analytics/by-department'),
     safeGetArray<PositionHeadcountResponse>('/api/hr/analytics/by-position'),
@@ -140,6 +148,13 @@ export default async function AnalyticsPage() {
     safeGetArray<MonthlyMovementByTypeResponse>(`/api/inventory/analytics/monthly-movements?year=${currentYear}`),
     safeGetArray<LowStockItemResponse>('/api/inventory/analytics/low-stock'),
   ])
+
+  // 통화별 분리는 유지하고 기준통화 합계를 추가 표시한다(래퍼에서 시리즈를 꺼낸다).
+  const pipeline = pipelineData?.stages ?? []
+  const pipelineBaseCurrency = pipelineData?.baseCurrency ?? 'KRW'
+  const monthly = monthlyData?.byCurrency ?? []
+  const monthlyBaseTotals = monthlyData?.baseMonthlyTotals ?? []
+  const monthlyBaseCurrency = monthlyData?.baseCurrency ?? 'KRW'
 
   // Pipeline: scale by count
   const maxPipelineCount = Math.max(...pipeline.map((r) => r.count), 1)
@@ -181,7 +196,8 @@ export default async function AnalyticsPage() {
               <HorizontalBar
                 key={r.stageId}
                 label={r.stageName}
-                subLabel={`${r.count}건${r.amounts.length ? ' · ' + formatMoneyList(r.amounts) : ''}`}
+                subLabel={`${r.count}건${r.amounts.length ? ' · ' + formatMoneyList(r.amounts) : ''}`
+                  + (r.baseTotal != null ? ` · ≈ ${formatMoneyOne(r.baseTotal, pipelineBaseCurrency)}` : '')}
                 pct={maxPipelineCount === 0 ? 0 : Math.round((r.count / maxPipelineCount) * 100)}
                 color="bg-blue-500"
               />
@@ -245,6 +261,36 @@ export default async function AnalyticsPage() {
             )
           })
         )}
+
+        {/* 월별 기준통화 합계 추이 — 모든 통화를 기준통화로 환산해 합산(산정분만). 통화별 카드와 별개로 추가. */}
+        {monthlyBaseTotals.length > 0 && (() => {
+          const maxBase = Math.max(...monthlyBaseTotals.map((m) => m.totalAmount), 1)
+          return (
+            <SectionCard
+              title={`월별 매입 인보이스 추이 (${currentYear}년) · 기준통화 합계(${monthlyBaseCurrency})`}
+            >
+              <div className="flex items-end gap-2">
+                {monthlyBaseTotals.map((r, idx) => {
+                  const heightPct = maxBase === 0 ? 0 : (r.totalAmount / maxBase) * 100
+                  return (
+                    <div key={r.month} className="flex flex-col items-center flex-1">
+                      <div className="relative group flex h-40 w-full items-end justify-center">
+                        <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          ≈ {formatMoneyOne(r.totalAmount, monthlyBaseCurrency)}
+                        </div>
+                        <div
+                          className="bg-indigo-500 rounded-t w-full"
+                          style={{ height: `${heightPct}%`, minHeight: r.totalAmount > 0 ? '4px' : '0px' }}
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </SectionCard>
+          )
+        })()}
 
         {/* ===== HR ===== */}
         <div className="pt-2">

@@ -1,5 +1,6 @@
 package com.erp.crm.application.service;
 
+import com.erp.common.currency.CurrencyConversionPort;
 import com.erp.common.response.CurrencyAmount;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
@@ -23,6 +24,7 @@ public class CrmSummaryService {
     private final LeadRepository leadRepository;
     private final ActivityRepository activityRepository;
     private final CrmDataScopeResolver dataScopeResolver;
+    private final CurrencyConversionPort currencyConversionPort;
     private final PermissionChecker permissionChecker;
 
     public CrmSummaryResponse getSummary() {
@@ -34,6 +36,8 @@ public class CrmSummaryService {
                 opportunityRepository.countOpen(s.scoped(), s.ownerIds()),
                 openAmounts,
                 leadRepository.countByStatus(LeadStatus.NEW, s.scoped(), s.ownerIds()),
-                activityRepository.countByStatus(ActivityStatus.OPEN, s.scoped(), s.ownerIds()));
+                activityRepository.countByStatus(ActivityStatus.OPEN, s.scoped(), s.ownerIds()),
+                currencyConversionPort.baseCurrencyCode(),
+                opportunityRepository.sumOpenBaseTotal(s.scoped(), s.ownerIds()));
     }
 }

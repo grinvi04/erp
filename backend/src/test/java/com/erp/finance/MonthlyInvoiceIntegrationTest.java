@@ -1,6 +1,7 @@
 package com.erp.finance;
 
 import com.erp.common.AbstractIntegrationTest;
+import com.erp.finance.application.dto.MonthlyInvoiceAnalyticsResponse;
 import com.erp.finance.application.dto.MonthlyInvoiceByCurrencyResponse;
 import com.erp.finance.application.dto.MonthlyInvoiceResponse;
 import com.erp.finance.application.service.FinanceAnalyticsService;
@@ -72,11 +73,14 @@ class MonthlyInvoiceIntegrationTest extends AbstractIntegrationTest {
         // USD — 2026-01: 1 invoice (혼합통화 — KRW와 합산되면 안 됨)
         invoice("INV-2026-01U", LocalDate.of(2026, 1, 5), BigDecimal.valueOf(500), "USD");
 
-        List<MonthlyInvoiceByCurrencyResponse> result = financeAnalyticsService.getMonthlyInvoices(2026);
+        MonthlyInvoiceAnalyticsResponse response = financeAnalyticsService.getMonthlyInvoices(2026);
+        List<MonthlyInvoiceByCurrencyResponse> result = response.byCurrency();
 
-        // 통화별 2시리즈, currency 정렬 (KRW < USD)
+        // 통화별 2시리즈, currency 정렬 (KRW < USD) — 기준통화 합계 추가와 무관하게 분리 유지(회귀)
         assertThat(result).extracting(MonthlyInvoiceByCurrencyResponse::currency)
                 .containsExactly("KRW", "USD");
+        // 거래가 기준통화 환산 없이 생성돼(base_amount 미산정) 기준통화 합계 시리즈는 비어 있다
+        assertThat(response.baseMonthlyTotals()).isEmpty();
 
         // KRW: 12개월 0채움, 통화 내 월합산
         List<MonthlyInvoiceResponse> krw = monthsOf(result, "KRW");
@@ -109,6 +113,8 @@ class MonthlyInvoiceIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void monthlyInvoices_emptyWhenNoData() {
-        assertThat(financeAnalyticsService.getMonthlyInvoices(2026)).isEmpty();
+        MonthlyInvoiceAnalyticsResponse response = financeAnalyticsService.getMonthlyInvoices(2026);
+        assertThat(response.byCurrency()).isEmpty();
+        assertThat(response.baseMonthlyTotals()).isEmpty();
     }
 }

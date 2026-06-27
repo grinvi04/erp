@@ -21,6 +21,7 @@ class FinanceSummaryServiceTest {
 
     @Mock private ApInvoiceRepository apInvoiceRepository;
     @Mock private JournalEntryRepository journalEntryRepository;
+    @Mock private BaseCurrencyService baseCurrencyService;
     @Mock private com.erp.common.security.PermissionChecker permissionChecker;
     @InjectMocks private FinanceSummaryService financeSummaryService;
 
@@ -31,16 +32,23 @@ class FinanceSummaryServiceTest {
                 new CurrencyAmount("KRW", new BigDecimal("12345.67")),
                 new CurrencyAmount("USD", new BigDecimal("89.00"))));
         given(journalEntryRepository.countByStatus(JournalEntryStatus.DRAFT)).willReturn(2L);
+        given(baseCurrencyService.currentBaseCurrencyCode()).willReturn("KRW");
+        // 통화별 분리(12345.67 KRW + 89.00 USD환산)와 별개의 기준통화 합계
+        given(apInvoiceRepository.sumUnpaidBaseTotal()).willReturn(new BigDecimal("131045.67"));
 
         FinanceSummaryResponse result = financeSummaryService.getSummary();
 
         assertThat(result.unpaidInvoices()).isEqualTo(5L);
+        // 통화별 분리는 그대로 유지(회귀)
         assertThat(result.unpaidAmounts())
                 .extracting(CurrencyAmount::currency)
                 .containsExactly("KRW", "USD");
         assertThat(result.unpaidAmounts().get(0).amount()).isEqualByComparingTo("12345.67");
         assertThat(result.unpaidAmounts().get(1).amount()).isEqualByComparingTo("89.00");
         assertThat(result.draftJournalEntries()).isEqualTo(2L);
+        // 기준통화 합계 추가
+        assertThat(result.baseCurrency()).isEqualTo("KRW");
+        assertThat(result.unpaidBaseTotal()).isEqualByComparingTo("131045.67");
     }
 
     @Test
@@ -48,9 +56,14 @@ class FinanceSummaryServiceTest {
         given(apInvoiceRepository.countUnpaid()).willReturn(0L);
         given(apInvoiceRepository.sumUnpaidAmountByCurrency()).willReturn(List.of());
         given(journalEntryRepository.countByStatus(JournalEntryStatus.DRAFT)).willReturn(0L);
+        given(baseCurrencyService.currentBaseCurrencyCode()).willReturn("KRW");
+        // 산정된 미지급 행이 없으면 기준통화 합계는 null(0 아님)
+        given(apInvoiceRepository.sumUnpaidBaseTotal()).willReturn(null);
 
         FinanceSummaryResponse result = financeSummaryService.getSummary();
 
         assertThat(result.unpaidAmounts()).isEmpty();
+        assertThat(result.unpaidBaseTotal()).isNull();
+        assertThat(result.baseCurrency()).isEqualTo("KRW");
     }
 }

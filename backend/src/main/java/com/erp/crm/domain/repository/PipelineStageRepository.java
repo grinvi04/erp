@@ -15,7 +15,8 @@ public interface PipelineStageRepository extends JpaRepository<PipelineStage, Lo
     // owner 스코프는 LEFT JOIN의 ON 조건에 둬서(WHERE 아님) 매칭 기회가 없는 단계도
     // count=0으로 남도록 한다 — 단계 목록은 owner와 무관하게 전부 보여야 하므로.
     @Query("SELECT s.id AS stageId, s.name AS stageName, s.stageOrder AS stageOrder, "
-            + "o.currency AS currency, COUNT(o.id) AS count, COALESCE(SUM(o.amount), 0) AS totalAmount "
+            + "o.currency AS currency, COUNT(o.id) AS count, COALESCE(SUM(o.amount), 0) AS totalAmount, "
+            + "SUM(o.baseAmount) AS baseTotal "
             + "FROM PipelineStage s LEFT JOIN Opportunity o ON o.stage = s "
             + "AND (:scoped = false OR o.ownerId IN :ownerIds) "
             + "GROUP BY s.id, s.name, s.stageOrder, o.currency ORDER BY s.stageOrder, o.currency")

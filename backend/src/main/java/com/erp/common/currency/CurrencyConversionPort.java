@@ -21,6 +21,9 @@ public interface CurrencyConversionPort {
      */
     Optional<Conversion> tryConvert(BigDecimal amount, String currency, LocalDate date);
 
+    /** 현재 테넌트의 기준통화 코드(미설정 시 KRW) — 타 모듈의 기준통화 합계 표시용. */
+    String baseCurrencyCode();
+
     /** 환산 결과 — 기준통화 환산액과 적용 환율. */
     record Conversion(BigDecimal baseAmount, BigDecimal rate) {}
 }

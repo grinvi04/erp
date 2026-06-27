@@ -2,9 +2,11 @@ package com.erp.finance.application.service;
 
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
+import com.erp.finance.application.dto.MonthlyInvoiceAnalyticsResponse;
 import com.erp.finance.application.dto.MonthlyInvoiceByCurrencyResponse;
 import com.erp.finance.application.dto.MonthlyInvoiceResponse;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
+import com.erp.finance.domain.repository.MonthlyBaseRow;
 import com.erp.finance.domain.repository.MonthlyInvoiceRow;
 import java.math.BigDecimal;
 import java.time.Year;
@@ -24,9 +26,10 @@ public class FinanceAnalyticsService {
     private static final int MONTHS_IN_YEAR = 12;
 
     private final ApInvoiceRepository apInvoiceRepository;
+    private final BaseCurrencyService baseCurrencyService;
     private final PermissionChecker permissionChecker;
 
-    public List<MonthlyInvoiceByCurrencyResponse> getMonthlyInvoices(Integer year) {
+    public MonthlyInvoiceAnalyticsResponse getMonthlyInvoices(Integer year) {
         permissionChecker.require(Permission.FINANCE_READ);
         int targetYear = year != null ? year : Year.now().getValue();
 
@@ -52,6 +55,27 @@ public class FinanceAnalyticsService {
             }
             result.add(new MonthlyInvoiceByCurrencyResponse(entry.getKey(), months));
         }
-        return result;
+        return new MonthlyInvoiceAnalyticsResponse(
+                baseCurrencyService.currentBaseCurrencyCode(),
+                result,
+                baseMonthlyTotals(targetYear));
+    }
+
+    // 월별 기준통화 합계 시리즈. 산정된(base_amount not-null) 행이 하나도 없으면 빈 리스트로 두어
+    // 프론트가 기준통화 합계 카드를 숨길 수 있게 한다.
+    private List<MonthlyInvoiceResponse> baseMonthlyTotals(int targetYear) {
+        Map<Integer, BigDecimal> byMonth = new LinkedHashMap<>();
+        for (MonthlyBaseRow row : apInvoiceRepository.monthlyBaseTotals(targetYear)) {
+            byMonth.put(row.getMonth(), row.getBaseTotal());
+        }
+        if (byMonth.isEmpty()) {
+            return List.of();
+        }
+        List<MonthlyInvoiceResponse> months = new ArrayList<>(MONTHS_IN_YEAR);
+        for (int month = 1; month <= MONTHS_IN_YEAR; month++) {
+            BigDecimal total = byMonth.getOrDefault(month, BigDecimal.ZERO);
+            months.add(new MonthlyInvoiceResponse(month, 0L, total));
+        }
+        return months;
     }
 }

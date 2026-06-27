@@ -54,10 +54,38 @@ public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
             + "GROUP BY i.currency ORDER BY i.currency")
     List<CurrencyAmount> sumUnpaidAmountByCurrency();
 
+    /**
+     * 미지급 인보이스의 기준통화 환산 <b>미지급잔액</b> 합계 — 통화별 분리합과 별개로 단일 기준통화 합계 표시용.
+     * 통화별 분리({@link #sumUnpaidAmountByCurrency()})가 미지급잔액(total-paid) 기준이므로, base 합계도
+     * 전표 전액 스냅샷(base_amount)이 아니라 스냅샷 환율 × 미지급잔액으로 산정해 정합을 맞춘다
+     * (부분지급 시 전액 합산되어 통화별 합을 초과하던 모순 제거).
+     * 미지급 조건은 {@link #sumUnpaidAmountByCurrency()}와 동일. base_amount 미산정(null=환율 미산정) 행은
+     * 제외(부분 합계)이며, 산정된 행이 하나도 없으면 null을 반환한다(0이 아님 — 미산정과 0을 구분).
+     * 결과는 base 컬럼 정밀도(NUMERIC(20,2))에 맞춰 소수 2자리로 반올림.
+     */
+    @Query("SELECT ROUND(SUM(i.exchangeRate * (i.totalAmount - i.paidAmount)), 2) FROM ApInvoice i "
+            + "WHERE i.status NOT IN (com.erp.finance.domain.model.ApInvoiceStatus.PAID, "
+            + "com.erp.finance.domain.model.ApInvoiceStatus.CANCELLED) "
+            + "AND i.totalAmount > i.paidAmount "
+            + "AND i.baseAmount IS NOT NULL")
+    BigDecimal sumUnpaidBaseTotal();
+
     @Query("SELECT EXTRACT(MONTH FROM i.invoiceDate) AS month, i.currency AS currency, "
             + "COUNT(i) AS count, COALESCE(SUM(i.totalAmount), 0) AS totalAmount "
             + "FROM ApInvoice i WHERE EXTRACT(YEAR FROM i.invoiceDate) = :year "
             + "GROUP BY EXTRACT(MONTH FROM i.invoiceDate), i.currency "
             + "ORDER BY i.currency, EXTRACT(MONTH FROM i.invoiceDate)")
     List<MonthlyInvoiceRow> monthlyInvoices(@Param("year") int year);
+
+    /**
+     * 월별 기준통화 환산액 합계 — 통화별 추이와 별개로, 모든 통화를 기준통화로 합산한 월별 시리즈.
+     * base_amount 미산정(null) 행은 SUM에서 제외된다.
+     */
+    @Query("SELECT EXTRACT(MONTH FROM i.invoiceDate) AS month, "
+            + "COALESCE(SUM(i.baseAmount), 0) AS baseTotal "
+            + "FROM ApInvoice i WHERE EXTRACT(YEAR FROM i.invoiceDate) = :year "
+            + "AND i.baseAmount IS NOT NULL "
+            + "GROUP BY EXTRACT(MONTH FROM i.invoiceDate) "
+            + "ORDER BY EXTRACT(MONTH FROM i.invoiceDate)")
+    List<MonthlyBaseRow> monthlyBaseTotals(@Param("year") int year);
 }

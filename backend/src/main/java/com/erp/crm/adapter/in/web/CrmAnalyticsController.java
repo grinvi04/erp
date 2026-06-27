@@ -2,7 +2,7 @@ package com.erp.crm.adapter.in.web;
 
 import com.erp.common.response.ApiResponse;
 import com.erp.crm.application.dto.LeadStatusCountResponse;
-import com.erp.crm.application.dto.PipelineDistributionResponse;
+import com.erp.crm.application.dto.PipelineAnalyticsResponse;
 import com.erp.crm.application.service.CrmAnalyticsService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ public class CrmAnalyticsController {
     private final CrmAnalyticsService crmAnalyticsService;
 
     @GetMapping("/pipeline")
-    public ResponseEntity<ApiResponse<List<PipelineDistributionResponse>>> getPipelineDistribution() {
+    public ResponseEntity<ApiResponse<PipelineAnalyticsResponse>> getPipelineDistribution() {
         return ResponseEntity.ok(ApiResponse.ok(crmAnalyticsService.getPipelineDistribution()));
     }
 
