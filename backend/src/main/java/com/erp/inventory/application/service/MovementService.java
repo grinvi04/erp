@@ -298,6 +298,7 @@ public class MovementService {
                     .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
             approvalRequest.cancel(userId, null);
         }
+        auditService.record("STOCK_MOVEMENT", movement.getId(), AuditLog.AuditAction.WITHDRAW, null, null);
         return toResponse(id, movement);
     }
 
