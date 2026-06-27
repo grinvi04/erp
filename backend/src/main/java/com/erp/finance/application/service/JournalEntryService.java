@@ -25,6 +25,7 @@ import com.erp.finance.domain.repository.FiscalPeriodRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import com.erp.finance.domain.repository.JournalLineRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -121,7 +123,13 @@ public class JournalEntryService {
         currencyConverter.tryConvert(entry.getTotalDebit(), entry.getCurrency(), entry.getEntryDate())
             .ifPresent(c -> entry.applyBaseSnapshot(c.baseAmount(), c.rate()));
 
-        return JournalEntryResponse.from(journalEntryRepository.save(entry));
+        JournalEntry saved = journalEntryRepository.save(entry);
+        log.atInfo().addKeyValue("event", "JOURNAL_ENTRY_CREATED")
+            .addKeyValue("journalEntryId", saved.getId())
+            .addKeyValue("entryNo", saved.getEntryNo())
+            .addKeyValue("totalDebit", saved.getTotalDebit())
+            .log("전표 생성");
+        return JournalEntryResponse.from(saved);
     }
 
     /**
@@ -142,6 +150,10 @@ public class JournalEntryService {
             userId, new ArrayList<>(List.of(step)));
         ApprovalRequest saved = approvalRequestRepository.save(approvalRequest);
         entry.linkApprovalRequest(saved.getId());
+        log.atInfo().addKeyValue("event", "JOURNAL_ENTRY_SUBMITTED")
+            .addKeyValue("journalEntryId", entry.getId())
+            .addKeyValue("entryNo", entry.getEntryNo())
+            .log("전표 결재 상신");
         return JournalEntryResponse.from(entry);
     }
 
@@ -173,6 +185,11 @@ public class JournalEntryService {
         }
         entry.post(userId);
         auditService.record("GL_ENTRY", entry.getId(), AuditLog.AuditAction.APPROVE, null, null);
+        log.atInfo().addKeyValue("event", "JOURNAL_ENTRY_POSTED")
+            .addKeyValue("journalEntryId", entry.getId())
+            .addKeyValue("entryNo", entry.getEntryNo())
+            .addKeyValue("totalDebit", entry.getTotalDebit())
+            .log("전표 승인·전기 완료");
         return JournalEntryResponse.from(entry);
     }
 
@@ -203,6 +220,10 @@ public class JournalEntryService {
             approvalRequest.reject(userId, comment);
         }
         auditService.record("GL_ENTRY", entry.getId(), AuditLog.AuditAction.REJECT, null, null);
+        log.atInfo().addKeyValue("event", "JOURNAL_ENTRY_REJECTED")
+            .addKeyValue("journalEntryId", entry.getId())
+            .addKeyValue("entryNo", entry.getEntryNo())
+            .log("전표 결재 반려");
         return JournalEntryResponse.from(entry);
     }
 
@@ -227,6 +248,10 @@ public class JournalEntryService {
             approvalRequest.cancel(userId, null);
         }
         auditService.record("GL_ENTRY", entry.getId(), AuditLog.AuditAction.WITHDRAW, null, null);
+        log.atInfo().addKeyValue("event", "JOURNAL_ENTRY_WITHDRAWN")
+            .addKeyValue("journalEntryId", entry.getId())
+            .addKeyValue("entryNo", entry.getEntryNo())
+            .log("전표 결재 철회");
         return JournalEntryResponse.from(entry);
     }
 

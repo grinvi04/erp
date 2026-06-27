@@ -34,10 +34,12 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -111,6 +113,11 @@ public class MovementService {
         Movement movement = getOrThrow(id);
         movement.confirm();
         List<MovementLine> lines = applyStockEffects(id);
+        log.atInfo().addKeyValue("event", "STOCK_MOVEMENT_CONFIRMED")
+                .addKeyValue("movementId", movement.getId())
+                .addKeyValue("movementNo", movement.getMovementNo())
+                .addKeyValue("movementType", movement.getMovementType())
+                .log("재고 이동 확정");
         return MovementResponse.from(movement, lines.stream().map(MovementLineResponse::from).toList());
     }
 
@@ -132,6 +139,10 @@ public class MovementService {
                 userId, new ArrayList<>(List.of(step)));
         ApprovalRequest saved = approvalRequestRepository.save(approvalRequest);
         movement.linkApprovalRequest(saved.getId());
+        log.atInfo().addKeyValue("event", "STOCK_MOVEMENT_SUBMITTED")
+                .addKeyValue("movementId", movement.getId())
+                .addKeyValue("movementNo", movement.getMovementNo())
+                .log("재고 조정 이동 결재 상신");
         List<MovementLineResponse> lines = movementLineRepository
                 .findByMovement_IdOrderByLineNoAsc(id).stream()
                 .map(MovementLineResponse::from).toList();
@@ -163,6 +174,10 @@ public class MovementService {
             approvalRequest.approve(userId, null);
         }
         auditService.record("STOCK_MOVEMENT", movement.getId(), AuditLog.AuditAction.APPROVE, null, null);
+        log.atInfo().addKeyValue("event", "STOCK_MOVEMENT_APPROVED")
+                .addKeyValue("movementId", movement.getId())
+                .addKeyValue("movementNo", movement.getMovementNo())
+                .log("재고 조정 이동 결재 승인");
         return MovementResponse.from(movement, lines.stream().map(MovementLineResponse::from).toList());
     }
 
@@ -275,6 +290,10 @@ public class MovementService {
             approvalRequest.reject(userId, comment);
         }
         auditService.record("STOCK_MOVEMENT", movement.getId(), AuditLog.AuditAction.REJECT, null, null);
+        log.atInfo().addKeyValue("event", "STOCK_MOVEMENT_REJECTED")
+                .addKeyValue("movementId", movement.getId())
+                .addKeyValue("movementNo", movement.getMovementNo())
+                .log("재고 조정 이동 결재 반려");
         return toResponse(id, movement);
     }
 
@@ -299,6 +318,10 @@ public class MovementService {
             approvalRequest.cancel(userId, null);
         }
         auditService.record("STOCK_MOVEMENT", movement.getId(), AuditLog.AuditAction.WITHDRAW, null, null);
+        log.atInfo().addKeyValue("event", "STOCK_MOVEMENT_WITHDRAWN")
+                .addKeyValue("movementId", movement.getId())
+                .addKeyValue("movementNo", movement.getMovementNo())
+                .log("재고 조정 이동 결재 철회");
         return toResponse(id, movement);
     }
 
