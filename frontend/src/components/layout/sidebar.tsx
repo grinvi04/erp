@@ -52,6 +52,7 @@ const NAV = [
       { label: '공급업체', href: '/finance/vendors', icon: Building2 },
       { label: '고객', href: '/finance/customers', icon: Building2 },
       { label: '매출 인보이스', href: '/finance/ar-invoices', icon: FileText },
+      { label: '재무제표', href: '/finance/reports', icon: BarChart3 },
       { label: 'FX 설정', href: '/finance/fx', icon: Coins },
     ],
   },
