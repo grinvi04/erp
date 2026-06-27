@@ -37,6 +37,24 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, Long
     Optional<JournalEntry> findByReferenceTypeAndReferenceId(String referenceType, Long referenceId);
 
     /**
+     * 환율 미산정(exchangeRate null) POSTED 분개 수(기간) — 재무제표 집계에서 제외된 건수를
+     * 응답에 표기하기 위함(조용한 누락 금지). 시산표·손익계산서용.
+     */
+    @Query("SELECT COUNT(j) FROM JournalEntry j "
+            + "WHERE j.status = com.erp.finance.domain.model.JournalEntryStatus.POSTED "
+            + "AND j.exchangeRate IS NULL "
+            + "AND j.entryDate >= :start AND j.entryDate <= :end")
+    long countPostedWithoutRateBetween(@Param("start") java.time.LocalDate start,
+                                       @Param("end") java.time.LocalDate end);
+
+    /** 환율 미산정 POSTED 분개 수(누적, 기준일 이전) — 재무상태표용. */
+    @Query("SELECT COUNT(j) FROM JournalEntry j "
+            + "WHERE j.status = com.erp.finance.domain.model.JournalEntryStatus.POSTED "
+            + "AND j.exchangeRate IS NULL "
+            + "AND j.entryDate <= :asOf")
+    long countPostedWithoutRateUpTo(@Param("asOf") java.time.LocalDate asOf);
+
+    /**
      * 전결규정상 현재 사용자가 전기 결재할 수 있는 대기 전표 — 통합 결재함 라우팅용.
      * 상태=대기, 작성자≠본인(직무분리), 차변 합계≤본인 전결 한도. 테넌트 필터는 자동 적용.
      */
