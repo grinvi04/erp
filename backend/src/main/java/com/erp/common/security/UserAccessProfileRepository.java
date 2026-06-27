@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserAccessProfileRepository extends JpaRepository<UserAccessProfile, Long> {
 
-    Optional<UserAccessProfile> findByTenantIdAndUserId(Long tenantId, String userId);
+  Optional<UserAccessProfile> findByTenantIdAndUserId(Long tenantId, String userId);
 }

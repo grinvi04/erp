@@ -7,5 +7,4 @@ public record DepartmentCreateRequest(
     @NotBlank @Size(max = 30) String code,
     @NotBlank @Size(max = 100) String name,
     Long parentId,
-    int sortOrder
-) {}
+    int sortOrder) {}

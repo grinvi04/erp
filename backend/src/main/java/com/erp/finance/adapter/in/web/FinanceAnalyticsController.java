@@ -15,11 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class FinanceAnalyticsController {
 
-    private final FinanceAnalyticsService financeAnalyticsService;
+  private final FinanceAnalyticsService financeAnalyticsService;
 
-    @GetMapping("/monthly-invoices")
-    public ResponseEntity<ApiResponse<MonthlyInvoiceAnalyticsResponse>> getMonthlyInvoices(
-            @RequestParam(required = false) Integer year) {
-        return ResponseEntity.ok(ApiResponse.ok(financeAnalyticsService.getMonthlyInvoices(year)));
-    }
+  @GetMapping("/monthly-invoices")
+  public ResponseEntity<ApiResponse<MonthlyInvoiceAnalyticsResponse>> getMonthlyInvoices(
+      @RequestParam(required = false) Integer year) {
+    return ResponseEntity.ok(ApiResponse.ok(financeAnalyticsService.getMonthlyInvoices(year)));
+  }
 }

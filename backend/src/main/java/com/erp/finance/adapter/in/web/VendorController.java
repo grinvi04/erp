@@ -28,36 +28,36 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class VendorController {
 
-    private final VendorService vendorService;
+  private final VendorService vendorService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<VendorResponse>>> findAll(
-        @RequestParam(required = false) String keyword,
-        @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(vendorService.findAll(keyword, pageable)));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<PageResponse<VendorResponse>>> findAll(
+      @RequestParam(required = false) String keyword,
+      @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+    return ResponseEntity.ok(ApiResponse.ok(vendorService.findAll(keyword, pageable)));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<VendorResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(vendorService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<VendorResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(vendorService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<VendorResponse>> create(
-        @Valid @RequestBody VendorCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(vendorService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<VendorResponse>> create(
+      @Valid @RequestBody VendorCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(vendorService.create(request)));
+  }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<VendorResponse>> update(
-        @PathVariable Long id,
-        @Valid @RequestBody VendorUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(vendorService.update(id, request)));
-    }
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<VendorResponse>> update(
+      @PathVariable Long id, @Valid @RequestBody VendorUpdateRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(vendorService.update(id, request)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deactivate(@PathVariable Long id) {
-        vendorService.deactivate(id);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> deactivate(@PathVariable Long id) {
+    vendorService.deactivate(id);
+    return ResponseEntity.noContent().build();
+  }
 }

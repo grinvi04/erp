@@ -29,45 +29,43 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class LeadController {
 
-    private final LeadService leadService;
+  private final LeadService leadService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<LeadResponse>>> search(
-            @RequestParam(required = false) LeadStatus status,
-            @RequestParam(required = false) String keyword,
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(leadService.search(status, keyword, pageable)));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<PageResponse<LeadResponse>>> search(
+      @RequestParam(required = false) LeadStatus status,
+      @RequestParam(required = false) String keyword,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(ApiResponse.ok(leadService.search(status, keyword, pageable)));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<LeadResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(leadService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<LeadResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(leadService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<LeadResponse>> create(
-            @Valid @RequestBody LeadCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(leadService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<LeadResponse>> create(
+      @Valid @RequestBody LeadCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(leadService.create(request)));
+  }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<LeadResponse>> update(
-            @PathVariable Long id,
-            @Valid @RequestBody LeadUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(leadService.update(id, request)));
-    }
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<LeadResponse>> update(
+      @PathVariable Long id, @Valid @RequestBody LeadUpdateRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(leadService.update(id, request)));
+  }
 
-    @PostMapping("/{id}/convert")
-    public ResponseEntity<ApiResponse<LeadResponse>> convert(
-            @PathVariable Long id,
-            @Valid @RequestBody LeadConvertRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(leadService.convert(id, request)));
-    }
+  @PostMapping("/{id}/convert")
+  public ResponseEntity<ApiResponse<LeadResponse>> convert(
+      @PathVariable Long id, @Valid @RequestBody LeadConvertRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(leadService.convert(id, request)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        leadService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> delete(@PathVariable Long id) {
+    leadService.delete(id);
+    return ResponseEntity.noContent().build();
+  }
 }

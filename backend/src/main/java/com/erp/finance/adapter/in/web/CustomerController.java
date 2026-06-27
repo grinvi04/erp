@@ -28,36 +28,36 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CustomerController {
 
-    private final CustomerService customerService;
+  private final CustomerService customerService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<CustomerResponse>>> findAll(
-        @RequestParam(required = false) String keyword,
-        @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(customerService.findAll(keyword, pageable)));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<PageResponse<CustomerResponse>>> findAll(
+      @RequestParam(required = false) String keyword,
+      @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+    return ResponseEntity.ok(ApiResponse.ok(customerService.findAll(keyword, pageable)));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<CustomerResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(customerService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<CustomerResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(customerService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<CustomerResponse>> create(
-        @Valid @RequestBody CustomerCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(customerService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<CustomerResponse>> create(
+      @Valid @RequestBody CustomerCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(customerService.create(request)));
+  }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<CustomerResponse>> update(
-        @PathVariable Long id,
-        @Valid @RequestBody CustomerUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(customerService.update(id, request)));
-    }
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<CustomerResponse>> update(
+      @PathVariable Long id, @Valid @RequestBody CustomerUpdateRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(customerService.update(id, request)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deactivate(@PathVariable Long id) {
-        customerService.deactivate(id);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> deactivate(@PathVariable Long id) {
+    customerService.deactivate(id);
+    return ResponseEntity.noContent().build();
+  }
 }

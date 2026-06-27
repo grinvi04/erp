@@ -27,38 +27,37 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AccountController {
 
-    private final CrmAccountService accountService;
+  private final CrmAccountService accountService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<AccountResponse>>> search(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Boolean isActive,
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(accountService.search(keyword, isActive, pageable)));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<PageResponse<AccountResponse>>> search(
+      @RequestParam(required = false) String keyword,
+      @RequestParam(required = false) Boolean isActive,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(ApiResponse.ok(accountService.search(keyword, isActive, pageable)));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<AccountResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(accountService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<AccountResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(accountService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<AccountResponse>> create(
-            @Valid @RequestBody AccountCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(accountService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<AccountResponse>> create(
+      @Valid @RequestBody AccountCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(accountService.create(request)));
+  }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<AccountResponse>> update(
-            @PathVariable Long id,
-            @Valid @RequestBody AccountUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(accountService.update(id, request)));
-    }
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<AccountResponse>> update(
+      @PathVariable Long id, @Valid @RequestBody AccountUpdateRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(accountService.update(id, request)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deactivate(@PathVariable Long id) {
-        accountService.deactivate(id);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> deactivate(@PathVariable Long id) {
+    accountService.deactivate(id);
+    return ResponseEntity.noContent().build();
+  }
 }

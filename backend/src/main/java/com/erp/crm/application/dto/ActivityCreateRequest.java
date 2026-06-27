@@ -7,11 +7,10 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 public record ActivityCreateRequest(
-        @NotNull ActivityType activityType,
-        @NotBlank @Size(max = 300) String subject,
-        Long accountId,
-        Long contactId,
-        Long opportunityId,
-        LocalDateTime dueDate,
-        String description
-) {}
+    @NotNull ActivityType activityType,
+    @NotBlank @Size(max = 300) String subject,
+    Long accountId,
+    Long contactId,
+    Long opportunityId,
+    LocalDateTime dueDate,
+    String description) {}

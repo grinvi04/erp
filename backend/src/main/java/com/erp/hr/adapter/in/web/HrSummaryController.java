@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class HrSummaryController {
 
-    private final HrSummaryService hrSummaryService;
+  private final HrSummaryService hrSummaryService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<HrSummaryResponse>> getSummary() {
-        return ResponseEntity.ok(ApiResponse.ok(hrSummaryService.getSummary()));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<HrSummaryResponse>> getSummary() {
+    return ResponseEntity.ok(ApiResponse.ok(hrSummaryService.getSummary()));
+  }
 }

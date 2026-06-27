@@ -24,33 +24,34 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class WarehouseController {
 
-    private final WarehouseService warehouseService;
+  private final WarehouseService warehouseService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<WarehouseResponse>>> findAll() {
-        return ResponseEntity.ok(ApiResponse.ok(warehouseService.findAll()));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<List<WarehouseResponse>>> findAll() {
+    return ResponseEntity.ok(ApiResponse.ok(warehouseService.findAll()));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<WarehouseResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(warehouseService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<WarehouseResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(warehouseService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<WarehouseResponse>> create(
-            @Valid @RequestBody WarehouseCreateRequest req) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(warehouseService.create(req)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<WarehouseResponse>> create(
+      @Valid @RequestBody WarehouseCreateRequest req) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(warehouseService.create(req)));
+  }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<WarehouseResponse>> update(@PathVariable Long id,
-            @Valid @RequestBody WarehouseUpdateRequest req) {
-        return ResponseEntity.ok(ApiResponse.ok(warehouseService.update(id, req)));
-    }
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<WarehouseResponse>> update(
+      @PathVariable Long id, @Valid @RequestBody WarehouseUpdateRequest req) {
+    return ResponseEntity.ok(ApiResponse.ok(warehouseService.update(id, req)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
-        warehouseService.deactivate(id);
-        return ResponseEntity.ok(ApiResponse.ok());
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
+    warehouseService.deactivate(id);
+    return ResponseEntity.ok(ApiResponse.ok());
+  }
 }

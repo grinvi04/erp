@@ -20,31 +20,31 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class InventoryAnalyticsController {
 
-    private final InventoryAnalyticsService inventoryAnalyticsService;
+  private final InventoryAnalyticsService inventoryAnalyticsService;
 
-    @GetMapping("/by-category")
-    public ResponseEntity<ApiResponse<List<CategoryItemCountResponse>>> getActiveItemsByCategory() {
-        return ResponseEntity.ok(ApiResponse.ok(inventoryAnalyticsService.getActiveItemsByCategory()));
-    }
+  @GetMapping("/by-category")
+  public ResponseEntity<ApiResponse<List<CategoryItemCountResponse>>> getActiveItemsByCategory() {
+    return ResponseEntity.ok(ApiResponse.ok(inventoryAnalyticsService.getActiveItemsByCategory()));
+  }
 
-    @GetMapping("/by-warehouse")
-    public ResponseEntity<ApiResponse<List<WarehouseStockResponse>>> getStockByWarehouse() {
-        return ResponseEntity.ok(ApiResponse.ok(inventoryAnalyticsService.getStockByWarehouse()));
-    }
+  @GetMapping("/by-warehouse")
+  public ResponseEntity<ApiResponse<List<WarehouseStockResponse>>> getStockByWarehouse() {
+    return ResponseEntity.ok(ApiResponse.ok(inventoryAnalyticsService.getStockByWarehouse()));
+  }
 
-    @GetMapping("/movements-by-type")
-    public ResponseEntity<ApiResponse<List<MovementTypeCountResponse>>> getMovementsByType() {
-        return ResponseEntity.ok(ApiResponse.ok(inventoryAnalyticsService.getMovementsByType()));
-    }
+  @GetMapping("/movements-by-type")
+  public ResponseEntity<ApiResponse<List<MovementTypeCountResponse>>> getMovementsByType() {
+    return ResponseEntity.ok(ApiResponse.ok(inventoryAnalyticsService.getMovementsByType()));
+  }
 
-    @GetMapping("/monthly-movements")
-    public ResponseEntity<ApiResponse<List<MonthlyMovementByTypeResponse>>> getMonthlyMovements(
-            @RequestParam(required = false) Integer year) {
-        return ResponseEntity.ok(ApiResponse.ok(inventoryAnalyticsService.getMonthlyMovements(year)));
-    }
+  @GetMapping("/monthly-movements")
+  public ResponseEntity<ApiResponse<List<MonthlyMovementByTypeResponse>>> getMonthlyMovements(
+      @RequestParam(required = false) Integer year) {
+    return ResponseEntity.ok(ApiResponse.ok(inventoryAnalyticsService.getMonthlyMovements(year)));
+  }
 
-    @GetMapping("/low-stock")
-    public ResponseEntity<ApiResponse<List<LowStockItemResponse>>> getLowStockItems() {
-        return ResponseEntity.ok(ApiResponse.ok(inventoryAnalyticsService.getLowStockItems()));
-    }
+  @GetMapping("/low-stock")
+  public ResponseEntity<ApiResponse<List<LowStockItemResponse>>> getLowStockItems() {
+    return ResponseEntity.ok(ApiResponse.ok(inventoryAnalyticsService.getLowStockItems()));
+  }
 }

@@ -13,5 +13,4 @@ public record LeavePolicyCreateRequest(
     @Min(0) int annualDays,
     @Min(0) int carryOverDays,
     boolean requiresApproval,
-    @Min(0) int minNoticeDays
-) {}
+    @Min(0) int minNoticeDays) {}

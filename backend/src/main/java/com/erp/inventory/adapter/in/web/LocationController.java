@@ -25,39 +25,40 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class LocationController {
 
-    private final LocationService locationService;
+  private final LocationService locationService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<LocationResponse>>> findByWarehouse(
-            @RequestParam Long warehouseId) {
-        return ResponseEntity.ok(ApiResponse.ok(locationService.findByWarehouse(warehouseId)));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<List<LocationResponse>>> findByWarehouse(
+      @RequestParam Long warehouseId) {
+    return ResponseEntity.ok(ApiResponse.ok(locationService.findByWarehouse(warehouseId)));
+  }
 
-    @GetMapping("/{id}/children")
-    public ResponseEntity<ApiResponse<List<LocationResponse>>> findChildren(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(locationService.findChildren(id)));
-    }
+  @GetMapping("/{id}/children")
+  public ResponseEntity<ApiResponse<List<LocationResponse>>> findChildren(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(locationService.findChildren(id)));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<LocationResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(locationService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<LocationResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(locationService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<LocationResponse>> create(
-            @Valid @RequestBody LocationCreateRequest req) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(locationService.create(req)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<LocationResponse>> create(
+      @Valid @RequestBody LocationCreateRequest req) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(locationService.create(req)));
+  }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<LocationResponse>> update(@PathVariable Long id,
-            @Valid @RequestBody LocationUpdateRequest req) {
-        return ResponseEntity.ok(ApiResponse.ok(locationService.update(id, req)));
-    }
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<LocationResponse>> update(
+      @PathVariable Long id, @Valid @RequestBody LocationUpdateRequest req) {
+    return ResponseEntity.ok(ApiResponse.ok(locationService.update(id, req)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
-        locationService.deactivate(id);
-        return ResponseEntity.ok(ApiResponse.ok());
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
+    locationService.deactivate(id);
+    return ResponseEntity.ok(ApiResponse.ok());
+  }
 }

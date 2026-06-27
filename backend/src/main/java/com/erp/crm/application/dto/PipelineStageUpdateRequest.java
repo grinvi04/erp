@@ -7,10 +7,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record PipelineStageUpdateRequest(
-        @NotBlank @Size(max = 100) String name,
-        @NotNull @Min(1) Integer stageOrder,
-        @Min(0) @Max(100) int probability,
-        boolean isClosedWon,
-        boolean isClosedLost,
-        @NotNull Long version
-) {}
+    @NotBlank @Size(max = 100) String name,
+    @NotNull @Min(1) Integer stageOrder,
+    @Min(0) @Max(100) int probability,
+    boolean isClosedWon,
+    boolean isClosedLost,
+    @NotNull Long version) {}

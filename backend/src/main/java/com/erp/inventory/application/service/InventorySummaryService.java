@@ -15,15 +15,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class InventorySummaryService {
 
-    private final ItemRepository itemRepository;
-    private final MovementRepository movementRepository;
-    private final PermissionChecker permissionChecker;
+  private final ItemRepository itemRepository;
+  private final MovementRepository movementRepository;
+  private final PermissionChecker permissionChecker;
 
-    public InventorySummaryResponse getSummary() {
-        permissionChecker.require(Permission.INVENTORY_READ);
-        return new InventorySummaryResponse(
-                itemRepository.countByActiveTrue(),
-                itemRepository.countLowStockItems(),
-                movementRepository.countByStatus(MovementStatus.DRAFT));
-    }
+  public InventorySummaryResponse getSummary() {
+    permissionChecker.require(Permission.INVENTORY_READ);
+    return new InventorySummaryResponse(
+        itemRepository.countByActiveTrue(),
+        itemRepository.countLowStockItems(),
+        movementRepository.countByStatus(MovementStatus.DRAFT));
+  }
 }

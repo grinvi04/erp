@@ -8,6 +8,7 @@ import com.erp.finance.application.dto.JournalEntryResponse;
 import com.erp.finance.application.dto.JournalLineResponse;
 import com.erp.finance.application.service.JournalEntryService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -22,56 +23,56 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/finance/journal-entries")
 @RequiredArgsConstructor
 public class JournalEntryController {
 
-    private final JournalEntryService journalEntryService;
+  private final JournalEntryService journalEntryService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<JournalEntryResponse>>> findByFiscalPeriod(
-        @RequestParam Long fiscalPeriodId,
-        @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.findByFiscalPeriod(fiscalPeriodId, pageable)));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<PageResponse<JournalEntryResponse>>> findByFiscalPeriod(
+      @RequestParam Long fiscalPeriodId,
+      @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+    return ResponseEntity.ok(
+        ApiResponse.ok(journalEntryService.findByFiscalPeriod(fiscalPeriodId, pageable)));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<JournalEntryResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<JournalEntryResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(journalEntryService.findById(id)));
+  }
 
-    @GetMapping("/{id}/lines")
-    public ResponseEntity<ApiResponse<List<JournalLineResponse>>> findLines(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.findLines(id)));
-    }
+  @GetMapping("/{id}/lines")
+  public ResponseEntity<ApiResponse<List<JournalLineResponse>>> findLines(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(journalEntryService.findLines(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<JournalEntryResponse>> create(
-        @Valid @RequestBody JournalEntryCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(journalEntryService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<JournalEntryResponse>> create(
+      @Valid @RequestBody JournalEntryCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(journalEntryService.create(request)));
+  }
 
-    @PostMapping("/{id}/submit")
-    public ResponseEntity<ApiResponse<JournalEntryResponse>> submit(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.submitForApproval(id)));
-    }
+  @PostMapping("/{id}/submit")
+  public ResponseEntity<ApiResponse<JournalEntryResponse>> submit(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(journalEntryService.submitForApproval(id)));
+  }
 
-    @PostMapping("/{id}/approve")
-    public ResponseEntity<ApiResponse<JournalEntryResponse>> approve(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.approve(id)));
-    }
+  @PostMapping("/{id}/approve")
+  public ResponseEntity<ApiResponse<JournalEntryResponse>> approve(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(journalEntryService.approve(id)));
+  }
 
-    @PostMapping("/{id}/reject")
-    public ResponseEntity<ApiResponse<JournalEntryResponse>> reject(
-        @PathVariable Long id, @Valid @RequestBody JournalEntryRejectRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.reject(id, request.comment())));
-    }
+  @PostMapping("/{id}/reject")
+  public ResponseEntity<ApiResponse<JournalEntryResponse>> reject(
+      @PathVariable Long id, @Valid @RequestBody JournalEntryRejectRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(journalEntryService.reject(id, request.comment())));
+  }
 
-    @PostMapping("/{id}/withdraw")
-    public ResponseEntity<ApiResponse<JournalEntryResponse>> withdraw(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.withdraw(id)));
-    }
+  @PostMapping("/{id}/withdraw")
+  public ResponseEntity<ApiResponse<JournalEntryResponse>> withdraw(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(journalEntryService.withdraw(id)));
+  }
 }

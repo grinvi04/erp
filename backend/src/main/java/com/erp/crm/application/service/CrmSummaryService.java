@@ -20,24 +20,24 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class CrmSummaryService {
 
-    private final OpportunityRepository opportunityRepository;
-    private final LeadRepository leadRepository;
-    private final ActivityRepository activityRepository;
-    private final CrmDataScopeResolver dataScopeResolver;
-    private final CurrencyConversionPort currencyConversionPort;
-    private final PermissionChecker permissionChecker;
+  private final OpportunityRepository opportunityRepository;
+  private final LeadRepository leadRepository;
+  private final ActivityRepository activityRepository;
+  private final CrmDataScopeResolver dataScopeResolver;
+  private final CurrencyConversionPort currencyConversionPort;
+  private final PermissionChecker permissionChecker;
 
-    public CrmSummaryResponse getSummary() {
-        permissionChecker.require(Permission.CRM_READ);
-        var s = dataScopeResolver.ownerScope();
-        List<CurrencyAmount> openAmounts =
-                opportunityRepository.sumOpenAmountByCurrency(s.scoped(), s.ownerIds());
-        return new CrmSummaryResponse(
-                opportunityRepository.countOpen(s.scoped(), s.ownerIds()),
-                openAmounts,
-                leadRepository.countByStatus(LeadStatus.NEW, s.scoped(), s.ownerIds()),
-                activityRepository.countByStatus(ActivityStatus.OPEN, s.scoped(), s.ownerIds()),
-                currencyConversionPort.baseCurrencyCode(),
-                opportunityRepository.sumOpenBaseTotal(s.scoped(), s.ownerIds()));
-    }
+  public CrmSummaryResponse getSummary() {
+    permissionChecker.require(Permission.CRM_READ);
+    var s = dataScopeResolver.ownerScope();
+    List<CurrencyAmount> openAmounts =
+        opportunityRepository.sumOpenAmountByCurrency(s.scoped(), s.ownerIds());
+    return new CrmSummaryResponse(
+        opportunityRepository.countOpen(s.scoped(), s.ownerIds()),
+        openAmounts,
+        leadRepository.countByStatus(LeadStatus.NEW, s.scoped(), s.ownerIds()),
+        activityRepository.countByStatus(ActivityStatus.OPEN, s.scoped(), s.ownerIds()),
+        currencyConversionPort.baseCurrencyCode(),
+        opportunityRepository.sumOpenBaseTotal(s.scoped(), s.ownerIds()));
+  }
 }
