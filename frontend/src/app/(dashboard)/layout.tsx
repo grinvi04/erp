@@ -4,7 +4,7 @@ import { SessionProvider } from 'next-auth/react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import { PermissionsProvider } from '@/components/permissions-provider'
-import { getMyPermissions } from '@/lib/permissions'
+import { getMyPermissions } from '@/lib/api'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()

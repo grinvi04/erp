@@ -1,3 +1,4 @@
+import 'server-only'
 import { auth } from '@/lib/auth'
 import type { ApiResponse, PageResponse } from '@/types/api'
 
@@ -104,5 +105,14 @@ export async function apiDelete(path: string): Promise<void> {
   const body = await apiFetch(path, { method: 'DELETE' })
   if (!body.success) {
     throw new Error(body.error?.message ?? 'DELETE 실패')
+  }
+}
+
+/** 현재 사용자의 권한 코드 목록(UI 게이팅용). 서버 검사가 항상 최종이다. */
+export async function getMyPermissions(): Promise<string[]> {
+  try {
+    return await apiGet<string[]>('/api/me/permissions')
+  } catch {
+    return []
   }
 }
