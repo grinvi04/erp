@@ -85,6 +85,8 @@ jobs:
         if: steps.check.outputs.initialized == 'true'
       - run: npm run lint
         if: steps.check.outputs.initialized == 'true'
+      - run: npm run lint:design --if-present
+        if: steps.check.outputs.initialized == 'true'
       - run: npm run build
         if: steps.check.outputs.initialized == 'true'
 
