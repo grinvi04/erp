@@ -226,6 +226,7 @@ public class JournalEntryService {
                 .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
             approvalRequest.cancel(userId, null);
         }
+        auditService.record("GL_ENTRY", entry.getId(), AuditLog.AuditAction.WITHDRAW, null, null);
         return JournalEntryResponse.from(entry);
     }
 

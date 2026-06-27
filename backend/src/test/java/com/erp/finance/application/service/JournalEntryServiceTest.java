@@ -398,6 +398,8 @@ class JournalEntryServiceTest {
         assertThat(result.status().name()).isEqualTo("DRAFT");
         assertThat(req.getStatus()).isEqualTo(com.erp.common.workflow.ApprovalStatus.CANCELLED);
         verify(permissionChecker).require(com.erp.common.security.Permission.FINANCE_WRITE);
+        verify(auditService).record("GL_ENTRY", entry.getId(),
+            com.erp.common.audit.AuditLog.AuditAction.WITHDRAW, null, null);
     }
 
     // 타인 철회 차단
