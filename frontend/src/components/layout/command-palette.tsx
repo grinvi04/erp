@@ -43,6 +43,13 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const [q, setQ] = useState('')
   const [active, setActive] = useState(0)
 
+  // 어떤 경로로 닫히든(⌘K 토글 포함) 검색어·선택을 초기화 — effect 대신 렌더 중 open 변화 감지.
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (prevOpen !== open) {
+    setPrevOpen(open)
+    if (!open) { setQ(''); setActive(0) }
+  }
+
   const results = useMemo(() => {
     const t = q.trim().toLowerCase()
     if (!t) return ROUTES

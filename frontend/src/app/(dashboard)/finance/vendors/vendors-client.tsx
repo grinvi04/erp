@@ -60,7 +60,7 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
   }
 
   const openEdit = (vendor: Vendor) => {
-    setName(vendor.name); setBusinessNo(vendor.businessNo ?? '')
+    setCode(vendor.code); setName(vendor.name); setBusinessNo(vendor.businessNo ?? '')
     setContactName(vendor.contactName ?? ''); setContactEmail(vendor.contactEmail ?? '')
     setContactPhone(vendor.contactPhone ?? ''); setPaymentTerms(String(vendor.paymentTerms))
     setPayablesAccountId(vendor.payablesAccountId != null ? String(vendor.payablesAccountId) : '')
