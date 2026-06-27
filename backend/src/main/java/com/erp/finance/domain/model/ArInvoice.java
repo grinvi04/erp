@@ -55,6 +55,13 @@ public class ArInvoice extends BaseEntity {
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
 
+    // 거래 시점 FX 스냅샷 — 생성 시 환율로 환산해 고정(환율 변경에 불변). 환율 부재 시 null(미산정).
+    @Column(name = "base_amount", precision = 20, scale = 2)
+    private BigDecimal baseAmount;
+
+    @Column(name = "exchange_rate", precision = 18, scale = 8)
+    private BigDecimal exchangeRate;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private ArInvoiceStatus status;
@@ -136,6 +143,12 @@ public class ArInvoice extends BaseEntity {
         this.status = ArInvoiceStatus.CANCELLED;
     }
 
+    /** 거래 시점 환산 스냅샷 적용(생성 시 1회). 환율 부재면 호출하지 않아 null(미산정)로 남는다. */
+    public void applyBaseSnapshot(BigDecimal baseAmount, BigDecimal exchangeRate) {
+        this.baseAmount = baseAmount;
+        this.exchangeRate = exchangeRate;
+    }
+
     public void linkJournalEntry(Long journalEntryId) {
         this.journalEntryId = journalEntryId;
     }
@@ -156,6 +169,8 @@ public class ArInvoice extends BaseEntity {
     public BigDecimal getTotalAmount() { return totalAmount; }
     public BigDecimal getPaidAmount() { return paidAmount; }
     public String getCurrency() { return currency; }
+    public BigDecimal getBaseAmount() { return baseAmount; }
+    public BigDecimal getExchangeRate() { return exchangeRate; }
     public ArInvoiceStatus getStatus() { return status; }
     public Long getJournalEntryId() { return journalEntryId; }
     public Long getApprovalRequestId() { return approvalRequestId; }

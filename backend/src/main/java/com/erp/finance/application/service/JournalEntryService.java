@@ -52,6 +52,7 @@ public class JournalEntryService {
     private final ApprovalRequestRepository approvalRequestRepository;
     private final ApprovalAuthorityProvider approvalAuthorityProvider;
     private final AuditService auditService;
+    private final CurrencyConverter currencyConverter;
 
     // 전결규정상 결재자는 전결권·한도로 결정되므로 결재선에 특정인을 사전 지정하지 않는다(역할 sentinel).
     private static final String ROLE_BASED_APPROVER = "@role:" + Permission.FINANCE_GL_APPROVE;
@@ -115,6 +116,10 @@ public class JournalEntryService {
         if (!entry.isBalanced()) {
             throw new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_BALANCED);
         }
+
+        // 거래 시점 FX 스냅샷 — 전표일 환율로 차변합계를 기준통화 환산해 저장. 환율 부재 시 미산정(null)(AC-11).
+        currencyConverter.tryConvert(entry.getTotalDebit(), entry.getCurrency(), entry.getEntryDate())
+            .ifPresent(c -> entry.applyBaseSnapshot(c.baseAmount(), c.rate()));
 
         return JournalEntryResponse.from(journalEntryRepository.save(entry));
     }

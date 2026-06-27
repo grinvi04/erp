@@ -13,8 +13,10 @@ import com.erp.finance.domain.model.ArInvoice;
 import com.erp.finance.domain.model.Customer;
 import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.CustomerRepository;
+import com.erp.common.currency.CurrencyConversionPort.Conversion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -43,6 +45,7 @@ class ArInvoiceServiceTest {
     @Mock private com.erp.common.audit.AuditService auditService;
     @Mock private com.erp.finance.domain.repository.AccountRepository accountRepository;
     @Mock private ArInvoicePostingService arInvoicePostingService;
+    @Mock private CurrencyConverter currencyConverter;
 
     @InjectMocks
     private ArInvoiceService arInvoiceService;
@@ -63,6 +66,7 @@ class ArInvoiceServiceTest {
         given(customerRepository.findById(1L)).willReturn(Optional.of(buildCustomer()));
         ArInvoice invoice = buildInvoice();
         given(arInvoiceRepository.save(any())).willReturn(invoice);
+        given(currencyConverter.tryConvert(any(), any(), any())).willReturn(Optional.empty());
 
         ArInvoiceResponse result = arInvoiceService.create(
             new ArInvoiceCreateRequest("AR-001", 1L,
@@ -71,6 +75,43 @@ class ArInvoiceServiceTest {
 
         assertThat(result.invoiceNo()).isEqualTo("AR-001");
         assertThat(result.totalAmount()).isEqualByComparingTo("100000");
+    }
+
+    @Test
+    void create_foreignCurrencyWithRate_storesBaseSnapshot() {
+        // AC-8: 생성 시 송장일 환율로 base_amount·exchange_rate 저장 (USD 200 × 1300 = 260000).
+        given(arInvoiceRepository.existsByInvoiceNo("AR-USD")).willReturn(false);
+        given(customerRepository.findById(1L)).willReturn(Optional.of(buildCustomer()));
+        given(currencyConverter.tryConvert(any(), any(), any()))
+            .willReturn(Optional.of(new Conversion(new BigDecimal("260000.00"), new BigDecimal("1300.00000000"))));
+        ArgumentCaptor<ArInvoice> captor = ArgumentCaptor.forClass(ArInvoice.class);
+        given(arInvoiceRepository.save(captor.capture())).willAnswer(inv -> inv.getArgument(0));
+
+        arInvoiceService.create(new ArInvoiceCreateRequest("AR-USD", 1L,
+            LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31),
+            new BigDecimal("200"), "USD", null, null));
+
+        ArInvoice saved = captor.getValue();
+        assertThat(saved.getBaseAmount()).isEqualByComparingTo("260000.00");
+        assertThat(saved.getExchangeRate()).isEqualByComparingTo("1300.00000000");
+    }
+
+    @Test
+    void create_noRate_leavesBaseSnapshotNull() {
+        // AC-11: 환율 부재 통화는 정상 생성하되 base_amount·exchange_rate를 null(미산정)로 남긴다(거부 안 함).
+        given(arInvoiceRepository.existsByInvoiceNo("AR-JPY")).willReturn(false);
+        given(customerRepository.findById(1L)).willReturn(Optional.of(buildCustomer()));
+        given(currencyConverter.tryConvert(any(), any(), any())).willReturn(Optional.empty());
+        ArgumentCaptor<ArInvoice> captor = ArgumentCaptor.forClass(ArInvoice.class);
+        given(arInvoiceRepository.save(captor.capture())).willAnswer(inv -> inv.getArgument(0));
+
+        arInvoiceService.create(new ArInvoiceCreateRequest("AR-JPY", 1L,
+            LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31),
+            new BigDecimal("5000"), "JPY", null, null));
+
+        ArInvoice saved = captor.getValue();
+        assertThat(saved.getBaseAmount()).isNull();
+        assertThat(saved.getExchangeRate()).isNull();
     }
 
     @Test
