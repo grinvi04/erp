@@ -17,5 +17,6 @@ public record AccountUpdateRequest(
         @PositiveOrZero Integer employeeCount,
         @PositiveOrZero BigDecimal annualRevenue,
         @NotNull AccountType accountType,
-        @NotBlank @Size(max = 100) String ownerId
+        @NotBlank @Size(max = 100) String ownerId,
+        @NotNull Long version
 ) {}

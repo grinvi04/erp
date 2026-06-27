@@ -1,5 +1,6 @@
 package com.erp.finance;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.AbstractIntegrationTest;
 import com.erp.common.security.DataScope;
 import com.erp.common.security.UserAccessProfile;
@@ -24,15 +25,9 @@ import com.erp.finance.domain.repository.JournalEntryRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,17 +72,8 @@ class ArInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
         customerId = customerRepository.save(customer).getId();
     }
 
-    @AfterEach
-    void clear() {
-        SecurityContextHolder.clearContext();
-    }
-
     private void authenticate(String sub, BigDecimal approvalLimit, String... authorities) {
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject(sub)
-                .claim("sub", sub).claim("tenant_id", TEST_TENANT_ID).build();
-        List<GrantedAuthority> auths = java.util.Arrays.stream(authorities)
-                .map(a -> (GrantedAuthority) new SimpleGrantedAuthority(a)).toList();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, auths));
+        authenticate(sub, authorities);
         accessProfileRepository.findByTenantIdAndUserId(TEST_TENANT_ID, sub)
                 .map(p -> { p.update(DataScope.ALL, null, approvalLimit); return p; })
                 .orElseGet(() -> accessProfileRepository.save(
@@ -116,7 +102,7 @@ class ArInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
         assertThat(je.getTotalDebit()).isEqualByComparingTo("100000");
         assertThat(je.getTotalCredit()).isEqualByComparingTo("100000");
         // 역참조: AR_INVOICE
-        assertThat(je.getReferenceType()).isEqualTo("AR_INVOICE");
+        assertThat(je.getReferenceType()).isEqualTo(ReferenceTypes.AR_INVOICE);
         assertThat(je.getReferenceId()).isEqualTo(created.id());
         // 차변 측이 외상매출금 계정임을 확인 (AP와 반전)
         boolean debitIsReceivables = je.getLines().stream()
@@ -157,12 +143,12 @@ class ArInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
         // 현금 계정으로 수금 → (차)현금 /(대)외상매출금 분개 (AP 지급의 반전)
         Account cash = accountRepository.save(Account.of("10100", "현금",
                 AccountType.ASSET, NormalBalance.DEBIT, null, false));
-        authenticate("receiver", BigDecimal.ZERO, "finance:write");
+        authenticate("receiver", BigDecimal.ZERO, "finance:invoice:pay");
         arInvoiceService.pay(created.id(), new ArInvoicePayRequest(
                 new BigDecimal("100000"), cash.getId(), LocalDate.of(2025, 1, 20)));
 
         JournalEntry payJe = journalEntryRepository
-                .findByReferenceTypeAndReferenceId("AR_PAYMENT", created.id()).orElseThrow();
+                .findByReferenceTypeAndReferenceId(ReferenceTypes.AR_PAYMENT, created.id()).orElseThrow();
         assertThat(payJe.getStatus().name()).isEqualTo("DRAFT");
         assertThat(payJe.isBalanced()).isTrue();
         assertThat(payJe.getTotalDebit()).isEqualByComparingTo("100000");

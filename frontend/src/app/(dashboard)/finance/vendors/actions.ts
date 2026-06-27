@@ -27,6 +27,7 @@ export async function updateVendor(id: number, data: {
   contactPhone: string | null
   paymentTerms: number
   payablesAccountId: number | null
+  version: number
 }): Promise<void> {
   await apiPut<Vendor>(`/api/finance/vendors/${id}`, data)
   revalidatePath(PATH)

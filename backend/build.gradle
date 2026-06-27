@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.erp'
-version = '0.3.0'
+version = '0.4.0'
 
 java {
     toolchain {
@@ -33,6 +33,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    // Metrics — /actuator/prometheus 노출 (버전은 Spring Boot BOM 관리)
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
     // Database
     runtimeOnly 'org.postgresql:postgresql'

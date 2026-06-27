@@ -40,6 +40,13 @@ public class Opportunity extends BaseEntity {
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
 
+    // 거래 시점 FX 스냅샷 — 생성 시 환율로 amount를 환산해 고정(환율 변경에 불변). 부재·금액미정 시 null.
+    @Column(name = "base_amount", precision = 20, scale = 2)
+    private BigDecimal baseAmount;
+
+    @Column(name = "exchange_rate", precision = 18, scale = 8)
+    private BigDecimal exchangeRate;
+
     @Column(name = "close_date")
     private LocalDate closeDate;
 
@@ -88,12 +95,20 @@ public class Opportunity extends BaseEntity {
         this.description = description;
     }
 
+    /** 거래 시점 환산 스냅샷 적용(생성 시 1회). 환율 부재·금액 미정이면 호출되지 않아 null로 남는다. */
+    public void applyBaseSnapshot(BigDecimal baseAmount, BigDecimal exchangeRate) {
+        this.baseAmount = baseAmount;
+        this.exchangeRate = exchangeRate;
+    }
+
     public Long getId() { return id; }
     public Account getAccount() { return account; }
     public String getName() { return name; }
     public PipelineStage getStage() { return stage; }
     public BigDecimal getAmount() { return amount; }
     public String getCurrency() { return currency; }
+    public BigDecimal getBaseAmount() { return baseAmount; }
+    public BigDecimal getExchangeRate() { return exchangeRate; }
     public LocalDate getCloseDate() { return closeDate; }
     public int getProbability() { return probability; }
     public String getOwnerId() { return ownerId; }

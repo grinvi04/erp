@@ -7,11 +7,13 @@ public record ItemCategoryResponse(
         String code,
         String name,
         Long parentId,
-        String parentName
+        String parentName,
+        Long version
 ) {
     public static ItemCategoryResponse from(ItemCategory cat) {
         Long parentId = cat.getParent() != null ? cat.getParent().getId() : null;
         String parentName = cat.getParent() != null ? cat.getParent().getName() : null;
-        return new ItemCategoryResponse(cat.getId(), cat.getCode(), cat.getName(), parentId, parentName);
+        return new ItemCategoryResponse(cat.getId(), cat.getCode(), cat.getName(), parentId, parentName,
+                cat.getVersion());
     }
 }

@@ -64,6 +64,13 @@ public class JournalEntry extends BaseEntity {
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
 
+    // 거래 시점 FX 스냅샷 — 생성 시 환율로 차변합계를 환산해 고정(환율 변경에 불변). 부재 시 null(미산정).
+    @Column(name = "base_amount", precision = 20, scale = 2)
+    private BigDecimal baseAmount;
+
+    @Column(name = "exchange_rate", precision = 18, scale = 8)
+    private BigDecimal exchangeRate;
+
     @Column(name = "reference_type", length = 100)
     private String referenceType;
 
@@ -75,6 +82,9 @@ public class JournalEntry extends BaseEntity {
 
     @Column(name = "posted_by", length = 100)
     private String postedBy;
+
+    @Column(name = "approval_request_id")
+    private Long approvalRequestId;
 
     @OneToMany(mappedBy = "journalEntry", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @OrderBy("lineNo ASC")
@@ -107,9 +117,38 @@ public class JournalEntry extends BaseEntity {
         return totalDebit.compareTo(totalCredit) == 0 && totalDebit.compareTo(BigDecimal.ZERO) > 0;
     }
 
-    public void post(String postedBy) {
+    /**
+     * 결재 상신: DRAFT → PENDING_APPROVAL. 차대변 균형·회계기간 open을 상신 시점에 검증한다
+     * (전기 전 게이트). 전기(post)는 결재 승인 후 PENDING_APPROVAL에서만 가능 — 직접 전기 차단.
+     */
+    public void submitForApproval() {
         if (status != JournalEntryStatus.DRAFT) {
             throw new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_DRAFT);
+        }
+        if (!isBalanced()) {
+            throw new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_BALANCED);
+        }
+        if (!fiscalPeriod.isOpen()) {
+            throw new ErpException(ErrorCode.FISCAL_PERIOD_CLOSED);
+        }
+        this.status = JournalEntryStatus.PENDING_APPROVAL;
+    }
+
+    /**
+     * 결재 반려·철회 시 되돌리기: PENDING_APPROVAL → DRAFT. 되돌린 전표는 수정 후 재상신할 수 있다.
+     * 상신되지 않은(PENDING_APPROVAL 아님) 전표는 되돌릴 수 없다.
+     */
+    public void returnToDraft() {
+        if (status != JournalEntryStatus.PENDING_APPROVAL) {
+            throw new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_PENDING_APPROVAL);
+        }
+        this.status = JournalEntryStatus.DRAFT;
+    }
+
+    public void post(String postedBy) {
+        // 직무분리: 작성자가 DRAFT를 직접 전기할 수 없다 — 결재 상신(PENDING_APPROVAL) 후에만 전기.
+        if (status != JournalEntryStatus.PENDING_APPROVAL) {
+            throw new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_PENDING_APPROVAL);
         }
         if (!isBalanced()) {
             throw new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_BALANCED);
@@ -120,6 +159,16 @@ public class JournalEntry extends BaseEntity {
         this.status = JournalEntryStatus.POSTED;
         this.postedAt = LocalDateTime.now();
         this.postedBy = postedBy;
+    }
+
+    /** 거래 시점 환산 스냅샷 적용(생성 시 1회). 환율 부재면 호출하지 않아 null(미산정)로 남는다. */
+    public void applyBaseSnapshot(BigDecimal baseAmount, BigDecimal exchangeRate) {
+        this.baseAmount = baseAmount;
+        this.exchangeRate = exchangeRate;
+    }
+
+    public void linkApprovalRequest(Long approvalRequestId) {
+        this.approvalRequestId = approvalRequestId;
     }
 
     public void markReversed() {
@@ -141,9 +190,12 @@ public class JournalEntry extends BaseEntity {
     public BigDecimal getTotalDebit() { return totalDebit; }
     public BigDecimal getTotalCredit() { return totalCredit; }
     public String getCurrency() { return currency; }
+    public BigDecimal getBaseAmount() { return baseAmount; }
+    public BigDecimal getExchangeRate() { return exchangeRate; }
     public String getReferenceType() { return referenceType; }
     public Long getReferenceId() { return referenceId; }
     public LocalDateTime getPostedAt() { return postedAt; }
     public String getPostedBy() { return postedBy; }
+    public Long getApprovalRequestId() { return approvalRequestId; }
     public List<JournalLine> getLines() { return lines; }
 }

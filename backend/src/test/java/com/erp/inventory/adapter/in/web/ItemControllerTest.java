@@ -41,12 +41,12 @@ class ItemControllerTest {
         return new ItemResponse(1L, "SKU-001", "테스트품목", null, null, null,
                 1L, "EA", "개", CostMethod.WEIGHTED_AVG,
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, BigDecimal.ZERO, false, false, true);
+                BigDecimal.ZERO, BigDecimal.ZERO, false, false, true, 0L);
     }
 
     @Test
     void findAll_returnsOkWithPage() throws Exception {
-        given(itemService.findAll(isNull(), any())).willReturn(
+        given(itemService.findAll(isNull(), isNull(), any())).willReturn(
                 new PageResponse<>(List.of(buildItemResponse()), 0, 10, 1, 1, true, true));
 
         mockMvc.perform(get("/api/inventory/items"))

@@ -35,7 +35,7 @@ class LocationControllerTest {
     @MockBean private LocationService locationService;
 
     private LocationResponse buildResponse() {
-        return new LocationResponse(1L, 1L, "본창고", "A-01", "구역A", null, null, LocationType.ZONE, true);
+        return new LocationResponse(1L, 1L, "본창고", "A-01", "구역A", null, null, LocationType.ZONE, true, 0L);
     }
 
     @Test

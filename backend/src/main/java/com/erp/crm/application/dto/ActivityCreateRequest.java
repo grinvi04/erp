@@ -12,7 +12,6 @@ public record ActivityCreateRequest(
         Long accountId,
         Long contactId,
         Long opportunityId,
-        @NotBlank @Size(max = 100) String ownerId,
         LocalDateTime dueDate,
         String description
 ) {}

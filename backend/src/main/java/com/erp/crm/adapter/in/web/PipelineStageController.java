@@ -3,6 +3,7 @@ package com.erp.crm.adapter.in.web;
 import com.erp.common.response.ApiResponse;
 import com.erp.crm.application.dto.PipelineStageCreateRequest;
 import com.erp.crm.application.dto.PipelineStageResponse;
+import com.erp.crm.application.dto.PipelineStageUpdateRequest;
 import com.erp.crm.application.service.PipelineStageService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -45,7 +46,7 @@ public class PipelineStageController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<PipelineStageResponse>> update(
             @PathVariable Long id,
-            @Valid @RequestBody PipelineStageCreateRequest request) {
+            @Valid @RequestBody PipelineStageUpdateRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(stageService.update(id, request)));
     }
 

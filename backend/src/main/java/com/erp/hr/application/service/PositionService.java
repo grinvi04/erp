@@ -53,6 +53,7 @@ public class PositionService {
     public PositionResponse update(Long id, PositionUpdateRequest request) {
         permissionChecker.require(Permission.HR_POSITION_WRITE);
         Position position = getOrThrow(id);
+        position.checkVersion(request.version());
         position.update(request.name(), request.levelOrder());
         return PositionResponse.from(position);
     }

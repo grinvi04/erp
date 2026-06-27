@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { SearchInput } from '@/components/ui/search-input'
 import { createAccount, updateAccount, deactivateAccount, type AccountPayload } from './actions'
 import type { CrmAccount, AccountType } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
@@ -35,10 +36,10 @@ type DialogMode =
 
 interface Props {
   data: PageResponse<CrmAccount>
-  currentUserId: string
+  keyword: string
 }
 
-export default function AccountsClient({ data, currentUserId }: Props) {
+export default function AccountsClient({ data, keyword }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -60,7 +61,7 @@ export default function AccountsClient({ data, currentUserId }: Props) {
   const openCreate = () => {
     setCode(''); setName(''); setBusinessNo(''); setIndustry(''); setWebsite('')
     setPhone(''); setAddress(''); setEmployeeCount(''); setAnnualRevenue('')
-    setAccountType('PROSPECT'); setOwnerId(currentUserId)
+    setAccountType('PROSPECT')
     setDialog({ type: 'create' })
   }
 
@@ -73,7 +74,7 @@ export default function AccountsClient({ data, currentUserId }: Props) {
     setDialog({ type: 'edit', account: acc })
   }
 
-  const buildPayload = (): AccountPayload => ({
+  const buildPayload = (): Omit<AccountPayload, 'ownerId'> => ({
     name: name.trim(),
     businessNo: businessNo.trim() || null,
     industry: industry.trim() || null,
@@ -83,12 +84,10 @@ export default function AccountsClient({ data, currentUserId }: Props) {
     employeeCount: employeeCount ? Number(employeeCount) : null,
     annualRevenue: annualRevenue ? Number(annualRevenue) : null,
     accountType,
-    ownerId: ownerId.trim(),
   })
 
   const validate = (): boolean => {
     if (!name.trim()) { toast.error('고객사명은 필수입니다'); return false }
-    if (!ownerId.trim()) { toast.error('담당자는 필수입니다'); return false }
     if (employeeCount && (Number(employeeCount) < 0 || isNaN(Number(employeeCount)))) {
       toast.error('직원 수가 올바르지 않습니다'); return false
     }
@@ -112,9 +111,10 @@ export default function AccountsClient({ data, currentUserId }: Props) {
 
   const handleUpdate = (acc: CrmAccount) => {
     if (!validate()) return
+    if (!ownerId.trim()) { toast.error('담당자는 필수입니다'); return }
     startTransition(async () => {
       try {
-        await updateAccount(acc.id, buildPayload())
+        await updateAccount(acc.id, { ...buildPayload(), ownerId: ownerId.trim(), version: acc.version })
         toast.success('고객사가 수정되었습니다')
         close()
       } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
@@ -192,10 +192,12 @@ export default function AccountsClient({ data, currentUserId }: Props) {
             onChange={(e) => setAnnualRevenue(e.target.value)} />
         </div>
       </div>
-      <div className="grid gap-1.5">
-        <Label>담당자 ID *</Label>
-        <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} />
-      </div>
+      {dialog.type === 'edit' && (
+        <div className="grid gap-1.5">
+          <Label>담당자 ID *</Label>
+          <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} />
+        </div>
+      )}
     </div>
   )
 
@@ -206,7 +208,10 @@ export default function AccountsClient({ data, currentUserId }: Props) {
           <h1 className="text-2xl font-semibold text-gray-900">고객사</h1>
           <p className="text-sm text-gray-500 mt-1">고객사 및 잠재 고객 정보를 관리합니다</p>
         </div>
-        {canWrite && <Button onClick={openCreate}><PlusIcon />새 고객사</Button>}
+        <div className="flex items-center gap-2">
+          <SearchInput placeholder="이름·코드 검색" className="w-64" />
+          {canWrite && <Button onClick={openCreate}><PlusIcon />새 고객사</Button>}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg border overflow-hidden">
@@ -265,6 +270,7 @@ export default function AccountsClient({ data, currentUserId }: Props) {
           page={data.page} totalPages={data.totalPages}
           totalElements={data.totalElements} size={data.size}
           basePath="/crm/accounts"
+          searchParams={keyword ? { keyword } : undefined}
         />
       </div>
 

@@ -20,7 +20,8 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
             + "WHERE (:opportunityId IS NULL OR opp.id = :opportunityId) AND "
             + "(:accountId IS NULL OR acc.id = :accountId) AND "
             + "(:activityType IS NULL OR a.activityType = :activityType) AND "
-            + "(:status IS NULL OR a.status = :status)",
+            + "(:status IS NULL OR a.status = :status) AND "
+            + "(:scoped = false OR a.ownerId IN :ownerIds)",
            countQuery = "SELECT COUNT(DISTINCT a) FROM Activity a "
             + "LEFT JOIN a.account acc "
             + "LEFT JOIN a.contact con "
@@ -28,12 +29,19 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
             + "WHERE (:opportunityId IS NULL OR opp.id = :opportunityId) AND "
             + "(:accountId IS NULL OR acc.id = :accountId) AND "
             + "(:activityType IS NULL OR a.activityType = :activityType) AND "
-            + "(:status IS NULL OR a.status = :status)")
+            + "(:status IS NULL OR a.status = :status) AND "
+            + "(:scoped = false OR a.ownerId IN :ownerIds)")
     Page<Activity> search(@Param("opportunityId") Long opportunityId,
                           @Param("accountId") Long accountId,
                           @Param("activityType") ActivityType activityType,
                           @Param("status") ActivityStatus status,
+                          @Param("scoped") boolean scoped,
+                          @Param("ownerIds") java.util.Collection<String> ownerIds,
                           Pageable pageable);
 
-    long countByStatus(ActivityStatus status);
+    @Query("SELECT COUNT(a) FROM Activity a WHERE a.status = :status AND "
+            + "(:scoped = false OR a.ownerId IN :ownerIds)")
+    long countByStatus(@Param("status") ActivityStatus status,
+                       @Param("scoped") boolean scoped,
+                       @Param("ownerIds") java.util.Collection<String> ownerIds);
 }

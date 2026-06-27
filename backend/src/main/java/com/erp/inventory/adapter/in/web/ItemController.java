@@ -30,8 +30,9 @@ public class ItemController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ItemResponse>>> findAll(
-            @RequestParam(required = false) Long categoryId, Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(itemService.findAll(categoryId, pageable)));
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String keyword, Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.ok(itemService.findAll(categoryId, keyword, pageable)));
     }
 
     @GetMapping("/{id}")

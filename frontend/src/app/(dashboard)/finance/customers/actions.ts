@@ -27,6 +27,7 @@ export async function updateCustomer(id: number, data: {
   contactPhone: string | null
   paymentTerms: number
   receivablesAccountId: number | null
+  version: number
 }): Promise<void> {
   await apiPut<Customer>(`/api/finance/customers/${id}`, data)
   revalidatePath(PATH)

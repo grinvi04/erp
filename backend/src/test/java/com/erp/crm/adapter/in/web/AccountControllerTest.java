@@ -39,7 +39,7 @@ class AccountControllerTest {
         return new AccountResponse(1L, "ACC-001", "테스트고객사", null, "IT", null,
                 "02-000-0000", "서울시", 100, new BigDecimal("5000000000"),
                 AccountType.CUSTOMER, "user-001", true,
-                LocalDateTime.now(), LocalDateTime.now());
+                LocalDateTime.now(), LocalDateTime.now(), 0L);
     }
 
     @Test
@@ -61,7 +61,7 @@ class AccountControllerTest {
                         .content(objectMapper.writeValueAsString(new AccountCreateRequest(
                                 "ACC-001", "테스트고객사", null, "IT", null, "02-000-0000",
                                 "서울시", 100, new BigDecimal("5000000000"),
-                                AccountType.CUSTOMER, "user-001"))))
+                                AccountType.CUSTOMER))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.code").value("ACC-001"));
     }
@@ -75,7 +75,7 @@ class AccountControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new AccountCreateRequest(
                                 "ACC-001", "테스트고객사", null, null, null, null,
-                                null, null, null, AccountType.PROSPECT, "user-001"))))
+                                null, null, null, AccountType.PROSPECT))))
                 .andExpect(status().isConflict());
     }
 }

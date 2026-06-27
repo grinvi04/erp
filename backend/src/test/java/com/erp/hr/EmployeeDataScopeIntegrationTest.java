@@ -20,16 +20,11 @@ import com.erp.hr.domain.repository.EmployeeRepository;
 import com.erp.hr.domain.repository.LeavePolicyRepository;
 import com.erp.hr.domain.repository.LeaveRequestRepository;
 import com.erp.hr.domain.repository.PositionRepository;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -66,11 +61,6 @@ class EmployeeDataScopeIntegrationTest extends AbstractIntegrationTest {
         empC = save("EMP-C", "user-c", deptC, pos);
     }
 
-    @AfterEach
-    void clearAuth() {
-        SecurityContextHolder.clearContext();
-    }
-
     private Employee save(String empNo, String userId, Department dept, Position pos) {
         PersonalInfo info = new PersonalInfo("성", empNo, LocalDate.of(1990, 1, 1),
                 PersonalInfo.Gender.MALE, null, null, null);
@@ -83,17 +73,13 @@ class EmployeeDataScopeIntegrationTest extends AbstractIntegrationTest {
 
     private void authenticate(String sub, String dataScope, Long departmentId) {
         // 신원(sub·tenant_id)은 JWT, 데이터 스코프는 DB 접근 프로파일에서 해석(전면 DB 전환).
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject(sub)
-                .claim("sub", sub).claim("tenant_id", TEST_TENANT_ID).build();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
-                List.of(new SimpleGrantedAuthority("hr:employee:read"),
-                        new SimpleGrantedAuthority("hr:leave:read"))));
+        authenticate(sub, "hr:employee:read", "hr:leave:read");
         DataScope scope = dataScope != null ? DataScope.valueOf(dataScope) : DataScope.ALL;
         accessProfileRepository.save(UserAccessProfile.of(TEST_TENANT_ID, sub, scope, departmentId, null));
     }
 
     private List<String> findAllEmpNos() {
-        Page<EmployeeResponse> page = employeeService.findAll(null, null, PageRequest.of(0, 50));
+        Page<EmployeeResponse> page = employeeService.findAll(null, null, null, PageRequest.of(0, 50));
         return page.getContent().stream().map(EmployeeResponse::employeeNo).toList();
     }
 

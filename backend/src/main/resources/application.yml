@@ -18,6 +18,9 @@ spring:
       max-lifetime: 1800000
 
   jpa:
+    # 영속성 컨텍스트를 뷰 렌더까지 열어두는 안티패턴 비활성화.
+    # DTO 매핑은 @Transactional 서비스 내 Response.from()으로 끝나므로 안전.
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     show-sql: false
@@ -39,16 +42,25 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/erp}
 
+  # 목록 엔드포인트 하드닝: 클라이언트가 거대 page size를 요청해도 100으로 상한 적용.
+  data:
+    web:
+      pageable:
+        max-page-size: 100
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: when-authorized
 
 logging:
+  pattern:
+    # 모든 로그 줄에 traceId 자동 포함 (MDC) — 없으면 빈 값.
+    correlation: "[%X{traceId:-}] "
   level:
     root: INFO
     com.erp: DEBUG

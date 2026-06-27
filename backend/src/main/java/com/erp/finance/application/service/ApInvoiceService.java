@@ -1,5 +1,6 @@
 package com.erp.finance.application.service;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.audit.AuditLog;
 import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
@@ -24,6 +25,7 @@ import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.VendorRepository;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -45,6 +48,7 @@ public class ApInvoiceService {
     private final AuditService auditService;
     private final AccountRepository accountRepository;
     private final ApInvoicePostingService apInvoicePostingService;
+    private final CurrencyConverter currencyConverter;
 
     // 전결규정상 결재자는 전결권·한도로 결정되므로 결재선에 특정인을 사전 지정하지 않는다(역할 sentinel).
     private static final String ROLE_BASED_APPROVER = "@role:" + Permission.FINANCE_INVOICE_APPROVE;
@@ -78,6 +82,9 @@ public class ApInvoiceService {
         ApInvoice invoice = ApInvoice.create(request.invoiceNo(), vendor, request.invoiceDate(),
             request.dueDate(), request.totalAmount(), request.currency(), request.note());
         addLines(invoice, request);
+        // 거래 시점 FX 스냅샷 — 송장일 환율로 기준통화 환산액·환율 저장. 환율 부재 시 미산정(null) 유지(AC-11).
+        currencyConverter.tryConvert(invoice.getTotalAmount(), invoice.getCurrency(), invoice.getInvoiceDate())
+            .ifPresent(c -> invoice.applyBaseSnapshot(c.baseAmount(), c.rate()));
         return ApInvoiceResponse.from(apInvoiceRepository.save(invoice));
     }
 
@@ -110,7 +117,7 @@ public class ApInvoiceService {
         // 사람 단위 결재함(findPendingForApprover)에 작성자로 잘못 노출되지 않도록 역할 sentinel.
         ApprovalStep step = ApprovalStep.of(1, "AP 전표 승인", ROLE_BASED_APPROVER);
         ApprovalRequest approvalRequest = ApprovalRequest.create(
-            "AP_INVOICE", invoice.getId(),
+            ReferenceTypes.AP_INVOICE, invoice.getId(),
             "AP 전표 승인: " + invoice.getInvoiceNo(),
             userId, new ArrayList<>(List.of(step))
         );
@@ -148,15 +155,29 @@ public class ApInvoiceService {
         if (journalEntryId != null) {
             invoice.linkJournalEntry(journalEntryId);
         }
-        auditService.record("AP_INVOICE", invoice.getId(),
+        auditService.record(ReferenceTypes.AP_INVOICE, invoice.getId(),
             AuditLog.AuditAction.APPROVE, null, null);
+        log.atInfo().addKeyValue("event", "AP_INVOICE_APPROVED")
+            .addKeyValue("apInvoiceId", invoice.getId())
+            .addKeyValue("invoiceNo", invoice.getInvoiceNo())
+            .addKeyValue("totalAmount", invoice.getTotalAmount())
+            .log("AP 인보이스 승인");
         return ApInvoiceResponse.from(invoice);
     }
 
     @Transactional
     public ApInvoiceResponse pay(Long id, ApInvoicePayRequest request) {
-        permissionChecker.require(Permission.FINANCE_WRITE);
+        permissionChecker.require(Permission.FINANCE_INVOICE_PAY);
         ApInvoice invoice = getOrThrow(id);
+        // 직무분리(SoD): 본인이 작성한 전표는 지급(현금 유출) 처리할 수 없다.
+        String userId = currentUserProvider.getCurrentUserId();
+        if (userId == null || userId.equals(invoice.getCreatedBy())) {
+            throw new ErpException(ErrorCode.PAYMENT_SELF_FORBIDDEN);
+        }
+        // 전결규정(위임전결): 지급 금액이 본인 전결 한도를 초과하면 상위 전결권자만 지급 가능.
+        if (request.amount().compareTo(approvalAuthorityProvider.getApprovalLimit()) > 0) {
+            throw new ErpException(ErrorCode.APPROVAL_LIMIT_EXCEEDED);
+        }
         invoice.pay(request.amount());
         // 지급계정 제공 시 지급 분개 자동 생성 (차)외상매입금 /(대)현금·예금.
         if (request.cashAccountId() != null) {
@@ -167,6 +188,11 @@ public class ApInvoiceService {
                 ? request.paymentDate() : invoice.getInvoiceDate();
             apInvoicePostingService.postPaymentDraft(invoice, request.amount(), cashAccount, paymentDate);
         }
+        log.atInfo().addKeyValue("event", "AP_INVOICE_PAID")
+            .addKeyValue("apInvoiceId", invoice.getId())
+            .addKeyValue("invoiceNo", invoice.getInvoiceNo())
+            .addKeyValue("paidAmount", request.amount())
+            .log("AP 인보이스 지급");
         return ApInvoiceResponse.from(invoice);
     }
 

@@ -36,7 +36,7 @@ class WarehouseControllerTest {
     @Test
     void findAll_returnsOkWithList() throws Exception {
         given(warehouseService.findAll()).willReturn(
-                List.of(new WarehouseResponse(1L, "WH-001", "본창고", "서울", true)));
+                List.of(new WarehouseResponse(1L, "WH-001", "본창고", "서울", true, 0L)));
 
         mockMvc.perform(get("/api/inventory/warehouses"))
                 .andExpect(status().isOk())
@@ -46,7 +46,7 @@ class WarehouseControllerTest {
     @Test
     void create_validRequest_returns201() throws Exception {
         given(warehouseService.create(any())).willReturn(
-                new WarehouseResponse(1L, "WH-001", "본창고", "서울", true));
+                new WarehouseResponse(1L, "WH-001", "본창고", "서울", true, 0L));
 
         mockMvc.perform(post("/api/inventory/warehouses")
                         .contentType(MediaType.APPLICATION_JSON)

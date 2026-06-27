@@ -20,7 +20,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
-import { createJournalEntry, postJournalEntry } from './actions'
+import { formatMoneyOne } from '@/lib/money'
+import {
+  createJournalEntry, submitJournalEntry, approveJournalEntry, withdrawJournalEntry,
+} from './actions'
 import type {
   FiscalYear, FiscalPeriod, JournalEntry, JournalEntryStatus,
   JournalEntryType, Account,
@@ -31,13 +34,12 @@ const ENTRY_TYPE_LABEL: Record<JournalEntryType, string> = {
   MANUAL: '수기', AP: '매입', AR: '매출', PAYROLL: '급여', ADJUSTMENT: '조정',
 }
 const STATUS_LABEL: Record<JournalEntryStatus, string> = {
-  DRAFT: '임시', POSTED: '전기완료', REVERSED: '역분개',
+  DRAFT: '임시', PENDING_APPROVAL: '결재중', POSTED: '전기완료', REVERSED: '역분개',
 }
-const STATUS_VARIANT: Record<JournalEntryStatus, 'default' | 'secondary' | 'destructive'> = {
-  DRAFT: 'secondary', POSTED: 'default', REVERSED: 'destructive',
+const STATUS_VARIANT: Record<JournalEntryStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  DRAFT: 'secondary', PENDING_APPROVAL: 'outline', POSTED: 'default', REVERSED: 'destructive',
 }
 
-function fmtMoney(n: number) { return n.toLocaleString('ko-KR') }
 
 interface LineRow { accountId: string; debitAmount: string; creditAmount: string; description: string }
 const emptyLine = (): LineRow => ({ accountId: '', debitAmount: '', creditAmount: '', description: '' })
@@ -56,6 +58,7 @@ export default function JournalEntriesClient({
 }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.FINANCE_WRITE)
+  const canApprove = can(PERM.FINANCE_GL_APPROVE)
   const router = useRouter()
   const [showCreate, setShowCreate] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -106,7 +109,7 @@ export default function JournalEntriesClient({
       return
     }
     if (!balanced) {
-      toast.error(`차변(${fmtMoney(totalDebit)})과 대변(${fmtMoney(totalCredit)})이 일치해야 합니다`)
+      toast.error(`차변(${formatMoneyOne(totalDebit, currency)})과 대변(${formatMoneyOne(totalCredit, currency)})이 일치해야 합니다`)
       return
     }
     if (selectedPeriodId == null) { toast.error('회계 기간을 먼저 선택해주세요'); return }
@@ -130,12 +133,30 @@ export default function JournalEntriesClient({
     })
   }
 
-  const handlePost = (entry: JournalEntry) => {
+  const handleSubmit = (entry: JournalEntry) => {
     startTransition(async () => {
       try {
-        await postJournalEntry(entry.id)
-        toast.success('전기 처리되었습니다')
-      } catch (e) { toast.error(e instanceof Error ? e.message : '전기 중 오류가 발생했습니다') }
+        await submitJournalEntry(entry.id)
+        toast.success('결재 상신되었습니다')
+      } catch (e) { toast.error(e instanceof Error ? e.message : '상신 중 오류가 발생했습니다') }
+    })
+  }
+
+  const handleApprove = (entry: JournalEntry) => {
+    startTransition(async () => {
+      try {
+        await approveJournalEntry(entry.id)
+        toast.success('승인·전기 처리되었습니다')
+      } catch (e) { toast.error(e instanceof Error ? e.message : '승인 중 오류가 발생했습니다') }
+    })
+  }
+
+  const handleWithdraw = (entry: JournalEntry) => {
+    startTransition(async () => {
+      try {
+        await withdrawJournalEntry(entry.id)
+        toast.success('상신을 철회했습니다')
+      } catch (e) { toast.error(e instanceof Error ? e.message : '철회 중 오류가 발생했습니다') }
     })
   }
 
@@ -231,19 +252,31 @@ export default function JournalEntriesClient({
                   <TableCell className="text-sm">{ENTRY_TYPE_LABEL[entry.entryType]}</TableCell>
                   <TableCell className="text-sm max-w-xs truncate">{entry.description}</TableCell>
                   <TableCell className="text-right font-mono text-sm">
-                    {fmtMoney(entry.totalDebit)}
+                    {formatMoneyOne(entry.totalDebit, entry.currency)}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm">
-                    {fmtMoney(entry.totalCredit)}
+                    {formatMoneyOne(entry.totalCredit, entry.currency)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[entry.status]}>{STATUS_LABEL[entry.status]}</Badge>
                   </TableCell>
                   <TableCell>
                     {canWrite && entry.status === 'DRAFT' && (
-                      <Button variant="ghost" size="sm" onClick={() => handlePost(entry)}
-                        disabled={isPending} title="전기">
-                        전기
+                      <Button variant="ghost" size="sm" onClick={() => handleSubmit(entry)}
+                        disabled={isPending} title="결재상신">
+                        결재상신
+                      </Button>
+                    )}
+                    {canApprove && entry.status === 'PENDING_APPROVAL' && (
+                      <Button variant="ghost" size="sm" onClick={() => handleApprove(entry)}
+                        disabled={isPending} title="승인">
+                        승인
+                      </Button>
+                    )}
+                    {canWrite && entry.status === 'PENDING_APPROVAL' && (
+                      <Button variant="ghost" size="sm" onClick={() => handleWithdraw(entry)}
+                        disabled={isPending} title="철회" className="text-destructive">
+                        철회
                       </Button>
                     )}
                   </TableCell>
@@ -370,8 +403,8 @@ export default function JournalEntriesClient({
               </div>
               {/* Balance indicator */}
               <div className="mt-2 flex justify-end gap-6 text-sm font-mono">
-                <span>차변 합계: <strong>{fmtMoney(totalDebit)}</strong></span>
-                <span>대변 합계: <strong>{fmtMoney(totalCredit)}</strong></span>
+                <span>차변 합계: <strong>{formatMoneyOne(totalDebit, currency)}</strong></span>
+                <span>대변 합계: <strong>{formatMoneyOne(totalCredit, currency)}</strong></span>
                 <span className={balanced ? 'text-green-600' : 'text-destructive'}>
                   {balanced ? '✓ 균형' : '✗ 불일치'}
                 </span>

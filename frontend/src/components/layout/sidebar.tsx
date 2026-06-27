@@ -7,7 +7,7 @@ import {
   Users, Building2, Package, TrendingUp, LayoutDashboard,
   ChevronRight, Briefcase, FileText, Warehouse, BarChart3,
   UserSquare, Target, Activity, GitBranch, Inbox, PieChart,
-  ScrollText, ShieldCheck,
+  ScrollText, ShieldCheck, Boxes, MapPin, Tags, Ruler, CalendarDays, Coins,
 } from 'lucide-react'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
@@ -34,7 +34,12 @@ const NAV = [
     children: [
       { label: '직원', href: '/hr/employees', icon: Users },
       { label: '부서', href: '/hr/departments', icon: Building2 },
+      { label: '직위', href: '/hr/positions', icon: UserSquare },
+      { label: '직급', href: '/hr/job-grades', icon: Briefcase },
+      { label: '계약', href: '/hr/contracts', icon: FileText },
       { label: '휴가 신청', href: '/hr/leave-requests', icon: FileText },
+      { label: '휴가 정책', href: '/hr/leave-policies', icon: CalendarDays },
+      { label: '휴가 잔여', href: '/hr/leave-balances', icon: CalendarDays },
     ],
   },
   {
@@ -47,6 +52,8 @@ const NAV = [
       { label: '공급업체', href: '/finance/vendors', icon: Building2 },
       { label: '고객', href: '/finance/customers', icon: Building2 },
       { label: '매출 인보이스', href: '/finance/ar-invoices', icon: FileText },
+      { label: '재무제표', href: '/finance/reports', icon: BarChart3 },
+      { label: 'FX 설정', href: '/finance/fx', icon: Coins },
     ],
   },
   {
@@ -54,7 +61,11 @@ const NAV = [
     icon: Package,
     children: [
       { label: '품목', href: '/inventory/items', icon: Package },
+      { label: '품목 분류', href: '/inventory/item-categories', icon: Tags },
+      { label: '단위', href: '/inventory/uoms', icon: Ruler },
       { label: '창고', href: '/inventory/warehouses', icon: Warehouse },
+      { label: '로케이션', href: '/inventory/locations', icon: MapPin },
+      { label: '재고 현황', href: '/inventory/stocks', icon: Boxes },
       { label: '재고 이동', href: '/inventory/movements', icon: TrendingUp },
     ],
   },
@@ -68,6 +79,7 @@ const NAV = [
       { label: '영업 기회', href: '/crm/opportunities', icon: TrendingUp },
       { label: '파이프라인 단계', href: '/crm/pipeline-stages', icon: GitBranch },
       { label: '활동', href: '/crm/activities', icon: Activity },
+      { label: '영업팀', href: '/crm/sales-teams', icon: Users },
     ],
   },
 ]

@@ -22,6 +22,13 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
 
     List<UserRole> findByTenantIdAndUserId(Long tenantId, String userId);
 
+    // getUserRoles는 RoleResponse.from을 통해 ur.role.permissions(@OneToMany)까지 읽는다 — 비페이지
+    // List이므로 role과 그 permissions를 함께 페치해 N+1을 제거한다(DISTINCT로 조인 중복 행 제거).
+    @Query("SELECT DISTINCT ur FROM UserRole ur JOIN FETCH ur.role r LEFT JOIN FETCH r.permissions "
+        + "WHERE ur.tenantId = :tenantId AND ur.userId = :userId")
+    List<UserRole> findByTenantIdAndUserIdWithRolePermissions(@Param("tenantId") Long tenantId,
+                                                              @Param("userId") String userId);
+
     Optional<UserRole> findByTenantIdAndUserIdAndRoleId(Long tenantId, String userId, Long roleId);
 
     boolean existsByTenantIdAndUserIdAndRoleId(Long tenantId, String userId, Long roleId);

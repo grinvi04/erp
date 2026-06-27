@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { SearchInput } from '@/components/ui/search-input'
 import { createVendor, updateVendor, deactivateVendor } from './actions'
 import type { Account, Vendor } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
@@ -30,9 +31,9 @@ type DialogMode =
   | { type: 'edit'; vendor: Vendor }
   | { type: 'deactivate'; vendor: Vendor }
 
-interface Props { data: PageResponse<Vendor>; accounts: Account[] }
+interface Props { data: PageResponse<Vendor>; accounts: Account[]; keyword: string }
 
-export default function VendorsClient({ data, accounts }: Props) {
+export default function VendorsClient({ data, accounts, keyword }: Props) {
   const liabilityAccounts = accounts.filter((a) => !a.isSummary && a.isActive && a.accountType === 'LIABILITY')
   const { can } = usePermissions()
   const canWrite = can(PERM.FINANCE_WRITE)
@@ -90,6 +91,7 @@ export default function VendorsClient({ data, accounts }: Props) {
           contactEmail: contactEmail || null, contactPhone: contactPhone || null,
           paymentTerms: Number(paymentTerms) || 0,
           payablesAccountId: payablesAccountId ? Number(payablesAccountId) : null,
+          version: vendor.version,
         })
         toast.success('공급업체 정보가 수정되었습니다')
         close()
@@ -169,7 +171,10 @@ export default function VendorsClient({ data, accounts }: Props) {
           <h1 className="text-2xl font-semibold text-gray-900">공급업체</h1>
           <p className="text-sm text-gray-500 mt-1">매입 거래처 정보를 관리합니다</p>
         </div>
-        {canWrite && <Button onClick={openCreate}><PlusIcon />새 공급업체</Button>}
+        <div className="flex items-center gap-2">
+          <SearchInput placeholder="이름·코드 검색" className="w-64" />
+          {canWrite && <Button onClick={openCreate}><PlusIcon />새 공급업체</Button>}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg border overflow-hidden">
@@ -232,6 +237,7 @@ export default function VendorsClient({ data, accounts }: Props) {
           page={data.page} totalPages={data.totalPages}
           totalElements={data.totalElements} size={data.size}
           basePath="/finance/vendors"
+          searchParams={keyword ? { keyword } : undefined}
         />
       </div>
 

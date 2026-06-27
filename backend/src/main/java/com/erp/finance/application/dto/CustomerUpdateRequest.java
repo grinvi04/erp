@@ -3,6 +3,7 @@ package com.erp.finance.application.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record CustomerUpdateRequest(
@@ -12,5 +13,6 @@ public record CustomerUpdateRequest(
     @Email @Size(max = 200) String contactEmail,
     @Size(max = 30) String contactPhone,
     @Min(0) int paymentTerms,
-    Long receivablesAccountId
+    Long receivablesAccountId,
+    @NotNull Long version
 ) {}

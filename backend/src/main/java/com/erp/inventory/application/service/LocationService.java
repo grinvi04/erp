@@ -59,6 +59,7 @@ public class LocationService {
     public LocationResponse update(Long id, LocationUpdateRequest req) {
         permissionChecker.require(Permission.INVENTORY_WRITE);
         Location loc = getOrThrow(id);
+        loc.checkVersion(req.version());
         Location parent = req.parentId() != null ? getOrThrow(req.parentId()) : null;
         loc.update(req.name(), parent, req.locationType());
         return LocationResponse.from(loc);

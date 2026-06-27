@@ -20,12 +20,13 @@ public record AccountResponse(
         String ownerId,
         boolean isActive,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        Long version
 ) {
     public static AccountResponse from(Account a) {
         return new AccountResponse(a.getId(), a.getCode(), a.getName(), a.getBusinessNo(),
                 a.getIndustry(), a.getWebsite(), a.getPhone(), a.getAddress(),
                 a.getEmployeeCount(), a.getAnnualRevenue(), a.getAccountType(),
-                a.getOwnerId(), a.isActive(), a.getCreatedAt(), a.getUpdatedAt());
+                a.getOwnerId(), a.isActive(), a.getCreatedAt(), a.getUpdatedAt(), a.getVersion());
     }
 }

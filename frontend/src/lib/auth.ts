@@ -1,3 +1,4 @@
+import 'server-only'
 import NextAuth from 'next-auth'
 import Keycloak from 'next-auth/providers/keycloak'
 import type { Session } from 'next-auth'

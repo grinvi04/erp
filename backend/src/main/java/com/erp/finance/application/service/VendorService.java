@@ -26,9 +26,14 @@ public class VendorService {
     private final AccountRepository accountRepository;
     private final PermissionChecker permissionChecker;
 
-    public PageResponse<VendorResponse> findAll(Pageable pageable) {
+    public PageResponse<VendorResponse> findAll(String keyword, Pageable pageable) {
         permissionChecker.require(Permission.FINANCE_READ);
-        return PageResponse.from(vendorRepository.findByIsActiveTrue(pageable).map(VendorResponse::from));
+        return PageResponse.from(
+            vendorRepository.search(normalizeKeyword(keyword), pageable).map(VendorResponse::from));
+    }
+
+    private static String normalizeKeyword(String keyword) {
+        return (keyword == null || keyword.isBlank()) ? null : keyword.trim().toLowerCase();
     }
 
     public VendorResponse findById(Long id) {
@@ -52,6 +57,7 @@ public class VendorService {
     public VendorResponse update(Long id, VendorUpdateRequest request) {
         permissionChecker.require(Permission.FINANCE_WRITE);
         Vendor vendor = getOrThrow(id);
+        vendor.checkVersion(request.version());
         vendor.update(request.name(), request.businessNo(), request.contactName(),
             request.contactEmail(), request.contactPhone(), request.paymentTerms());
         applyPayablesAccount(vendor, request.payablesAccountId());

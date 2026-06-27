@@ -6,6 +6,7 @@ import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.PipelineStageCreateRequest;
 import com.erp.crm.application.dto.PipelineStageResponse;
+import com.erp.crm.application.dto.PipelineStageUpdateRequest;
 import com.erp.crm.domain.model.PipelineStage;
 import com.erp.crm.domain.repository.PipelineStageRepository;
 import java.util.List;
@@ -41,9 +42,10 @@ public class PipelineStageService {
     }
 
     @Transactional
-    public PipelineStageResponse update(Long id, PipelineStageCreateRequest req) {
+    public PipelineStageResponse update(Long id, PipelineStageUpdateRequest req) {
         permissionChecker.require(Permission.CRM_WRITE);
         PipelineStage stage = getOrThrow(id);
+        stage.checkVersion(req.version());
         stage.update(req.name(), req.stageOrder(), req.probability(),
                 req.isClosedWon(), req.isClosedLost());
         return PipelineStageResponse.from(stage);

@@ -1,5 +1,6 @@
 package com.erp.finance.application.service;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.audit.AuditLog;
 import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
@@ -24,6 +25,7 @@ import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.CustomerRepository;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -45,6 +48,7 @@ public class ArInvoiceService {
     private final AuditService auditService;
     private final AccountRepository accountRepository;
     private final ArInvoicePostingService arInvoicePostingService;
+    private final CurrencyConverter currencyConverter;
 
     // 전결규정상 결재자는 전결권·한도로 결정되므로 결재선에 특정인을 사전 지정하지 않는다(역할 sentinel).
     private static final String ROLE_BASED_APPROVER = "@role:" + Permission.FINANCE_INVOICE_APPROVE;
@@ -78,6 +82,9 @@ public class ArInvoiceService {
         ArInvoice invoice = ArInvoice.create(request.invoiceNo(), customer, request.invoiceDate(),
             request.dueDate(), request.totalAmount(), request.currency(), request.note());
         addLines(invoice, request);
+        // 거래 시점 FX 스냅샷 — 송장일 환율로 기준통화 환산액·환율 저장. 환율 부재 시 미산정(null) 유지(AC-11).
+        currencyConverter.tryConvert(invoice.getTotalAmount(), invoice.getCurrency(), invoice.getInvoiceDate())
+            .ifPresent(c -> invoice.applyBaseSnapshot(c.baseAmount(), c.rate()));
         return ArInvoiceResponse.from(arInvoiceRepository.save(invoice));
     }
 
@@ -107,7 +114,7 @@ public class ArInvoiceService {
         invoice.submit();
         ApprovalStep step = ApprovalStep.of(1, "AR 전표 승인", ROLE_BASED_APPROVER);
         ApprovalRequest approvalRequest = ApprovalRequest.create(
-            "AR_INVOICE", invoice.getId(),
+            ReferenceTypes.AR_INVOICE, invoice.getId(),
             "AR 전표 승인: " + invoice.getInvoiceNo(),
             userId, new ArrayList<>(List.of(step))
         );
@@ -145,15 +152,26 @@ public class ArInvoiceService {
         if (journalEntryId != null) {
             invoice.linkJournalEntry(journalEntryId);
         }
-        auditService.record("AR_INVOICE", invoice.getId(),
+        auditService.record(ReferenceTypes.AR_INVOICE, invoice.getId(),
             AuditLog.AuditAction.APPROVE, null, null);
+        log.atInfo().addKeyValue("event", "AR_INVOICE_APPROVED")
+            .addKeyValue("arInvoiceId", invoice.getId())
+            .addKeyValue("invoiceNo", invoice.getInvoiceNo())
+            .addKeyValue("totalAmount", invoice.getTotalAmount())
+            .log("AR 인보이스 승인");
         return ArInvoiceResponse.from(invoice);
     }
 
     @Transactional
     public ArInvoiceResponse pay(Long id, ArInvoicePayRequest request) {
-        permissionChecker.require(Permission.FINANCE_WRITE);
+        permissionChecker.require(Permission.FINANCE_INVOICE_PAY);
         ArInvoice invoice = getOrThrow(id);
+        // 직무분리(SoD): 본인이 작성한 전표는 수금(현금 유입) 처리할 수 없다.
+        // 수금은 현금 유입이므로 지출권한(전결한도)은 무의미 — 작성자 차단만 적용한다.
+        String userId = currentUserProvider.getCurrentUserId();
+        if (userId == null || userId.equals(invoice.getCreatedBy())) {
+            throw new ErpException(ErrorCode.PAYMENT_SELF_FORBIDDEN);
+        }
         invoice.pay(request.amount());
         // 수금계정 제공 시 수금 분개 자동 생성 (차)현금·예금 /(대)외상매출금.
         if (request.cashAccountId() != null) {
@@ -164,6 +182,11 @@ public class ArInvoiceService {
                 ? request.paymentDate() : invoice.getInvoiceDate();
             arInvoicePostingService.postPaymentDraft(invoice, request.amount(), cashAccount, paymentDate);
         }
+        log.atInfo().addKeyValue("event", "AR_INVOICE_COLLECTED")
+            .addKeyValue("arInvoiceId", invoice.getId())
+            .addKeyValue("invoiceNo", invoice.getInvoiceNo())
+            .addKeyValue("collectedAmount", request.amount())
+            .log("AR 인보이스 수금");
         return ArInvoiceResponse.from(invoice);
     }
 

@@ -1,0 +1,7 @@
+# prod 프로파일 전용 — JSON 구조화 로깅(ECS)만. 다른 prod 설정은 여기 두지 않는다.
+# Spring Boot 3.4 네이티브 구조화 로깅. ECS 포맷이 MDC의 traceId/userId/tenantId를 자동 포함한다.
+# 로컬·test는 application.yml의 평문 콘솔(logging.pattern.correlation) 유지.
+logging:
+  structured:
+    format:
+      console: ecs

@@ -15,7 +15,10 @@ export async function createPipelineStage(data: PipelineStagePayload): Promise<v
   revalidatePath('/crm/pipeline-stages')
 }
 
-export async function updatePipelineStage(id: number, data: PipelineStagePayload): Promise<void> {
+export async function updatePipelineStage(
+  id: number,
+  data: PipelineStagePayload & { version: number },
+): Promise<void> {
   await apiPut(`/api/crm/pipeline-stages/${id}`, data)
   revalidatePath('/crm/pipeline-stages')
 }

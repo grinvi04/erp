@@ -15,11 +15,12 @@ public record ContactResponse(
         String phone,
         String mobile,
         boolean isPrimary,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long version
 ) {
     public static ContactResponse from(Contact c) {
         return new ContactResponse(c.getId(), c.getAccount().getId(), c.getAccount().getName(),
                 c.getLastName(), c.getFirstName(), c.getTitle(), c.getDepartment(),
-                c.getEmail(), c.getPhone(), c.getMobile(), c.isPrimary(), c.getCreatedAt());
+                c.getEmail(), c.getPhone(), c.getMobile(), c.isPrimary(), c.getCreatedAt(), c.getVersion());
     }
 }

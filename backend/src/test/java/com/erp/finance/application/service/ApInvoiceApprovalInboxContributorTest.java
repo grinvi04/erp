@@ -1,5 +1,6 @@
 package com.erp.finance.application.service;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.security.ApprovalAuthorityProvider;
 import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
@@ -83,7 +84,7 @@ class ApInvoiceApprovalInboxContributorTest {
 
         assertThat(result).hasSize(1);
         ApprovalSummaryResponse s = result.get(0);
-        assertThat(s.entityType()).isEqualTo("AP_INVOICE");
+        assertThat(s.entityType()).isEqualTo(ReferenceTypes.AP_INVOICE);
         assertThat(s.entityId()).isEqualTo(1L);
         assertThat(s.requesterId()).isEqualTo("creator");
         assertThat(s.title()).contains("INV-1");

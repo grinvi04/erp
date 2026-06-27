@@ -16,8 +16,10 @@ export default function DashboardError({
 
   return (
     <div className="flex flex-col items-center justify-center h-64 gap-4">
-      <p className="text-gray-500">데이터를 불러오는 중 오류가 발생했습니다.</p>
-      <p className="text-sm text-red-500">{error.message}</p>
+      <p className="text-gray-500">문제가 발생했습니다. 다시 시도해 주세요.</p>
+      {error.digest && (
+        <p className="text-xs text-gray-400">오류 코드: {error.digest}</p>
+      )}
       <Button variant="outline" onClick={reset}>
         다시 시도
       </Button>

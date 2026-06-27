@@ -1,4 +1,4 @@
-import { apiGet, apiGetPage, getCurrentUserId } from '@/lib/api'
+import { apiGet, apiGetPage } from '@/lib/api'
 import type { Activity, CrmAccount } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
 import ActivitiesClient from './activities-client'
@@ -12,17 +12,15 @@ export default async function ActivitiesPage(props: {
   const page = Number(sp.page ?? 0)
   const size = Number(sp.size ?? 20)
 
-  const [data, accountsPage, currentUserId] = await Promise.all([
+  const [data, accountsPage] = await Promise.all([
     apiGetPage<Activity>(`/api/crm/activities?page=${page}&size=${size}`),
     apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?isActive=true&size=1000'),
-    getCurrentUserId(),
   ])
 
   return (
     <ActivitiesClient
       data={data as PageResponse<Activity>}
       accounts={accountsPage.content}
-      currentUserId={currentUserId}
     />
   )
 }

@@ -86,6 +86,7 @@ export default function DepartmentsClient({ departments }: Props) {
         await updateDepartment(dept.id, {
           name: name.trim(),
           sortOrder: Number(sortOrder),
+          version: dept.version,
         })
         toast.success('부서 정보가 수정되었습니다')
         close()

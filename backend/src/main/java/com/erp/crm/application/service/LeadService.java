@@ -3,6 +3,7 @@ package com.erp.crm.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.LeadConvertRequest;
@@ -26,23 +27,29 @@ public class LeadService {
     private final CrmAccountService accountService;
     private final OpportunityService opportunityService;
     private final PermissionChecker permissionChecker;
+    private final CrmDataScopeResolver dataScopeResolver;
+    private final CurrentUserProvider currentUserProvider;
 
     public PageResponse<LeadResponse> search(LeadStatus status, String keyword, Pageable pageable) {
         permissionChecker.require(Permission.CRM_READ);
-        return PageResponse.from(leadRepository.search(status, keyword, pageable)
+        var s = dataScopeResolver.ownerScope();
+        return PageResponse.from(
+                leadRepository.search(status, keyword, s.scoped(), s.ownerIds(), pageable)
                 .map(LeadResponse::from));
     }
 
     public LeadResponse findById(Long id) {
         permissionChecker.require(Permission.CRM_READ);
-        return LeadResponse.from(getOrThrow(id));
+        var lead = getOrThrow(id);
+        dataScopeResolver.requireOwnerAccess(lead.getOwnerId());
+        return LeadResponse.from(lead);
     }
 
     @Transactional
     public LeadResponse create(LeadCreateRequest req) {
         permissionChecker.require(Permission.CRM_WRITE);
         Lead lead = Lead.of(req.lastName(), req.firstName(), req.company(), req.title(),
-                req.email(), req.phone(), req.source(), req.ownerId(), req.note());
+                req.email(), req.phone(), req.source(), currentUserProvider.getCurrentUserId(), req.note());
         return LeadResponse.from(leadRepository.save(lead));
     }
 
@@ -50,6 +57,7 @@ public class LeadService {
     public LeadResponse update(Long id, LeadUpdateRequest req) {
         permissionChecker.require(Permission.CRM_WRITE);
         Lead lead = getOrThrow(id);
+        lead.checkVersion(req.version());
         if (lead.isConverted()) {
             throw new ErpException(ErrorCode.LEAD_ALREADY_CONVERTED_UPDATE);
         }

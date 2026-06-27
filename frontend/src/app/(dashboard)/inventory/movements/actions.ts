@@ -29,8 +29,24 @@ export async function confirmMovement(id: number): Promise<void> {
   revalidatePath('/inventory/movements')
 }
 
+export async function submitMovement(id: number): Promise<void> {
+  await apiPost(`/api/inventory/movements/${id}/submit`, {})
+  revalidatePath('/inventory/movements')
+}
+
+export async function approveMovement(id: number): Promise<void> {
+  await apiPost(`/api/inventory/movements/${id}/approve`, {})
+  revalidatePath('/inventory/movements')
+}
+
 export async function cancelMovement(id: number): Promise<void> {
   await apiPost(`/api/inventory/movements/${id}/cancel`, {})
+  revalidatePath('/inventory/movements')
+}
+
+// 철회: 상신자 본인이 결재 대기 조정 이동을 DRAFT로 되돌린다(본인 검증은 서버가 최종 수행).
+export async function withdrawMovement(id: number): Promise<void> {
+  await apiPost(`/api/inventory/movements/${id}/withdraw`, {})
   revalidatePath('/inventory/movements')
 }
 

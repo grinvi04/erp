@@ -46,6 +46,9 @@ public class Movement extends BaseEntity {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
+    @Column(name = "approval_request_id")
+    private Long approvalRequestId;
+
     protected Movement() {}
 
     public static Movement of(String movementNo, MovementType movementType,
@@ -61,11 +64,58 @@ public class Movement extends BaseEntity {
         return m;
     }
 
+    /**
+     * 직접 확정: DRAFT → CONFIRMED. 재고 조정(ADJUSTMENT)은 결재를 거쳐야 하므로 직접 확정 불가
+     * — 작성자가 본인 조정을 즉시 반영하는 것을 차단(직무분리). 입출고·이전·반품은 그대로 직접 확정.
+     */
     public void confirm() {
+        if (this.movementType == MovementType.ADJUSTMENT) {
+            throw new ErpException(ErrorCode.MOVEMENT_REQUIRES_APPROVAL);
+        }
         if (this.status != MovementStatus.DRAFT) {
             throw new ErpException(ErrorCode.MOVEMENT_NOT_DRAFT);
         }
         this.status = MovementStatus.CONFIRMED;
+    }
+
+    /**
+     * 결재 상신: ADJUSTMENT DRAFT → PENDING_APPROVAL. 조정 이동만 결재 대상이며,
+     * 확정(재고 반영)은 결재 승인 후 PENDING_APPROVAL에서만 가능 — 직접 확정 차단.
+     */
+    public void submitForApproval() {
+        if (this.movementType != MovementType.ADJUSTMENT) {
+            throw new ErpException(ErrorCode.MOVEMENT_APPROVAL_NOT_APPLICABLE);
+        }
+        if (this.status != MovementStatus.DRAFT) {
+            throw new ErpException(ErrorCode.MOVEMENT_NOT_DRAFT);
+        }
+        this.status = MovementStatus.PENDING_APPROVAL;
+    }
+
+    /**
+     * 결재 승인 확정: PENDING_APPROVAL → CONFIRMED. 결재 승인 경로(approve)에서만 호출 —
+     * 작성자가 직접 확정할 수 없다(직무분리).
+     */
+    public void confirmApproved() {
+        if (this.status != MovementStatus.PENDING_APPROVAL) {
+            throw new ErpException(ErrorCode.MOVEMENT_NOT_PENDING_APPROVAL);
+        }
+        this.status = MovementStatus.CONFIRMED;
+    }
+
+    /**
+     * 결재 반려·철회 시 되돌리기: PENDING_APPROVAL → DRAFT. 되돌린 조정 이동은 수정 후 재상신할 수 있다.
+     * 상신되지 않은(PENDING_APPROVAL 아님) 이동은 되돌릴 수 없다.
+     */
+    public void returnToDraft() {
+        if (this.status != MovementStatus.PENDING_APPROVAL) {
+            throw new ErpException(ErrorCode.MOVEMENT_NOT_PENDING_APPROVAL);
+        }
+        this.status = MovementStatus.DRAFT;
+    }
+
+    public void linkApprovalRequest(Long approvalRequestId) {
+        this.approvalRequestId = approvalRequestId;
     }
 
     public void cancel() {
@@ -83,4 +133,5 @@ public class Movement extends BaseEntity {
     public Long getReferenceId() { return referenceId; }
     public LocalDate getMovementDate() { return movementDate; }
     public String getNote() { return note; }
+    public Long getApprovalRequestId() { return approvalRequestId; }
 }

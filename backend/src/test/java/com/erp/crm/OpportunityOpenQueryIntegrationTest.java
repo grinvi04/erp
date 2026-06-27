@@ -1,6 +1,7 @@
 package com.erp.crm;
 
 import com.erp.common.AbstractIntegrationTest;
+import com.erp.common.response.CurrencyAmount;
 import com.erp.crm.domain.model.Account;
 import com.erp.crm.domain.model.AccountType;
 import com.erp.crm.domain.model.Opportunity;
@@ -50,8 +51,12 @@ class OpportunityOpenQueryIntegrationTest extends AbstractIntegrationTest {
     }
 
     private Opportunity opportunity(String name, PipelineStage stage, BigDecimal amount) {
+        return opportunity(name, stage, amount, "KRW");
+    }
+
+    private Opportunity opportunity(String name, PipelineStage stage, BigDecimal amount, String currency) {
         return opportunityRepository.save(
-                Opportunity.of(account, name, stage, amount, "KRW",
+                Opportunity.of(account, name, stage, amount, currency,
                         LocalDate.of(2025, 12, 31), 50, "owner@test.com", null, null));
     }
 
@@ -70,13 +75,34 @@ class OpportunityOpenQueryIntegrationTest extends AbstractIntegrationTest {
         // Closed-lost stage: amount=888 → excluded from both count and sum
         opportunity("Opp-ClosedLost", closedLostStage, BigDecimal.valueOf(888));
 
-        assertThat(opportunityRepository.countOpen())
+        assertThat(opportunityRepository.countOpen(false, java.util.Set.of()))
                 .as("3 open-stage opportunities (100, 200, null) should be counted; closed-won/lost excluded")
                 .isEqualTo(3L);
 
-        assertThat(opportunityRepository.sumOpenAmount())
+        var rows = opportunityRepository.sumOpenAmountByCurrency(false, java.util.Set.of());
+        assertThat(rows).extracting(CurrencyAmount::currency).containsExactly("KRW");
+        assertThat(rows.get(0).amount())
                 .as("100 + 200 + COALESCE(null, 0) = 300; closed opportunities excluded")
                 .isEqualByComparingTo(BigDecimal.valueOf(300));
+    }
+
+    @Test
+    void sumOpenAmountByCurrency_splitsOpenOpportunitiesByCurrency() {
+        // Open stage, two currencies — must be reported as separate rows, no FX conversion / mixing
+        opportunity("Opp-KRW-1", openStage, BigDecimal.valueOf(1000), "KRW");
+        opportunity("Opp-KRW-2", openStage, BigDecimal.valueOf(500), "KRW");
+        opportunity("Opp-USD-1", openStage, BigDecimal.valueOf(70), "USD");
+
+        // Closed opportunities (any currency) are excluded
+        opportunity("Opp-USD-Won", closedWonStage, BigDecimal.valueOf(999), "USD");
+
+        var rows = opportunityRepository.sumOpenAmountByCurrency(false, java.util.Set.of());
+        assertThat(rows)
+                .as("ORDER BY currency → KRW then USD; KRW=1000+500=1500, USD=70")
+                .extracting(CurrencyAmount::currency)
+                .containsExactly("KRW", "USD");
+        assertThat(rows.get(0).amount()).isEqualByComparingTo(BigDecimal.valueOf(1500));
+        assertThat(rows.get(1).amount()).isEqualByComparingTo(BigDecimal.valueOf(70));
     }
 
     @Test
@@ -84,10 +110,10 @@ class OpportunityOpenQueryIntegrationTest extends AbstractIntegrationTest {
         opportunity("Opp-Won", closedWonStage, BigDecimal.valueOf(500));
         opportunity("Opp-Lost", closedLostStage, BigDecimal.valueOf(250));
 
-        assertThat(opportunityRepository.countOpen()).isEqualTo(0L);
-        assertThat(opportunityRepository.sumOpenAmount())
-                .as("COALESCE(SUM, 0) must return 0 when no open opportunities exist")
-                .isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(opportunityRepository.countOpen(false, java.util.Set.of())).isEqualTo(0L);
+        assertThat(opportunityRepository.sumOpenAmountByCurrency(false, java.util.Set.of()))
+                .as("No open opportunities → no currency groups → empty list")
+                .isEmpty();
     }
 
     @Test
@@ -95,11 +121,14 @@ class OpportunityOpenQueryIntegrationTest extends AbstractIntegrationTest {
         // Single open opportunity with null amount
         opportunity("Opp-NullAmt", openStage, null);
 
-        assertThat(opportunityRepository.countOpen())
+        assertThat(opportunityRepository.countOpen(false, java.util.Set.of()))
                 .as("Null-amount opportunity is still an open opportunity")
                 .isEqualTo(1L);
 
-        assertThat(opportunityRepository.sumOpenAmount())
+        // GROUP BY currency still yields the KRW group; its summed amount is 0 via COALESCE
+        var rows = opportunityRepository.sumOpenAmountByCurrency(false, java.util.Set.of());
+        assertThat(rows).extracting(CurrencyAmount::currency).containsExactly("KRW");
+        assertThat(rows.get(0).amount())
                 .as("Null amount contributes 0 to sum via COALESCE")
                 .isEqualByComparingTo(BigDecimal.ZERO);
     }

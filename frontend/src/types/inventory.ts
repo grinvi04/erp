@@ -6,12 +6,14 @@ export interface ItemCategory {
   name: string
   parentId: number | null
   parentName: string | null
+  version: number
 }
 
 export interface Uom {
   id: number
   code: string
   name: string
+  version: number
 }
 
 export interface Warehouse {
@@ -20,7 +22,10 @@ export interface Warehouse {
   name: string
   address: string | null
   active: boolean
+  version: number
 }
+
+export type LocationType = 'ZONE' | 'AISLE' | 'RACK' | 'BIN'
 
 export interface Location {
   id: number
@@ -30,7 +35,9 @@ export interface Location {
   name: string
   parentId: number | null
   parentName: string | null
+  locationType: LocationType
   active: boolean
+  version: number
 }
 
 export interface Item {
@@ -52,10 +59,11 @@ export interface Item {
   lotTracked: boolean
   serialTracked: boolean
   active: boolean
+  version: number
 }
 
 export type MovementType = 'RECEIPT' | 'ISSUE' | 'TRANSFER' | 'ADJUSTMENT'
-export type MovementStatus = 'DRAFT' | 'CONFIRMED' | 'CANCELLED'
+export type MovementStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'CONFIRMED' | 'CANCELLED'
 
 export interface MovementLine {
   id: number

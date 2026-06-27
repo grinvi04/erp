@@ -39,7 +39,7 @@ class AccountControllerTest {
     @Test
     void findAll_returnsOkWithList() throws Exception {
         AccountResponse response = new AccountResponse(1L, "1100", "현금",
-            AccountType.ASSET, NormalBalance.DEBIT, null, null, false, true);
+            AccountType.ASSET, NormalBalance.DEBIT, null, null, false, true, 0L);
         given(accountService.findAll()).willReturn(List.of(response));
 
         mockMvc.perform(get("/api/finance/accounts"))
@@ -50,7 +50,7 @@ class AccountControllerTest {
     @Test
     void create_validRequest_returns201() throws Exception {
         AccountResponse response = new AccountResponse(1L, "1100", "현금",
-            AccountType.ASSET, NormalBalance.DEBIT, null, null, false, true);
+            AccountType.ASSET, NormalBalance.DEBIT, null, null, false, true, 0L);
         given(accountService.create(any())).willReturn(response);
 
         mockMvc.perform(post("/api/finance/accounts")

@@ -62,7 +62,7 @@ class EmployeeServiceTest {
         Page<Employee> page = new PageImpl<>(List.of(emp));
         given(employeeRepository.findAll(any(Specification.class), any(PageRequest.class))).willReturn(page);
 
-        Page<EmployeeResponse> result = employeeService.findAll(null, null, PageRequest.of(0, 20));
+        Page<EmployeeResponse> result = employeeService.findAll(null, null, null, PageRequest.of(0, 20));
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).employeeNo()).isEqualTo("EMP001");

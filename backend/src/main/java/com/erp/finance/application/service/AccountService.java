@@ -69,6 +69,7 @@ public class AccountService {
     public AccountResponse update(Long id, AccountUpdateRequest request) {
         permissionChecker.require(Permission.FINANCE_WRITE);
         Account account = getOrThrow(id);
+        account.checkVersion(request.version());
         account.update(request.name(), request.isSummary());
         return AccountResponse.from(account);
     }

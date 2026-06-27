@@ -13,11 +13,14 @@ import com.erp.finance.domain.model.ArInvoice;
 import com.erp.finance.domain.model.Customer;
 import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.CustomerRepository;
+import com.erp.common.currency.CurrencyConversionPort.Conversion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,6 +45,7 @@ class ArInvoiceServiceTest {
     @Mock private com.erp.common.audit.AuditService auditService;
     @Mock private com.erp.finance.domain.repository.AccountRepository accountRepository;
     @Mock private ArInvoicePostingService arInvoicePostingService;
+    @Mock private CurrencyConverter currencyConverter;
 
     @InjectMocks
     private ArInvoiceService arInvoiceService;
@@ -61,6 +66,7 @@ class ArInvoiceServiceTest {
         given(customerRepository.findById(1L)).willReturn(Optional.of(buildCustomer()));
         ArInvoice invoice = buildInvoice();
         given(arInvoiceRepository.save(any())).willReturn(invoice);
+        given(currencyConverter.tryConvert(any(), any(), any())).willReturn(Optional.empty());
 
         ArInvoiceResponse result = arInvoiceService.create(
             new ArInvoiceCreateRequest("AR-001", 1L,
@@ -69,6 +75,43 @@ class ArInvoiceServiceTest {
 
         assertThat(result.invoiceNo()).isEqualTo("AR-001");
         assertThat(result.totalAmount()).isEqualByComparingTo("100000");
+    }
+
+    @Test
+    void create_foreignCurrencyWithRate_storesBaseSnapshot() {
+        // AC-8: 생성 시 송장일 환율로 base_amount·exchange_rate 저장 (USD 200 × 1300 = 260000).
+        given(arInvoiceRepository.existsByInvoiceNo("AR-USD")).willReturn(false);
+        given(customerRepository.findById(1L)).willReturn(Optional.of(buildCustomer()));
+        given(currencyConverter.tryConvert(any(), any(), any()))
+            .willReturn(Optional.of(new Conversion(new BigDecimal("260000.00"), new BigDecimal("1300.00000000"))));
+        ArgumentCaptor<ArInvoice> captor = ArgumentCaptor.forClass(ArInvoice.class);
+        given(arInvoiceRepository.save(captor.capture())).willAnswer(inv -> inv.getArgument(0));
+
+        arInvoiceService.create(new ArInvoiceCreateRequest("AR-USD", 1L,
+            LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31),
+            new BigDecimal("200"), "USD", null, null));
+
+        ArInvoice saved = captor.getValue();
+        assertThat(saved.getBaseAmount()).isEqualByComparingTo("260000.00");
+        assertThat(saved.getExchangeRate()).isEqualByComparingTo("1300.00000000");
+    }
+
+    @Test
+    void create_noRate_leavesBaseSnapshotNull() {
+        // AC-11: 환율 부재 통화는 정상 생성하되 base_amount·exchange_rate를 null(미산정)로 남긴다(거부 안 함).
+        given(arInvoiceRepository.existsByInvoiceNo("AR-JPY")).willReturn(false);
+        given(customerRepository.findById(1L)).willReturn(Optional.of(buildCustomer()));
+        given(currencyConverter.tryConvert(any(), any(), any())).willReturn(Optional.empty());
+        ArgumentCaptor<ArInvoice> captor = ArgumentCaptor.forClass(ArInvoice.class);
+        given(arInvoiceRepository.save(captor.capture())).willAnswer(inv -> inv.getArgument(0));
+
+        arInvoiceService.create(new ArInvoiceCreateRequest("AR-JPY", 1L,
+            LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31),
+            new BigDecimal("5000"), "JPY", null, null));
+
+        ArInvoice saved = captor.getValue();
+        assertThat(saved.getBaseAmount()).isNull();
+        assertThat(saved.getExchangeRate()).isNull();
     }
 
     @Test
@@ -137,10 +180,12 @@ class ArInvoiceServiceTest {
 
     @Test
     void pay_fullPayment_changeStatusToPaid() {
+        // 직무분리: 수금자(receiver-1)는 작성자(createdBy=null)와 다른 사용자
         ArInvoice invoice = buildInvoice();
         invoice.submit();
         invoice.approve();
         given(arInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("receiver-1");
 
         ArInvoiceResponse result = arInvoiceService.pay(1L, new ArInvoicePayRequest(new BigDecimal("100000"), null, null));
 
@@ -154,11 +199,41 @@ class ArInvoiceServiceTest {
         invoice.submit();
         invoice.approve();
         given(arInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("receiver-1");
 
         ErpException ex = assertThrows(ErpException.class, () ->
             arInvoiceService.pay(1L, new ArInvoicePayRequest(new BigDecimal("200000"), null, null)));
 
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVOICE_OVERPAYMENT);
+    }
+
+    @Test
+    void pay_bySelfCreator_throwsPaymentSelfForbidden() {
+        // 직무분리(SoD): 본인이 작성한 전표는 수금(현금 유입) 처리 불가
+        ArInvoice invoice = buildInvoice();
+        invoice.submit();
+        invoice.approve();
+        ReflectionTestUtils.setField(invoice, "createdBy", "user-1");
+        given(arInvoiceRepository.findById(1L)).willReturn(Optional.of(invoice));
+        given(currentUserProvider.getCurrentUserId()).willReturn("user-1");
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            arInvoiceService.pay(1L, new ArInvoicePayRequest(new BigDecimal("100000"), null, null)));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_SELF_FORBIDDEN);
+        assertThat(invoice.getStatus().name()).isEqualTo("APPROVED");
+    }
+
+    @Test
+    void pay_withoutPayPermission_throwsForbidden() {
+        // 권한 분리: 수금은 finance:invoice:pay 전용 권한을 요구한다 — 작성권(finance:write)만으론 불가.
+        willThrow(new ErpException(ErrorCode.FORBIDDEN))
+            .given(permissionChecker).require(Permission.FINANCE_INVOICE_PAY);
+
+        ErpException ex = assertThrows(ErpException.class, () ->
+            arInvoiceService.pay(1L, new ArInvoicePayRequest(new BigDecimal("100000"), null, null)));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
     }
 
     @Test

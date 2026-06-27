@@ -44,7 +44,7 @@ public class IamService {
     // --- 역할 ---
     public List<RoleResponse> listRoles() {
         permissionChecker.require(Permission.IAM_READ);
-        return roleRepository.findByTenantIdOrderByCodeAsc(tenant()).stream()
+        return roleRepository.findByTenantIdWithPermissionsOrderByCodeAsc(tenant()).stream()
             .map(RoleResponse::from).toList();
     }
 
@@ -94,7 +94,7 @@ public class IamService {
     // --- 사용자 역할 배정 ---
     public List<RoleResponse> getUserRoles(String userId) {
         permissionChecker.require(Permission.IAM_READ);
-        return userRoleRepository.findByTenantIdAndUserId(tenant(), userId).stream()
+        return userRoleRepository.findByTenantIdAndUserIdWithRolePermissions(tenant(), userId).stream()
             .map(ur -> RoleResponse.from(ur.getRole())).toList();
     }
 

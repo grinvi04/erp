@@ -12,6 +12,5 @@ public record LeadCreateRequest(
         @Email @Size(max = 200) String email,
         @Size(max = 30) String phone,
         @Size(max = 50) String source,
-        @NotBlank @Size(max = 100) String ownerId,
         String note
 ) {}

@@ -38,6 +38,7 @@ export async function updateEmployee(
     baseSalary: number | null
     managerId: number | null
     userId: string | null
+    version: number
   }
 ): Promise<void> {
   await apiPut<Employee>(`/api/hr/employees/${id}`, data)

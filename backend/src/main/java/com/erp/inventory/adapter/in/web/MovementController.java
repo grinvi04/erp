@@ -3,6 +3,7 @@ package com.erp.inventory.adapter.in.web;
 import com.erp.common.response.ApiResponse;
 import com.erp.common.response.PageResponse;
 import com.erp.inventory.application.dto.MovementCreateRequest;
+import com.erp.inventory.application.dto.MovementRejectRequest;
 import com.erp.inventory.application.dto.MovementResponse;
 import com.erp.inventory.application.service.MovementService;
 import com.erp.inventory.domain.model.MovementStatus;
@@ -10,6 +11,8 @@ import com.erp.inventory.domain.model.MovementType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,7 +34,7 @@ public class MovementController {
     public ResponseEntity<ApiResponse<PageResponse<MovementResponse>>> findAll(
             @RequestParam(required = false) MovementType type,
             @RequestParam(required = false) MovementStatus status,
-            Pageable pageable) {
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(movementService.findAll(type, status, pageable)));
     }
 
@@ -51,8 +54,29 @@ public class MovementController {
         return ResponseEntity.ok(ApiResponse.ok(movementService.confirm(id)));
     }
 
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<ApiResponse<MovementResponse>> submit(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(movementService.submitForApproval(id)));
+    }
+
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<ApiResponse<MovementResponse>> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(movementService.approve(id)));
+    }
+
     @PostMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<MovementResponse>> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(movementService.cancel(id)));
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<MovementResponse>> reject(
+            @PathVariable Long id, @Valid @RequestBody MovementRejectRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(movementService.reject(id, request.comment())));
+    }
+
+    @PostMapping("/{id}/withdraw")
+    public ResponseEntity<ApiResponse<MovementResponse>> withdraw(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(movementService.withdraw(id)));
     }
 }

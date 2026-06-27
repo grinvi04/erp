@@ -62,6 +62,11 @@ public enum ErrorCode {
     FISCAL_PERIOD_DATE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "F028", "회계기간 날짜가 회계연도 범위를 벗어납니다"),
     CUSTOMER_NOT_FOUND(HttpStatus.NOT_FOUND, "F029", "고객을 찾을 수 없습니다"),
     CUSTOMER_CODE_DUPLICATE(HttpStatus.CONFLICT, "F030", "이미 사용 중인 고객 코드입니다"),
+    PAYMENT_SELF_FORBIDDEN(HttpStatus.FORBIDDEN, "F031", "본인이 작성한 전표는 지급·수금 처리할 수 없습니다 (직무분리)"),
+    JOURNAL_ENTRY_NOT_PENDING_APPROVAL(HttpStatus.CONFLICT, "F032", "결재 상신된 전표만 전기할 수 있습니다"),
+    EXCHANGE_RATE_DUPLICATE(HttpStatus.CONFLICT, "F033", "이미 등록된 통화쌍·일자의 환율입니다"),
+    CURRENCY_RATE_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "F034", "해당 통화·일자의 환율이 없어 기준통화로 환산할 수 없습니다"),
+    BASE_CURRENCY_CHANGE_NOT_ALLOWED(HttpStatus.CONFLICT, "F035", "이미 환산된 거래가 있어 기준통화를 변경할 수 없습니다"),
 
     // Inventory
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "품목을 찾을 수 없습니다"),
@@ -83,6 +88,9 @@ public enum ErrorCode {
     SERIAL_NO_REQUIRED(HttpStatus.BAD_REQUEST, "I017", "시리얼 추적 품목은 시리얼 번호가 필수입니다"),
     LOT_NO_REQUIRED(HttpStatus.BAD_REQUEST, "I018", "로트 추적 품목은 로트 번호가 필수입니다"),
     LOCATION_REQUIRED(HttpStatus.BAD_REQUEST, "I019", "해당 이동 유형에는 위치 정보가 필수입니다"),
+    MOVEMENT_APPROVAL_NOT_APPLICABLE(HttpStatus.CONFLICT, "I020", "재고 조정 이동만 결재 상신할 수 있습니다"),
+    MOVEMENT_REQUIRES_APPROVAL(HttpStatus.CONFLICT, "I021", "재고 조정 이동은 결재 승인을 거쳐야 확정됩니다"),
+    MOVEMENT_NOT_PENDING_APPROVAL(HttpStatus.CONFLICT, "I022", "결재 상신된 재고 이동만 승인할 수 있습니다"),
 
     // CRM
     ACCOUNT_COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "CR001", "고객사를 찾을 수 없습니다"),

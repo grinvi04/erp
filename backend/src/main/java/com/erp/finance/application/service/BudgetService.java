@@ -65,6 +65,7 @@ public class BudgetService {
     public BudgetResponse update(Long id, BudgetUpdateRequest request) {
         permissionChecker.require(Permission.FINANCE_WRITE);
         Budget budget = getOrThrow(id);
+        budget.checkVersion(request.version());
         budget.updateBudgetAmount(request.budgetAmount());
         return BudgetResponse.from(budget);
     }

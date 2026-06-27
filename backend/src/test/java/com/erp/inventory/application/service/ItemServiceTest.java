@@ -47,10 +47,10 @@ class ItemServiceTest {
     @Test
     void findAll_noCategoryFilter_returnsPage() {
         PageRequest pageable = PageRequest.of(0, 10);
-        given(itemRepository.findAll(pageable))
+        given(itemRepository.search(null, null, pageable))
                 .willReturn(new PageImpl<>(List.of(buildItem()), pageable, 1));
 
-        PageResponse<ItemResponse> result = itemService.findAll(null, pageable);
+        PageResponse<ItemResponse> result = itemService.findAll(null, null, pageable);
 
         assertThat(result.content()).hasSize(1);
         assertThat(result.content().get(0).sku()).isEqualTo("SKU-001");

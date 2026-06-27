@@ -14,12 +14,12 @@ export interface LeadPayload {
   note: string | null
 }
 
-export async function createLead(data: LeadPayload): Promise<void> {
+export async function createLead(data: Omit<LeadPayload, 'ownerId'>): Promise<void> {
   await apiPost('/api/crm/leads', data)
   revalidatePath('/crm/leads')
 }
 
-export async function updateLead(id: number, data: LeadPayload): Promise<void> {
+export async function updateLead(id: number, data: LeadPayload & { version: number }): Promise<void> {
   await apiPut(`/api/crm/leads/${id}`, data)
   revalidatePath('/crm/leads')
 }

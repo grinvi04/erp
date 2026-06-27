@@ -56,6 +56,8 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
   const canWrite = can(PERM.FINANCE_WRITE)
   // 결재(전결)는 작성권과 분리 — 별도 전결권 보유자만. 서버가 전결 한도까지 최종 검증한다.
   const canApprove = can(PERM.FINANCE_INVOICE_APPROVE)
+  // 수금(현금이동)은 작성권과 분리 — 별도 지급·수금권 보유자만. 서버가 SoD까지 최종 검증한다.
+  const canPay = can(PERM.FINANCE_INVOICE_PAY)
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
@@ -259,7 +261,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                         )}
                       </>
                     )}
-                    {canWrite && inv.status === 'APPROVED' && (
+                    {canPay && inv.status === 'APPROVED' && (
                       <Button variant="ghost" size="sm" title="수금처리"
                         onClick={() => { setCollectAmount(String(inv.outstandingAmount)); setCollectCashAccountId(''); setCollectDate(new Date().toISOString().slice(0, 10)); setDialog({ type: 'collect', inv }) }}
                         disabled={isPending}>

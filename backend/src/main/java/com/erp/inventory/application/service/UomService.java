@@ -6,6 +6,7 @@ import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.inventory.application.dto.UomCreateRequest;
 import com.erp.inventory.application.dto.UomResponse;
+import com.erp.inventory.application.dto.UomUpdateRequest;
 import com.erp.inventory.domain.model.UnitOfMeasure;
 import com.erp.inventory.domain.repository.UnitOfMeasureRepository;
 import java.util.List;
@@ -41,9 +42,10 @@ public class UomService {
     }
 
     @Transactional
-    public UomResponse update(Long id, UomCreateRequest req) {
+    public UomResponse update(Long id, UomUpdateRequest req) {
         permissionChecker.require(Permission.INVENTORY_WRITE);
         UnitOfMeasure uom = getOrThrow(id);
+        uom.checkVersion(req.version());
         uom.update(req.name());
         return UomResponse.from(uom);
     }

@@ -47,7 +47,8 @@ public class EmployeeService {
         return "{\"event\":\"" + name + "\"}";
     }
 
-    public Page<EmployeeResponse> findAll(EmployeeStatus status, Long departmentId, Pageable pageable) {
+    public Page<EmployeeResponse> findAll(EmployeeStatus status, Long departmentId, String keyword,
+            Pageable pageable) {
         permissionChecker.require(Permission.HR_EMPLOYEE_READ);
         Specification<Employee> spec = Specification.where(null);
         if (status != null) {
@@ -56,9 +57,21 @@ public class EmployeeService {
         if (departmentId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("department").get("id"), departmentId));
         }
+        String kw = normalizeKeyword(keyword);
+        if (kw != null) {
+            String like = "%" + kw.toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.<String>get("employeeNo")), like),
+                cb.like(cb.lower(root.get("personalInfo").<String>get("lastName")), like),
+                cb.like(cb.lower(root.get("personalInfo").<String>get("firstName")), like)));
+        }
         // 데이터 스코프 공통 필터 — 부서/본인 범위 밖 직원은 목록에서 제외(정보 유출 방지)
         spec = spec.and(dataScopeResolver.employeeScope());
         return employeeRepository.findAll(spec, pageable).map(EmployeeResponse::from);
+    }
+
+    private static String normalizeKeyword(String keyword) {
+        return (keyword == null || keyword.isBlank()) ? null : keyword.trim();
     }
 
     public EmployeeResponse findById(Long id) {
@@ -181,6 +194,7 @@ public class EmployeeService {
     public EmployeeResponse update(Long id, EmployeeUpdateRequest request) {
         permissionChecker.require(Permission.HR_EMPLOYEE_WRITE);
         Employee employee = getOrThrow(id);
+        employee.checkVersion(request.version());
         if (employee.isTerminated()) {
             throw new ErpException(ErrorCode.EMPLOYEE_ALREADY_TERMINATED);
         }

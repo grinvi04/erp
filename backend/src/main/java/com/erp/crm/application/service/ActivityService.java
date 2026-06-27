@@ -3,6 +3,7 @@ package com.erp.crm.application.service;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
+import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.ActivityCreateRequest;
@@ -29,19 +30,25 @@ public class ActivityService {
     private final ContactService contactService;
     private final OpportunityService opportunityService;
     private final PermissionChecker permissionChecker;
+    private final CrmDataScopeResolver dataScopeResolver;
+    private final CurrentUserProvider currentUserProvider;
 
     public PageResponse<ActivityResponse> search(Long opportunityId, Long accountId,
                                                  ActivityType activityType, ActivityStatus status,
                                                  Pageable pageable) {
         permissionChecker.require(Permission.CRM_READ);
+        var s = dataScopeResolver.ownerScope();
         return PageResponse.from(activityRepository
-                .search(opportunityId, accountId, activityType, status, pageable)
+                .search(opportunityId, accountId, activityType, status,
+                        s.scoped(), s.ownerIds(), pageable)
                 .map(ActivityResponse::from));
     }
 
     public ActivityResponse findById(Long id) {
         permissionChecker.require(Permission.CRM_READ);
-        return ActivityResponse.from(getOrThrow(id));
+        var activity = getOrThrow(id);
+        dataScopeResolver.requireOwnerAccess(activity.getOwnerId());
+        return ActivityResponse.from(activity);
     }
 
     @Transactional
@@ -53,7 +60,7 @@ public class ActivityService {
                 ? opportunityService.getOrThrow(req.opportunityId()) : null;
 
         Activity activity = Activity.of(req.activityType(), req.subject(), account, contact,
-                opportunity, req.ownerId(), req.dueDate(), req.description());
+                opportunity, currentUserProvider.getCurrentUserId(), req.dueDate(), req.description());
         return ActivityResponse.from(activityRepository.save(activity));
     }
 

@@ -48,10 +48,9 @@ type DialogMode =
 interface Props {
   data: PageResponse<Lead>
   accounts: CrmAccount[]
-  currentUserId: string
 }
 
-export default function LeadsClient({ data, accounts, currentUserId }: Props) {
+export default function LeadsClient({ data, accounts }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -72,7 +71,7 @@ export default function LeadsClient({ data, accounts, currentUserId }: Props) {
 
   const openCreate = () => {
     setLastName(''); setFirstName(''); setCompany(''); setTitle(''); setEmail('')
-    setPhone(''); setSource(''); setOwnerId(currentUserId); setNote('')
+    setPhone(''); setSource(''); setNote('')
     setDialog({ type: 'create' })
   }
 
@@ -93,7 +92,7 @@ export default function LeadsClient({ data, accounts, currentUserId }: Props) {
     setDialog({ type: 'convert', lead })
   }
 
-  const buildPayload = (): LeadPayload => ({
+  const buildPayload = (): Omit<LeadPayload, 'ownerId'> => ({
     lastName: lastName.trim(),
     firstName: firstName.trim(),
     company: company.trim() || null,
@@ -101,14 +100,12 @@ export default function LeadsClient({ data, accounts, currentUserId }: Props) {
     email: email.trim() || null,
     phone: phone.trim() || null,
     source: source.trim() || null,
-    ownerId: ownerId.trim(),
     note: note.trim() || null,
   })
 
   const validate = (): boolean => {
     if (!lastName.trim()) { toast.error('성은 필수입니다'); return false }
     if (!firstName.trim()) { toast.error('이름은 필수입니다'); return false }
-    if (!ownerId.trim()) { toast.error('담당자는 필수입니다'); return false }
     return true
   }
 
@@ -125,9 +122,10 @@ export default function LeadsClient({ data, accounts, currentUserId }: Props) {
 
   const handleUpdate = (lead: Lead) => {
     if (!validate()) return
+    if (!ownerId.trim()) { toast.error('담당자는 필수입니다'); return }
     startTransition(async () => {
       try {
-        await updateLead(lead.id, buildPayload())
+        await updateLead(lead.id, { ...buildPayload(), ownerId: ownerId.trim(), version: lead.version })
         toast.success('리드가 수정되었습니다')
         close()
       } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
@@ -192,10 +190,12 @@ export default function LeadsClient({ data, accounts, currentUserId }: Props) {
           <Label>출처</Label>
           <Input value={source} onChange={(e) => setSource(e.target.value)} />
         </div>
-        <div className="grid gap-1.5">
-          <Label>담당자 ID *</Label>
-          <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} />
-        </div>
+        {dialog.type === 'edit' && (
+          <div className="grid gap-1.5">
+            <Label>담당자 ID *</Label>
+            <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} />
+          </div>
+        )}
       </div>
       <div className="grid gap-1.5">
         <Label>메모</Label>

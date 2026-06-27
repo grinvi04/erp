@@ -56,7 +56,7 @@ class JobGradeControllerTest {
         JobGradeCreateRequest request = new JobGradeCreateRequest("G3", "3급", 3,
             new BigDecimal("3000000"), new BigDecimal("5000000"));
         JobGradeResponse response = new JobGradeResponse(1L, "G3", "3급", 3,
-            new BigDecimal("3000000"), new BigDecimal("5000000"));
+            new BigDecimal("3000000"), new BigDecimal("5000000"), 0L);
         given(jobGradeService.create(any())).willReturn(response);
 
         mockMvc.perform(post("/api/hr/job-grades")

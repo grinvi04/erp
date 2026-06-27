@@ -1,5 +1,3 @@
-import { apiGet } from '@/lib/api'
-
 // 기능 권한 코드 — 백엔드 com.erp.common.security.Permission 과 일치해야 한다.
 export const PERM = {
   HR_EMPLOYEE_READ: 'hr:employee:read',
@@ -15,20 +13,15 @@ export const PERM = {
   FINANCE_READ: 'finance:read',
   FINANCE_WRITE: 'finance:write',
   FINANCE_INVOICE_APPROVE: 'finance:invoice:approve',
+  FINANCE_INVOICE_PAY: 'finance:invoice:pay',
+  FINANCE_GL_APPROVE: 'finance:gl:approve',
+  FINANCE_SETTING_WRITE: 'finance:setting:write',
   INVENTORY_READ: 'inventory:read',
   INVENTORY_WRITE: 'inventory:write',
+  INVENTORY_MOVEMENT_APPROVE: 'inventory:movement:approve',
   CRM_READ: 'crm:read',
   CRM_WRITE: 'crm:write',
   AUDIT_READ: 'audit:read',
   IAM_READ: 'iam:read',
   IAM_WRITE: 'iam:write',
 } as const
-
-/** 현재 사용자의 권한 코드 목록(UI 게이팅용). 서버 검사가 항상 최종이다. */
-export async function getMyPermissions(): Promise<string[]> {
-  try {
-    return await apiGet<string[]>('/api/me/permissions')
-  } catch {
-    return []
-  }
-}

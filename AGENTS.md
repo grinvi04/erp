@@ -97,7 +97,8 @@ erp/
 ## 품질 게이트
 
 - 커밋 전: lint + test 통과 필수
-- PR 머지 전: 사람 승인 1명 이상 + CI 전체 통과 + 리뷰 스레드 전부 resolve
+- PR 머지 전: CI 전체 통과 + 리뷰 스레드 전부 resolve (+ 리뷰어 있으면 승인 1명 이상)
+- **솔로 운용**: 리뷰어가 없으면 승인 충족이 불가하므로 두 방식을 자유 선택 — (a) develop 승인요건 유지 + `/solo-merge`(또는 `sm <PR>` 별칭)로 머지 시 일시 우회·즉시 복구, 또는 (b) develop 승인요건 제거 후 CI 게이트만으로 일반 머지. **main(릴리즈)은 보호 유지.** 상세: team-harness `code-review.md` 솔로 정책.
 - 테스트 스킵 플래그(`-DskipTests` 등) 사용 금지
 
 ## 빌드·테스트 명령
@@ -131,10 +132,18 @@ erp/
 - 프론트엔드 헬스체크: `curl -sf http://localhost:3000/api/auth/session`
 - 전체 스택 중지: `docker compose down` / 데이터 초기화: `docker compose down -v`
 
-**운영 (배포 후)** — `<...>`는 발급된 도메인으로 치환
+**운영 (배포 후)** — ⚠️ **2026-06 현재 erp는 운영 미배포** (Railway/Vercel 프로젝트 미생성).
+배포 시 아래 `<...>`를 발급 도메인으로 교체하고 이 줄을 제거할 것.
 - 백엔드: `curl -sf https://<backend>.up.railway.app/actuator/health`
 - Keycloak: `curl -sf https://<keycloak>.up.railway.app/health/ready`
 - 프론트: `curl -sf https://<app>.vercel.app/api/auth/session`
+
+**배포 신선도 검증** (team-harness `operations.md` §6 — liveness ≠ freshness):
+릴리즈 후 200만 보지 말고 최신 배포가 릴리즈 커밋과 일치하는지 CLI로 확인한다.
+- 백엔드(Railway): `railway deployment list` (최신 SUCCESS commit·시각 = 방금 릴리즈)
+- 프론트(Vercel): `vercel ls erp` (최신 프로덕션 배포 READY)
+- DB(Neon): `neonctl branches list --project-id <id>` (브랜치 `ready`)
+- 배포가 안 걸리면 ① 연결 브랜치(prod→main) ② **계정 리소스/크레딧 한도** ③ GitHub 웹훅 순으로 점검
 
 ## 팀 표준 문서
 

@@ -40,10 +40,9 @@ interface Props {
   data: PageResponse<Opportunity>
   accounts: CrmAccount[]
   stages: PipelineStage[]
-  currentUserId: string
 }
 
-export default function OpportunitiesClient({ data, accounts, stages, currentUserId }: Props) {
+export default function OpportunitiesClient({ data, accounts, stages }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -63,7 +62,7 @@ export default function OpportunitiesClient({ data, accounts, stages, currentUse
 
   const openCreate = () => {
     setAccountId(''); setName(''); setAmount(''); setCurrency('KRW')
-    setCloseDate(''); setProbability('0'); setOwnerId(currentUserId)
+    setCloseDate(''); setProbability('0')
     setSource(''); setDescription('')
     setStageId(stages.length > 0 ? String(stages[0].id) : '')
     setDialog({ type: 'create' })
@@ -81,21 +80,19 @@ export default function OpportunitiesClient({ data, accounts, stages, currentUse
     setDialog({ type: 'edit', opp })
   }
 
-  const buildPayload = (): OpportunityPayload => ({
+  const buildPayload = (): Omit<OpportunityPayload, 'ownerId'> => ({
     name: name.trim(),
     stageId: Number(stageId),
     amount: amount ? Number(amount) : null,
     currency: currency.trim() || null,
     closeDate: closeDate || null,
     probability: Number(probability) || 0,
-    ownerId: ownerId.trim(),
     source: source.trim() || null,
     description: description.trim() || null,
   })
 
   const validate = (): boolean => {
     if (!name.trim()) { toast.error('기회명은 필수입니다'); return false }
-    if (!ownerId.trim()) { toast.error('담당자는 필수입니다'); return false }
     if (!stageId) { toast.error('단계를 선택하세요'); return false }
     if (currency.trim() && currency.trim().length !== 3) {
       toast.error('통화 코드는 3자리여야 합니다'); return false
@@ -123,9 +120,10 @@ export default function OpportunitiesClient({ data, accounts, stages, currentUse
 
   const handleUpdate = (opp: Opportunity) => {
     if (!validate()) return
+    if (!ownerId.trim()) { toast.error('담당자는 필수입니다'); return }
     startTransition(async () => {
       try {
-        await updateOpportunity(opp.id, buildPayload())
+        await updateOpportunity(opp.id, { ...buildPayload(), ownerId: ownerId.trim(), version: opp.version })
         toast.success('영업 기회가 수정되었습니다')
         close()
       } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
@@ -198,10 +196,12 @@ export default function OpportunitiesClient({ data, accounts, stages, currentUse
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>담당자 ID *</Label>
-          <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} />
-        </div>
+        {dialog.type === 'edit' && (
+          <div className="grid gap-1.5">
+            <Label>담당자 ID *</Label>
+            <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} />
+          </div>
+        )}
         <div className="grid gap-1.5">
           <Label>출처</Label>
           <Input value={source} onChange={(e) => setSource(e.target.value)} />

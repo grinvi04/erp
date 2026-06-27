@@ -1,7 +1,7 @@
 export type AccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'
 export type NormalBalance = 'DEBIT' | 'CREDIT'
 export type JournalEntryType = 'MANUAL' | 'AP' | 'AR' | 'PAYROLL' | 'ADJUSTMENT'
-export type JournalEntryStatus = 'DRAFT' | 'POSTED' | 'REVERSED'
+export type JournalEntryStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'POSTED' | 'REVERSED'
 export type ApInvoiceStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'
 export type ArInvoiceStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'
 export type FiscalYearStatus = 'OPEN' | 'CLOSED'
@@ -17,6 +17,7 @@ export interface Account {
   parentCode: string | null
   isSummary: boolean
   isActive: boolean
+  version: number
 }
 
 export interface Vendor {
@@ -30,6 +31,7 @@ export interface Vendor {
   paymentTerms: number
   isActive: boolean
   payablesAccountId: number | null
+  version: number
 }
 
 export interface JournalLine {
@@ -90,6 +92,7 @@ export interface Customer {
   paymentTerms: number
   isActive: boolean
   receivablesAccountId: number | null
+  version: number
 }
 
 export interface ArInvoice {
@@ -124,4 +127,73 @@ export interface FiscalPeriod {
   startDate: string
   endDate: string
   status: FiscalPeriodStatus
+}
+
+export interface BaseCurrency {
+  baseCurrency: string
+}
+
+export interface FxGainLossAccounts {
+  fxGainAccountId: number | null
+  fxLossAccountId: number | null
+}
+
+export interface ExchangeRate {
+  id: number
+  fromCurrency: string
+  toCurrency: string
+  effectiveDate: string
+  rate: number
+}
+
+// 재무제표 — 백엔드 TrialBalanceResponse / IncomeStatementResponse / BalanceSheetResponse record와 1:1
+export interface TrialBalanceRow {
+  accountCode: string
+  accountName: string
+  debit: number
+  credit: number
+  balance: number
+}
+
+export interface TrialBalanceResponse {
+  baseCurrency: string
+  rows: TrialBalanceRow[]
+  totalDebit: number
+  totalCredit: number
+  excludedEntryCount: number
+}
+
+export interface IncomeStatementLine {
+  accountCode: string
+  accountName: string
+  amount: number
+}
+
+export interface IncomeStatementResponse {
+  baseCurrency: string
+  revenues: IncomeStatementLine[]
+  totalRevenue: number
+  expenses: IncomeStatementLine[]
+  totalExpense: number
+  netIncome: number
+  excludedEntryCount: number
+}
+
+export interface BalanceSheetLine {
+  accountCode: string
+  accountName: string
+  amount: number
+}
+
+export interface BalanceSheetResponse {
+  baseCurrency: string
+  assets: BalanceSheetLine[]
+  totalAssets: number
+  liabilities: BalanceSheetLine[]
+  totalLiabilities: number
+  equity: BalanceSheetLine[]
+  totalEquity: number
+  netIncome: number
+  balanced: boolean
+  excludedEntryCount: number
 }

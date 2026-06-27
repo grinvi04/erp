@@ -64,7 +64,7 @@ export default function WarehousesClient({ warehouses }: Props) {
     if (!name.trim()) { toast.error('창고명은 필수입니다'); return }
     startTransition(async () => {
       try {
-        await updateWarehouse(wh.id, { name: name.trim(), address: address.trim() || null })
+        await updateWarehouse(wh.id, { version: wh.version, name: name.trim(), address: address.trim() || null })
         toast.success('창고 정보가 수정되었습니다')
         close()
       } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
