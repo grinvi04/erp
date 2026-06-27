@@ -16,14 +16,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -239,141 +234,176 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
     })
   }
 
+  const columns: Column<ArInvoice>[] = [
+    {
+      key: 'invoiceNo',
+      header: '인보이스번호',
+      sortable: true,
+      sortValue: (inv) => inv.invoiceNo,
+      cell: (inv) => <span className="font-mono text-sm">{inv.invoiceNo}</span>,
+    },
+    {
+      key: 'customerName',
+      header: '고객',
+      sortable: true,
+      sortValue: (inv) => inv.customerName,
+      cell: (inv) => <span className="font-medium">{inv.customerName}</span>,
+    },
+    {
+      key: 'invoiceDate',
+      header: '인보이스일',
+      sortable: true,
+      sortValue: (inv) => inv.invoiceDate,
+      cell: (inv) => <span className="text-sm">{inv.invoiceDate}</span>,
+    },
+    {
+      key: 'dueDate',
+      header: '만기일',
+      sortable: true,
+      sortValue: (inv) => inv.dueDate,
+      cell: (inv) => <span className="text-sm">{inv.dueDate}</span>,
+    },
+    {
+      key: 'totalAmount',
+      header: '총금액',
+      align: 'right',
+      sortable: true,
+      sortValue: (inv) => inv.totalAmount,
+      cell: (inv) => (
+        <span className="font-mono text-sm">{fmt(inv.totalAmount, inv.currency)}</span>
+      ),
+    },
+    {
+      key: 'outstandingAmount',
+      header: '미수금액',
+      align: 'right',
+      sortable: true,
+      sortValue: (inv) => inv.outstandingAmount,
+      cell: (inv) => (
+        <span className="font-mono text-sm">{fmt(inv.outstandingAmount, inv.currency)}</span>
+      ),
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (inv) => STATUS_LABEL[inv.status],
+      cell: (inv) => (
+        <span className="inline-flex items-center gap-1">
+          <Badge variant={STATUS_VARIANT[inv.status]}>{STATUS_LABEL[inv.status]}</Badge>
+          {inv.journalEntryId && (
+            <span
+              title={`연결 분개 #${inv.journalEntryId}`}
+              className="inline-flex items-center text-muted-foreground"
+            >
+              <BookOpenIcon className="size-3.5" />
+            </span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-28',
+      cell: (inv) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && inv.status === 'DRAFT' && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                title="결재상신"
+                onClick={() => handleSubmit(inv)}
+                disabled={isPending}
+              >
+                <SendIcon className="text-primary" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                title="취소"
+                onClick={() => setDialog({ type: 'cancel', inv })}
+                disabled={isPending}
+              >
+                <BanIcon className="text-destructive" />
+              </Button>
+            </>
+          )}
+          {inv.status === 'PENDING_APPROVAL' && (
+            <>
+              {canApprove && (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  title="승인"
+                  onClick={() => handleApprove(inv)}
+                  disabled={isPending}
+                >
+                  <CheckIcon className="text-success" />
+                </Button>
+              )}
+              {canWrite && (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  title="취소"
+                  onClick={() => setDialog({ type: 'cancel', inv })}
+                  disabled={isPending}
+                >
+                  <BanIcon className="text-destructive" />
+                </Button>
+              )}
+            </>
+          )}
+          {canPay && inv.status === 'APPROVED' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              title="수금처리"
+              onClick={() => {
+                setCollectAmount(String(inv.outstandingAmount))
+                setCollectCashAccountId('')
+                setCollectDate(new Date().toISOString().slice(0, 10))
+                setDialog({ type: 'collect', inv })
+              }}
+              disabled={isPending}
+            >
+              수금
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">매출 인보이스</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            고객 인보이스 및 수금 현황을 관리합니다
-          </p>
-        </div>
+      <PageHeader
+        title="매출 인보이스"
+        description="고객 인보이스 및 수금 현황을 관리합니다"
+        className="mb-6"
+      >
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 인보이스
           </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>인보이스번호</TableHead>
-              <TableHead>고객</TableHead>
-              <TableHead>인보이스일</TableHead>
-              <TableHead>만기일</TableHead>
-              <TableHead className="text-right">총금액</TableHead>
-              <TableHead className="text-right">미수금액</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-28" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                  등록된 인보이스가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((inv) => (
-              <TableRow key={inv.id}>
-                <TableCell className="font-mono text-sm">{inv.invoiceNo}</TableCell>
-                <TableCell className="font-medium">{inv.customerName}</TableCell>
-                <TableCell className="text-sm">{inv.invoiceDate}</TableCell>
-                <TableCell className="text-sm">{inv.dueDate}</TableCell>
-                <TableCell className="text-right font-mono text-sm">
-                  {fmt(inv.totalAmount, inv.currency)}
-                </TableCell>
-                <TableCell className="text-right font-mono text-sm">
-                  {fmt(inv.outstandingAmount, inv.currency)}
-                </TableCell>
-                <TableCell>
-                  <span className="inline-flex items-center gap-1">
-                    <Badge variant={STATUS_VARIANT[inv.status]}>{STATUS_LABEL[inv.status]}</Badge>
-                    {inv.journalEntryId && (
-                      <span
-                        title={`연결 분개 #${inv.journalEntryId}`}
-                        className="inline-flex items-center text-muted-foreground"
-                      >
-                        <BookOpenIcon className="size-3.5" />
-                      </span>
-                    )}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && inv.status === 'DRAFT' && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="결재상신"
-                          onClick={() => handleSubmit(inv)}
-                          disabled={isPending}
-                        >
-                          <SendIcon className="text-primary" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="취소"
-                          onClick={() => setDialog({ type: 'cancel', inv })}
-                          disabled={isPending}
-                        >
-                          <BanIcon className="text-destructive" />
-                        </Button>
-                      </>
-                    )}
-                    {inv.status === 'PENDING_APPROVAL' && (
-                      <>
-                        {canApprove && (
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            title="승인"
-                            onClick={() => handleApprove(inv)}
-                            disabled={isPending}
-                          >
-                            <CheckIcon className="text-success" />
-                          </Button>
-                        )}
-                        {canWrite && (
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            title="취소"
-                            onClick={() => setDialog({ type: 'cancel', inv })}
-                            disabled={isPending}
-                          >
-                            <BanIcon className="text-destructive" />
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    {canPay && inv.status === 'APPROVED' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        title="수금처리"
-                        onClick={() => {
-                          setCollectAmount(String(inv.outstandingAmount))
-                          setCollectCashAccountId('')
-                          setCollectDate(new Date().toISOString().slice(0, 10))
-                          setDialog({ type: 'collect', inv })
-                        }}
-                        disabled={isPending}
-                      >
-                        수금
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(inv) => inv.id}
+          empty={
+            <EmptyState
+              title="등록된 인보이스가 없습니다"
+              description={canWrite ? '우측 상단에서 새 인보이스를 등록하세요.' : undefined}
+            />
+          }
+        />
         <PaginationBar
           page={data.page}
           totalPages={data.totalPages}

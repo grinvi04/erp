@@ -32,6 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { formatMoneyOne } from '@/lib/money'
 import {
@@ -235,15 +238,114 @@ export default function JournalEntriesClient({
     })
   }
 
+  const columns: Column<JournalEntry>[] = [
+    {
+      key: 'entryNo',
+      header: '전표번호',
+      sortable: true,
+      sortValue: (e) => e.entryNo,
+      cell: (e) => <span className="font-mono text-sm">{e.entryNo}</span>,
+    },
+    {
+      key: 'entryDate',
+      header: '전표일',
+      sortable: true,
+      sortValue: (e) => e.entryDate,
+      cell: (e) => <span className="text-sm">{e.entryDate}</span>,
+    },
+    {
+      key: 'entryType',
+      header: '유형',
+      sortable: true,
+      sortValue: (e) => ENTRY_TYPE_LABEL[e.entryType],
+      cell: (e) => <span className="text-sm">{ENTRY_TYPE_LABEL[e.entryType]}</span>,
+    },
+    {
+      key: 'description',
+      header: '설명',
+      cellClassName: 'max-w-xs truncate',
+      cell: (e) => <span className="text-sm">{e.description}</span>,
+    },
+    {
+      key: 'totalDebit',
+      header: '차변 합계',
+      align: 'right',
+      sortable: true,
+      sortValue: (e) => e.totalDebit,
+      cell: (e) => (
+        <span className="font-mono text-sm">{formatMoneyOne(e.totalDebit, e.currency)}</span>
+      ),
+    },
+    {
+      key: 'totalCredit',
+      header: '대변 합계',
+      align: 'right',
+      sortable: true,
+      sortValue: (e) => e.totalCredit,
+      cell: (e) => (
+        <span className="font-mono text-sm">{formatMoneyOne(e.totalCredit, e.currency)}</span>
+      ),
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (e) => STATUS_LABEL[e.status],
+      cell: (e) => <Badge variant={STATUS_VARIANT[e.status]}>{STATUS_LABEL[e.status]}</Badge>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (entry) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && entry.status === 'DRAFT' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleSubmit(entry)}
+              disabled={isPending}
+              title="결재상신"
+            >
+              결재상신
+            </Button>
+          )}
+          {canApprove && entry.status === 'PENDING_APPROVAL' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleApprove(entry)}
+              disabled={isPending}
+              title="승인"
+            >
+              승인
+            </Button>
+          )}
+          {canWrite && entry.status === 'PENDING_APPROVAL' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleWithdraw(entry)}
+              disabled={isPending}
+              title="철회"
+              className="text-destructive"
+            >
+              철회
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">분개장</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            회계 기간을 선택하여 분개 내역을 조회합니다
-          </p>
-        </div>
+      <PageHeader
+        title="분개장"
+        description="회계 기간을 선택하여 분개 내역을 조회합니다"
+        className="mb-6"
+      >
         {canWrite && selectedPeriodId != null && (
           <Button
             onClick={openCreate}
@@ -253,7 +355,7 @@ export default function JournalEntriesClient({
             <PlusIcon />새 분개
           </Button>
         )}
-      </div>
+      </PageHeader>
 
       {/* Fiscal Period Selector */}
       <div className="mb-6 flex gap-4">
@@ -304,85 +406,13 @@ export default function JournalEntriesClient({
           회계 기간을 선택해주세요
         </div>
       ) : (
-        <div className="bg-card rounded-lg border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>전표번호</TableHead>
-                <TableHead>전표일</TableHead>
-                <TableHead>유형</TableHead>
-                <TableHead>설명</TableHead>
-                <TableHead className="text-right">차변 합계</TableHead>
-                <TableHead className="text-right">대변 합계</TableHead>
-                <TableHead>상태</TableHead>
-                <TableHead className="w-20" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(!entries || entries.content.length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                    등록된 분개가 없습니다
-                  </TableCell>
-                </TableRow>
-              )}
-              {entries?.content.map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell className="font-mono text-sm">{entry.entryNo}</TableCell>
-                  <TableCell className="text-sm">{entry.entryDate}</TableCell>
-                  <TableCell className="text-sm">{ENTRY_TYPE_LABEL[entry.entryType]}</TableCell>
-                  <TableCell className="text-sm max-w-xs truncate">{entry.description}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatMoneyOne(entry.totalDebit, entry.currency)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatMoneyOne(entry.totalCredit, entry.currency)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[entry.status]}>
-                      {STATUS_LABEL[entry.status]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {canWrite && entry.status === 'DRAFT' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSubmit(entry)}
-                        disabled={isPending}
-                        title="결재상신"
-                      >
-                        결재상신
-                      </Button>
-                    )}
-                    {canApprove && entry.status === 'PENDING_APPROVAL' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleApprove(entry)}
-                        disabled={isPending}
-                        title="승인"
-                      >
-                        승인
-                      </Button>
-                    )}
-                    {canWrite && entry.status === 'PENDING_APPROVAL' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleWithdraw(entry)}
-                        disabled={isPending}
-                        title="철회"
-                        className="text-destructive"
-                      >
-                        철회
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="space-y-3">
+          <DataTable
+            data={entries?.content ?? []}
+            columns={columns}
+            getRowId={(e) => e.id}
+            empty={<EmptyState title="등록된 분개가 없습니다" />}
+          />
           {entries && (
             <PaginationBar
               page={entries.page}

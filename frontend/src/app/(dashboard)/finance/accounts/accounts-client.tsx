@@ -15,14 +15,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -135,95 +130,113 @@ export default function AccountsClient({ accounts }: Props) {
     })
   }
 
+  const columns: Column<Account>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (acc) => acc.code,
+      cell: (acc) => <span className="font-mono text-sm">{acc.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '계정과목명',
+      sortable: true,
+      sortValue: (acc) => acc.name,
+      cell: (acc) => <span className="font-medium">{acc.name}</span>,
+    },
+    {
+      key: 'type',
+      header: '유형',
+      sortable: true,
+      sortValue: (acc) => TYPE_LABEL[acc.accountType],
+      cell: (acc) => <Badge variant="secondary">{TYPE_LABEL[acc.accountType]}</Badge>,
+    },
+    {
+      key: 'normalBalance',
+      header: '정산방향',
+      cell: (acc) => (
+        <span className="text-sm text-muted-foreground">{NORMAL_LABEL[acc.normalBalance]}</span>
+      ),
+    },
+    {
+      key: 'parent',
+      header: '상위',
+      cell: (acc) => {
+        const parent = acc.parentId != null ? accountById.get(acc.parentId) : undefined
+        return (
+          <span className="text-sm text-muted-foreground font-mono">
+            {parent ? `${parent.code} ${parent.name}` : '—'}
+          </span>
+        )
+      },
+    },
+    {
+      key: 'isSummary',
+      header: '집계',
+      cell: (acc) => (
+        <span className="text-sm text-muted-foreground">{acc.isSummary ? 'Y' : 'N'}</span>
+      ),
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (acc) => (acc.isActive ? 0 : 1),
+      cell: (acc) => (
+        <Badge variant={acc.isActive ? 'default' : 'secondary'}>
+          {acc.isActive ? '활성' : '비활성'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-24',
+      cell: (acc) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(acc)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && acc.isActive && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="비활성화"
+              onClick={() => setDialog({ type: 'deactivate', acc })}
+            >
+              <BanIcon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">계정과목</h1>
-          <p className="text-sm text-muted-foreground mt-1">회계 계정과목 체계를 관리합니다</p>
-        </div>
+      <PageHeader title="계정과목" description="회계 계정과목 체계를 관리합니다" className="mb-6">
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 계정과목
           </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>계정과목명</TableHead>
-              <TableHead>유형</TableHead>
-              <TableHead>정산방향</TableHead>
-              <TableHead>상위</TableHead>
-              <TableHead>집계</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-24" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {accounts.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                  등록된 계정과목이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {accounts.map((acc) => {
-              const parent = acc.parentId != null ? accountById.get(acc.parentId) : undefined
-              return (
-                <TableRow key={acc.id}>
-                  <TableCell className="font-mono text-sm">{acc.code}</TableCell>
-                  <TableCell className="font-medium">{acc.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{TYPE_LABEL[acc.accountType]}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {NORMAL_LABEL[acc.normalBalance]}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground font-mono">
-                    {parent ? `${parent.code} ${parent.name}` : '—'}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {acc.isSummary ? 'Y' : 'N'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={acc.isActive ? 'default' : 'secondary'}>
-                      {acc.isActive ? '활성' : '비활성'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      {canWrite && (
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="수정"
-                          onClick={() => openEdit(acc)}
-                        >
-                          <PencilIcon />
-                        </Button>
-                      )}
-                      {canWrite && acc.isActive && (
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="비활성화"
-                          onClick={() => setDialog({ type: 'deactivate', acc })}
-                        >
-                          <BanIcon className="text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={accounts}
+        columns={columns}
+        getRowId={(acc) => acc.id}
+        empty={
+          <EmptyState
+            title="등록된 계정과목이 없습니다"
+            description={canWrite ? '우측 상단에서 새 계정과목을 등록하세요.' : undefined}
+          />
+        }
+      />
 
       {/* Create Dialog */}
       <Dialog
