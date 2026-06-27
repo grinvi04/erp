@@ -11,9 +11,9 @@ import { Badge } from '@/components/ui/badge'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -109,6 +109,43 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
     })
   }
 
+  const handleBulkDeactivate = (vendors: Vendor[], clear: () => void) => {
+    const active = vendors.filter((v) => v.isActive)
+    if (active.length === 0) { toast.info('비활성화할 활성 업체가 없습니다'); return }
+    startTransition(async () => {
+      try {
+        await Promise.all(active.map((v) => deactivateVendor(v.id)))
+        toast.success(`${active.length}개 공급업체를 비활성화했습니다`)
+        clear()
+      } catch (e) { toast.error(e instanceof Error ? e.message : '비활성화 중 오류가 발생했습니다') }
+    })
+  }
+
+  const columns: Column<Vendor>[] = [
+    { key: 'code', header: '코드', sortable: true, sortValue: (v) => v.code, cell: (v) => <span className="font-mono text-sm">{v.code}</span> },
+    { key: 'name', header: '업체명', sortable: true, sortValue: (v) => v.name, cell: (v) => <span className="font-medium">{v.name}</span> },
+    { key: 'businessNo', header: '사업자번호', cell: (v) => <span className="text-sm text-muted-foreground">{v.businessNo ?? '—'}</span> },
+    { key: 'email', header: '이메일', cell: (v) => <span className="text-sm text-muted-foreground">{v.contactEmail ?? '—'}</span> },
+    { key: 'phone', header: '전화', cell: (v) => <span className="text-sm text-muted-foreground">{v.contactPhone ?? '—'}</span> },
+    { key: 'paymentTerms', header: '결제기한(일)', align: 'right', sortable: true, sortValue: (v) => v.paymentTerms, cell: (v) => <span className="text-sm text-muted-foreground">{v.paymentTerms}</span> },
+    { key: 'status', header: '상태', sortable: true, sortValue: (v) => (v.isActive ? 0 : 1), cell: (v) => <Badge variant={v.isActive ? 'default' : 'secondary'}>{v.isActive ? '활성' : '비활성'}</Badge> },
+    {
+      key: 'actions', header: '', align: 'right', headerClassName: 'w-20',
+      cell: (v) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(v)}><PencilIcon /></Button>
+          )}
+          {canWrite && v.isActive && (
+            <Button variant="ghost" size="icon-xs" title="비활성화" onClick={() => setDialog({ type: 'deactivate', vendor: v })}>
+              <BanIcon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   const vendorForm = (
     <div className="grid gap-4 py-2">
       <div className="grid grid-cols-2 gap-4">
@@ -166,73 +203,24 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">공급업체</h1>
-          <p className="text-sm text-muted-foreground mt-1">매입 거래처 정보를 관리합니다</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <SearchInput placeholder="이름·코드 검색" className="w-64" />
-          {canWrite && <Button onClick={openCreate}><PlusIcon />새 공급업체</Button>}
-        </div>
-      </div>
+      <PageHeader title="공급업체" description="매입 거래처 정보를 관리합니다" className="mb-6">
+        <SearchInput placeholder="이름·코드 검색" className="w-64" />
+        {canWrite && <Button onClick={openCreate}><PlusIcon />새 공급업체</Button>}
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>업체명</TableHead>
-              <TableHead>사업자번호</TableHead>
-              <TableHead>이메일</TableHead>
-              <TableHead>전화</TableHead>
-              <TableHead className="text-right">결제기한(일)</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                  등록된 공급업체가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((v) => (
-              <TableRow key={v.id}>
-                <TableCell className="font-mono text-sm">{v.code}</TableCell>
-                <TableCell className="font-medium">{v.name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{v.businessNo ?? '—'}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{v.contactEmail ?? '—'}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{v.contactPhone ?? '—'}</TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">{v.paymentTerms}</TableCell>
-                <TableCell>
-                  <Badge variant={v.isActive ? 'default' : 'secondary'}>
-                    {v.isActive ? '활성' : '비활성'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(v)}>
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && v.isActive && (
-                      <Button
-                        variant="ghost" size="icon-xs" title="비활성화"
-                        onClick={() => setDialog({ type: 'deactivate', vendor: v })}
-                      >
-                        <BanIcon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(v) => v.id}
+          selectable={canWrite}
+          renderBulkActions={canWrite ? (selected, clear) => (
+            <Button size="sm" variant="outline" onClick={() => handleBulkDeactivate(selected, clear)} disabled={isPending}>
+              선택 비활성화
+            </Button>
+          ) : undefined}
+          empty={<EmptyState title="등록된 공급업체가 없습니다" description={canWrite ? '우측 상단에서 새 공급업체를 등록하세요.' : undefined} />}
+        />
         <PaginationBar
           page={data.page} totalPages={data.totalPages}
           totalElements={data.totalElements} size={data.size}
