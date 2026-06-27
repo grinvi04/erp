@@ -75,7 +75,7 @@ public class ApprovalStep {
         this.processedAt = LocalDateTime.now();
     }
 
-    void cancel(String comment) {
+    void cancel(String approverId, String comment) {
         this.status = ApprovalStatus.CANCELLED;
         this.comment = comment;
         this.processedAt = LocalDateTime.now();

@@ -54,11 +54,6 @@ public class CurrencyConverter implements CurrencyConversionPort {
      * amount가 null이면(예: 금액 미정 Opportunity) 환산 대상이 아니므로 빈 Optional.
      */
     @Override
-    public String baseCurrencyCode() {
-        return baseCurrencyService.currentBaseCurrencyCode();
-    }
-
-    @Override
     public Optional<Conversion> tryConvert(BigDecimal amount, String currency, LocalDate date) {
         if (amount == null) {
             return Optional.empty();
@@ -74,5 +69,11 @@ public class CurrencyConverter implements CurrencyConversionPort {
             .map(rate -> new Conversion(
                 amount.multiply(rate.getRate()).setScale(BASE_AMOUNT_SCALE, RoundingMode.HALF_UP),
                 rate.getRate()));
+    }
+
+    /** 테넌트 기준통화 코드 — 타 모듈이 환산 기준 통화를 조회한다. */
+    @Override
+    public String baseCurrencyCode() {
+        return baseCurrencyService.currentBaseCurrencyCode();
     }
 }

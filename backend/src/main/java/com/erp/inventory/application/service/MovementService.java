@@ -81,10 +81,7 @@ public class MovementService {
     public MovementResponse findById(Long id) {
         permissionChecker.require(Permission.INVENTORY_READ);
         Movement movement = getOrThrow(id);
-        List<MovementLineResponse> lines = movementLineRepository
-                .findByMovement_IdOrderByLineNoAsc(id).stream()
-                .map(MovementLineResponse::from).toList();
-        return MovementResponse.from(movement, lines);
+        return toResponse(id, movement);
     }
 
     @Transactional
@@ -143,10 +140,7 @@ public class MovementService {
                 .addKeyValue("movementId", movement.getId())
                 .addKeyValue("movementNo", movement.getMovementNo())
                 .log("재고 조정 이동 결재 상신");
-        List<MovementLineResponse> lines = movementLineRepository
-                .findByMovement_IdOrderByLineNoAsc(id).stream()
-                .map(MovementLineResponse::from).toList();
-        return MovementResponse.from(movement, lines);
+        return toResponse(id, movement);
     }
 
     /**
@@ -209,10 +203,7 @@ public class MovementService {
         permissionChecker.require(Permission.INVENTORY_WRITE);
         Movement movement = getOrThrow(id);
         movement.cancel();
-        List<MovementLineResponse> lines = movementLineRepository
-                .findByMovement_IdOrderByLineNoAsc(id).stream()
-                .map(MovementLineResponse::from).toList();
-        return MovementResponse.from(movement, lines);
+        return toResponse(id, movement);
     }
 
     private List<MovementLine> buildLines(Movement movement, MovementCreateRequest req) {
