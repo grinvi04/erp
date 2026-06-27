@@ -15,14 +15,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -156,6 +151,82 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
     })
   }
 
+  const columns: Column<Customer>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (c) => c.code,
+      cell: (c) => <span className="font-mono text-sm">{c.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '업체명',
+      sortable: true,
+      sortValue: (c) => c.name,
+      cell: (c) => <span className="font-medium">{c.name}</span>,
+    },
+    {
+      key: 'businessNo',
+      header: '사업자번호',
+      cell: (c) => <span className="text-sm text-muted-foreground">{c.businessNo ?? '—'}</span>,
+    },
+    {
+      key: 'email',
+      header: '이메일',
+      cell: (c) => <span className="text-sm text-muted-foreground">{c.contactEmail ?? '—'}</span>,
+    },
+    {
+      key: 'phone',
+      header: '전화',
+      cell: (c) => <span className="text-sm text-muted-foreground">{c.contactPhone ?? '—'}</span>,
+    },
+    {
+      key: 'paymentTerms',
+      header: '결제기한(일)',
+      align: 'right',
+      sortable: true,
+      sortValue: (c) => c.paymentTerms,
+      cell: (c) => <span className="text-sm text-muted-foreground">{c.paymentTerms}</span>,
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (c) => (c.isActive ? 0 : 1),
+      cell: (c) => (
+        <Badge variant={c.isActive ? 'default' : 'secondary'}>
+          {c.isActive ? '활성' : '비활성'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (c) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(c)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && c.isActive && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="비활성화"
+              onClick={() => setDialog({ type: 'deactivate', customer: c })}
+            >
+              <BanIcon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   const customerForm = (
     <div className="grid gap-4 py-2">
       <div className="grid grid-cols-2 gap-4">
@@ -239,92 +310,27 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">고객</h1>
-          <p className="text-sm text-muted-foreground mt-1">매출 거래처 정보를 관리합니다</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <SearchInput placeholder="이름·코드 검색" className="w-64" />
-          {canWrite && (
-            <Button onClick={openCreate}>
-              <PlusIcon />새 고객
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader title="고객" description="매출 거래처 정보를 관리합니다" className="mb-6">
+        <SearchInput placeholder="이름·코드 검색" className="w-64" />
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 고객
+          </Button>
+        )}
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>업체명</TableHead>
-              <TableHead>사업자번호</TableHead>
-              <TableHead>이메일</TableHead>
-              <TableHead>전화</TableHead>
-              <TableHead className="text-right">결제기한(일)</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                  등록된 고객이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell className="font-mono text-sm">{c.code}</TableCell>
-                <TableCell className="font-medium">{c.name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {c.businessNo ?? '—'}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {c.contactEmail ?? '—'}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {c.contactPhone ?? '—'}
-                </TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">
-                  {c.paymentTerms}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={c.isActive ? 'default' : 'secondary'}>
-                    {c.isActive ? '활성' : '비활성'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="수정"
-                        onClick={() => openEdit(c)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && c.isActive && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="비활성화"
-                        onClick={() => setDialog({ type: 'deactivate', customer: c })}
-                      >
-                        <BanIcon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(c) => c.id}
+          empty={
+            <EmptyState
+              title="등록된 고객이 없습니다"
+              description={canWrite ? '우측 상단에서 새 고객을 등록하세요.' : undefined}
+            />
+          }
+        />
         <PaginationBar
           page={data.page}
           totalPages={data.totalPages}
