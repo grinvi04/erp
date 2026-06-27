@@ -3,10 +3,19 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { fetchLeaveBalances } from './actions'
 import type { LeaveBalance, Employee } from '@/types/hr'
@@ -64,7 +73,9 @@ export default function LeaveBalancesClient({ employees }: Props) {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-foreground">휴가 잔여</h1>
-        <p className="text-sm text-muted-foreground mt-1">직원별 연도 휴가 부여·사용·잔여 현황을 조회합니다</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          직원별 연도 휴가 부여·사용·잔여 현황을 조회합니다
+        </p>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-4">
@@ -86,10 +97,14 @@ export default function LeaveBalancesClient({ employees }: Props) {
         <div className="w-40">
           <Label className="mb-1.5 block">연도</Label>
           <Select value={year} onValueChange={onSelectYear}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {YEARS.map((y) => (
-                <SelectItem key={y} value={String(y)}>{y}년</SelectItem>
+                <SelectItem key={y} value={String(y)}>
+                  {y}년
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -129,15 +144,25 @@ export default function LeaveBalancesClient({ employees }: Props) {
                 </TableCell>
               </TableRow>
             )}
-            {empId && !loading && balances.map((b) => (
-              <TableRow key={b.id}>
-                <TableCell className="font-medium">{b.leavePolicyName}</TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">{b.entitledDays}</TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">{b.carryOverDays}</TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">{b.usedDays}</TableCell>
-                <TableCell className="text-right text-sm font-medium">{b.remainingDays}</TableCell>
-              </TableRow>
-            ))}
+            {empId &&
+              !loading &&
+              balances.map((b) => (
+                <TableRow key={b.id}>
+                  <TableCell className="font-medium">{b.leavePolicyName}</TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">
+                    {b.entitledDays}
+                  </TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">
+                    {b.carryOverDays}
+                  </TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">
+                    {b.usedDays}
+                  </TableCell>
+                  <TableCell className="text-right text-sm font-medium">
+                    {b.remainingDays}
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>

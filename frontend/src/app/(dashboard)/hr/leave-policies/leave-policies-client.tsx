@@ -7,13 +7,26 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { createLeavePolicy, deleteLeavePolicy } from './actions'
 import type { LeavePolicy, LeaveType } from '@/types/hr'
@@ -28,10 +41,7 @@ const LEAVE_TYPE_LABEL: Record<LeaveType, string> = {
 }
 const LEAVE_TYPES = Object.keys(LEAVE_TYPE_LABEL) as LeaveType[]
 
-type DialogMode =
-  | { type: 'none' }
-  | { type: 'create' }
-  | { type: 'delete'; policy: LeavePolicy }
+type DialogMode = { type: 'none' } | { type: 'create' } | { type: 'delete'; policy: LeavePolicy }
 
 interface Props {
   policies: LeavePolicy[]
@@ -51,8 +61,13 @@ export default function LeavePoliciesClient({ policies }: Props) {
   const [minNoticeDays, setMinNoticeDays] = useState('0')
 
   const openCreate = () => {
-    setCode(''); setName(''); setLeaveType(''); setAnnualDays('0')
-    setCarryOverDays('0'); setRequiresApproval('true'); setMinNoticeDays('0')
+    setCode('')
+    setName('')
+    setLeaveType('')
+    setAnnualDays('0')
+    setCarryOverDays('0')
+    setRequiresApproval('true')
+    setMinNoticeDays('0')
     setDialog({ type: 'create' })
   }
 
@@ -97,11 +112,12 @@ export default function LeavePoliciesClient({ policies }: Props) {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">휴가 정책</h1>
-          <p className="text-sm text-muted-foreground mt-1">휴가 종류별 부여 일수·승인 규칙을 관리합니다</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            휴가 종류별 부여 일수·승인 규칙을 관리합니다
+          </p>
         </div>
         <Button onClick={openCreate}>
-          <PlusIcon />
-          새 정책
+          <PlusIcon />새 정책
         </Button>
       </div>
 
@@ -134,9 +150,15 @@ export default function LeavePoliciesClient({ policies }: Props) {
                 <TableCell className="text-sm">
                   {LEAVE_TYPE_LABEL[p.leaveType] ?? p.leaveType}
                 </TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">{p.annualDays}</TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">{p.carryOverDays}</TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">{p.minNoticeDays}</TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">
+                  {p.annualDays}
+                </TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">
+                  {p.carryOverDays}
+                </TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">
+                  {p.minNoticeDays}
+                </TableCell>
                 <TableCell>
                   <Badge variant={p.requiresApproval ? 'default' : 'secondary'}>
                     {p.requiresApproval ? '필요' : '불필요'}
@@ -161,7 +183,12 @@ export default function LeavePoliciesClient({ policies }: Props) {
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>새 휴가 정책</DialogTitle>
@@ -192,10 +219,14 @@ export default function LeavePoliciesClient({ policies }: Props) {
             <div className="grid gap-1.5">
               <Label>휴가 종류 *</Label>
               <Select value={leaveType} onValueChange={(v) => setLeaveType(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {LEAVE_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{LEAVE_TYPE_LABEL[t]}</SelectItem>
+                    <SelectItem key={t} value={t}>
+                      {LEAVE_TYPE_LABEL[t]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -234,8 +265,13 @@ export default function LeavePoliciesClient({ policies }: Props) {
             </div>
             <div className="grid gap-1.5">
               <Label>승인 필요 여부</Label>
-              <Select value={requiresApproval} onValueChange={(v) => setRequiresApproval(v ?? 'true')}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <Select
+                value={requiresApproval}
+                onValueChange={(v) => setRequiresApproval(v ?? 'true')}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="true">승인 필요</SelectItem>
                   <SelectItem value="false">승인 불필요</SelectItem>
@@ -244,13 +280,20 @@ export default function LeavePoliciesClient({ policies }: Props) {
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirm Dialog */}
-      <Dialog open={dialog.type === 'delete'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'delete'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>휴가 정책 삭제</DialogTitle>

@@ -66,7 +66,20 @@ const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   RETURN: '반품',
 }
 
-const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+const MONTH_LABELS = [
+  '1월',
+  '2월',
+  '3월',
+  '4월',
+  '5월',
+  '6월',
+  '7월',
+  '8월',
+  '9월',
+  '10월',
+  '11월',
+  '12월',
+]
 
 export default async function AnalyticsPage() {
   const currentYear = new Date().getFullYear()
@@ -89,17 +102,23 @@ export default async function AnalyticsPage() {
   ] = await Promise.all([
     safeGet<PipelineAnalyticsResponse>('/api/crm/analytics/pipeline'),
     safeGetArray<LeadStatusCountResponse>('/api/crm/analytics/leads-by-status'),
-    safeGet<MonthlyInvoiceAnalyticsResponse>(`/api/finance/analytics/monthly-invoices?year=${currentYear}`),
+    safeGet<MonthlyInvoiceAnalyticsResponse>(
+      `/api/finance/analytics/monthly-invoices?year=${currentYear}`,
+    ),
     safeGetArray<EmployeeStatusCountResponse>('/api/hr/analytics/status-distribution'),
     safeGetArray<DepartmentHeadcountResponse>('/api/hr/analytics/by-department'),
     safeGetArray<PositionHeadcountResponse>('/api/hr/analytics/by-position'),
     safeGetArray<EmploymentTypeCountResponse>('/api/hr/analytics/by-employment-type'),
-    safeGetArray<MonthlyHiresTerminationsResponse>(`/api/hr/analytics/hires-terminations?year=${currentYear}`),
+    safeGetArray<MonthlyHiresTerminationsResponse>(
+      `/api/hr/analytics/hires-terminations?year=${currentYear}`,
+    ),
     safeGetArray<LeaveTypeStatResponse>('/api/hr/analytics/leaves-by-type'),
     safeGetArray<CategoryItemCountResponse>('/api/inventory/analytics/by-category'),
     safeGetArray<WarehouseStockResponse>('/api/inventory/analytics/by-warehouse'),
     safeGetArray<MovementTypeCountResponse>('/api/inventory/analytics/movements-by-type'),
-    safeGetArray<MonthlyMovementByTypeResponse>(`/api/inventory/analytics/monthly-movements?year=${currentYear}`),
+    safeGetArray<MonthlyMovementByTypeResponse>(
+      `/api/inventory/analytics/monthly-movements?year=${currentYear}`,
+    ),
     safeGetArray<LowStockItemResponse>('/api/inventory/analytics/low-stock'),
   ])
 
@@ -136,7 +155,10 @@ export default async function AnalyticsPage() {
               <EmptyState title="데이터가 없습니다" className="py-10" />
             ) : (
               <DonutChart
-                data={leads.map((r) => ({ label: LEAD_STATUS_LABELS[r.status] ?? r.status, value: r.count }))}
+                data={leads.map((r) => ({
+                  label: LEAD_STATUS_LABELS[r.status] ?? r.status,
+                  value: r.count,
+                }))}
                 valueFormat={{ kind: 'suffix', suffix: '건' }}
                 centerLabel="리드"
               />
@@ -155,9 +177,16 @@ export default async function AnalyticsPage() {
             </ChartCard>
           ) : (
             monthly.map((series) => (
-              <ChartCard key={series.currency} title={`월별 매입 인보이스 · ${series.currency}`} description={`${currentYear}년`}>
+              <ChartCard
+                key={series.currency}
+                title={`월별 매입 인보이스 · ${series.currency}`}
+                description={`${currentYear}년`}
+              >
                 <MonthlyBarChart
-                  data={series.months.map((r, i) => ({ month: MONTH_LABELS[i], amount: r.totalAmount }))}
+                  data={series.months.map((r, i) => ({
+                    month: MONTH_LABELS[i],
+                    amount: r.totalAmount,
+                  }))}
                   series={[{ key: 'amount', label: '매입액', color: 'var(--chart-5)' }]}
                   valueFormat={{ kind: 'money', currency: series.currency }}
                 />
@@ -165,10 +194,22 @@ export default async function AnalyticsPage() {
             ))
           )}
           {monthlyBaseTotals.length > 0 && (
-            <ChartCard title="월별 매입 · 기준통화 합계" description={`${currentYear}년 · ${monthlyBaseCurrency} 환산`}>
+            <ChartCard
+              title="월별 매입 · 기준통화 합계"
+              description={`${currentYear}년 · ${monthlyBaseCurrency} 환산`}
+            >
               <MonthlyBarChart
-                data={monthlyBaseTotals.map((r, i) => ({ month: MONTH_LABELS[i], amount: r.totalAmount }))}
-                series={[{ key: 'amount', label: `기준통화(${monthlyBaseCurrency})`, color: 'var(--chart-1)' }]}
+                data={monthlyBaseTotals.map((r, i) => ({
+                  month: MONTH_LABELS[i],
+                  amount: r.totalAmount,
+                }))}
+                series={[
+                  {
+                    key: 'amount',
+                    label: `기준통화(${monthlyBaseCurrency})`,
+                    color: 'var(--chart-1)',
+                  },
+                ]}
                 valueFormat={{ kind: 'money', currency: monthlyBaseCurrency }}
               />
             </ChartCard>
@@ -185,7 +226,10 @@ export default async function AnalyticsPage() {
               <EmptyState title="데이터가 없습니다" className="py-10" />
             ) : (
               <DonutChart
-                data={hrStatus.map((r) => ({ label: EMPLOYEE_STATUS_LABELS[r.status] ?? r.status, value: r.count }))}
+                data={hrStatus.map((r) => ({
+                  label: EMPLOYEE_STATUS_LABELS[r.status] ?? r.status,
+                  value: r.count,
+                }))}
                 valueFormat={{ kind: 'suffix', suffix: '명' }}
                 centerLabel="직원"
               />
@@ -209,7 +253,11 @@ export default async function AnalyticsPage() {
               <EmptyState title="데이터가 없습니다" className="py-10" />
             ) : (
               <CategoryBarChart
-                data={hrByDept.map((r) => ({ label: r.departmentName, value: r.count, display: `${r.count}명` }))}
+                data={hrByDept.map((r) => ({
+                  label: r.departmentName,
+                  value: r.count,
+                  display: `${r.count}명`,
+                }))}
                 color="var(--chart-1)"
               />
             )}
@@ -219,17 +267,29 @@ export default async function AnalyticsPage() {
               <EmptyState title="데이터가 없습니다" className="py-10" />
             ) : (
               <CategoryBarChart
-                data={hrByPosition.map((r) => ({ label: r.positionName, value: r.count, display: `${r.count}명` }))}
+                data={hrByPosition.map((r) => ({
+                  label: r.positionName,
+                  value: r.count,
+                  display: `${r.count}명`,
+                }))}
                 color="var(--chart-2)"
               />
             )}
           </ChartCard>
-          <ChartCard title="월별 입사/퇴사" description={`${currentYear}년 인력 변동`} className="lg:col-span-2">
+          <ChartCard
+            title="월별 입사/퇴사"
+            description={`${currentYear}년 인력 변동`}
+            className="lg:col-span-2"
+          >
             {hrHiresTerms.length === 0 ? (
               <EmptyState title="데이터가 없습니다" className="py-10" />
             ) : (
               <MonthlyBarChart
-                data={hrHiresTerms.map((r, i) => ({ month: MONTH_LABELS[i], hires: r.hires, terminations: r.terminations }))}
+                data={hrHiresTerms.map((r, i) => ({
+                  month: MONTH_LABELS[i],
+                  hires: r.hires,
+                  terminations: r.terminations,
+                }))}
                 series={[
                   { key: 'hires', label: '입사', color: 'var(--chart-2)' },
                   { key: 'terminations', label: '퇴사', color: 'var(--chart-4)' },
@@ -264,7 +324,11 @@ export default async function AnalyticsPage() {
               <EmptyState title="데이터가 없습니다" className="py-10" />
             ) : (
               <CategoryBarChart
-                data={invByCategory.map((r) => ({ label: r.categoryName, value: r.count, display: `${r.count}개` }))}
+                data={invByCategory.map((r) => ({
+                  label: r.categoryName,
+                  value: r.count,
+                  display: `${r.count}개`,
+                }))}
                 color="var(--chart-2)"
               />
             )}
@@ -333,7 +397,11 @@ export default async function AnalyticsPage() {
             title="저재고 품목"
             description="Σ현재고 ≤ 재주문점"
             className="lg:col-span-2"
-            action={invLowStock.length > 0 ? <span className="text-sm font-medium text-warning">{invLowStock.length}건</span> : undefined}
+            action={
+              invLowStock.length > 0 ? (
+                <span className="text-sm font-medium text-warning">{invLowStock.length}건</span>
+              ) : undefined
+            }
           >
             {invLowStock.length === 0 ? (
               <EmptyState icon={PackageX} title="저재고 품목이 없습니다" className="py-10" />
@@ -358,7 +426,9 @@ export default async function AnalyticsPage() {
                         <td className="py-2 pr-4 text-right text-destructive font-medium">
                           {r.currentQty.toLocaleString('ko-KR')}
                         </td>
-                        <td className="py-2 text-right text-muted-foreground">{r.reorderPoint.toLocaleString('ko-KR')}</td>
+                        <td className="py-2 text-right text-muted-foreground">
+                          {r.reorderPoint.toLocaleString('ko-KR')}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

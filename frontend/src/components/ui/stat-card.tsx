@@ -46,13 +46,20 @@ export function StatCard({
       <div className="flex items-start justify-between gap-3">
         <span className="text-sm font-medium text-muted-foreground">{label}</span>
         {Icon && (
-          <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', CHIP[tone])}>
+          <span
+            className={cn(
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+              CHIP[tone],
+            )}
+          >
             <Icon className="h-[18px] w-[18px]" />
           </span>
         )}
       </div>
       <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">{value}</span>
+        <span className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+          {value}
+        </span>
         {trend && <TrendBadge {...trend} />}
       </div>
       {sub && <p className="mt-1 text-xs text-muted-foreground tabular-nums">{sub}</p>}
@@ -64,7 +71,10 @@ export function StatCard({
 
   if (href) {
     return (
-      <Link href={href} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl">
+      <Link
+        href={href}
+        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
+      >
         {body}
       </Link>
     )

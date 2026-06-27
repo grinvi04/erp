@@ -6,7 +6,14 @@ import AuditClient from './audit-client'
 
 export const metadata = { title: '감사 로그 | ERP' }
 
-const ENTITY_TYPES = ['LEAVE_REQUEST', 'AP_INVOICE', 'EMPLOYEE', 'ROLE', 'USER_ROLE', 'ACCESS_PROFILE'] as const
+const ENTITY_TYPES = [
+  'LEAVE_REQUEST',
+  'AP_INVOICE',
+  'EMPLOYEE',
+  'ROLE',
+  'USER_ROLE',
+  'ACCESS_PROFILE',
+] as const
 
 export default async function AuditPage(props: {
   searchParams: Promise<{ page?: string; size?: string; entityType?: string }>
@@ -27,9 +34,10 @@ export default async function AuditPage(props: {
   const sp = await props.searchParams
   const page = Number(sp.page ?? 0)
   const size = Number(sp.size ?? 20)
-  const entityType = sp.entityType && ENTITY_TYPES.includes(sp.entityType as (typeof ENTITY_TYPES)[number])
-    ? sp.entityType
-    : ''
+  const entityType =
+    sp.entityType && ENTITY_TYPES.includes(sp.entityType as (typeof ENTITY_TYPES)[number])
+      ? sp.entityType
+      : ''
   const typeFilter = entityType ? `&entityType=${encodeURIComponent(entityType)}` : ''
 
   const data = await apiGetPage<AuditLog>(`/api/audit/logs?page=${page}&size=${size}${typeFilter}`)

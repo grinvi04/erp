@@ -10,13 +10,26 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { createLocation, updateLocation, deactivateLocation } from './actions'
 import type { Warehouse, Location, LocationType } from '@/types/inventory'
@@ -63,46 +76,65 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
   }
 
   const openCreate = () => {
-    setCode(''); setName(''); setParentId(''); setLocationType('ZONE')
+    setCode('')
+    setName('')
+    setParentId('')
+    setLocationType('ZONE')
     setDialog({ type: 'create' })
   }
 
   const openEdit = (loc: Location) => {
-    setCode(loc.code); setName(loc.name)
+    setCode(loc.code)
+    setName(loc.name)
     setParentId(loc.parentId != null ? String(loc.parentId) : '')
     setLocationType(loc.locationType)
     setDialog({ type: 'edit', loc })
   }
 
   const handleCreate = () => {
-    if (!hasWarehouse) { toast.error('창고를 먼저 선택해주세요'); return }
-    if (!code.trim() || !name.trim()) { toast.error('코드와 로케이션명은 필수입니다'); return }
+    if (!hasWarehouse) {
+      toast.error('창고를 먼저 선택해주세요')
+      return
+    }
+    if (!code.trim() || !name.trim()) {
+      toast.error('코드와 로케이션명은 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
         await createLocation({
           warehouseId: Number(selectedWarehouseId),
-          code: code.trim(), name: name.trim(),
+          code: code.trim(),
+          name: name.trim(),
           parentId: parentId ? Number(parentId) : null,
           locationType,
         })
         toast.success('로케이션이 등록되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
+      }
     })
   }
 
   const handleUpdate = (loc: Location) => {
-    if (!name.trim()) { toast.error('로케이션명은 필수입니다'); return }
+    if (!name.trim()) {
+      toast.error('로케이션명은 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
         await updateLocation(loc.id, {
-          version: loc.version, name: name.trim(),
+          version: loc.version,
+          name: name.trim(),
           parentId: parentId ? Number(parentId) : null,
           locationType,
         })
         toast.success('로케이션이 수정되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -112,13 +144,14 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
         await deactivateLocation(loc.id)
         toast.success('로케이션이 비활성화되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '비활성화 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '비활성화 중 오류가 발생했습니다')
+      }
     })
   }
 
   // 부모 선택지: 같은 창고의 로케이션 중 자기 자신 제외
-  const parentOptions = (selfId?: number) =>
-    locations.filter((l) => l.id !== selfId)
+  const parentOptions = (selfId?: number) => locations.filter((l) => l.id !== selfId)
 
   const locationForm = (selfId?: number) => (
     <div className="grid gap-4 py-2">
@@ -130,16 +163,27 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
       )}
       <div className="grid gap-1.5">
         <Label>로케이션명 *</Label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="A구역 1번 선반" />
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="A구역 1번 선반"
+        />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-1.5">
           <Label>유형 *</Label>
-          <Select value={locationType} onValueChange={(v) => setLocationType((v ?? 'ZONE') as LocationType)}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+          <Select
+            value={locationType}
+            onValueChange={(v) => setLocationType((v ?? 'ZONE') as LocationType)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {(Object.keys(LOCATION_TYPE_LABEL) as LocationType[]).map((k) => (
-                <SelectItem key={k} value={k}>{LOCATION_TYPE_LABEL[k]}</SelectItem>
+                <SelectItem key={k} value={k}>
+                  {LOCATION_TYPE_LABEL[k]}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -150,11 +194,15 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
             value={parentId || NONE}
             onValueChange={(v) => setParentId(v === NONE ? '' : (v ?? ''))}
           >
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE}>없음 (최상위)</SelectItem>
               {parentOptions(selfId).map((l) => (
-                <SelectItem key={l.id} value={String(l.id)}>{l.code} — {l.name}</SelectItem>
+                <SelectItem key={l.id} value={String(l.id)}>
+                  {l.code} — {l.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -168,18 +216,32 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">로케이션 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">창고 내 보관 위치(로케이션)를 관리합니다</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            창고 내 보관 위치(로케이션)를 관리합니다
+          </p>
         </div>
-        {canWrite && hasWarehouse && <Button onClick={openCreate}><PlusIcon />새 로케이션</Button>}
+        {canWrite && hasWarehouse && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 로케이션
+          </Button>
+        )}
       </div>
 
       <div className="mb-4 flex items-center gap-2">
         <Label className="text-sm text-muted-foreground">창고</Label>
-        <Select value={selectedWarehouseId} onValueChange={onWarehouseChange} disabled={warehouses.length === 0}>
-          <SelectTrigger className="w-64"><SelectValue placeholder="창고 선택" /></SelectTrigger>
+        <Select
+          value={selectedWarehouseId}
+          onValueChange={onWarehouseChange}
+          disabled={warehouses.length === 0}
+        >
+          <SelectTrigger className="w-64">
+            <SelectValue placeholder="창고 선택" />
+          </SelectTrigger>
           <SelectContent>
             {warehouses.map((wh) => (
-              <SelectItem key={wh.id} value={String(wh.id)}>{wh.code} — {wh.name}</SelectItem>
+              <SelectItem key={wh.id} value={String(wh.id)}>
+                {wh.code} — {wh.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -217,7 +279,9 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
                 <TableCell className="font-mono text-sm">{loc.code}</TableCell>
                 <TableCell className="font-medium">{loc.name}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{loc.locationType}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{loc.parentName ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {loc.parentName ?? '—'}
+                </TableCell>
                 <TableCell>
                   <Badge variant={loc.active ? 'default' : 'secondary'}>
                     {loc.active ? '활성' : '비활성'}
@@ -226,13 +290,20 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     {canWrite && (
-                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(loc)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="수정"
+                        onClick={() => openEdit(loc)}
+                      >
                         <PencilIcon />
                       </Button>
                     )}
                     {canWrite && loc.active && (
                       <Button
-                        variant="ghost" size="icon-xs" title="비활성화"
+                        variant="ghost"
+                        size="icon-xs"
+                        title="비활성화"
                         onClick={() => setDialog({ type: 'deactivate', loc })}
                       >
                         <BanIcon className="text-destructive" />
@@ -247,18 +318,32 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>새 로케이션 등록</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>새 로케이션 등록</DialogTitle>
+          </DialogHeader>
           {locationForm()}
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={dialog.type === 'edit'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'edit'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -278,12 +363,22 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
       </Dialog>
 
       {/* Deactivate Dialog */}
-      <Dialog open={dialog.type === 'deactivate'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'deactivate'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>로케이션 비활성화</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>로케이션 비활성화</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'deactivate' && (
             <p className="text-sm text-muted-foreground py-2">
-              <strong>{dialog.loc.code} {dialog.loc.name}</strong>을(를) 비활성화하시겠습니까?
+              <strong>
+                {dialog.loc.code} {dialog.loc.name}
+              </strong>
+              을(를) 비활성화하시겠습니까?
             </p>
           )}
           <DialogFooter showCloseButton>

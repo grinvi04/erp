@@ -23,7 +23,7 @@ function requireEnv(name: string): string {
   const v = process.env[name]
   if (!v) {
     throw new Error(
-      `[backend.setup] 환경변수 ${name} 가 필요합니다. 실스택 통합 E2E는 자격증명을 env로 주입하세요.`
+      `[backend.setup] 환경변수 ${name} 가 필요합니다. 실스택 통합 E2E는 자격증명을 env로 주입하세요.`,
     )
   }
   return v
@@ -63,7 +63,7 @@ setup('authenticate (real Keycloak)', async ({ context }) => {
   })
   if (!res.ok) {
     throw new Error(
-      `[backend.setup] Keycloak password grant 실패: HTTP ${res.status} ${await res.text()}`
+      `[backend.setup] Keycloak password grant 실패: HTTP ${res.status} ${await res.text()}`,
     )
   }
   const tokens = (await res.json()) as {
@@ -84,18 +84,23 @@ setup('authenticate (real Keycloak)', async ({ context }) => {
     tenantId: tenantIdFromToken(tokens.access_token),
   }
   const cookieValue = await encode({
-    token, secret: authSecret, salt: COOKIE_NAME, maxAge: oneDay,
+    token,
+    secret: authSecret,
+    salt: COOKIE_NAME,
+    maxAge: oneDay,
   })
 
-  await context.addCookies([{
-    name: COOKIE_NAME,
-    value: cookieValue,
-    domain: 'localhost',
-    path: '/',
-    httpOnly: true,
-    sameSite: 'Lax',
-    expires: Math.floor(Date.now() / 1000) + oneDay,
-  }])
+  await context.addCookies([
+    {
+      name: COOKIE_NAME,
+      value: cookieValue,
+      domain: 'localhost',
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+      expires: Math.floor(Date.now() / 1000) + oneDay,
+    },
+  ])
 
   fs.mkdirSync(path.dirname(AUTH_FILE), { recursive: true })
   await context.storageState({ path: AUTH_FILE })

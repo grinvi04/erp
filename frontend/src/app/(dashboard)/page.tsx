@@ -9,13 +9,28 @@ import { DonutChart } from '@/components/charts/donut-chart'
 import { Users, TrendingUp, TriangleAlert, Wallet, PackageX } from 'lucide-react'
 import type { HrSummary, FinanceSummary, InventorySummary, CrmSummary } from '@/types/dashboard'
 import type {
-  MonthlyInvoiceAnalyticsResponse, PipelineAnalyticsResponse,
-  MonthlyHiresTerminationsResponse, LowStockItemResponse,
+  MonthlyInvoiceAnalyticsResponse,
+  PipelineAnalyticsResponse,
+  MonthlyHiresTerminationsResponse,
+  LowStockItemResponse,
 } from '@/types/analytics'
 
 export const metadata = { title: '대시보드 | ERP' }
 
-const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+const MONTH_LABELS = [
+  '1월',
+  '2월',
+  '3월',
+  '4월',
+  '5월',
+  '6월',
+  '7월',
+  '8월',
+  '9월',
+  '10월',
+  '11월',
+  '12월',
+]
 
 function fmtNum(n: number) {
   return n.toLocaleString('ko-KR')
@@ -30,30 +45,48 @@ function moneyKpi(
   const list = amounts ?? []
   if (!hasAny || list.length === 0) return { value: '₩0' }
   if (baseTotal != null && baseCurrency) {
-    return { value: formatMoneyOne(baseTotal, baseCurrency), sub: list.length > 1 ? formatMoneyList(list) : undefined }
+    return {
+      value: formatMoneyOne(baseTotal, baseCurrency),
+      sub: list.length > 1 ? formatMoneyList(list) : undefined,
+    }
   }
   return { value: formatMoneyList(list) }
 }
 
 export default async function DashboardPage() {
   const year = new Date().getFullYear()
-  const [hr, finance, inventory, crm, monthlyInv, pipeline, hiresTerms, lowStock] = await Promise.all([
-    safeGet<HrSummary>('/api/hr/summary'),
-    safeGet<FinanceSummary>('/api/finance/summary'),
-    safeGet<InventorySummary>('/api/inventory/summary'),
-    safeGet<CrmSummary>('/api/crm/summary'),
-    safeGet<MonthlyInvoiceAnalyticsResponse>(`/api/finance/analytics/monthly-invoices?year=${year}`),
-    safeGet<PipelineAnalyticsResponse>('/api/crm/analytics/pipeline'),
-    safeGetArray<MonthlyHiresTerminationsResponse>(`/api/hr/analytics/hires-terminations?year=${year}`),
-    safeGetArray<LowStockItemResponse>('/api/inventory/analytics/low-stock'),
-  ])
+  const [hr, finance, inventory, crm, monthlyInv, pipeline, hiresTerms, lowStock] =
+    await Promise.all([
+      safeGet<HrSummary>('/api/hr/summary'),
+      safeGet<FinanceSummary>('/api/finance/summary'),
+      safeGet<InventorySummary>('/api/inventory/summary'),
+      safeGet<CrmSummary>('/api/crm/summary'),
+      safeGet<MonthlyInvoiceAnalyticsResponse>(
+        `/api/finance/analytics/monthly-invoices?year=${year}`,
+      ),
+      safeGet<PipelineAnalyticsResponse>('/api/crm/analytics/pipeline'),
+      safeGetArray<MonthlyHiresTerminationsResponse>(
+        `/api/hr/analytics/hires-terminations?year=${year}`,
+      ),
+      safeGetArray<LowStockItemResponse>('/api/inventory/analytics/low-stock'),
+    ])
 
   const lowStockCount = inventory?.lowStockItems ?? 0
   const invBase = monthlyInv?.baseMonthlyTotals ?? []
   const invBaseCurrency = monthlyInv?.baseCurrency ?? 'KRW'
   const stages = pipeline?.stages ?? []
-  const unpaidKpi = moneyKpi(finance?.unpaidAmounts, finance?.unpaidBaseTotal, finance?.baseCurrency, !!finance?.unpaidInvoices)
-  const pipelineKpi = moneyKpi(crm?.openOpportunityAmounts, crm?.openOpportunityBaseTotal, crm?.baseCurrency, !!crm?.openOpportunities)
+  const unpaidKpi = moneyKpi(
+    finance?.unpaidAmounts,
+    finance?.unpaidBaseTotal,
+    finance?.baseCurrency,
+    !!finance?.unpaidInvoices,
+  )
+  const pipelineKpi = moneyKpi(
+    crm?.openOpportunityAmounts,
+    crm?.openOpportunityBaseTotal,
+    crm?.baseCurrency,
+    !!crm?.openOpportunities,
+  )
 
   return (
     <div className="space-y-6 p-6">
@@ -61,33 +94,65 @@ export default async function DashboardPage() {
 
       {/* 핵심 KPI */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="재직 직원" value={fmtNum(hr?.activeEmployees ?? 0)} icon={Users} tone="primary" href="/hr/employees" />
         <StatCard
-          label="미지급 금액" value={unpaidKpi.value} sub={unpaidKpi.sub}
-          icon={Wallet} tone="default" href="/finance/invoices"
+          label="재직 직원"
+          value={fmtNum(hr?.activeEmployees ?? 0)}
+          icon={Users}
+          tone="primary"
+          href="/hr/employees"
         />
         <StatCard
-          label="파이프라인 금액" value={pipelineKpi.value} sub={pipelineKpi.sub}
-          icon={TrendingUp} tone="success" href="/crm/opportunities"
+          label="미지급 금액"
+          value={unpaidKpi.value}
+          sub={unpaidKpi.sub}
+          icon={Wallet}
+          tone="default"
+          href="/finance/invoices"
         />
-        <StatCard label="재고 부족" value={fmtNum(lowStockCount)} icon={TriangleAlert} tone={lowStockCount > 0 ? 'warning' : 'default'} href="/inventory/stocks" />
+        <StatCard
+          label="파이프라인 금액"
+          value={pipelineKpi.value}
+          sub={pipelineKpi.sub}
+          icon={TrendingUp}
+          tone="success"
+          href="/crm/opportunities"
+        />
+        <StatCard
+          label="재고 부족"
+          value={fmtNum(lowStockCount)}
+          icon={TriangleAlert}
+          tone={lowStockCount > 0 ? 'warning' : 'default'}
+          href="/inventory/stocks"
+        />
       </div>
 
       {/* 차트 행 1 — 매입 추이 + 파이프라인 분포 */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <ChartCard title="월별 매입 인보이스 추이" description={`${year}년 · 기준통화(${invBaseCurrency}) 환산 합계`} href="/finance/invoices" className="lg:col-span-2">
+        <ChartCard
+          title="월별 매입 인보이스 추이"
+          description={`${year}년 · 기준통화(${invBaseCurrency}) 환산 합계`}
+          href="/finance/invoices"
+          className="lg:col-span-2"
+        >
           {invBase.length === 0 ? (
             <EmptyState title="데이터가 없습니다" className="py-10" />
           ) : (
             <MonthlyBarChart
-              data={invBase.map((r, i) => ({ month: MONTH_LABELS[r.month - 1] ?? MONTH_LABELS[i], amount: r.totalAmount }))}
+              data={invBase.map((r, i) => ({
+                month: MONTH_LABELS[r.month - 1] ?? MONTH_LABELS[i],
+                amount: r.totalAmount,
+              }))}
               series={[{ key: 'amount', label: '매입액', color: 'var(--chart-1)' }]}
               valueFormat={{ kind: 'money', currency: invBaseCurrency }}
               height={260}
             />
           )}
         </ChartCard>
-        <ChartCard title="영업 파이프라인" description="단계별 진행중 기회" href="/crm/opportunities">
+        <ChartCard
+          title="영업 파이프라인"
+          description="단계별 진행중 기회"
+          href="/crm/opportunities"
+        >
           {stages.length === 0 ? (
             <EmptyState title="데이터가 없습니다" className="py-10" />
           ) : (
@@ -107,7 +172,11 @@ export default async function DashboardPage() {
             <EmptyState title="데이터가 없습니다" className="py-10" />
           ) : (
             <MonthlyBarChart
-              data={hiresTerms.map((r, i) => ({ month: MONTH_LABELS[r.month - 1] ?? MONTH_LABELS[i], hires: r.hires, terminations: r.terminations }))}
+              data={hiresTerms.map((r, i) => ({
+                month: MONTH_LABELS[r.month - 1] ?? MONTH_LABELS[i],
+                hires: r.hires,
+                terminations: r.terminations,
+              }))}
               series={[
                 { key: 'hires', label: '입사', color: 'var(--chart-2)' },
                 { key: 'terminations', label: '퇴사', color: 'var(--chart-4)' },
@@ -117,7 +186,13 @@ export default async function DashboardPage() {
             />
           )}
         </ChartCard>
-        <ChartCard title="저재고 품목" description={lowStock.length > 0 ? `재주문점 이하 · ${lowStock.length}건` : '재주문점 이하'} href="/inventory/stocks">
+        <ChartCard
+          title="저재고 품목"
+          description={
+            lowStock.length > 0 ? `재주문점 이하 · ${lowStock.length}건` : '재주문점 이하'
+          }
+          href="/inventory/stocks"
+        >
           {lowStock.length === 0 ? (
             <EmptyState icon={PackageX} title="저재고 품목이 없습니다" className="py-10" />
           ) : (
@@ -126,11 +201,19 @@ export default async function DashboardPage() {
                 <li key={it.sku} className="flex items-center justify-between gap-3 py-2.5">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{it.name}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{it.sku}{it.categoryName ? ` · ${it.categoryName}` : ''}</p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {it.sku}
+                      {it.categoryName ? ` · ${it.categoryName}` : ''}
+                    </p>
                   </div>
                   <div className="shrink-0 text-right tabular-nums">
-                    <span className="text-sm font-semibold text-destructive">{fmtNum(it.currentQty)}</span>
-                    <span className="text-xs text-muted-foreground"> / {fmtNum(it.reorderPoint)}</span>
+                    <span className="text-sm font-semibold text-destructive">
+                      {fmtNum(it.currentQty)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {' '}
+                      / {fmtNum(it.reorderPoint)}
+                    </span>
                   </div>
                 </li>
               ))}

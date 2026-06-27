@@ -5,11 +5,15 @@ import { formatMoneyOne } from '@/lib/money'
 
 export type DonutDatum = { label: string; value: number; color?: string }
 export type ValueFormat =
-  | { kind: 'number' }
-  | { kind: 'money'; currency: string }
-  | { kind: 'suffix'; suffix: string }
+  { kind: 'number' } | { kind: 'money'; currency: string } | { kind: 'suffix'; suffix: string }
 
-const PALETTE = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)']
+const PALETTE = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+]
 
 /**
  * 도넛 차트 (recharts) + 범례 리스트. 분포(파이프라인 단계·리드 상태 등)에.
@@ -52,13 +56,17 @@ export function DonutChart({
             {total > 0 && (
               <Tooltip
                 cursor={false}
-                content={({ active, payload }) => <DonutTooltip active={active} payload={payload} valueFormat={valueFormat} />}
+                content={({ active, payload }) => (
+                  <DonutTooltip active={active} payload={payload} valueFormat={valueFormat} />
+                )}
               />
             )}
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-semibold tabular-nums text-foreground">{total.toLocaleString('ko-KR')}</span>
+          <span className="text-xl font-semibold tabular-nums text-foreground">
+            {total.toLocaleString('ko-KR')}
+          </span>
           {centerLabel && <span className="text-[11px] text-muted-foreground">{centerLabel}</span>}
         </div>
       </div>
@@ -66,10 +74,15 @@ export function DonutChart({
         {colored.map((d) => (
           <li key={d.label} className="flex items-center justify-between gap-2">
             <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: d.color }} />
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                style={{ backgroundColor: d.color }}
+              />
               <span className="truncate">{d.label}</span>
             </span>
-            <span className="shrink-0 font-medium tabular-nums text-foreground">{formatValue(d.value, valueFormat)}</span>
+            <span className="shrink-0 font-medium tabular-nums text-foreground">
+              {formatValue(d.value, valueFormat)}
+            </span>
           </li>
         ))}
       </ul>
@@ -79,14 +92,19 @@ export function DonutChart({
 
 function formatValue(v: number, fmt: ValueFormat): string {
   switch (fmt.kind) {
-    case 'money': return formatMoneyOne(v, fmt.currency)
-    case 'suffix': return `${v.toLocaleString('ko-KR')}${fmt.suffix}`
-    default: return v.toLocaleString('ko-KR')
+    case 'money':
+      return formatMoneyOne(v, fmt.currency)
+    case 'suffix':
+      return `${v.toLocaleString('ko-KR')}${fmt.suffix}`
+    default:
+      return v.toLocaleString('ko-KR')
   }
 }
 
 function DonutTooltip({
-  active, payload, valueFormat,
+  active,
+  payload,
+  valueFormat,
 }: {
   active?: boolean
   payload?: ReadonlyArray<{ payload?: { label?: string; value?: number; color?: string } }>
@@ -100,7 +118,9 @@ function DonutTooltip({
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: d.color }} />
         <span className="text-muted-foreground">{d.label}</span>
-        <span className="ml-1 font-medium tabular-nums text-popover-foreground">{formatValue(d.value ?? 0, valueFormat)}</span>
+        <span className="ml-1 font-medium tabular-nums text-popover-foreground">
+          {formatValue(d.value ?? 0, valueFormat)}
+        </span>
       </div>
     </div>
   )

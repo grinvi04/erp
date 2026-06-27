@@ -16,12 +16,17 @@ export interface AccountPayload {
   ownerId: string
 }
 
-export async function createAccount(data: Omit<AccountPayload, 'ownerId'> & { code: string }): Promise<void> {
+export async function createAccount(
+  data: Omit<AccountPayload, 'ownerId'> & { code: string },
+): Promise<void> {
   await apiPost('/api/crm/accounts', data)
   revalidatePath('/crm/accounts')
 }
 
-export async function updateAccount(id: number, data: AccountPayload & { version: number }): Promise<void> {
+export async function updateAccount(
+  id: number,
+  data: AccountPayload & { version: number },
+): Promise<void> {
   await apiPut(`/api/crm/accounts/${id}`, data)
   revalidatePath('/crm/accounts')
 }

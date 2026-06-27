@@ -6,10 +6,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import { createPosition, updatePosition, deletePosition } from './actions'
 import type { Position } from '@/types/hr'
@@ -33,7 +42,9 @@ export default function PositionsClient({ positions }: Props) {
   const [levelOrder, setLevelOrder] = useState('0')
 
   const openCreate = () => {
-    setCode(''); setName(''); setLevelOrder('0')
+    setCode('')
+    setName('')
+    setLevelOrder('0')
     setDialog({ type: 'create' })
   }
 
@@ -105,8 +116,7 @@ export default function PositionsClient({ positions }: Props) {
           <p className="text-sm text-muted-foreground mt-1">직위(직책) 체계를 관리합니다</p>
         </div>
         <Button onClick={openCreate}>
-          <PlusIcon />
-          새 직위
+          <PlusIcon />새 직위
         </Button>
       </div>
 
@@ -160,7 +170,9 @@ export default function PositionsClient({ positions }: Props) {
       {/* Create / Edit Dialog */}
       <Dialog
         open={dialog.type === 'create' || dialog.type === 'edit'}
-        onOpenChange={(open) => { if (!open) close() }}
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
       >
         <DialogContent>
           <DialogHeader>
@@ -219,7 +231,9 @@ export default function PositionsClient({ positions }: Props) {
       {/* Delete Confirm Dialog */}
       <Dialog
         open={dialog.type === 'delete'}
-        onOpenChange={(open) => { if (!open) close() }}
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
       >
         <DialogContent>
           <DialogHeader>

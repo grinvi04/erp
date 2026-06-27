@@ -19,16 +19,19 @@ export async function createCustomer(data: {
   revalidatePath(PATH)
 }
 
-export async function updateCustomer(id: number, data: {
-  name: string
-  businessNo: string | null
-  contactName: string | null
-  contactEmail: string | null
-  contactPhone: string | null
-  paymentTerms: number
-  receivablesAccountId: number | null
-  version: number
-}): Promise<void> {
+export async function updateCustomer(
+  id: number,
+  data: {
+    name: string
+    businessNo: string | null
+    contactName: string | null
+    contactEmail: string | null
+    contactPhone: string | null
+    paymentTerms: number
+    receivablesAccountId: number | null
+    version: number
+  },
+): Promise<void> {
   await apiPut<Customer>(`/api/finance/customers/${id}`, data)
   revalidatePath(PATH)
 }

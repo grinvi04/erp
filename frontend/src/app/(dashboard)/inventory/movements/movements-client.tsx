@@ -10,31 +10,66 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import {
-  createMovement, confirmMovement, submitMovement, approveMovement,
-  cancelMovement, withdrawMovement, getLocationsByWarehouse,
+  createMovement,
+  confirmMovement,
+  submitMovement,
+  approveMovement,
+  cancelMovement,
+  withdrawMovement,
+  getLocationsByWarehouse,
 } from './actions'
-import type { Movement, MovementType, MovementStatus, Item, Warehouse, Location } from '@/types/inventory'
+import type {
+  Movement,
+  MovementType,
+  MovementStatus,
+  Item,
+  Warehouse,
+  Location,
+} from '@/types/inventory'
 import type { PageResponse } from '@/types/api'
 
 const TYPE_LABEL: Record<MovementType, string> = {
-  RECEIPT: '입고', ISSUE: '출고', TRANSFER: '이전', ADJUSTMENT: '조정',
+  RECEIPT: '입고',
+  ISSUE: '출고',
+  TRANSFER: '이전',
+  ADJUSTMENT: '조정',
 }
 const STATUS_LABEL: Record<MovementStatus, string> = {
-  DRAFT: '임시', PENDING_APPROVAL: '결재중', CONFIRMED: '확정', CANCELLED: '취소',
+  DRAFT: '임시',
+  PENDING_APPROVAL: '결재중',
+  CONFIRMED: '확정',
+  CANCELLED: '취소',
 }
-const STATUS_VARIANT: Record<MovementStatus, 'secondary' | 'default' | 'destructive' | 'outline'> = {
-  DRAFT: 'secondary', PENDING_APPROVAL: 'outline', CONFIRMED: 'default', CANCELLED: 'destructive',
-}
+const STATUS_VARIANT: Record<MovementStatus, 'secondary' | 'default' | 'destructive' | 'outline'> =
+  {
+    DRAFT: 'secondary',
+    PENDING_APPROVAL: 'outline',
+    CONFIRMED: 'default',
+    CANCELLED: 'destructive',
+  }
 
 interface LineRow {
   itemId: string
@@ -44,7 +79,11 @@ interface LineRow {
   unitCost: string
 }
 const emptyLine = (): LineRow => ({
-  itemId: '', fromLocationId: '', toLocationId: '', qty: '', unitCost: '0',
+  itemId: '',
+  fromLocationId: '',
+  toLocationId: '',
+  qty: '',
+  unitCost: '0',
 })
 
 type DialogState = { type: 'none' } | { type: 'create' } | { type: 'cancel'; mv: Movement }
@@ -89,45 +128,61 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
   }
 
   const openCreate = () => {
-    setMovementType('RECEIPT'); setMovementDate(''); setNote('')
-    setLines([emptyLine()]); setDialogWarehouseId(''); setDialogLocations([])
+    setMovementType('RECEIPT')
+    setMovementDate('')
+    setNote('')
+    setLines([emptyLine()])
+    setDialogWarehouseId('')
+    setDialogLocations([])
     setDialog({ type: 'create' })
   }
 
   const addLine = () => setLines((prev) => [...prev, emptyLine()])
   const removeLine = (i: number) => setLines((prev) => prev.filter((_, idx) => idx !== i))
   const setLine = (i: number, field: keyof LineRow, val: string) =>
-    setLines((prev) => prev.map((l, idx) => idx === i ? { ...l, [field]: val } : l))
+    setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, [field]: val } : l)))
 
   const handleCreate = () => {
-    if (!movementDate) { toast.error('이동일은 필수입니다'); return }
+    if (!movementDate) {
+      toast.error('이동일은 필수입니다')
+      return
+    }
     if (lines.some((l) => !l.itemId || !l.qty || Number(l.qty) <= 0 || isNaN(Number(l.qty)))) {
-      toast.error('모든 행에 품목과 수량을 입력해주세요'); return
+      toast.error('모든 행에 품목과 수량을 입력해주세요')
+      return
     }
     const needsFromRequired = movementType === 'ISSUE' || movementType === 'TRANSFER'
     const needsToRequired = movementType === 'RECEIPT' || movementType === 'TRANSFER'
     if (needsFromRequired && lines.some((l) => !l.fromLocationId)) {
-      toast.error('출고 위치를 선택해주세요'); return
+      toast.error('출고 위치를 선택해주세요')
+      return
     }
     if (needsToRequired && lines.some((l) => !l.toLocationId)) {
-      toast.error('입고 위치를 선택해주세요'); return
+      toast.error('입고 위치를 선택해주세요')
+      return
     }
     startTransition(async () => {
       try {
         await createMovement({
-          movementType, movementDate, referenceType: null, note: note.trim() || null,
+          movementType,
+          movementDate,
+          referenceType: null,
+          note: note.trim() || null,
           lines: lines.map((l) => ({
             itemId: Number(l.itemId),
             fromLocationId: l.fromLocationId ? Number(l.fromLocationId) : null,
             toLocationId: l.toLocationId ? Number(l.toLocationId) : null,
-            lotNo: null, serialNo: null,
+            lotNo: null,
+            serialNo: null,
             qty: Number(l.qty),
             unitCost: Number(l.unitCost) || 0,
           })),
         })
         toast.success('재고 이동이 등록되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -136,7 +191,9 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
       try {
         await confirmMovement(mv.id)
         toast.success('이동이 확정되었습니다')
-      } catch (e) { toast.error(e instanceof Error ? e.message : '확정 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '확정 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -145,7 +202,9 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
       try {
         await submitMovement(mv.id)
         toast.success('결재 상신되었습니다')
-      } catch (e) { toast.error(e instanceof Error ? e.message : '상신 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '상신 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -154,7 +213,9 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
       try {
         await approveMovement(mv.id)
         toast.success('승인·확정 처리되었습니다')
-      } catch (e) { toast.error(e instanceof Error ? e.message : '승인 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '승인 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -163,7 +224,9 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
       try {
         await withdrawMovement(mv.id)
         toast.success('상신을 철회했습니다')
-      } catch (e) { toast.error(e instanceof Error ? e.message : '철회 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '철회 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -173,21 +236,31 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
         await cancelMovement(mv.id)
         toast.success('이동이 취소되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '취소 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '취소 중 오류가 발생했습니다')
+      }
     })
   }
 
-  const needsFrom = movementType === 'ISSUE' || movementType === 'TRANSFER' || movementType === 'ADJUSTMENT'
-  const needsTo = movementType === 'RECEIPT' || movementType === 'TRANSFER' || movementType === 'ADJUSTMENT'
+  const needsFrom =
+    movementType === 'ISSUE' || movementType === 'TRANSFER' || movementType === 'ADJUSTMENT'
+  const needsTo =
+    movementType === 'RECEIPT' || movementType === 'TRANSFER' || movementType === 'ADJUSTMENT'
 
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">재고 이동</h1>
-          <p className="text-sm text-muted-foreground mt-1">재고 입출고 및 이전 내역을 관리합니다</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            재고 입출고 및 이전 내역을 관리합니다
+          </p>
         </div>
-        {canWrite && <Button onClick={openCreate}><PlusIcon />새 이동 등록</Button>}
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 이동 등록
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-lg border overflow-hidden">
@@ -235,18 +308,34 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                   {canWrite && mv.status === 'DRAFT' && (
                     <div className="flex justify-end gap-1">
                       {mv.movementType === 'ADJUSTMENT' ? (
-                        <Button variant="ghost" size="sm" onClick={() => handleSubmit(mv)}
-                          disabled={isPending} title="결재상신">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSubmit(mv)}
+                          disabled={isPending}
+                          title="결재상신"
+                        >
                           결재상신
                         </Button>
                       ) : (
-                        <Button variant="ghost" size="sm" onClick={() => handleConfirm(mv)}
-                          disabled={isPending} title="확정">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleConfirm(mv)}
+                          disabled={isPending}
+                          title="확정"
+                        >
                           확정
                         </Button>
                       )}
-                      <Button variant="ghost" size="sm" onClick={() => setDialog({ type: 'cancel', mv })}
-                        disabled={isPending} title="취소" className="text-destructive">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDialog({ type: 'cancel', mv })}
+                        disabled={isPending}
+                        title="취소"
+                        className="text-destructive"
+                      >
                         취소
                       </Button>
                     </div>
@@ -254,14 +343,25 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                   {mv.status === 'PENDING_APPROVAL' && (canApprove || canWrite) && (
                     <div className="flex justify-end gap-1">
                       {canApprove && (
-                        <Button variant="ghost" size="sm" onClick={() => handleApprove(mv)}
-                          disabled={isPending} title="승인">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleApprove(mv)}
+                          disabled={isPending}
+                          title="승인"
+                        >
                           승인
                         </Button>
                       )}
                       {canWrite && (
-                        <Button variant="ghost" size="sm" onClick={() => handleWithdraw(mv)}
-                          disabled={isPending} title="철회" className="text-destructive">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleWithdraw(mv)}
+                          disabled={isPending}
+                          title="철회"
+                          className="text-destructive"
+                        >
                           철회
                         </Button>
                       )}
@@ -273,45 +373,73 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
           </TableBody>
         </Table>
         <PaginationBar
-          page={data.page} totalPages={data.totalPages}
-          totalElements={data.totalElements} size={data.size}
+          page={data.page}
+          totalPages={data.totalPages}
+          totalElements={data.totalElements}
+          size={data.size}
           basePath="/inventory/movements"
         />
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-4xl">
-          <DialogHeader><DialogTitle>재고 이동 등록</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>재고 이동 등록</DialogTitle>
+          </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-1.5">
                 <Label>유형 *</Label>
-                <Select value={movementType} onValueChange={(v) => {
-                  const t = (v ?? 'RECEIPT') as MovementType
-                  setMovementType(t)
-                  setLines((prev) => prev.map((l) => ({ ...l, fromLocationId: '', toLocationId: '' })))
-                }}>
-                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <Select
+                  value={movementType}
+                  onValueChange={(v) => {
+                    const t = (v ?? 'RECEIPT') as MovementType
+                    setMovementType(t)
+                    setLines((prev) =>
+                      prev.map((l) => ({ ...l, fromLocationId: '', toLocationId: '' })),
+                    )
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {(Object.keys(TYPE_LABEL) as MovementType[]).map((t) => (
-                      <SelectItem key={t} value={t}>{TYPE_LABEL[t]}</SelectItem>
+                      <SelectItem key={t} value={t}>
+                        {TYPE_LABEL[t]}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-1.5">
                 <Label>이동일 *</Label>
-                <Input type="date" value={movementDate} onChange={(e) => setMovementDate(e.target.value)} />
+                <Input
+                  type="date"
+                  value={movementDate}
+                  onChange={(e) => setMovementDate(e.target.value)}
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label>창고 (위치 조회용)</Label>
                 <Select value={dialogWarehouseId} onValueChange={onWarehouseChange}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder="창고 선택 (선택)" /></SelectTrigger>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="창고 선택 (선택)" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {warehouses.filter((w) => w.active).map((w) => (
-                      <SelectItem key={w.id} value={String(w.id)}>{w.code} {w.name}</SelectItem>
-                    ))}
+                    {warehouses
+                      .filter((w) => w.active)
+                      .map((w) => (
+                        <SelectItem key={w.id} value={String(w.id)}>
+                          {w.code} {w.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -325,7 +453,9 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label>이동 행</Label>
-                <Button variant="ghost" size="sm" onClick={addLine}><PlusIcon />행 추가</Button>
+                <Button variant="ghost" size="sm" onClick={addLine}>
+                  <PlusIcon />행 추가
+                </Button>
               </div>
               <div className="border rounded overflow-auto">
                 <Table>
@@ -343,8 +473,10 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                     {lines.map((line, i) => (
                       <TableRow key={i}>
                         <TableCell className="py-1">
-                          <Select value={line.itemId}
-                            onValueChange={(v) => setLine(i, 'itemId', v ?? '')}>
+                          <Select
+                            value={line.itemId}
+                            onValueChange={(v) => setLine(i, 'itemId', v ?? '')}
+                          >
                             <SelectTrigger className="w-full h-8 text-sm">
                               <SelectValue placeholder="품목 선택" />
                             </SelectTrigger>
@@ -359,9 +491,11 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                         </TableCell>
                         {needsFrom && (
                           <TableCell className="py-1">
-                            <Select value={line.fromLocationId}
+                            <Select
+                              value={line.fromLocationId}
                               onValueChange={(v) => setLine(i, 'fromLocationId', v ?? '')}
-                              disabled={isLoadingLocations}>
+                              disabled={isLoadingLocations}
+                            >
                               <SelectTrigger className="w-full h-8 text-sm">
                                 <SelectValue placeholder="—" />
                               </SelectTrigger>
@@ -377,9 +511,11 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                         )}
                         {needsTo && (
                           <TableCell className="py-1">
-                            <Select value={line.toLocationId}
+                            <Select
+                              value={line.toLocationId}
                               onValueChange={(v) => setLine(i, 'toLocationId', v ?? '')}
-                              disabled={isLoadingLocations}>
+                              disabled={isLoadingLocations}
+                            >
                               <SelectTrigger className="w-full h-8 text-sm">
                                 <SelectValue placeholder="—" />
                               </SelectTrigger>
@@ -394,14 +530,25 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                           </TableCell>
                         )}
                         <TableCell className="py-1">
-                          <Input className="text-right h-8 text-sm font-mono"
-                            type="number" min={0.001} step={0.001} value={line.qty}
-                            onChange={(e) => setLine(i, 'qty', e.target.value)} placeholder="0" />
+                          <Input
+                            className="text-right h-8 text-sm font-mono"
+                            type="number"
+                            min={0.001}
+                            step={0.001}
+                            value={line.qty}
+                            onChange={(e) => setLine(i, 'qty', e.target.value)}
+                            placeholder="0"
+                          />
                         </TableCell>
                         <TableCell className="py-1">
-                          <Input className="text-right h-8 text-sm font-mono"
-                            type="number" min={0} step={0.01} value={line.unitCost}
-                            onChange={(e) => setLine(i, 'unitCost', e.target.value)} />
+                          <Input
+                            className="text-right h-8 text-sm font-mono"
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={line.unitCost}
+                            onChange={(e) => setLine(i, 'unitCost', e.target.value)}
+                          />
                         </TableCell>
                         <TableCell className="py-1">
                           {lines.length > 1 && (
@@ -418,19 +565,28 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Cancel Confirmation Dialog */}
-      <Dialog open={dialog.type === 'cancel'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'cancel'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>재고 이동 취소</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>재고 이동 취소</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'cancel' && (
             <p className="text-sm text-muted-foreground py-2">
-              이동번호 <strong>{dialog.mv.movementNo}</strong>을(를) 취소하시겠습니까?
-              이 작업은 되돌릴 수 없습니다.
+              이동번호 <strong>{dialog.mv.movementNo}</strong>을(를) 취소하시겠습니까? 이 작업은
+              되돌릴 수 없습니다.
             </p>
           )}
           <DialogFooter showCloseButton>

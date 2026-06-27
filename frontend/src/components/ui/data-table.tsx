@@ -4,7 +4,12 @@ import { useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, ChevronsUpDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -81,9 +86,7 @@ export function DataTable<T>({
 
   function toggleSort(key: string) {
     setSort((prev) =>
-      prev?.key === key
-        ? prev.dir === 'asc' ? { key, dir: 'desc' } : null
-        : { key, dir: 'asc' },
+      prev?.key === key ? (prev.dir === 'asc' ? { key, dir: 'desc' } : null) : { key, dir: 'asc' },
     )
   }
 
@@ -114,10 +117,16 @@ export function DataTable<T>({
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       {selectable && selectedRows.length > 0 && (
         <div className="flex items-center justify-between gap-3 border-b border-border bg-primary/5 px-4 py-2.5">
-          <span className="text-sm font-medium text-foreground">{selectedRows.length}개 선택됨</span>
+          <span className="text-sm font-medium text-foreground">
+            {selectedRows.length}개 선택됨
+          </span>
           <div className="flex items-center gap-2">
             {renderBulkActions?.(selectedRows, clear)}
-            <button onClick={clear} className="text-muted-foreground transition-colors hover:text-foreground" aria-label="선택 해제">
+            <button
+              onClick={clear}
+              className="text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="선택 해제"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -140,30 +149,47 @@ export function DataTable<T>({
               {columns.map((col) => {
                 const isSortable = col.sortable && !!col.sortValue
                 const ariaSort = isSortable
-                  ? (sort?.key === col.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none')
+                  ? sort?.key === col.key
+                    ? sort.dir === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
                   : undefined
                 return (
-                <TableHead
-                  key={col.key}
-                  aria-sort={ariaSort}
-                  className={cn(col.align === 'right' && 'text-right', col.align === 'center' && 'text-center', col.headerClassName)}
-                >
-                  {isSortable ? (
-                    <button
-                      type="button"
-                      onClick={() => toggleSort(col.key)}
-                      aria-label={`${typeof col.header === 'string' ? col.header : col.key} 기준 정렬`}
-                      className={cn('inline-flex items-center gap-1 font-medium transition-colors hover:text-foreground', col.align === 'right' && 'flex-row-reverse')}
-                    >
-                      {col.header}
-                      {sort?.key === col.key
-                        ? (sort.dir === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />)
-                        : <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/40" />}
-                    </button>
-                  ) : (
-                    col.header
-                  )}
-                </TableHead>
+                  <TableHead
+                    key={col.key}
+                    aria-sort={ariaSort}
+                    className={cn(
+                      col.align === 'right' && 'text-right',
+                      col.align === 'center' && 'text-center',
+                      col.headerClassName,
+                    )}
+                  >
+                    {isSortable ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(col.key)}
+                        aria-label={`${typeof col.header === 'string' ? col.header : col.key} 기준 정렬`}
+                        className={cn(
+                          'inline-flex items-center gap-1 font-medium transition-colors hover:text-foreground',
+                          col.align === 'right' && 'flex-row-reverse',
+                        )}
+                      >
+                        {col.header}
+                        {sort?.key === col.key ? (
+                          sort.dir === 'asc' ? (
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          ) : (
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          )
+                        ) : (
+                          <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/40" />
+                        )}
+                      </button>
+                    ) : (
+                      col.header
+                    )}
+                  </TableHead>
                 )
               })}
             </TableRow>
@@ -172,9 +198,15 @@ export function DataTable<T>({
             {loading ? (
               Array.from({ length: skeletonRows }).map((_, i) => (
                 <TableRow key={i} className="hover:bg-transparent">
-                  {selectable && <TableCell><Skeleton className="h-4 w-4" /></TableCell>}
+                  {selectable && (
+                    <TableCell>
+                      <Skeleton className="h-4 w-4" />
+                    </TableCell>
+                  )}
                   {columns.map((c) => (
-                    <TableCell key={c.key}><Skeleton className="h-4 w-full max-w-[140px]" /></TableCell>
+                    <TableCell key={c.key}>
+                      <Skeleton className="h-4 w-full max-w-[140px]" />
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
@@ -197,13 +229,21 @@ export function DataTable<T>({
                   >
                     {selectable && (
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox checked={isSel} onCheckedChange={() => toggleRow(id)} aria-label="행 선택" />
+                        <Checkbox
+                          checked={isSel}
+                          onCheckedChange={() => toggleRow(id)}
+                          aria-label="행 선택"
+                        />
                       </TableCell>
                     )}
                     {columns.map((col) => (
                       <TableCell
                         key={col.key}
-                        className={cn(col.align === 'right' && 'text-right tabular-nums', col.align === 'center' && 'text-center', col.cellClassName)}
+                        className={cn(
+                          col.align === 'right' && 'text-right tabular-nums',
+                          col.align === 'center' && 'text-center',
+                          col.cellClassName,
+                        )}
                       >
                         {col.cell(row)}
                       </TableCell>

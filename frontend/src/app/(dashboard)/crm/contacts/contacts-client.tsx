@@ -9,16 +9,32 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import {
-  getContactsByAccount, createContact, updateContact, deleteContact,
+  getContactsByAccount,
+  createContact,
+  updateContact,
+  deleteContact,
   type ContactPayload,
 } from './actions'
 import type { Contact, CrmAccount } from '@/types/crm'
@@ -58,13 +74,22 @@ export default function ContactsClient({ accounts }: Props) {
   const loadReqRef = useRef(0)
 
   const loadContacts = (aId: string) => {
-    if (!aId) { setContacts([]); return }
+    if (!aId) {
+      setContacts([])
+      return
+    }
     const reqId = ++loadReqRef.current
     setIsLoadingContacts(true)
     getContactsByAccount(Number(aId))
-      .then((cs) => { if (loadReqRef.current === reqId) setContacts(cs) })
-      .catch(() => { if (loadReqRef.current === reqId) toast.error('담당자 목록을 불러오지 못했습니다') })
-      .finally(() => { if (loadReqRef.current === reqId) setIsLoadingContacts(false) })
+      .then((cs) => {
+        if (loadReqRef.current === reqId) setContacts(cs)
+      })
+      .catch(() => {
+        if (loadReqRef.current === reqId) toast.error('담당자 목록을 불러오지 못했습니다')
+      })
+      .finally(() => {
+        if (loadReqRef.current === reqId) setIsLoadingContacts(false)
+      })
   }
 
   const reload = () => loadContacts(selectedAccountId)
@@ -77,15 +102,25 @@ export default function ContactsClient({ accounts }: Props) {
   }
 
   const openCreate = () => {
-    setLastName(''); setFirstName(''); setTitle(''); setDepartment('')
-    setEmail(''); setPhone(''); setMobile(''); setIsPrimary(false)
+    setLastName('')
+    setFirstName('')
+    setTitle('')
+    setDepartment('')
+    setEmail('')
+    setPhone('')
+    setMobile('')
+    setIsPrimary(false)
     setDialog({ type: 'create' })
   }
 
   const openEdit = (ct: Contact) => {
-    setLastName(ct.lastName); setFirstName(ct.firstName)
-    setTitle(ct.title ?? ''); setDepartment(ct.department ?? '')
-    setEmail(ct.email ?? ''); setPhone(ct.phone ?? ''); setMobile(ct.mobile ?? '')
+    setLastName(ct.lastName)
+    setFirstName(ct.firstName)
+    setTitle(ct.title ?? '')
+    setDepartment(ct.department ?? '')
+    setEmail(ct.email ?? '')
+    setPhone(ct.phone ?? '')
+    setMobile(ct.mobile ?? '')
     setIsPrimary(ct.isPrimary)
     setDialog({ type: 'edit', contact: ct })
   }
@@ -102,8 +137,14 @@ export default function ContactsClient({ accounts }: Props) {
   })
 
   const validate = (): boolean => {
-    if (!lastName.trim()) { toast.error('성은 필수입니다'); return false }
-    if (!firstName.trim()) { toast.error('이름은 필수입니다'); return false }
+    if (!lastName.trim()) {
+      toast.error('성은 필수입니다')
+      return false
+    }
+    if (!firstName.trim()) {
+      toast.error('이름은 필수입니다')
+      return false
+    }
     return true
   }
 
@@ -115,7 +156,9 @@ export default function ContactsClient({ accounts }: Props) {
         toast.success('담당자가 등록되었습니다')
         close()
         reload()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -127,7 +170,9 @@ export default function ContactsClient({ accounts }: Props) {
         toast.success('담당자가 수정되었습니다')
         close()
         reload()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -138,7 +183,9 @@ export default function ContactsClient({ accounts }: Props) {
         toast.success('담당자가 삭제되었습니다')
         close()
         reload()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -179,9 +226,12 @@ export default function ContactsClient({ accounts }: Props) {
         </div>
       </div>
       <label className="flex items-center gap-2 cursor-pointer">
-        <input type="checkbox" checked={isPrimary}
+        <input
+          type="checkbox"
+          checked={isPrimary}
           onChange={(e) => setIsPrimary(e.target.checked)}
-          className="h-4 w-4 rounded border-input" />
+          className="h-4 w-4 rounded border-input"
+        />
         <span className="text-sm">주 담당자</span>
       </label>
     </div>
@@ -203,8 +253,11 @@ export default function ContactsClient({ accounts }: Props) {
 
       <div className="mb-4 max-w-md">
         <Label className="mb-1.5 block">고객사</Label>
-        <Select value={selectedAccountId} onValueChange={onAccountChange}
-          disabled={dialog.type !== 'none'}>
+        <Select
+          value={selectedAccountId}
+          onValueChange={onAccountChange}
+          disabled={dialog.type !== 'none'}
+        >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="고객사 선택" />
           </SelectTrigger>
@@ -253,22 +306,44 @@ export default function ContactsClient({ accounts }: Props) {
               ) : (
                 contacts.map((ct) => (
                   <TableRow key={ct.id}>
-                    <TableCell className="font-medium">{ct.lastName}{ct.firstName}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{ct.title ?? '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{ct.department ?? '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{ct.email ?? '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{ct.phone ?? '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{ct.mobile ?? '—'}</TableCell>
+                    <TableCell className="font-medium">
+                      {ct.lastName}
+                      {ct.firstName}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {ct.title ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {ct.department ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {ct.email ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {ct.phone ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {ct.mobile ?? '—'}
+                    </TableCell>
                     <TableCell>{ct.isPrimary && <Badge>주 담당자</Badge>}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
                         {canWrite && (
                           <>
-                            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(ct)}>
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              title="수정"
+                              onClick={() => openEdit(ct)}
+                            >
                               <PencilIcon />
                             </Button>
-                            <Button variant="ghost" size="icon-xs" title="삭제"
-                              onClick={() => setDialog({ type: 'delete', contact: ct })}>
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              title="삭제"
+                              onClick={() => setDialog({ type: 'delete', contact: ct })}
+                            >
                               <Trash2Icon className="text-destructive" />
                             </Button>
                           </>
@@ -284,41 +359,76 @@ export default function ContactsClient({ accounts }: Props) {
       )}
 
       {/* Create */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>새 담당자 등록</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>새 담당자 등록</DialogTitle>
+          </DialogHeader>
           {contactForm}
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit */}
-      <Dialog open={dialog.type === 'edit'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'edit'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>담당자 수정</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>담당자 수정</DialogTitle>
+          </DialogHeader>
           {contactForm}
           <DialogFooter showCloseButton>
-            <Button onClick={() => dialog.type === 'edit' && handleUpdate(dialog.contact)}
-              disabled={isPending}>저장</Button>
+            <Button
+              onClick={() => dialog.type === 'edit' && handleUpdate(dialog.contact)}
+              disabled={isPending}
+            >
+              저장
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete */}
-      <Dialog open={dialog.type === 'delete'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'delete'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>담당자 삭제</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>담당자 삭제</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'delete' && (
             <p className="text-sm text-muted-foreground py-2">
-              <strong>{dialog.contact.lastName}{dialog.contact.firstName}</strong> 담당자를 삭제하시겠습니까?
+              <strong>
+                {dialog.contact.lastName}
+                {dialog.contact.firstName}
+              </strong>{' '}
+              담당자를 삭제하시겠습니까?
             </p>
           )}
           <DialogFooter showCloseButton>
-            <Button variant="destructive"
+            <Button
+              variant="destructive"
               onClick={() => dialog.type === 'delete' && handleDelete(dialog.contact)}
-              disabled={isPending}>삭제</Button>
+              disabled={isPending}
+            >
+              삭제
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

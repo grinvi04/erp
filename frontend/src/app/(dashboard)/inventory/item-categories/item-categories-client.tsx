@@ -8,13 +8,26 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { createItemCategory, updateItemCategory, deleteItemCategory } from './actions'
 import type { ItemCategory } from '@/types/inventory'
@@ -27,7 +40,9 @@ type DialogMode =
   | { type: 'edit'; cat: ItemCategory }
   | { type: 'delete'; cat: ItemCategory }
 
-interface Props { categories: ItemCategory[] }
+interface Props {
+  categories: ItemCategory[]
+}
 
 export default function ItemCategoriesClient({ categories }: Props) {
   const { can } = usePermissions()
@@ -41,42 +56,57 @@ export default function ItemCategoriesClient({ categories }: Props) {
   const [parentId, setParentId] = useState('')
 
   const openCreate = () => {
-    setCode(''); setName(''); setParentId('')
+    setCode('')
+    setName('')
+    setParentId('')
     setDialog({ type: 'create' })
   }
 
   const openEdit = (cat: ItemCategory) => {
-    setCode(cat.code); setName(cat.name)
+    setCode(cat.code)
+    setName(cat.name)
     setParentId(cat.parentId != null ? String(cat.parentId) : '')
     setDialog({ type: 'edit', cat })
   }
 
   const handleCreate = () => {
-    if (!code.trim() || !name.trim()) { toast.error('코드와 분류명은 필수입니다'); return }
+    if (!code.trim() || !name.trim()) {
+      toast.error('코드와 분류명은 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
         await createItemCategory({
-          code: code.trim(), name: name.trim(),
+          code: code.trim(),
+          name: name.trim(),
           parentId: parentId ? Number(parentId) : null,
         })
         toast.success('품목분류가 등록되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
+      }
     })
   }
 
   const handleUpdate = (cat: ItemCategory) => {
-    if (!name.trim()) { toast.error('분류명은 필수입니다'); return }
+    if (!name.trim()) {
+      toast.error('분류명은 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
         await updateItemCategory(cat.id, {
-          code: cat.code, name: name.trim(),
+          code: cat.code,
+          name: name.trim(),
           parentId: parentId ? Number(parentId) : null,
           version: cat.version,
         })
         toast.success('품목분류가 수정되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -86,13 +116,14 @@ export default function ItemCategoriesClient({ categories }: Props) {
         await deleteItemCategory(cat.id)
         toast.success('품목분류가 삭제되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다')
+      }
     })
   }
 
   // 부모 선택지: 자기 자신 제외 (순환 방지)
-  const parentOptions = (selfId?: number) =>
-    categories.filter((c) => c.id !== selfId)
+  const parentOptions = (selfId?: number) => categories.filter((c) => c.id !== selfId)
 
   const parentField = (selfId?: number) => (
     <div className="grid gap-1.5">
@@ -101,11 +132,15 @@ export default function ItemCategoriesClient({ categories }: Props) {
         value={parentId || NONE}
         onValueChange={(v) => setParentId(v === NONE ? '' : (v ?? ''))}
       >
-        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
         <SelectContent>
           <SelectItem value={NONE}>없음 (최상위)</SelectItem>
           {parentOptions(selfId).map((c) => (
-            <SelectItem key={c.id} value={String(c.id)}>{c.code} — {c.name}</SelectItem>
+            <SelectItem key={c.id} value={String(c.id)}>
+              {c.code} — {c.name}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -119,7 +154,11 @@ export default function ItemCategoriesClient({ categories }: Props) {
           <h1 className="text-2xl font-semibold text-foreground">품목분류 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">품목 분류 체계를 관리합니다</p>
         </div>
-        {canWrite && <Button onClick={openCreate}><PlusIcon />새 분류</Button>}
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 분류
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-lg border">
@@ -144,17 +183,26 @@ export default function ItemCategoriesClient({ categories }: Props) {
               <TableRow key={cat.id}>
                 <TableCell className="font-mono text-sm">{cat.code}</TableCell>
                 <TableCell className="font-medium">{cat.name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{cat.parentName ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {cat.parentName ?? '—'}
+                </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     {canWrite && (
-                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(cat)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="수정"
+                        onClick={() => openEdit(cat)}
+                      >
                         <PencilIcon />
                       </Button>
                     )}
                     {canWrite && (
                       <Button
-                        variant="ghost" size="icon-xs" title="삭제"
+                        variant="ghost"
+                        size="icon-xs"
+                        title="삭제"
                         onClick={() => setDialog({ type: 'delete', cat })}
                       >
                         <Trash2Icon className="text-destructive" />
@@ -169,9 +217,16 @@ export default function ItemCategoriesClient({ categories }: Props) {
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>새 품목분류 등록</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>새 품목분류 등록</DialogTitle>
+          </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
               <Label>코드 *</Label>
@@ -179,18 +234,29 @@ export default function ItemCategoriesClient({ categories }: Props) {
             </div>
             <div className="grid gap-1.5">
               <Label>분류명 *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="전자제품" />
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="전자제품"
+              />
             </div>
             {parentField()}
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={dialog.type === 'edit'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'edit'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -220,12 +286,22 @@ export default function ItemCategoriesClient({ categories }: Props) {
       </Dialog>
 
       {/* Delete Dialog */}
-      <Dialog open={dialog.type === 'delete'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'delete'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>품목분류 삭제</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>품목분류 삭제</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'delete' && (
             <p className="text-sm text-muted-foreground py-2">
-              <strong>{dialog.cat.code} {dialog.cat.name}</strong>을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              <strong>
+                {dialog.cat.code} {dialog.cat.name}
+              </strong>
+              을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
             </p>
           )}
           <DialogFooter showCloseButton>

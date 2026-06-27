@@ -19,7 +19,10 @@ export async function createLead(data: Omit<LeadPayload, 'ownerId'>): Promise<vo
   revalidatePath('/crm/leads')
 }
 
-export async function updateLead(id: number, data: LeadPayload & { version: number }): Promise<void> {
+export async function updateLead(
+  id: number,
+  data: LeadPayload & { version: number },
+): Promise<void> {
   await apiPut(`/api/crm/leads/${id}`, data)
   revalidatePath('/crm/leads')
 }

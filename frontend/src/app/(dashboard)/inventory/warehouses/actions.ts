@@ -3,15 +3,22 @@ import { apiPost, apiPut, apiDelete } from '@/lib/api'
 import { revalidatePath } from 'next/cache'
 
 export async function createWarehouse(data: {
-  code: string; name: string; address: string | null
+  code: string
+  name: string
+  address: string | null
 }): Promise<void> {
   await apiPost('/api/inventory/warehouses', data)
   revalidatePath('/inventory/warehouses')
 }
 
-export async function updateWarehouse(id: number, data: {
-  version: number; name: string; address: string | null
-}): Promise<void> {
+export async function updateWarehouse(
+  id: number,
+  data: {
+    version: number
+    name: string
+    address: string | null
+  },
+): Promise<void> {
   await apiPut(`/api/inventory/warehouses/${id}`, data)
   revalidatePath('/inventory/warehouses')
 }

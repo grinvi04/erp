@@ -29,8 +29,17 @@ export async function approveArInvoice(id: number): Promise<void> {
   revalidatePath(PATH)
 }
 
-export async function collectArInvoice(id: number, amount: number, cashAccountId: number | null, paymentDate: string | null): Promise<void> {
-  await apiPost<ArInvoice>(`/api/finance/ar-invoices/${id}/pay`, { amount, cashAccountId, paymentDate })
+export async function collectArInvoice(
+  id: number,
+  amount: number,
+  cashAccountId: number | null,
+  paymentDate: string | null,
+): Promise<void> {
+  await apiPost<ArInvoice>(`/api/finance/ar-invoices/${id}/pay`, {
+    amount,
+    cashAccountId,
+    paymentDate,
+  })
   revalidatePath(PATH)
 }
 

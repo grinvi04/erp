@@ -8,13 +8,26 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { fetchContracts, createContract } from './actions'
 import type { Contract, ContractType, Employee, Position, JobGrade } from '@/types/hr'
@@ -34,8 +47,7 @@ interface Props {
   jobGrades: JobGrade[]
 }
 
-const fmt = (v: number | null) =>
-  v == null ? '—' : v.toLocaleString('ko-KR')
+const fmt = (v: number | null) => (v == null ? '—' : v.toLocaleString('ko-KR'))
 
 export default function ContractsClient({ employees, positions, jobGrades }: Props) {
   const [empId, setEmpId] = useState<string>('')
@@ -75,8 +87,13 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
   }
 
   const openCreate = () => {
-    setContractType(''); setStartDate(''); setEndDate(''); setBaseSalary('')
-    setPositionId(''); setJobGradeId(''); setNote('')
+    setContractType('')
+    setStartDate('')
+    setEndDate('')
+    setBaseSalary('')
+    setPositionId('')
+    setJobGradeId('')
+    setNote('')
     setCreateOpen(true)
   }
 
@@ -114,11 +131,12 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">근로 계약</h1>
-          <p className="text-sm text-muted-foreground mt-1">직원별 근로 계약 이력을 조회·등록합니다</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            직원별 근로 계약 이력을 조회·등록합니다
+          </p>
         </div>
         <Button onClick={openCreate} disabled={!empId}>
-          <PlusIcon />
-          새 계약
+          <PlusIcon />새 계약
         </Button>
       </div>
 
@@ -173,27 +191,36 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
                 </TableCell>
               </TableRow>
             )}
-            {empId && !loading && contracts.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell>
-                  <Badge variant="secondary">{CONTRACT_TYPE_LABEL[c.contractType]}</Badge>
-                </TableCell>
-                <TableCell className="text-sm">{c.startDate}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{c.endDate ?? '—'}</TableCell>
-                <TableCell className="text-sm">{c.positionName}</TableCell>
-                <TableCell className="text-sm">{c.jobGradeName ?? '—'}</TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">
-                  {fmt(c.baseSalary)}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{c.note ?? '—'}</TableCell>
-              </TableRow>
-            ))}
+            {empId &&
+              !loading &&
+              contracts.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell>
+                    <Badge variant="secondary">{CONTRACT_TYPE_LABEL[c.contractType]}</Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">{c.startDate}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {c.endDate ?? '—'}
+                  </TableCell>
+                  <TableCell className="text-sm">{c.positionName}</TableCell>
+                  <TableCell className="text-sm">{c.jobGradeName ?? '—'}</TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">
+                    {fmt(c.baseSalary)}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{c.note ?? '—'}</TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={createOpen} onOpenChange={(o) => { if (!o) setCreateOpen(false) }}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(o) => {
+          if (!o) setCreateOpen(false)
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>새 근로 계약</DialogTitle>
@@ -202,10 +229,14 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
             <div className="grid gap-1.5">
               <Label>계약 유형 *</Label>
               <Select value={contractType} onValueChange={(v) => setContractType(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {CONTRACT_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{CONTRACT_TYPE_LABEL[t]}</SelectItem>
+                    <SelectItem key={t} value={t}>
+                      {CONTRACT_TYPE_LABEL[t]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -213,7 +244,11 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
                 <Label>시작일 *</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label>종료일</Label>
@@ -223,10 +258,14 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
             <div className="grid gap-1.5">
               <Label>직위 *</Label>
               <Select value={positionId} onValueChange={(v) => setPositionId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="직위 선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="직위 선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {positions.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -234,11 +273,15 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
             <div className="grid gap-1.5">
               <Label>직급</Label>
               <Select value={jobGradeId} onValueChange={(v) => setJobGradeId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="직급 선택 (선택)" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="직급 선택 (선택)" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">선택 안 함</SelectItem>
                   {jobGrades.map((g) => (
-                    <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
+                    <SelectItem key={g.id} value={String(g.id)}>
+                      {g.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -259,7 +302,9 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -12,7 +12,8 @@ const PermissionsContext = createContext<PermissionsContextValue>({
 })
 
 export function PermissionsProvider({
-  permissions, children,
+  permissions,
+  children,
 }: {
   permissions: string[]
   children: React.ReactNode

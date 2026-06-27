@@ -8,21 +8,29 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import { createUom, updateUom, deleteUom } from './actions'
 import type { Uom } from '@/types/inventory'
 
 type DialogMode =
-  | { type: 'none' }
-  | { type: 'create' }
-  | { type: 'edit'; uom: Uom }
-  | { type: 'delete'; uom: Uom }
+  { type: 'none' } | { type: 'create' } | { type: 'edit'; uom: Uom } | { type: 'delete'; uom: Uom }
 
-interface Props { uoms: Uom[] }
+interface Props {
+  uoms: Uom[]
+}
 
 export default function UomsClient({ uoms }: Props) {
   const { can } = usePermissions()
@@ -35,34 +43,46 @@ export default function UomsClient({ uoms }: Props) {
   const [name, setName] = useState('')
 
   const openCreate = () => {
-    setCode(''); setName('')
+    setCode('')
+    setName('')
     setDialog({ type: 'create' })
   }
 
   const openEdit = (uom: Uom) => {
-    setCode(uom.code); setName(uom.name)
+    setCode(uom.code)
+    setName(uom.name)
     setDialog({ type: 'edit', uom })
   }
 
   const handleCreate = () => {
-    if (!code.trim() || !name.trim()) { toast.error('코드와 단위명은 필수입니다'); return }
+    if (!code.trim() || !name.trim()) {
+      toast.error('코드와 단위명은 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
         await createUom({ code: code.trim(), name: name.trim() })
         toast.success('단위가 등록되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
+      }
     })
   }
 
   const handleUpdate = (uom: Uom) => {
-    if (!name.trim()) { toast.error('단위명은 필수입니다'); return }
+    if (!name.trim()) {
+      toast.error('단위명은 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
         await updateUom(uom.id, { code: uom.code, name: name.trim(), version: uom.version })
         toast.success('단위가 수정되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -72,7 +92,9 @@ export default function UomsClient({ uoms }: Props) {
         await deleteUom(uom.id)
         toast.success('단위가 삭제되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -83,7 +105,11 @@ export default function UomsClient({ uoms }: Props) {
           <h1 className="text-2xl font-semibold text-foreground">단위 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">측정 단위(UOM) 마스터를 관리합니다</p>
         </div>
-        {canWrite && <Button onClick={openCreate}><PlusIcon />새 단위</Button>}
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 단위
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-lg border">
@@ -110,13 +136,20 @@ export default function UomsClient({ uoms }: Props) {
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     {canWrite && (
-                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(uom)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="수정"
+                        onClick={() => openEdit(uom)}
+                      >
                         <PencilIcon />
                       </Button>
                     )}
                     {canWrite && (
                       <Button
-                        variant="ghost" size="icon-xs" title="삭제"
+                        variant="ghost"
+                        size="icon-xs"
+                        title="삭제"
                         onClick={() => setDialog({ type: 'delete', uom })}
                       >
                         <Trash2Icon className="text-destructive" />
@@ -131,9 +164,16 @@ export default function UomsClient({ uoms }: Props) {
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>새 단위 등록</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>새 단위 등록</DialogTitle>
+          </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
               <Label>코드 *</Label>
@@ -145,18 +185,23 @@ export default function UomsClient({ uoms }: Props) {
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={dialog.type === 'edit'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'edit'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              단위 수정{dialog.type === 'edit' && ` — ${dialog.uom.code}`}
-            </DialogTitle>
+            <DialogTitle>단위 수정{dialog.type === 'edit' && ` — ${dialog.uom.code}`}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
@@ -180,12 +225,22 @@ export default function UomsClient({ uoms }: Props) {
       </Dialog>
 
       {/* Delete Dialog */}
-      <Dialog open={dialog.type === 'delete'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'delete'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>단위 삭제</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>단위 삭제</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'delete' && (
             <p className="text-sm text-muted-foreground py-2">
-              <strong>{dialog.uom.code} {dialog.uom.name}</strong>을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              <strong>
+                {dialog.uom.code} {dialog.uom.name}
+              </strong>
+              을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
             </p>
           )}
           <DialogFooter showCloseButton>

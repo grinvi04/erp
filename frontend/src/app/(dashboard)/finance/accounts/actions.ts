@@ -17,11 +17,14 @@ export async function createAccount(data: {
   revalidatePath(PATH)
 }
 
-export async function updateAccount(id: number, data: {
-  name: string
-  isSummary: boolean
-  version: number
-}): Promise<void> {
+export async function updateAccount(
+  id: number,
+  data: {
+    name: string
+    isSummary: boolean
+    version: number
+  },
+): Promise<void> {
   await apiPut<Account>(`/api/finance/accounts/${id}`, data)
   revalidatePath(PATH)
 }

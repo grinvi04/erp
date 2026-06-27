@@ -10,17 +10,34 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import {
-  createActivity, completeActivity, cancelActivity, deleteActivity, type ActivityPayload,
+  createActivity,
+  completeActivity,
+  cancelActivity,
+  deleteActivity,
+  type ActivityPayload,
 } from './actions'
 import type { Activity, ActivityType, ActivityStatus, CrmAccount } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
@@ -69,8 +86,11 @@ export default function ActivitiesClient({ data, accounts }: Props) {
   const [description, setDescription] = useState('')
 
   const openCreate = () => {
-    setActivityType('CALL'); setSubject(''); setAccountId('')
-    setDueDate(''); setDescription('')
+    setActivityType('CALL')
+    setSubject('')
+    setAccountId('')
+    setDueDate('')
+    setDescription('')
     setDialog({ type: 'create' })
   }
 
@@ -83,7 +103,10 @@ export default function ActivitiesClient({ data, accounts }: Props) {
   })
 
   const validate = (): boolean => {
-    if (!subject.trim()) { toast.error('제목은 필수입니다'); return false }
+    if (!subject.trim()) {
+      toast.error('제목은 필수입니다')
+      return false
+    }
     return true
   }
 
@@ -94,7 +117,9 @@ export default function ActivitiesClient({ data, accounts }: Props) {
         await createActivity(buildPayload())
         toast.success('활동이 등록되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -104,7 +129,9 @@ export default function ActivitiesClient({ data, accounts }: Props) {
         await completeActivity(act.id)
         toast.success('활동이 완료 처리되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '완료 처리 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '완료 처리 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -114,7 +141,9 @@ export default function ActivitiesClient({ data, accounts }: Props) {
         await cancelActivity(act.id)
         toast.success('활동이 취소 처리되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '취소 처리 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '취소 처리 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -124,7 +153,9 @@ export default function ActivitiesClient({ data, accounts }: Props) {
         await deleteActivity(act.id)
         toast.success('활동이 삭제되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -133,11 +164,18 @@ export default function ActivitiesClient({ data, accounts }: Props) {
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-1.5">
           <Label>유형 *</Label>
-          <Select value={activityType} onValueChange={(v) => setActivityType((v ?? 'CALL') as ActivityType)}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+          <Select
+            value={activityType}
+            onValueChange={(v) => setActivityType((v ?? 'CALL') as ActivityType)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {(Object.keys(TYPE_LABEL) as ActivityType[]).map((t) => (
-                <SelectItem key={t} value={t}>{TYPE_LABEL[t]}</SelectItem>
+                <SelectItem key={t} value={t}>
+                  {TYPE_LABEL[t]}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -145,10 +183,14 @@ export default function ActivitiesClient({ data, accounts }: Props) {
         <div className="grid gap-1.5">
           <Label>고객사</Label>
           <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="선택 안 함" /></SelectTrigger>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="선택 안 함" />
+            </SelectTrigger>
             <SelectContent>
               {accounts.map((acc) => (
-                <SelectItem key={acc.id} value={String(acc.id)}>{acc.name}</SelectItem>
+                <SelectItem key={acc.id} value={String(acc.id)}>
+                  {acc.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -176,7 +218,11 @@ export default function ActivitiesClient({ data, accounts }: Props) {
           <h1 className="text-2xl font-semibold text-foreground">활동</h1>
           <p className="text-sm text-muted-foreground mt-1">영업 활동 이력을 관리합니다</p>
         </div>
-        {canWrite && <Button onClick={openCreate}><PlusIcon />새 활동</Button>}
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 활동
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-lg border overflow-hidden">
@@ -206,9 +252,15 @@ export default function ActivitiesClient({ data, accounts }: Props) {
                   <Badge variant="secondary">{TYPE_LABEL[act.activityType]}</Badge>
                 </TableCell>
                 <TableCell className="font-medium max-w-xs truncate">{act.subject}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{act.accountName ?? '—'}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{act.contactName ?? '—'}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{act.dueDate ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {act.accountName ?? '—'}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {act.contactName ?? '—'}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {act.dueDate ?? '—'}
+                </TableCell>
                 <TableCell>
                   <Badge variant={STATUS_VARIANT[act.status]}>{STATUS_LABEL[act.status]}</Badge>
                 </TableCell>
@@ -216,19 +268,31 @@ export default function ActivitiesClient({ data, accounts }: Props) {
                   <div className="flex justify-end gap-1">
                     {canWrite && act.status === 'OPEN' && (
                       <>
-                        <Button variant="ghost" size="icon-xs" title="완료"
-                          onClick={() => setDialog({ type: 'complete', activity: act })}>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          title="완료"
+                          onClick={() => setDialog({ type: 'complete', activity: act })}
+                        >
                           <CheckIcon />
                         </Button>
-                        <Button variant="ghost" size="icon-xs" title="취소"
-                          onClick={() => setDialog({ type: 'cancel', activity: act })}>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          title="취소"
+                          onClick={() => setDialog({ type: 'cancel', activity: act })}
+                        >
                           <BanIcon />
                         </Button>
                       </>
                     )}
                     {canWrite && (
-                      <Button variant="ghost" size="icon-xs" title="삭제"
-                        onClick={() => setDialog({ type: 'delete', activity: act })}>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="삭제"
+                        onClick={() => setDialog({ type: 'delete', activity: act })}
+                      >
                         <Trash2Icon className="text-destructive" />
                       </Button>
                     )}
@@ -239,69 +303,113 @@ export default function ActivitiesClient({ data, accounts }: Props) {
           </TableBody>
         </Table>
         <PaginationBar
-          page={data.page} totalPages={data.totalPages}
-          totalElements={data.totalElements} size={data.size}
+          page={data.page}
+          totalPages={data.totalPages}
+          totalElements={data.totalElements}
+          size={data.size}
           basePath="/crm/activities"
         />
       </div>
 
       {/* Create */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>새 활동 등록</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>새 활동 등록</DialogTitle>
+          </DialogHeader>
           {activityForm}
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Complete */}
-      <Dialog open={dialog.type === 'complete'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'complete'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>활동 완료</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>활동 완료</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'complete' && (
             <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.activity.subject}</strong> — 이 활동을 완료 처리하시겠습니까?
             </p>
           )}
           <DialogFooter showCloseButton>
-            <Button onClick={() => dialog.type === 'complete' && handleComplete(dialog.activity)}
-              disabled={isPending}>완료</Button>
+            <Button
+              onClick={() => dialog.type === 'complete' && handleComplete(dialog.activity)}
+              disabled={isPending}
+            >
+              완료
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Cancel */}
-      <Dialog open={dialog.type === 'cancel'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'cancel'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>활동 취소</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>활동 취소</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'cancel' && (
             <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.activity.subject}</strong> — 이 활동을 취소 처리하시겠습니까?
             </p>
           )}
           <DialogFooter showCloseButton>
-            <Button variant="destructive"
+            <Button
+              variant="destructive"
               onClick={() => dialog.type === 'cancel' && handleCancel(dialog.activity)}
-              disabled={isPending}>취소 처리</Button>
+              disabled={isPending}
+            >
+              취소 처리
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete */}
-      <Dialog open={dialog.type === 'delete'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'delete'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>활동 삭제</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>활동 삭제</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'delete' && (
             <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.activity.subject}</strong> — 이 활동을 삭제하시겠습니까?
             </p>
           )}
           <DialogFooter showCloseButton>
-            <Button variant="destructive"
+            <Button
+              variant="destructive"
               onClick={() => dialog.type === 'delete' && handleDelete(dialog.activity)}
-              disabled={isPending}>삭제</Button>
+              disabled={isPending}
+            >
+              삭제
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

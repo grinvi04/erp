@@ -23,18 +23,23 @@ setup('authenticate', async ({ context }) => {
     tenantId: '1',
   }
   const cookieValue = await encode({
-    token, secret: AUTH_SECRET, salt: COOKIE_NAME, maxAge: oneDay,
+    token,
+    secret: AUTH_SECRET,
+    salt: COOKIE_NAME,
+    maxAge: oneDay,
   })
 
-  await context.addCookies([{
-    name: COOKIE_NAME,
-    value: cookieValue,
-    domain: 'localhost',
-    path: '/',
-    httpOnly: true,
-    sameSite: 'Lax',
-    expires: Math.floor(Date.now() / 1000) + oneDay,
-  }])
+  await context.addCookies([
+    {
+      name: COOKIE_NAME,
+      value: cookieValue,
+      domain: 'localhost',
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+      expires: Math.floor(Date.now() / 1000) + oneDay,
+    },
+  ])
 
   fs.mkdirSync(path.dirname(AUTH_FILE), { recursive: true })
   await context.storageState({ path: AUTH_FILE })

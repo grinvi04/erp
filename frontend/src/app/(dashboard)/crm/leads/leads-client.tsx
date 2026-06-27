@@ -10,13 +10,26 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { createLead, updateLead, convertLead, deleteLead, type LeadPayload } from './actions'
@@ -70,8 +83,14 @@ export default function LeadsClient({ data, accounts }: Props) {
   const [accountId, setAccountId] = useState('')
 
   const openCreate = () => {
-    setLastName(''); setFirstName(''); setCompany(''); setTitle(''); setEmail('')
-    setPhone(''); setSource(''); setNote('')
+    setLastName('')
+    setFirstName('')
+    setCompany('')
+    setTitle('')
+    setEmail('')
+    setPhone('')
+    setSource('')
+    setNote('')
     setDialog({ type: 'create' })
   }
 
@@ -80,10 +99,15 @@ export default function LeadsClient({ data, accounts }: Props) {
       toast.error('전환된 리드는 수정할 수 없습니다')
       return
     }
-    setLastName(lead.lastName); setFirstName(lead.firstName)
-    setCompany(lead.company ?? ''); setTitle(lead.title ?? '')
-    setEmail(lead.email ?? ''); setPhone(lead.phone ?? '')
-    setSource(lead.source ?? ''); setOwnerId(lead.ownerId); setNote(lead.note ?? '')
+    setLastName(lead.lastName)
+    setFirstName(lead.firstName)
+    setCompany(lead.company ?? '')
+    setTitle(lead.title ?? '')
+    setEmail(lead.email ?? '')
+    setPhone(lead.phone ?? '')
+    setSource(lead.source ?? '')
+    setOwnerId(lead.ownerId)
+    setNote(lead.note ?? '')
     setDialog({ type: 'edit', lead })
   }
 
@@ -104,8 +128,14 @@ export default function LeadsClient({ data, accounts }: Props) {
   })
 
   const validate = (): boolean => {
-    if (!lastName.trim()) { toast.error('성은 필수입니다'); return false }
-    if (!firstName.trim()) { toast.error('이름은 필수입니다'); return false }
+    if (!lastName.trim()) {
+      toast.error('성은 필수입니다')
+      return false
+    }
+    if (!firstName.trim()) {
+      toast.error('이름은 필수입니다')
+      return false
+    }
     return true
   }
 
@@ -116,30 +146,46 @@ export default function LeadsClient({ data, accounts }: Props) {
         await createLead(buildPayload())
         toast.success('리드가 등록되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
+      }
     })
   }
 
   const handleUpdate = (lead: Lead) => {
     if (!validate()) return
-    if (!ownerId.trim()) { toast.error('담당자는 필수입니다'); return }
+    if (!ownerId.trim()) {
+      toast.error('담당자는 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
-        await updateLead(lead.id, { ...buildPayload(), ownerId: ownerId.trim(), version: lead.version })
+        await updateLead(lead.id, {
+          ...buildPayload(),
+          ownerId: ownerId.trim(),
+          version: lead.version,
+        })
         toast.success('리드가 수정되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다')
+      }
     })
   }
 
   const handleConvert = (lead: Lead) => {
-    if (!accountId) { toast.error('고객사를 선택해주세요'); return }
+    if (!accountId) {
+      toast.error('고객사를 선택해주세요')
+      return
+    }
     startTransition(async () => {
       try {
         await convertLead(lead.id, { accountId: Number(accountId), opportunityId: null })
         toast.success('리드가 전환되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '전환 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '전환 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -149,7 +195,9 @@ export default function LeadsClient({ data, accounts }: Props) {
         await deleteLead(lead.id)
         toast.success('리드가 삭제되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -211,7 +259,11 @@ export default function LeadsClient({ data, accounts }: Props) {
           <h1 className="text-2xl font-semibold text-foreground">리드</h1>
           <p className="text-sm text-muted-foreground mt-1">잠재 고객 리드를 관리합니다</p>
         </div>
-        {canWrite && <Button onClick={openCreate}><PlusIcon />새 리드</Button>}
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 리드
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-lg border overflow-hidden">
@@ -239,16 +291,19 @@ export default function LeadsClient({ data, accounts }: Props) {
             {data.content.map((lead) => (
               <TableRow key={lead.id}>
                 <TableCell className="font-medium">
-                  {lead.lastName}{lead.firstName}
+                  {lead.lastName}
+                  {lead.firstName}
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{lead.company ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {lead.company ?? '—'}
+                </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{lead.title ?? '—'}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{lead.email ?? '—'}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{lead.source ?? '—'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {lead.source ?? '—'}
+                </TableCell>
                 <TableCell>
-                  <Badge variant={STATUS_VARIANT[lead.status]}>
-                    {STATUS_LABEL[lead.status]}
-                  </Badge>
+                  <Badge variant={STATUS_VARIANT[lead.status]}>{STATUS_LABEL[lead.status]}</Badge>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {lead.createdAt.slice(0, 10)}
@@ -256,18 +311,32 @@ export default function LeadsClient({ data, accounts }: Props) {
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     {canWrite && lead.status !== 'CONVERTED' && (
-                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(lead)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="수정"
+                        onClick={() => openEdit(lead)}
+                      >
                         <PencilIcon />
                       </Button>
                     )}
                     {canWrite && lead.status !== 'CONVERTED' && lead.status !== 'DISQUALIFIED' && (
-                      <Button variant="ghost" size="icon-xs" title="전환" onClick={() => openConvert(lead)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="전환"
+                        onClick={() => openConvert(lead)}
+                      >
                         <ArrowRightLeft />
                       </Button>
                     )}
                     {canWrite && (
-                      <Button variant="ghost" size="icon-xs" title="삭제"
-                        onClick={() => setDialog({ type: 'delete', lead })}>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="삭제"
+                        onClick={() => setDialog({ type: 'delete', lead })}
+                      >
                         <Trash2Icon className="text-destructive" />
                       </Button>
                     )}
@@ -278,52 +347,81 @@ export default function LeadsClient({ data, accounts }: Props) {
           </TableBody>
         </Table>
         <PaginationBar
-          page={data.page} totalPages={data.totalPages}
-          totalElements={data.totalElements} size={data.size}
+          page={data.page}
+          totalPages={data.totalPages}
+          totalElements={data.totalElements}
+          size={data.size}
           basePath="/crm/leads"
         />
       </div>
 
       {/* Create */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>새 리드 등록</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>새 리드 등록</DialogTitle>
+          </DialogHeader>
           {leadForm}
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit */}
-      <Dialog open={dialog.type === 'edit'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'edit'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              리드 수정{dialog.type === 'edit' && ` — ${dialog.lead.lastName}${dialog.lead.firstName}`}
+              리드 수정
+              {dialog.type === 'edit' && ` — ${dialog.lead.lastName}${dialog.lead.firstName}`}
             </DialogTitle>
           </DialogHeader>
           {leadForm}
           <DialogFooter showCloseButton>
-            <Button onClick={() => dialog.type === 'edit' && handleUpdate(dialog.lead)}
-              disabled={isPending}>저장</Button>
+            <Button
+              onClick={() => dialog.type === 'edit' && handleUpdate(dialog.lead)}
+              disabled={isPending}
+            >
+              저장
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Convert */}
-      <Dialog open={dialog.type === 'convert'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'convert'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              리드 전환{dialog.type === 'convert' && ` — ${dialog.lead.lastName}${dialog.lead.firstName}`}
+              리드 전환
+              {dialog.type === 'convert' && ` — ${dialog.lead.lastName}${dialog.lead.firstName}`}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
               <Label>고객사 *</Label>
               <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="고객사 선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="고객사 선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {accounts.map((acc) => (
                     <SelectItem key={acc.id} value={String(acc.id)}>
@@ -335,25 +433,44 @@ export default function LeadsClient({ data, accounts }: Props) {
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={() => dialog.type === 'convert' && handleConvert(dialog.lead)}
-              disabled={isPending}>전환</Button>
+            <Button
+              onClick={() => dialog.type === 'convert' && handleConvert(dialog.lead)}
+              disabled={isPending}
+            >
+              전환
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete */}
-      <Dialog open={dialog.type === 'delete'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'delete'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>리드 삭제</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>리드 삭제</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'delete' && (
             <p className="text-sm text-muted-foreground py-2">
-              <strong>{dialog.lead.lastName}{dialog.lead.firstName}</strong> 리드를 삭제하시겠습니까?
+              <strong>
+                {dialog.lead.lastName}
+                {dialog.lead.firstName}
+              </strong>{' '}
+              리드를 삭제하시겠습니까?
             </p>
           )}
           <DialogFooter showCloseButton>
-            <Button variant="destructive"
+            <Button
+              variant="destructive"
               onClick={() => dialog.type === 'delete' && handleDelete(dialog.lead)}
-              disabled={isPending}>삭제</Button>
+              disabled={isPending}
+            >
+              삭제
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

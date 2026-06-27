@@ -11,8 +11,10 @@ import { join } from 'node:path'
 const ROOT = 'src'
 const EXTS = ['.ts', '.tsx', '.js', '.jsx']
 // 금지: (text|bg|border|ring|fill|stroke|from|to|via|divide|outline|shadow|accent|placeholder)-<색이름>-<숫자>  + 단독 bg-white
-const PALETTE = 'slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose'
-const PREFIX = 'text|bg|border|ring|fill|stroke|from|to|via|divide|outline|accent|placeholder|shadow'
+const PALETTE =
+  'slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose'
+const PREFIX =
+  'text|bg|border|ring|fill|stroke|from|to|via|divide|outline|accent|placeholder|shadow'
 const BANNED = new RegExp(`\\b(?:${PREFIX})-(?:${PALETTE})-\\d{2,3}\\b|\\bbg-white\\b`, 'g')
 const ALLOW = '// design-token-ok'
 
@@ -41,7 +43,9 @@ if (violations.length) {
   console.error(`\n✖ 하드코딩 색 ${violations.length}건 — 시맨틱 토큰을 쓰세요(다크모드 보장):`)
   for (const v of violations.slice(0, 50)) console.error(`  ${v.file}:${v.line}  →  ${v.hits}`)
   if (violations.length > 50) console.error(`  … 외 ${violations.length - 50}건`)
-  console.error('\n  매핑: gray-900→foreground, gray-500→muted-foreground, bg-white→bg-card, blue→primary, green→success, red→destructive, amber→warning.')
+  console.error(
+    '\n  매핑: gray-900→foreground, gray-500→muted-foreground, bg-white→bg-card, blue→primary, green→success, red→destructive, amber→warning.',
+  )
   console.error('  의도적 예외(고정 그라데이션 위 흰 글자 등)는 줄 끝에 `// design-token-ok`.\n')
   process.exit(1)
 }
