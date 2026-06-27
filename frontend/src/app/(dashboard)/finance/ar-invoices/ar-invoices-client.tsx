@@ -269,7 +269,9 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
       align: 'right',
       sortable: true,
       sortValue: (inv) => inv.totalAmount,
-      cell: (inv) => <span className="font-mono text-sm">{fmt(inv.totalAmount, inv.currency)}</span>,
+      cell: (inv) => (
+        <span className="font-mono text-sm">{fmt(inv.totalAmount, inv.currency)}</span>
+      ),
     },
     {
       key: 'outstandingAmount',
