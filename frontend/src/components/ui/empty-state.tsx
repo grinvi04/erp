@@ -19,13 +19,20 @@ export function EmptyState({
   className?: string
 }) {
   return (
-    <div className={cn('flex flex-col items-center justify-center gap-3 px-6 py-12 text-center', className)}>
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center gap-3 px-6 py-12 text-center',
+        className,
+      )}
+    >
       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
         <Icon className="h-6 w-6" />
       </span>
       <div className="space-y-1">
         <p className="text-sm font-medium text-foreground">{title}</p>
-        {description && <p className="mx-auto max-w-sm text-sm text-muted-foreground">{description}</p>}
+        {description && (
+          <p className="mx-auto max-w-sm text-sm text-muted-foreground">{description}</p>
+        )}
       </div>
       {action && <div className="mt-1">{action}</div>}
     </div>
@@ -47,13 +54,20 @@ export function ErrorState({
   className?: string
 }) {
   return (
-    <div className={cn('flex flex-col items-center justify-center gap-3 px-6 py-12 text-center', className)}>
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center gap-3 px-6 py-12 text-center',
+        className,
+      )}
+    >
       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
         <TriangleAlert className="h-6 w-6" />
       </span>
       <div className="space-y-1">
         <p className="text-sm font-medium text-foreground">{title}</p>
-        {description && <p className="mx-auto max-w-sm text-sm text-muted-foreground">{description}</p>}
+        {description && (
+          <p className="mx-auto max-w-sm text-sm text-muted-foreground">{description}</p>
+        )}
       </div>
       {action && <div className="mt-1">{action}</div>}
     </div>

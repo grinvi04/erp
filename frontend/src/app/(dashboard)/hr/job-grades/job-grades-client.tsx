@@ -6,10 +6,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import { createJobGrade, updateJobGrade, deleteJobGrade } from './actions'
 import type { JobGrade } from '@/types/hr'
@@ -24,8 +33,7 @@ interface Props {
   jobGrades: JobGrade[]
 }
 
-const fmt = (v: number | null) =>
-  v == null ? '—' : v.toLocaleString('ko-KR')
+const fmt = (v: number | null) => (v == null ? '—' : v.toLocaleString('ko-KR'))
 
 export default function JobGradesClient({ jobGrades }: Props) {
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -38,7 +46,11 @@ export default function JobGradesClient({ jobGrades }: Props) {
   const [maxSalary, setMaxSalary] = useState('')
 
   const openCreate = () => {
-    setCode(''); setName(''); setGradeOrder('0'); setMinSalary(''); setMaxSalary('')
+    setCode('')
+    setName('')
+    setGradeOrder('0')
+    setMinSalary('')
+    setMaxSalary('')
     setDialog({ type: 'create' })
   }
 
@@ -116,8 +128,7 @@ export default function JobGradesClient({ jobGrades }: Props) {
           <p className="text-sm text-muted-foreground mt-1">직급 체계와 급여 범위를 관리합니다</p>
         </div>
         <Button onClick={openCreate}>
-          <PlusIcon />
-          새 직급
+          <PlusIcon />새 직급
         </Button>
       </div>
 
@@ -179,7 +190,9 @@ export default function JobGradesClient({ jobGrades }: Props) {
       {/* Create / Edit Dialog */}
       <Dialog
         open={dialog.type === 'create' || dialog.type === 'edit'}
-        onOpenChange={(open) => { if (!open) close() }}
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
       >
         <DialogContent>
           <DialogHeader>
@@ -262,7 +275,9 @@ export default function JobGradesClient({ jobGrades }: Props) {
       {/* Delete Confirm Dialog */}
       <Dialog
         open={dialog.type === 'delete'}
-        onOpenChange={(open) => { if (!open) close() }}
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
       >
         <DialogContent>
           <DialogHeader>

@@ -9,8 +9,12 @@ import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SidebarNav } from '@/components/layout/sidebar'
 import { CommandPalette } from '@/components/layout/command-palette'
@@ -37,7 +41,9 @@ export function Header() {
       {/* 모바일 네비 드로어 */}
       <Sheet>
         <SheetTrigger
-          render={<Button variant="ghost" size="icon" className="lg:hidden" aria-label="메뉴 열기" />}
+          render={
+            <Button variant="ghost" size="icon" className="lg:hidden" aria-label="메뉴 열기" />
+          }
         >
           <Menu className="h-5 w-5" />
         </SheetTrigger>
@@ -73,14 +79,20 @@ export function Header() {
           aria-label="계정"
         >
           <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{initials}</AvatarFallback>
+            <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+              {initials}
+            </AvatarFallback>
           </Avatar>
-          <span className="hidden max-w-[160px] truncate text-sm font-medium md:inline">{email}</span>
+          <span className="hidden max-w-[160px] truncate text-sm font-medium md:inline">
+            {email}
+          </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
           <DropdownMenuLabel className="flex items-center gap-2.5 py-2">
             <Avatar className="h-9 w-9">
-              <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{initials}</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                {initials}
+              </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{email || '사용자'}</p>

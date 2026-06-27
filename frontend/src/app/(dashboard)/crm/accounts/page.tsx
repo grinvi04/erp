@@ -14,7 +14,9 @@ export default async function CrmAccountsPage(props: {
   const keyword = sp.keyword?.trim() || ''
   const keywordQuery = keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''
 
-  const data = await apiGetPage<CrmAccount>(`/api/crm/accounts?page=${page}&size=${size}${keywordQuery}`)
+  const data = await apiGetPage<CrmAccount>(
+    `/api/crm/accounts?page=${page}&size=${size}${keywordQuery}`,
+  )
 
   return <AccountsClient data={data as PageResponse<CrmAccount>} keyword={keyword} />
 }

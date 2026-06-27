@@ -19,5 +19,11 @@ export default async function ArInvoicesPage(props: {
     apiGet<Account[]>('/api/finance/accounts'),
   ])
 
-  return <ArInvoicesClient data={data as PageResponse<ArInvoice>} customers={customers} accounts={accounts} />
+  return (
+    <ArInvoicesClient
+      data={data as PageResponse<ArInvoice>}
+      customers={customers}
+      accounts={accounts}
+    />
+  )
 }

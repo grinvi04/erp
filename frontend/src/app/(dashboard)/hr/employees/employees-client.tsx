@@ -3,40 +3,84 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, ArrowRightLeftIcon, TrendingUpIcon, LogOutIcon, LogInIcon, BanIcon } from 'lucide-react'
+import {
+  PlusIcon,
+  PencilIcon,
+  ArrowRightLeftIcon,
+  TrendingUpIcon,
+  LogOutIcon,
+  LogInIcon,
+  BanIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { SearchInput } from '@/components/ui/search-input'
 import {
-  createEmployee, updateEmployee, transferEmployee,
-  promoteEmployee, terminateEmployee, setEmployeeOnLeave, returnEmployeeFromLeave,
+  createEmployee,
+  updateEmployee,
+  transferEmployee,
+  promoteEmployee,
+  terminateEmployee,
+  setEmployeeOnLeave,
+  returnEmployeeFromLeave,
 } from './actions'
-import type { Employee, EmployeeStatus, EmploymentType, Gender, Department, Position, JobGrade } from '@/types/hr'
+import type {
+  Employee,
+  EmployeeStatus,
+  EmploymentType,
+  Gender,
+  Department,
+  Position,
+  JobGrade,
+} from '@/types/hr'
 import type { PageResponse } from '@/types/api'
 
 const STATUS_LABEL: Record<EmployeeStatus, string> = {
-  ACTIVE: '재직', ON_LEAVE: '휴직', TERMINATED: '퇴직',
+  ACTIVE: '재직',
+  ON_LEAVE: '휴직',
+  TERMINATED: '퇴직',
 }
 const STATUS_VARIANT: Record<EmployeeStatus, 'default' | 'secondary' | 'destructive'> = {
-  ACTIVE: 'default', ON_LEAVE: 'secondary', TERMINATED: 'destructive',
+  ACTIVE: 'default',
+  ON_LEAVE: 'secondary',
+  TERMINATED: 'destructive',
 }
 const EMPLOYMENT_TYPE_LABEL: Record<EmploymentType, string> = {
-  REGULAR: '정규직', CONTRACT: '계약직', PART_TIME: '파트타임', INTERN: '인턴', DISPATCH: '파견직',
+  REGULAR: '정규직',
+  CONTRACT: '계약직',
+  PART_TIME: '파트타임',
+  INTERN: '인턴',
+  DISPATCH: '파견직',
 }
 const GENDER_LABEL: Record<Gender, string> = {
-  MALE: '남성', FEMALE: '여성', OTHER: '기타',
+  MALE: '남성',
+  FEMALE: '여성',
+  OTHER: '기타',
 }
 
 type DialogState =
@@ -55,7 +99,13 @@ interface Props {
   keyword: string
 }
 
-export default function EmployeesClient({ data, departments, positions, jobGrades, keyword }: Props) {
+export default function EmployeesClient({
+  data,
+  departments,
+  positions,
+  jobGrades,
+  keyword,
+}: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.HR_EMPLOYEE_WRITE)
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
@@ -94,24 +144,41 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
   const [terminationDate, setTerminationDate] = useState('')
 
   const openCreate = () => {
-    setEmpNo(''); setLastName(''); setFirstName(''); setDob(''); setGender('')
-    setNationalId(''); setPhone(''); setPersonalEmail(''); setDeptId(''); setPosId('')
-    setGradeId(''); setHireDate(''); setEmpType(''); setWorkEmail(''); setBaseSalary(''); setManagerId('')
+    setEmpNo('')
+    setLastName('')
+    setFirstName('')
+    setDob('')
+    setGender('')
+    setNationalId('')
+    setPhone('')
+    setPersonalEmail('')
+    setDeptId('')
+    setPosId('')
+    setGradeId('')
+    setHireDate('')
+    setEmpType('')
+    setWorkEmail('')
+    setBaseSalary('')
+    setManagerId('')
     setUserId('')
     setDialog({ type: 'create' })
   }
 
   const openEdit = (emp: Employee) => {
-    setLastName(emp.lastName); setFirstName(emp.firstName)
-    setPhone(emp.phone ?? ''); setPersonalEmail(emp.personalEmail ?? '')
-    setWorkEmail(emp.workEmail); setBaseSalary(emp.baseSalary != null ? String(emp.baseSalary) : '')
+    setLastName(emp.lastName)
+    setFirstName(emp.firstName)
+    setPhone(emp.phone ?? '')
+    setPersonalEmail(emp.personalEmail ?? '')
+    setWorkEmail(emp.workEmail)
+    setBaseSalary(emp.baseSalary != null ? String(emp.baseSalary) : '')
     setManagerId(emp.managerId != null ? String(emp.managerId) : '')
     setUserId(emp.userId ?? '')
     setDialog({ type: 'edit', emp })
   }
 
   const openTransfer = (emp: Employee) => {
-    setTransferDeptId(String(emp.departmentId)); setTransferPosId(String(emp.positionId))
+    setTransferDeptId(String(emp.departmentId))
+    setTransferPosId(String(emp.positionId))
     setDialog({ type: 'transfer', emp })
   }
 
@@ -128,20 +195,36 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
   }
 
   const handleCreate = () => {
-    if (!empNo || !lastName || !firstName || !deptId || !posId || !hireDate || !empType || !workEmail) {
+    if (
+      !empNo ||
+      !lastName ||
+      !firstName ||
+      !deptId ||
+      !posId ||
+      !hireDate ||
+      !empType ||
+      !workEmail
+    ) {
       toast.error('필수 항목을 모두 입력해주세요')
       return
     }
     startTransition(async () => {
       try {
         await createEmployee({
-          employeeNo: empNo, lastName, firstName,
-          dateOfBirth: dob || null, gender: (gender as Gender) || null,
-          nationalId: nationalId || null, phone: phone || null,
+          employeeNo: empNo,
+          lastName,
+          firstName,
+          dateOfBirth: dob || null,
+          gender: (gender as Gender) || null,
+          nationalId: nationalId || null,
+          phone: phone || null,
           personalEmail: personalEmail || null,
-          departmentId: Number(deptId), positionId: Number(posId),
+          departmentId: Number(deptId),
+          positionId: Number(posId),
           jobGradeId: gradeId ? Number(gradeId) : null,
-          hireDate, employmentType: empType as EmploymentType, workEmail,
+          hireDate,
+          employmentType: empType as EmploymentType,
+          workEmail,
           baseSalary: baseSalary ? Number(baseSalary) : null,
           managerId: managerId ? Number(managerId) : null,
         })
@@ -161,9 +244,12 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
     startTransition(async () => {
       try {
         await updateEmployee(emp.id, {
-          lastName, firstName,
-          phone: phone || null, personalEmail: personalEmail || null,
-          workEmail, baseSalary: baseSalary ? Number(baseSalary) : null,
+          lastName,
+          firstName,
+          phone: phone || null,
+          personalEmail: personalEmail || null,
+          workEmail,
+          baseSalary: baseSalary ? Number(baseSalary) : null,
           managerId: managerId ? Number(managerId) : null,
           userId: userId.trim() || null,
           version: emp.version,
@@ -184,7 +270,8 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
     startTransition(async () => {
       try {
         await transferEmployee(emp.id, {
-          departmentId: Number(transferDeptId), positionId: Number(transferPosId),
+          departmentId: Number(transferDeptId),
+          positionId: Number(transferPosId),
         })
         toast.success('발령 처리되었습니다')
         close()
@@ -263,8 +350,7 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
           <SearchInput placeholder="이름·코드 검색" className="w-64" />
           {canWrite && (
             <Button onClick={openCreate}>
-              <PlusIcon />
-              새 직원
+              <PlusIcon />새 직원
             </Button>
           )}
         </div>
@@ -301,36 +387,66 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
                 <TableCell className="text-sm text-muted-foreground">{emp.workEmail}</TableCell>
                 <TableCell className="text-sm">{emp.hireDate}</TableCell>
                 <TableCell>
-                  <Badge variant={STATUS_VARIANT[emp.status]}>
-                    {STATUS_LABEL[emp.status]}
-                  </Badge>
+                  <Badge variant={STATUS_VARIANT[emp.status]}>{STATUS_LABEL[emp.status]}</Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     {canWrite && (
-                    <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(emp)}>
-                      <PencilIcon />
-                    </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="수정"
+                        onClick={() => openEdit(emp)}
+                      >
+                        <PencilIcon />
+                      </Button>
                     )}
                     {canWrite && emp.status !== 'TERMINATED' && (
                       <>
-                        <Button variant="ghost" size="icon-xs" title="발령" onClick={() => openTransfer(emp)}>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          title="발령"
+                          onClick={() => openTransfer(emp)}
+                        >
                           <ArrowRightLeftIcon />
                         </Button>
-                        <Button variant="ghost" size="icon-xs" title="승진" onClick={() => openPromote(emp)}>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          title="승진"
+                          onClick={() => openPromote(emp)}
+                        >
                           <TrendingUpIcon />
                         </Button>
                         {emp.status === 'ACTIVE' && (
-                          <Button variant="ghost" size="icon-xs" title="휴직" onClick={() => handleOnLeave(emp)} disabled={isPending}>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            title="휴직"
+                            onClick={() => handleOnLeave(emp)}
+                            disabled={isPending}
+                          >
                             <LogOutIcon />
                           </Button>
                         )}
                         {emp.status === 'ON_LEAVE' && (
-                          <Button variant="ghost" size="icon-xs" title="복직" onClick={() => handleReturnFromLeave(emp)} disabled={isPending}>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            title="복직"
+                            onClick={() => handleReturnFromLeave(emp)}
+                            disabled={isPending}
+                          >
                             <LogInIcon />
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon-xs" title="퇴직" onClick={() => openTerminate(emp)}>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          title="퇴직"
+                          onClick={() => openTerminate(emp)}
+                        >
                           <BanIcon className="text-destructive" />
                         </Button>
                       </>
@@ -352,7 +468,12 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>새 직원 등록</DialogTitle>
@@ -360,30 +481,53 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
           <div className="grid grid-cols-2 gap-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
             <div className="grid gap-1.5">
               <Label>사번 *</Label>
-              <Input value={empNo} onChange={(e) => setEmpNo(e.target.value)} placeholder="EMP001" />
+              <Input
+                value={empNo}
+                onChange={(e) => setEmpNo(e.target.value)}
+                placeholder="EMP001"
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>고용 형태 *</Label>
               <Select value={empType} onValueChange={(v) => setEmpType(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
                 <SelectContent>
-                  {(Object.entries(EMPLOYMENT_TYPE_LABEL) as [EmploymentType, string][]).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
+                  {(Object.entries(EMPLOYMENT_TYPE_LABEL) as [EmploymentType, string][]).map(
+                    ([k, v]) => (
+                      <SelectItem key={k} value={k}>
+                        {v}
+                      </SelectItem>
+                    ),
+                  )}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-1.5">
               <Label>성 *</Label>
-              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="김" />
+              <Input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="김"
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>이름 *</Label>
-              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="철수" />
+              <Input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="철수"
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>업무 이메일 *</Label>
-              <Input type="email" value={workEmail} onChange={(e) => setWorkEmail(e.target.value)} placeholder="cs.kim@company.com" />
+              <Input
+                type="email"
+                value={workEmail}
+                onChange={(e) => setWorkEmail(e.target.value)}
+                placeholder="cs.kim@company.com"
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>입사일 *</Label>
@@ -392,10 +536,14 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             <div className="grid gap-1.5">
               <Label>부서 *</Label>
               <Select value={deptId} onValueChange={(v) => setDeptId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {departments.map((d) => (
-                    <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                    <SelectItem key={d.id} value={String(d.id)}>
+                      {d.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -403,10 +551,14 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             <div className="grid gap-1.5">
               <Label>직위 *</Label>
               <Select value={posId} onValueChange={(v) => setPosId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {positions.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -414,27 +566,41 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             <div className="grid gap-1.5">
               <Label>직급</Label>
               <Select value={gradeId} onValueChange={(v) => setGradeId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="없음" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="없음" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">없음</SelectItem>
                   {jobGrades.map((g) => (
-                    <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
+                    <SelectItem key={g.id} value={String(g.id)}>
+                      {g.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-1.5">
               <Label>기본급</Label>
-              <Input type="number" value={baseSalary} onChange={(e) => setBaseSalary(e.target.value)} placeholder="0" min={0} />
+              <Input
+                type="number"
+                value={baseSalary}
+                onChange={(e) => setBaseSalary(e.target.value)}
+                placeholder="0"
+                min={0}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>성별</Label>
               <Select value={gender} onValueChange={(v) => setGender(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택 안 함" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택 안 함" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">선택 안 함</SelectItem>
                   {(Object.entries(GENDER_LABEL) as [Gender, string][]).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                    <SelectItem key={k} value={k}>
+                      {v}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -445,11 +611,19 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             </div>
             <div className="grid gap-1.5">
               <Label>연락처</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="010-0000-0000" />
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="010-0000-0000"
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>개인 이메일</Label>
-              <Input type="email" value={personalEmail} onChange={(e) => setPersonalEmail(e.target.value)} />
+              <Input
+                type="email"
+                value={personalEmail}
+                onChange={(e) => setPersonalEmail(e.target.value)}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>주민등록번호</Label>
@@ -457,17 +631,29 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             </div>
             <div className="grid gap-1.5">
               <Label>관리자 ID</Label>
-              <Input type="number" value={managerId} onChange={(e) => setManagerId(e.target.value)} placeholder="직원 ID" />
+              <Input
+                type="number"
+                value={managerId}
+                onChange={(e) => setManagerId(e.target.value)}
+                placeholder="직원 ID"
+              />
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={dialog.type === 'edit'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'edit'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>직원 정보 수정</DialogTitle>
@@ -483,7 +669,11 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             </div>
             <div className="grid gap-1.5 col-span-2">
               <Label>업무 이메일 *</Label>
-              <Input type="email" value={workEmail} onChange={(e) => setWorkEmail(e.target.value)} />
+              <Input
+                type="email"
+                value={workEmail}
+                onChange={(e) => setWorkEmail(e.target.value)}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>연락처</Label>
@@ -491,24 +681,44 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             </div>
             <div className="grid gap-1.5">
               <Label>개인 이메일</Label>
-              <Input type="email" value={personalEmail} onChange={(e) => setPersonalEmail(e.target.value)} />
+              <Input
+                type="email"
+                value={personalEmail}
+                onChange={(e) => setPersonalEmail(e.target.value)}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>기본급</Label>
-              <Input type="number" value={baseSalary} onChange={(e) => setBaseSalary(e.target.value)} min={0} />
+              <Input
+                type="number"
+                value={baseSalary}
+                onChange={(e) => setBaseSalary(e.target.value)}
+                min={0}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>관리자 ID</Label>
-              <Input type="number" value={managerId} onChange={(e) => setManagerId(e.target.value)} placeholder="직원 ID" />
+              <Input
+                type="number"
+                value={managerId}
+                onChange={(e) => setManagerId(e.target.value)}
+                placeholder="직원 ID"
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>로그인 계정 ID (Keycloak)</Label>
-              <Input value={userId} onChange={(e) => setUserId(e.target.value)}
-                placeholder="결재자 식별용 sub" />
+              <Input
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                placeholder="결재자 식별용 sub"
+              />
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={() => dialog.type === 'edit' && handleUpdate(dialog.emp)} disabled={isPending}>
+            <Button
+              onClick={() => dialog.type === 'edit' && handleUpdate(dialog.emp)}
+              disabled={isPending}
+            >
               저장
             </Button>
           </DialogFooter>
@@ -516,7 +726,12 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
       </Dialog>
 
       {/* Transfer Dialog */}
-      <Dialog open={dialog.type === 'transfer'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'transfer'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -527,10 +742,14 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             <div className="grid gap-1.5">
               <Label>부서 *</Label>
               <Select value={transferDeptId} onValueChange={(v) => setTransferDeptId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {departments.map((d) => (
-                    <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                    <SelectItem key={d.id} value={String(d.id)}>
+                      {d.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -538,17 +757,24 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             <div className="grid gap-1.5">
               <Label>직위 *</Label>
               <Select value={transferPosId} onValueChange={(v) => setTransferPosId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {positions.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={() => dialog.type === 'transfer' && handleTransfer(dialog.emp)} disabled={isPending}>
+            <Button
+              onClick={() => dialog.type === 'transfer' && handleTransfer(dialog.emp)}
+              disabled={isPending}
+            >
               발령
             </Button>
           </DialogFooter>
@@ -556,7 +782,12 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
       </Dialog>
 
       {/* Promote Dialog */}
-      <Dialog open={dialog.type === 'promote'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'promote'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -567,10 +798,14 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             <div className="grid gap-1.5">
               <Label>직위 *</Label>
               <Select value={promotePosId} onValueChange={(v) => setPromotePosId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {positions.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -578,22 +813,34 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
             <div className="grid gap-1.5">
               <Label>직급</Label>
               <Select value={promoteGradeId} onValueChange={(v) => setPromoteGradeId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="없음" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="없음" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">없음</SelectItem>
                   {jobGrades.map((g) => (
-                    <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
+                    <SelectItem key={g.id} value={String(g.id)}>
+                      {g.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-1.5">
               <Label>변경 기본급</Label>
-              <Input type="number" value={promoteSalary} onChange={(e) => setPromoteSalary(e.target.value)} min={0} />
+              <Input
+                type="number"
+                value={promoteSalary}
+                onChange={(e) => setPromoteSalary(e.target.value)}
+                min={0}
+              />
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={() => dialog.type === 'promote' && handlePromote(dialog.emp)} disabled={isPending}>
+            <Button
+              onClick={() => dialog.type === 'promote' && handlePromote(dialog.emp)}
+              disabled={isPending}
+            >
               승진
             </Button>
           </DialogFooter>
@@ -601,7 +848,12 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
       </Dialog>
 
       {/* Terminate Dialog */}
-      <Dialog open={dialog.type === 'terminate'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'terminate'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -611,7 +863,11 @@ export default function EmployeesClient({ data, departments, positions, jobGrade
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
               <Label>퇴직일 *</Label>
-              <Input type="date" value={terminationDate} onChange={(e) => setTerminationDate(e.target.value)} />
+              <Input
+                type="date"
+                value={terminationDate}
+                onChange={(e) => setTerminationDate(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter showCloseButton>

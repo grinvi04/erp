@@ -15,11 +15,14 @@ export async function createRole(data: {
   revalidatePath(PATH)
 }
 
-export async function updateRole(id: number, data: {
-  name: string
-  description: string | null
-  permissions: string[]
-}): Promise<void> {
+export async function updateRole(
+  id: number,
+  data: {
+    name: string
+    description: string | null
+    permissions: string[]
+  },
+): Promise<void> {
   await apiPut<Role>(`/api/iam/roles/${id}`, data)
   revalidatePath(PATH)
 }
@@ -37,7 +40,9 @@ export async function getUserRoles(userId: string): Promise<Role[]> {
 
 export async function getAccessProfile(userId: string): Promise<AccessProfile | null> {
   try {
-    return await apiGet<AccessProfile>(`/api/iam/users/${encodeURIComponent(userId)}/access-profile`)
+    return await apiGet<AccessProfile>(
+      `/api/iam/users/${encodeURIComponent(userId)}/access-profile`,
+    )
   } catch {
     return null // 미설정
   }
@@ -51,10 +56,13 @@ export async function unassignRole(userId: string, roleId: number): Promise<void
   await apiDelete(`/api/iam/users/${encodeURIComponent(userId)}/roles/${roleId}`)
 }
 
-export async function setAccessProfile(userId: string, data: {
-  dataScope: DataScope
-  departmentId: number | null
-  approvalLimit: number | null
-}): Promise<void> {
+export async function setAccessProfile(
+  userId: string,
+  data: {
+    dataScope: DataScope
+    departmentId: number | null
+    approvalLimit: number | null
+  },
+): Promise<void> {
   await apiPut<AccessProfile>(`/api/iam/users/${encodeURIComponent(userId)}/access-profile`, data)
 }

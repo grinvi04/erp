@@ -17,10 +17,5 @@ export default async function LeadsPage(props: {
     apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?isActive=true&size=1000'),
   ])
 
-  return (
-    <LeadsClient
-      data={data as PageResponse<Lead>}
-      accounts={accounts.content}
-    />
-  )
+  return <LeadsClient data={data as PageResponse<Lead>} accounts={accounts.content} />
 }

@@ -19,16 +19,19 @@ export async function createVendor(data: {
   revalidatePath(PATH)
 }
 
-export async function updateVendor(id: number, data: {
-  name: string
-  businessNo: string | null
-  contactName: string | null
-  contactEmail: string | null
-  contactPhone: string | null
-  paymentTerms: number
-  payablesAccountId: number | null
-  version: number
-}): Promise<void> {
+export async function updateVendor(
+  id: number,
+  data: {
+    name: string
+    businessNo: string | null
+    contactName: string | null
+    contactEmail: string | null
+    contactPhone: string | null
+    paymentTerms: number
+    payablesAccountId: number | null
+    version: number
+  },
+): Promise<void> {
   await apiPut<Vendor>(`/api/finance/vendors/${id}`, data)
   revalidatePath(PATH)
 }

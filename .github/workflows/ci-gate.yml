@@ -83,6 +83,8 @@ jobs:
         if: steps.check.outputs.initialized == 'true'
       - run: npm run type-check --if-present
         if: steps.check.outputs.initialized == 'true'
+      - run: npm run format:check --if-present
+        if: steps.check.outputs.initialized == 'true'
       - run: npm run lint
         if: steps.check.outputs.initialized == 'true'
       - run: npm run lint:design --if-present

@@ -2,25 +2,47 @@
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import type { AuditAction, AuditLog } from '@/types/audit'
 import type { PageResponse } from '@/types/api'
 
 const ACTION_LABEL: Record<AuditAction, string> = {
-  CREATE: '생성', UPDATE: '수정', DELETE: '삭제', VIEW: '조회', APPROVE: '승인', REJECT: '반려',
+  CREATE: '생성',
+  UPDATE: '수정',
+  DELETE: '삭제',
+  VIEW: '조회',
+  APPROVE: '승인',
+  REJECT: '반려',
 }
 const ACTION_VARIANT: Record<AuditAction, 'default' | 'secondary' | 'destructive'> = {
-  CREATE: 'default', UPDATE: 'secondary', DELETE: 'destructive', VIEW: 'secondary',
-  APPROVE: 'default', REJECT: 'destructive',
+  CREATE: 'default',
+  UPDATE: 'secondary',
+  DELETE: 'destructive',
+  VIEW: 'secondary',
+  APPROVE: 'default',
+  REJECT: 'destructive',
 }
 const ENTITY_LABEL: Record<string, string> = {
-  LEAVE_REQUEST: '휴가 신청', AP_INVOICE: '매입 인보이스', EMPLOYEE: '직원',
-  ROLE: '역할', USER_ROLE: '역할 배정', ACCESS_PROFILE: '접근 프로파일',
+  LEAVE_REQUEST: '휴가 신청',
+  AP_INVOICE: '매입 인보이스',
+  EMPLOYEE: '직원',
+  ROLE: '역할',
+  USER_ROLE: '역할 배정',
+  ACCESS_PROFILE: '접근 프로파일',
 }
 
 const ALL = 'ALL'
@@ -39,7 +61,9 @@ export default function AuditClient({
   const router = useRouter()
 
   function onFilterChange(value: string | null) {
-    router.push(!value || value === ALL ? '/audit' : `/audit?entityType=${encodeURIComponent(value)}`)
+    router.push(
+      !value || value === ALL ? '/audit' : `/audit?entityType=${encodeURIComponent(value)}`,
+    )
   }
 
   return (
@@ -47,10 +71,14 @@ export default function AuditClient({
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">감사 로그</h1>
-          <p className="mt-1 text-sm text-muted-foreground">누가 무엇을 언제 결재·변경했는지 추적합니다.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            누가 무엇을 언제 결재·변경했는지 추적합니다.
+          </p>
         </div>
         <Select value={entityType || ALL} onValueChange={onFilterChange}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>전체 대상</SelectItem>
             <SelectItem value="LEAVE_REQUEST">휴가 신청</SelectItem>
@@ -85,7 +113,9 @@ export default function AuditClient({
             ) : (
               data.content.map((log) => (
                 <TableRow key={log.id}>
-                  <TableCell className="whitespace-nowrap">{fmtDateTime(log.performedAt)}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {fmtDateTime(log.performedAt)}
+                  </TableCell>
                   <TableCell>{ENTITY_LABEL[log.entityType] ?? log.entityType}</TableCell>
                   <TableCell>{log.entityId}</TableCell>
                   <TableCell>
@@ -99,8 +129,10 @@ export default function AuditClient({
           </TableBody>
         </Table>
         <PaginationBar
-          page={data.page} totalPages={data.totalPages}
-          totalElements={data.totalElements} size={data.size}
+          page={data.page}
+          totalPages={data.totalPages}
+          totalElements={data.totalElements}
+          size={data.size}
           basePath="/audit"
           searchParams={entityType ? { entityType } : undefined}
         />

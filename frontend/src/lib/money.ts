@@ -2,7 +2,11 @@ import type { CurrencyAmount } from '@/types/money'
 
 export function formatMoneyOne(amount: number, currency: string): string {
   try {
-    return new Intl.NumberFormat('ko-KR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
+    return new Intl.NumberFormat('ko-KR', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount)
   } catch {
     return `${currency} ${amount.toLocaleString('ko-KR')}`
   }

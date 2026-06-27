@@ -6,7 +6,12 @@ import JournalEntriesClient from './journal-entries-client'
 export const metadata = { title: '분개장 | ERP' }
 
 export default async function JournalEntriesPage(props: {
-  searchParams: Promise<{ fiscalYearId?: string; fiscalPeriodId?: string; page?: string; size?: string }>
+  searchParams: Promise<{
+    fiscalYearId?: string
+    fiscalPeriodId?: string
+    page?: string
+    size?: string
+  }>
 }) {
   const sp = await props.searchParams
   const fiscalYearId = sp.fiscalYearId ? Number(sp.fiscalYearId) : null
@@ -20,7 +25,9 @@ export default async function JournalEntriesPage(props: {
       ? apiGet<FiscalPeriod[]>(`/api/finance/fiscal-years/${fiscalYearId}/periods`)
       : Promise.resolve([] as FiscalPeriod[]),
     fiscalPeriodId != null
-      ? apiGetPage<JournalEntry>(`/api/finance/journal-entries?fiscalPeriodId=${fiscalPeriodId}&page=${page}&size=${size}`)
+      ? apiGetPage<JournalEntry>(
+          `/api/finance/journal-entries?fiscalPeriodId=${fiscalPeriodId}&page=${page}&size=${size}`,
+        )
       : Promise.resolve(null),
     fiscalPeriodId != null
       ? apiGet<Account[]>('/api/finance/accounts')

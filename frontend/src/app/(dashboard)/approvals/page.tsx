@@ -30,8 +30,10 @@ export default async function ApprovalsPage() {
   ])
   return (
     <ApprovalsClient
-      pending={pending.rows} pendingFailed={pending.failed}
-      mine={mine.rows} mineFailed={mine.failed}
+      pending={pending.rows}
+      pendingFailed={pending.failed}
+      mine={mine.rows}
+      mineFailed={mine.failed}
     />
   )
 }

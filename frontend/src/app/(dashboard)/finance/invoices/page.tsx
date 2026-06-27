@@ -19,5 +19,7 @@ export default async function InvoicesPage(props: {
     apiGet<Account[]>('/api/finance/accounts'),
   ])
 
-  return <InvoicesClient data={data as PageResponse<ApInvoice>} vendors={vendors} accounts={accounts} />
+  return (
+    <InvoicesClient data={data as PageResponse<ApInvoice>} vendors={vendors} accounts={accounts} />
+  )
 }

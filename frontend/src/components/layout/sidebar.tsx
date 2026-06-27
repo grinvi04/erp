@@ -5,10 +5,30 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  Users, Building2, Package, TrendingUp, LayoutDashboard,
-  ChevronRight, Briefcase, FileText, Warehouse, BarChart3,
-  UserSquare, Target, Activity, GitBranch, Inbox, PieChart,
-  ScrollText, ShieldCheck, Boxes, MapPin, Tags, Ruler, CalendarDays, Coins,
+  Users,
+  Building2,
+  Package,
+  TrendingUp,
+  LayoutDashboard,
+  ChevronRight,
+  Briefcase,
+  FileText,
+  Warehouse,
+  BarChart3,
+  UserSquare,
+  Target,
+  Activity,
+  GitBranch,
+  Inbox,
+  PieChart,
+  ScrollText,
+  ShieldCheck,
+  Boxes,
+  MapPin,
+  Tags,
+  Ruler,
+  CalendarDays,
+  Coins,
 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { usePermissions } from '@/components/permissions-provider'
@@ -25,7 +45,8 @@ const TOP: NavItem[] = [
 
 const MODULES: (NavItem & { children: NavChild[] })[] = [
   {
-    label: '인사', icon: Users,
+    label: '인사',
+    icon: Users,
     children: [
       { label: '직원', href: '/hr/employees', icon: Users },
       { label: '부서', href: '/hr/departments', icon: Building2 },
@@ -38,7 +59,8 @@ const MODULES: (NavItem & { children: NavChild[] })[] = [
     ],
   },
   {
-    label: '재무', icon: BarChart3,
+    label: '재무',
+    icon: BarChart3,
     children: [
       { label: '계정과목', href: '/finance/accounts', icon: Briefcase },
       { label: '전표', href: '/finance/journal-entries', icon: FileText },
@@ -51,7 +73,8 @@ const MODULES: (NavItem & { children: NavChild[] })[] = [
     ],
   },
   {
-    label: '재고', icon: Package,
+    label: '재고',
+    icon: Package,
     children: [
       { label: '품목', href: '/inventory/items', icon: Package },
       { label: '품목 분류', href: '/inventory/item-categories', icon: Tags },
@@ -63,7 +86,8 @@ const MODULES: (NavItem & { children: NavChild[] })[] = [
     ],
   },
   {
-    label: 'CRM', icon: TrendingUp,
+    label: 'CRM',
+    icon: TrendingUp,
     children: [
       { label: '고객사', href: '/crm/accounts', icon: Building2 },
       { label: '담당자', href: '/crm/contacts', icon: UserSquare },
@@ -95,7 +119,13 @@ export function SidebarNav() {
         <nav className="px-3 py-4">
           <div className="space-y-0.5">
             {TOP.map((item) => (
-              <NavLink key={item.href} href={item.href!} label={item.label} icon={item.icon} pathname={pathname} />
+              <NavLink
+                key={item.href}
+                href={item.href!}
+                label={item.label}
+                icon={item.icon}
+                pathname={pathname}
+              />
             ))}
           </div>
 
@@ -135,8 +165,12 @@ function Brand() {
         <Boxes className="h-5 w-5 text-white" />
       </span>
       <span className="flex flex-col leading-none">
-        <span className="text-[15px] font-semibold tracking-tight text-sidebar-accent-foreground">ERP System</span>
-        <span className="mt-1 text-[11px] font-medium text-sidebar-foreground/55">멀티테넌트 SaaS</span>
+        <span className="text-[15px] font-semibold tracking-tight text-sidebar-accent-foreground">
+          ERP System
+        </span>
+        <span className="mt-1 text-[11px] font-medium text-sidebar-foreground/55">
+          멀티테넌트 SaaS
+        </span>
       </span>
     </Link>
   )
@@ -151,9 +185,17 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 function NavLink({
-  href, label, icon: Icon, pathname, indent = false,
+  href,
+  label,
+  icon: Icon,
+  pathname,
+  indent = false,
 }: {
-  href: string; label: string; icon: React.ElementType; pathname: string; indent?: boolean
+  href: string
+  label: string
+  icon: React.ElementType
+  pathname: string
+  indent?: boolean
 }) {
   const active = pathname === href || (href !== '/' && pathname.startsWith(href))
   return (
@@ -170,13 +212,26 @@ function NavLink({
       {active && (
         <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
       )}
-      <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-sidebar-primary' : 'text-sidebar-foreground/55 group-hover:text-sidebar-foreground/80')} />
+      <Icon
+        className={cn(
+          'h-4 w-4 shrink-0',
+          active
+            ? 'text-sidebar-primary'
+            : 'text-sidebar-foreground/55 group-hover:text-sidebar-foreground/80',
+        )}
+      />
       <span className="truncate">{label}</span>
     </Link>
   )
 }
 
-function NavGroup({ item, pathname }: { item: NavItem & { children: NavChild[] }; pathname: string }) {
+function NavGroup({
+  item,
+  pathname,
+}: {
+  item: NavItem & { children: NavChild[] }
+  pathname: string
+}) {
   const Icon = item.icon
   const hasActive = item.children.some((c) => pathname.startsWith(c.href))
   const [open, setOpen] = useState(hasActive)
@@ -191,14 +246,31 @@ function NavGroup({ item, pathname }: { item: NavItem & { children: NavChild[] }
           'text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
         )}
       >
-        <Icon className={cn('h-4 w-4 shrink-0', hasActive ? 'text-sidebar-primary' : 'text-sidebar-foreground/55')} />
+        <Icon
+          className={cn(
+            'h-4 w-4 shrink-0',
+            hasActive ? 'text-sidebar-primary' : 'text-sidebar-foreground/55',
+          )}
+        />
         <span className="flex-1 text-left font-medium">{item.label}</span>
-        <ChevronRight className={cn('h-3.5 w-3.5 text-sidebar-foreground/45 transition-transform duration-200', open && 'rotate-90')} />
+        <ChevronRight
+          className={cn(
+            'h-3.5 w-3.5 text-sidebar-foreground/45 transition-transform duration-200',
+            open && 'rotate-90',
+          )}
+        />
       </button>
       {open && (
         <div className="mt-0.5 space-y-0.5">
           {item.children.map((child) => (
-            <NavLink key={child.href} href={child.href} label={child.label} icon={child.icon} pathname={pathname} indent />
+            <NavLink
+              key={child.href}
+              href={child.href}
+              label={child.label}
+              icon={child.icon}
+              pathname={pathname}
+              indent
+            />
           ))}
         </div>
       )}

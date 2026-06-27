@@ -19,10 +19,7 @@ export default function GlobalError({
           {error.digest && (
             <p className="text-xs text-muted-foreground">오류 코드: {error.digest}</p>
           )}
-          <button
-            onClick={() => reset()}
-            className="px-4 py-2 border rounded-md text-sm"
-          >
+          <button onClick={() => reset()} className="px-4 py-2 border rounded-md text-sm">
             다시 시도
           </button>
         </div>

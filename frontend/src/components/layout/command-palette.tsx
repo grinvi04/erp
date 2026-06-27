@@ -38,7 +38,13 @@ const ROUTES: Route[] = [
   { label: '감사 로그', href: '/audit', group: '관리' },
 ]
 
-export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+export function CommandPalette({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+}) {
   const router = useRouter()
   const [q, setQ] = useState('')
   const [active, setActive] = useState(0)
@@ -47,18 +53,26 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const [prevOpen, setPrevOpen] = useState(open)
   if (prevOpen !== open) {
     setPrevOpen(open)
-    if (!open) { setQ(''); setActive(0) }
+    if (!open) {
+      setQ('')
+      setActive(0)
+    }
   }
 
   const results = useMemo(() => {
     const t = q.trim().toLowerCase()
     if (!t) return ROUTES
-    return ROUTES.filter((r) => r.label.toLowerCase().includes(t) || (r.group?.toLowerCase().includes(t) ?? false))
+    return ROUTES.filter(
+      (r) => r.label.toLowerCase().includes(t) || (r.group?.toLowerCase().includes(t) ?? false),
+    )
   }, [q])
 
   function close(next: boolean) {
     onOpenChange(next)
-    if (!next) { setQ(''); setActive(0) }
+    if (!next) {
+      setQ('')
+      setActive(0)
+    }
   }
   function go(href: string) {
     close(false)
@@ -74,11 +88,21 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           <input
             autoFocus
             value={q}
-            onChange={(e) => { setQ(e.target.value); setActive(0) }}
+            onChange={(e) => {
+              setQ(e.target.value)
+              setActive(0)
+            }}
             onKeyDown={(e) => {
-              if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, results.length - 1)) }
-              else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)) }
-              else if (e.key === 'Enter' && results[active]) { e.preventDefault(); go(results[active].href) }
+              if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                setActive((a) => Math.min(a + 1, results.length - 1))
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault()
+                setActive((a) => Math.max(a - 1, 0))
+              } else if (e.key === 'Enter' && results[active]) {
+                e.preventDefault()
+                go(results[active].href)
+              }
             }}
             placeholder="페이지 검색…"
             className="h-12 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
@@ -103,7 +127,9 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                   <span>{r.label}</span>
                   <span className="flex items-center gap-2">
                     {r.group && <span className="text-xs text-muted-foreground">{r.group}</span>}
-                    {i === active && <CornerDownLeft className="h-3.5 w-3.5 text-muted-foreground" />}
+                    {i === active && (
+                      <CornerDownLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
                   </span>
                 </button>
               </li>

@@ -18,5 +18,7 @@ export default async function CustomersPage(props: {
     apiGetPage<Customer>(`/api/finance/customers?page=${page}&size=${size}${keywordQuery}`),
     apiGet<Account[]>('/api/finance/accounts'),
   ])
-  return <CustomersClient data={data as PageResponse<Customer>} accounts={accounts} keyword={keyword} />
+  return (
+    <CustomersClient data={data as PageResponse<Customer>} accounts={accounts} keyword={keyword} />
+  )
 }

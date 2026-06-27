@@ -15,7 +15,9 @@ const REJECT_ENDPOINT: Record<string, (id: number) => string> = {
 }
 
 export async function approveInboxItem(
-  entityType: string, entityId: number, comment: string,
+  entityType: string,
+  entityId: number,
+  comment: string,
 ): Promise<void> {
   if (entityType === 'LEAVE_REQUEST') {
     await apiPost(`/api/hr/leave-requests/${entityId}/approve`, { comment })
@@ -26,7 +28,9 @@ export async function approveInboxItem(
 }
 
 export async function rejectInboxItem(
-  entityType: string, entityId: number, comment: string,
+  entityType: string,
+  entityId: number,
+  comment: string,
 ): Promise<void> {
   const endpoint = REJECT_ENDPOINT[entityType]
   if (!endpoint) {

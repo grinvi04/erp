@@ -22,21 +22,24 @@ export async function createItem(data: {
   revalidatePath('/inventory/items')
 }
 
-export async function updateItem(id: number, data: {
-  version: number
-  name: string
-  description: string | null
-  categoryId: number | null
-  uomId: number
-  costMethod: CostMethod
-  standardCost: number
-  reorderPoint: number
-  reorderQty: number
-  minStock: number
-  maxStock: number
-  lotTracked: boolean
-  serialTracked: boolean
-}): Promise<void> {
+export async function updateItem(
+  id: number,
+  data: {
+    version: number
+    name: string
+    description: string | null
+    categoryId: number | null
+    uomId: number
+    costMethod: CostMethod
+    standardCost: number
+    reorderPoint: number
+    reorderQty: number
+    minStock: number
+    maxStock: number
+    lotTracked: boolean
+    serialTracked: boolean
+  },
+): Promise<void> {
   await apiPut(`/api/inventory/items/${id}`, data)
   revalidatePath('/inventory/items')
 }

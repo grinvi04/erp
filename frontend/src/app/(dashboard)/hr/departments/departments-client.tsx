@@ -7,13 +7,26 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { createDepartment, updateDepartment, deleteDepartment } from './actions'
 import type { Department } from '@/types/hr'
@@ -29,10 +42,7 @@ interface Props {
 }
 
 export default function DepartmentsClient({ departments }: Props) {
-  const deptById = useMemo(
-    () => new Map(departments.map((d) => [d.id, d])),
-    [departments]
-  )
+  const deptById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
 
@@ -42,7 +52,10 @@ export default function DepartmentsClient({ departments }: Props) {
   const [sortOrder, setSortOrder] = useState('0')
 
   const openCreate = () => {
-    setCode(''); setName(''); setParentId(''); setSortOrder('0')
+    setCode('')
+    setName('')
+    setParentId('')
+    setSortOrder('0')
     setDialog({ type: 'create' })
   }
 
@@ -116,8 +129,7 @@ export default function DepartmentsClient({ departments }: Props) {
           <p className="text-sm text-muted-foreground mt-1">조직 부서 구조를 관리합니다</p>
         </div>
         <Button onClick={openCreate}>
-          <PlusIcon />
-          새 부서
+          <PlusIcon />새 부서
         </Button>
       </div>
 
@@ -148,7 +160,9 @@ export default function DepartmentsClient({ departments }: Props) {
                   <TableCell className="font-mono text-sm">{dept.code}</TableCell>
                   <TableCell className="font-medium">
                     {dept.depth > 0 && (
-                      <span className="text-muted-foreground mr-1">{'└'.padStart(dept.depth * 2)}</span>
+                      <span className="text-muted-foreground mr-1">
+                        {'└'.padStart(dept.depth * 2)}
+                      </span>
                     )}
                     {dept.name}
                   </TableCell>
@@ -189,7 +203,9 @@ export default function DepartmentsClient({ departments }: Props) {
       {/* Create / Edit Dialog */}
       <Dialog
         open={dialog.type === 'create' || dialog.type === 'edit'}
-        onOpenChange={(open) => { if (!open) close() }}
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
       >
         <DialogContent>
           <DialogHeader>
@@ -266,7 +282,9 @@ export default function DepartmentsClient({ departments }: Props) {
       {/* Delete Confirm Dialog */}
       <Dialog
         open={dialog.type === 'delete'}
-        onOpenChange={(open) => { if (!open) close() }}
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
       >
         <DialogContent>
           <DialogHeader>

@@ -3,8 +3,7 @@ export type EmploymentType = 'REGULAR' | 'CONTRACT' | 'PART_TIME' | 'INTERN' | '
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER'
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type ContractType = 'REGULAR' | 'CONTRACT' | 'PART_TIME' | 'INTERN' | 'DISPATCH'
-export type LeaveType =
-  | 'ANNUAL' | 'SICK' | 'PARENTAL' | 'BEREAVEMENT' | 'UNPAID' | 'COMPENSATORY'
+export type LeaveType = 'ANNUAL' | 'SICK' | 'PARENTAL' | 'BEREAVEMENT' | 'UNPAID' | 'COMPENSATORY'
 
 export interface Department {
   id: number

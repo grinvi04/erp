@@ -18,7 +18,7 @@ export default async function StocksPage(props: {
   let data: PageResponse<StockBalance> | null = null
   if (warehouseId) {
     data = await apiGetPage<StockBalance>(
-      `/api/inventory/stocks/by-warehouse?warehouseId=${warehouseId}&page=${page}&size=${size}`
+      `/api/inventory/stocks/by-warehouse?warehouseId=${warehouseId}&page=${page}&size=${size}`,
     )
   }
 

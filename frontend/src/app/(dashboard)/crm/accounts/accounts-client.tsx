@@ -10,13 +10,26 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { SearchInput } from '@/components/ui/search-input'
@@ -25,7 +38,10 @@ import type { CrmAccount, AccountType } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
 
 const TYPE_LABEL: Record<AccountType, string> = {
-  PROSPECT: '잠재', CUSTOMER: '고객', PARTNER: '파트너', COMPETITOR: '경쟁사',
+  PROSPECT: '잠재',
+  CUSTOMER: '고객',
+  PARTNER: '파트너',
+  COMPETITOR: '경쟁사',
 }
 
 type DialogMode =
@@ -59,18 +75,30 @@ export default function AccountsClient({ data, keyword }: Props) {
   const [ownerId, setOwnerId] = useState('')
 
   const openCreate = () => {
-    setCode(''); setName(''); setBusinessNo(''); setIndustry(''); setWebsite('')
-    setPhone(''); setAddress(''); setEmployeeCount(''); setAnnualRevenue('')
+    setCode('')
+    setName('')
+    setBusinessNo('')
+    setIndustry('')
+    setWebsite('')
+    setPhone('')
+    setAddress('')
+    setEmployeeCount('')
+    setAnnualRevenue('')
     setAccountType('PROSPECT')
     setDialog({ type: 'create' })
   }
 
   const openEdit = (acc: CrmAccount) => {
-    setName(acc.name); setBusinessNo(acc.businessNo ?? ''); setIndustry(acc.industry ?? '')
-    setWebsite(acc.website ?? ''); setPhone(acc.phone ?? ''); setAddress(acc.address ?? '')
+    setName(acc.name)
+    setBusinessNo(acc.businessNo ?? '')
+    setIndustry(acc.industry ?? '')
+    setWebsite(acc.website ?? '')
+    setPhone(acc.phone ?? '')
+    setAddress(acc.address ?? '')
     setEmployeeCount(acc.employeeCount != null ? String(acc.employeeCount) : '')
     setAnnualRevenue(acc.annualRevenue != null ? String(acc.annualRevenue) : '')
-    setAccountType(acc.accountType); setOwnerId(acc.ownerId)
+    setAccountType(acc.accountType)
+    setOwnerId(acc.ownerId)
     setDialog({ type: 'edit', account: acc })
   }
 
@@ -87,37 +115,56 @@ export default function AccountsClient({ data, keyword }: Props) {
   })
 
   const validate = (): boolean => {
-    if (!name.trim()) { toast.error('고객사명은 필수입니다'); return false }
+    if (!name.trim()) {
+      toast.error('고객사명은 필수입니다')
+      return false
+    }
     if (employeeCount && (Number(employeeCount) < 0 || isNaN(Number(employeeCount)))) {
-      toast.error('직원 수가 올바르지 않습니다'); return false
+      toast.error('직원 수가 올바르지 않습니다')
+      return false
     }
     if (annualRevenue && (Number(annualRevenue) < 0 || isNaN(Number(annualRevenue)))) {
-      toast.error('연 매출이 올바르지 않습니다'); return false
+      toast.error('연 매출이 올바르지 않습니다')
+      return false
     }
     return true
   }
 
   const handleCreate = () => {
-    if (!code.trim()) { toast.error('코드는 필수입니다'); return }
+    if (!code.trim()) {
+      toast.error('코드는 필수입니다')
+      return
+    }
     if (!validate()) return
     startTransition(async () => {
       try {
         await createAccount({ code: code.trim(), ...buildPayload() })
         toast.success('고객사가 등록되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
+      }
     })
   }
 
   const handleUpdate = (acc: CrmAccount) => {
     if (!validate()) return
-    if (!ownerId.trim()) { toast.error('담당자는 필수입니다'); return }
+    if (!ownerId.trim()) {
+      toast.error('담당자는 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
-        await updateAccount(acc.id, { ...buildPayload(), ownerId: ownerId.trim(), version: acc.version })
+        await updateAccount(acc.id, {
+          ...buildPayload(),
+          ownerId: ownerId.trim(),
+          version: acc.version,
+        })
         toast.success('고객사가 수정되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -127,7 +174,9 @@ export default function AccountsClient({ data, keyword }: Props) {
         await deactivateAccount(acc.id)
         toast.success('고객사가 비활성화되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '비활성화 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '비활성화 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -148,11 +197,18 @@ export default function AccountsClient({ data, keyword }: Props) {
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-1.5">
           <Label>유형 *</Label>
-          <Select value={accountType} onValueChange={(v) => setAccountType((v ?? 'PROSPECT') as AccountType)}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+          <Select
+            value={accountType}
+            onValueChange={(v) => setAccountType((v ?? 'PROSPECT') as AccountType)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {(Object.keys(TYPE_LABEL) as AccountType[]).map((t) => (
-                <SelectItem key={t} value={t}>{TYPE_LABEL[t]}</SelectItem>
+                <SelectItem key={t} value={t}>
+                  {TYPE_LABEL[t]}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -174,7 +230,11 @@ export default function AccountsClient({ data, keyword }: Props) {
       </div>
       <div className="grid gap-1.5">
         <Label>웹사이트</Label>
-        <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" />
+        <Input
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+          placeholder="https://"
+        />
       </div>
       <div className="grid gap-1.5">
         <Label>주소</Label>
@@ -183,13 +243,22 @@ export default function AccountsClient({ data, keyword }: Props) {
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-1.5">
           <Label>직원 수</Label>
-          <Input type="number" min={0} value={employeeCount}
-            onChange={(e) => setEmployeeCount(e.target.value)} />
+          <Input
+            type="number"
+            min={0}
+            value={employeeCount}
+            onChange={(e) => setEmployeeCount(e.target.value)}
+          />
         </div>
         <div className="grid gap-1.5">
           <Label>연 매출</Label>
-          <Input type="number" min={0} step={0.01} value={annualRevenue}
-            onChange={(e) => setAnnualRevenue(e.target.value)} />
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            value={annualRevenue}
+            onChange={(e) => setAnnualRevenue(e.target.value)}
+          />
         </div>
       </div>
       {dialog.type === 'edit' && (
@@ -206,11 +275,17 @@ export default function AccountsClient({ data, keyword }: Props) {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">고객사</h1>
-          <p className="text-sm text-muted-foreground mt-1">고객사 및 잠재 고객 정보를 관리합니다</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            고객사 및 잠재 고객 정보를 관리합니다
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <SearchInput placeholder="이름·코드 검색" className="w-64" />
-          {canWrite && <Button onClick={openCreate}><PlusIcon />새 고객사</Button>}
+          {canWrite && (
+            <Button onClick={openCreate}>
+              <PlusIcon />새 고객사
+            </Button>
+          )}
         </div>
       </div>
 
@@ -239,8 +314,12 @@ export default function AccountsClient({ data, keyword }: Props) {
               <TableRow key={acc.id}>
                 <TableCell className="font-mono text-sm">{acc.code}</TableCell>
                 <TableCell className="font-medium">{acc.name}</TableCell>
-                <TableCell><Badge variant="secondary">{TYPE_LABEL[acc.accountType]}</Badge></TableCell>
-                <TableCell className="text-sm text-muted-foreground">{acc.industry ?? '—'}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary">{TYPE_LABEL[acc.accountType]}</Badge>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {acc.industry ?? '—'}
+                </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{acc.phone ?? '—'}</TableCell>
                 <TableCell>
                   <Badge variant={acc.isActive ? 'default' : 'secondary'}>
@@ -250,13 +329,22 @@ export default function AccountsClient({ data, keyword }: Props) {
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     {canWrite && (
-                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(acc)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="수정"
+                        onClick={() => openEdit(acc)}
+                      >
                         <PencilIcon />
                       </Button>
                     )}
                     {canWrite && acc.isActive && (
-                      <Button variant="ghost" size="icon-xs" title="비활성화"
-                        onClick={() => setDialog({ type: 'deactivate', account: acc })}>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="비활성화"
+                        onClick={() => setDialog({ type: 'deactivate', account: acc })}
+                      >
                         <BanIcon className="text-destructive" />
                       </Button>
                     )}
@@ -267,51 +355,87 @@ export default function AccountsClient({ data, keyword }: Props) {
           </TableBody>
         </Table>
         <PaginationBar
-          page={data.page} totalPages={data.totalPages}
-          totalElements={data.totalElements} size={data.size}
+          page={data.page}
+          totalPages={data.totalPages}
+          totalElements={data.totalElements}
+          size={data.size}
           basePath="/crm/accounts"
           searchParams={keyword ? { keyword } : undefined}
         />
       </div>
 
       {/* Create */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>새 고객사 등록</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>새 고객사 등록</DialogTitle>
+          </DialogHeader>
           {accountForm}
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit */}
-      <Dialog open={dialog.type === 'edit'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'edit'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>고객사 수정{dialog.type === 'edit' && ` — ${dialog.account.code}`}</DialogTitle>
+            <DialogTitle>
+              고객사 수정{dialog.type === 'edit' && ` — ${dialog.account.code}`}
+            </DialogTitle>
           </DialogHeader>
           {accountForm}
           <DialogFooter showCloseButton>
-            <Button onClick={() => dialog.type === 'edit' && handleUpdate(dialog.account)}
-              disabled={isPending}>저장</Button>
+            <Button
+              onClick={() => dialog.type === 'edit' && handleUpdate(dialog.account)}
+              disabled={isPending}
+            >
+              저장
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Deactivate */}
-      <Dialog open={dialog.type === 'deactivate'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'deactivate'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>고객사 비활성화</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>고객사 비활성화</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'deactivate' && (
             <p className="text-sm text-muted-foreground py-2">
-              <strong>{dialog.account.code} {dialog.account.name}</strong>을(를) 비활성화하시겠습니까?
+              <strong>
+                {dialog.account.code} {dialog.account.name}
+              </strong>
+              을(를) 비활성화하시겠습니까?
             </p>
           )}
           <DialogFooter showCloseButton>
-            <Button variant="destructive"
+            <Button
+              variant="destructive"
               onClick={() => dialog.type === 'deactivate' && handleDeactivate(dialog.account)}
-              disabled={isPending}>비활성화</Button>
+              disabled={isPending}
+            >
+              비활성화
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

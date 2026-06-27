@@ -1,7 +1,14 @@
 'use client'
 
 import {
-  Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  LabelList,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts'
 
 export type CatDatum = { label: string; value: number; display?: string }
@@ -24,7 +31,12 @@ export function CategoryBarChart({
   const h = height ?? Math.max(data.length * 40 + 16, 96)
   return (
     <ResponsiveContainer width="100%" height={h}>
-      <BarChart data={data} layout="vertical" margin={{ left: 0, right: 56, top: 4, bottom: 4 }} barCategoryGap={10}>
+      <BarChart
+        data={data}
+        layout="vertical"
+        margin={{ left: 0, right: 56, top: 4, bottom: 4 }}
+        barCategoryGap={10}
+      >
         <CartesianGrid horizontal={false} strokeDasharray="3 3" stroke="var(--border)" />
         <XAxis type="number" hide />
         <YAxis
@@ -39,8 +51,19 @@ export function CategoryBarChart({
           cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
           content={({ active, payload }) => <CatTooltip active={active} payload={payload} />}
         />
-        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={18} fill={color} isAnimationActive={false}>
-          <LabelList dataKey="display" position="right" fill="var(--muted-foreground)" fontSize={11} />
+        <Bar
+          dataKey="value"
+          radius={[0, 4, 4, 0]}
+          barSize={18}
+          fill={color}
+          isAnimationActive={false}
+        >
+          <LabelList
+            dataKey="display"
+            position="right"
+            fill="var(--muted-foreground)"
+            fontSize={11}
+          />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -48,7 +71,8 @@ export function CategoryBarChart({
 }
 
 function CatTooltip({
-  active, payload,
+  active,
+  payload,
 }: {
   active?: boolean
   payload?: ReadonlyArray<{ payload?: { label?: string; value?: number; display?: string } }>
@@ -59,7 +83,9 @@ function CatTooltip({
   return (
     <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md">
       <span className="text-muted-foreground">{d.label}</span>
-      <span className="ml-2 font-medium tabular-nums text-popover-foreground">{d.display ?? d.value?.toLocaleString('ko-KR')}</span>
+      <span className="ml-2 font-medium tabular-nums text-popover-foreground">
+        {d.display ?? d.value?.toLocaleString('ko-KR')}
+      </span>
     </div>
   )
 }

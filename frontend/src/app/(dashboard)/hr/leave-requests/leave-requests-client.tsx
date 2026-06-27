@@ -8,13 +8,26 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { createLeaveRequest, approveLeaveRequest, rejectLeaveRequest } from './actions'
@@ -22,10 +35,14 @@ import type { LeaveRequest, Employee, LeavePolicy, ApprovalStatus } from '@/type
 import type { PageResponse } from '@/types/api'
 
 const STATUS_LABEL: Record<ApprovalStatus, string> = {
-  PENDING: '대기', APPROVED: '승인', REJECTED: '반려',
+  PENDING: '대기',
+  APPROVED: '승인',
+  REJECTED: '반려',
 }
 const STATUS_VARIANT: Record<ApprovalStatus, 'default' | 'secondary' | 'destructive'> = {
-  PENDING: 'secondary', APPROVED: 'default', REJECTED: 'destructive',
+  PENDING: 'secondary',
+  APPROVED: 'default',
+  REJECTED: 'destructive',
 }
 
 type DialogState =
@@ -58,8 +75,12 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
   const [comment, setComment] = useState('')
 
   const openCreate = () => {
-    setEmpId(''); setPolicyId(''); setStartDate(''); setEndDate('')
-    setReqDays(''); setReason('')
+    setEmpId('')
+    setPolicyId('')
+    setStartDate('')
+    setEndDate('')
+    setReqDays('')
+    setReason('')
     setDialog({ type: 'create' })
   }
 
@@ -73,7 +94,8 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
         await createLeaveRequest({
           employeeId: Number(empId),
           leavePolicyId: Number(policyId),
-          startDate, endDate,
+          startDate,
+          endDate,
           requestedDays: Number(reqDays),
           reason: reason || null,
         })
@@ -114,11 +136,12 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">휴가 신청</h1>
-          <p className="text-sm text-muted-foreground mt-1">직원 휴가 신청 현황을 조회하고 결재합니다</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            직원 휴가 신청 현황을 조회하고 결재합니다
+          </p>
         </div>
         <Button onClick={openCreate}>
-          <PlusIcon />
-          새 휴가 신청
+          <PlusIcon />새 휴가 신청
         </Button>
       </div>
 
@@ -162,7 +185,10 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
                         variant="ghost"
                         size="icon-xs"
                         title="승인"
-                        onClick={() => { setComment(''); setDialog({ type: 'approve', req: lr }) }}
+                        onClick={() => {
+                          setComment('')
+                          setDialog({ type: 'approve', req: lr })
+                        }}
                       >
                         <CheckIcon className="text-success" />
                       </Button>
@@ -170,7 +196,10 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
                         variant="ghost"
                         size="icon-xs"
                         title="반려"
-                        onClick={() => { setComment(''); setDialog({ type: 'reject', req: lr }) }}
+                        onClick={() => {
+                          setComment('')
+                          setDialog({ type: 'reject', req: lr })
+                        }}
                       >
                         <XIcon className="text-destructive" />
                       </Button>
@@ -191,7 +220,12 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>새 휴가 신청</DialogTitle>
@@ -200,7 +234,9 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
             <div className="grid gap-1.5">
               <Label>직원 *</Label>
               <Select value={empId} onValueChange={(v) => setEmpId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="직원 선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="직원 선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {employees.map((e) => (
                     <SelectItem key={e.id} value={String(e.id)}>
@@ -213,10 +249,14 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
             <div className="grid gap-1.5">
               <Label>휴가 종류 *</Label>
               <Select value={policyId} onValueChange={(v) => setPolicyId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {policies.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -224,7 +264,11 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
                 <Label>시작일 *</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label>종료일 *</Label>
@@ -253,13 +297,20 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>신청</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              신청
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Approve Dialog */}
-      <Dialog open={dialog.type === 'approve'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'approve'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>휴가 승인</DialogTitle>
@@ -267,9 +318,8 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
           {dialog.type === 'approve' && (
             <div className="text-sm text-muted-foreground py-1">
               <strong>{dialog.req.employeeName}</strong>의{' '}
-              <strong>{dialog.req.leavePolicyName}</strong> 신청
-              ({dialog.req.startDate} ~ {dialog.req.endDate}, {dialog.req.requestedDays}일)을
-              승인하시겠습니까?
+              <strong>{dialog.req.leavePolicyName}</strong> 신청 ({dialog.req.startDate} ~{' '}
+              {dialog.req.endDate}, {dialog.req.requestedDays}일)을 승인하시겠습니까?
             </div>
           )}
           <div className="grid gap-1.5">
@@ -277,7 +327,10 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
             <Textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={() => dialog.type === 'approve' && handleApprove(dialog.req)} disabled={isPending}>
+            <Button
+              onClick={() => dialog.type === 'approve' && handleApprove(dialog.req)}
+              disabled={isPending}
+            >
               승인
             </Button>
           </DialogFooter>
@@ -285,7 +338,12 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
       </Dialog>
 
       {/* Reject Dialog */}
-      <Dialog open={dialog.type === 'reject'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'reject'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>휴가 반려</DialogTitle>
