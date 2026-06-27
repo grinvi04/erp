@@ -23,14 +23,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -339,124 +334,129 @@ export default function EmployeesClient({
     })
   }
 
-  return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">직원 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">조직 내 직원 정보를 관리합니다</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <SearchInput placeholder="이름·코드 검색" className="w-64" />
+  const columns: Column<Employee>[] = [
+    {
+      key: 'employeeNo',
+      header: '사번',
+      sortable: true,
+      sortValue: (emp) => emp.employeeNo,
+      cell: (emp) => <span className="font-mono text-sm">{emp.employeeNo}</span>,
+    },
+    {
+      key: 'fullName',
+      header: '이름',
+      sortable: true,
+      sortValue: (emp) => emp.fullName,
+      cell: (emp) => <span className="font-medium">{emp.fullName}</span>,
+    },
+    {
+      key: 'departmentName',
+      header: '부서',
+      sortable: true,
+      sortValue: (emp) => emp.departmentName,
+      cell: (emp) => <span className="text-sm">{emp.departmentName}</span>,
+    },
+    {
+      key: 'positionName',
+      header: '직위',
+      sortable: true,
+      sortValue: (emp) => emp.positionName,
+      cell: (emp) => <span className="text-sm">{emp.positionName}</span>,
+    },
+    {
+      key: 'workEmail',
+      header: '이메일',
+      cell: (emp) => <span className="text-sm text-muted-foreground">{emp.workEmail}</span>,
+    },
+    {
+      key: 'hireDate',
+      header: '입사일',
+      sortable: true,
+      sortValue: (emp) => emp.hireDate,
+      cell: (emp) => <span className="text-sm">{emp.hireDate}</span>,
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (emp) => STATUS_LABEL[emp.status],
+      cell: (emp) => <Badge variant={STATUS_VARIANT[emp.status]}>{STATUS_LABEL[emp.status]}</Badge>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-40',
+      cell: (emp) => (
+        <div className="flex justify-end gap-1">
           {canWrite && (
-            <Button onClick={openCreate}>
-              <PlusIcon />새 직원
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(emp)}>
+              <PencilIcon />
             </Button>
           )}
+          {canWrite && emp.status !== 'TERMINATED' && (
+            <>
+              <Button variant="ghost" size="icon-xs" title="발령" onClick={() => openTransfer(emp)}>
+                <ArrowRightLeftIcon />
+              </Button>
+              <Button variant="ghost" size="icon-xs" title="승진" onClick={() => openPromote(emp)}>
+                <TrendingUpIcon />
+              </Button>
+              {emp.status === 'ACTIVE' && (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  title="휴직"
+                  onClick={() => handleOnLeave(emp)}
+                  disabled={isPending}
+                >
+                  <LogOutIcon />
+                </Button>
+              )}
+              {emp.status === 'ON_LEAVE' && (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  title="복직"
+                  onClick={() => handleReturnFromLeave(emp)}
+                  disabled={isPending}
+                >
+                  <LogInIcon />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                title="퇴직"
+                onClick={() => openTerminate(emp)}
+              >
+                <BanIcon className="text-destructive" />
+              </Button>
+            </>
+          )}
         </div>
-      </div>
+      ),
+    },
+  ]
 
-      <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>사번</TableHead>
-              <TableHead>이름</TableHead>
-              <TableHead>부서</TableHead>
-              <TableHead>직위</TableHead>
-              <TableHead>이메일</TableHead>
-              <TableHead>입사일</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-40" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                  등록된 직원이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((emp) => (
-              <TableRow key={emp.id}>
-                <TableCell className="font-mono text-sm">{emp.employeeNo}</TableCell>
-                <TableCell className="font-medium">{emp.fullName}</TableCell>
-                <TableCell className="text-sm">{emp.departmentName}</TableCell>
-                <TableCell className="text-sm">{emp.positionName}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{emp.workEmail}</TableCell>
-                <TableCell className="text-sm">{emp.hireDate}</TableCell>
-                <TableCell>
-                  <Badge variant={STATUS_VARIANT[emp.status]}>{STATUS_LABEL[emp.status]}</Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="수정"
-                        onClick={() => openEdit(emp)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && emp.status !== 'TERMINATED' && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="발령"
-                          onClick={() => openTransfer(emp)}
-                        >
-                          <ArrowRightLeftIcon />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="승진"
-                          onClick={() => openPromote(emp)}
-                        >
-                          <TrendingUpIcon />
-                        </Button>
-                        {emp.status === 'ACTIVE' && (
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            title="휴직"
-                            onClick={() => handleOnLeave(emp)}
-                            disabled={isPending}
-                          >
-                            <LogOutIcon />
-                          </Button>
-                        )}
-                        {emp.status === 'ON_LEAVE' && (
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            title="복직"
-                            onClick={() => handleReturnFromLeave(emp)}
-                            disabled={isPending}
-                          >
-                            <LogInIcon />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          title="퇴직"
-                          onClick={() => openTerminate(emp)}
-                        >
-                          <BanIcon className="text-destructive" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+  return (
+    <div className="p-6">
+      <PageHeader title="직원 관리" description="조직 내 직원 정보를 관리합니다" className="mb-6">
+        <SearchInput placeholder="이름·코드 검색" className="w-64" />
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 직원
+          </Button>
+        )}
+      </PageHeader>
+
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(emp) => emp.id}
+          empty={<EmptyState title="등록된 직원이 없습니다" />}
+        />
         <PaginationBar
           page={data.page}
           totalPages={data.totalPages}

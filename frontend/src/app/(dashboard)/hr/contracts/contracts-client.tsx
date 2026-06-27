@@ -14,14 +14,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -126,19 +121,62 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
     })
   }
 
+  const columns: Column<Contract>[] = [
+    {
+      key: 'contractType',
+      header: '유형',
+      cell: (c) => <Badge variant="secondary">{CONTRACT_TYPE_LABEL[c.contractType]}</Badge>,
+    },
+    {
+      key: 'startDate',
+      header: '시작일',
+      sortable: true,
+      sortValue: (c) => c.startDate,
+      cell: (c) => <span className="text-sm">{c.startDate}</span>,
+    },
+    {
+      key: 'endDate',
+      header: '종료일',
+      sortable: true,
+      sortValue: (c) => c.endDate,
+      cell: (c) => <span className="text-sm text-muted-foreground">{c.endDate ?? '—'}</span>,
+    },
+    {
+      key: 'positionName',
+      header: '직위',
+      cell: (c) => <span className="text-sm">{c.positionName}</span>,
+    },
+    {
+      key: 'jobGradeName',
+      header: '직급',
+      cell: (c) => <span className="text-sm">{c.jobGradeName ?? '—'}</span>,
+    },
+    {
+      key: 'baseSalary',
+      header: '기본급',
+      align: 'right',
+      sortable: true,
+      sortValue: (c) => c.baseSalary,
+      cell: (c) => <span className="text-sm text-muted-foreground">{fmt(c.baseSalary)}</span>,
+    },
+    {
+      key: 'note',
+      header: '비고',
+      cell: (c) => <span className="text-sm text-muted-foreground">{c.note ?? '—'}</span>,
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">근로 계약</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            직원별 근로 계약 이력을 조회·등록합니다
-          </p>
-        </div>
+      <PageHeader
+        title="근로 계약"
+        description="직원별 근로 계약 이력을 조회·등록합니다"
+        className="mb-6"
+      >
         <Button onClick={openCreate} disabled={!empId}>
           <PlusIcon />새 계약
         </Button>
-      </div>
+      </PageHeader>
 
       <div className="mb-4 max-w-sm">
         <Label className="mb-1.5 block">직원 선택</Label>
@@ -156,63 +194,17 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
         </Select>
       </div>
 
-      <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>유형</TableHead>
-              <TableHead>시작일</TableHead>
-              <TableHead>종료일</TableHead>
-              <TableHead>직위</TableHead>
-              <TableHead>직급</TableHead>
-              <TableHead className="text-right">기본급</TableHead>
-              <TableHead>비고</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {!empId && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
-                  직원을 선택하면 계약 이력이 표시됩니다
-                </TableCell>
-              </TableRow>
-            )}
-            {empId && loading && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
-                  불러오는 중...
-                </TableCell>
-              </TableRow>
-            )}
-            {empId && !loading && contracts.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
-                  등록된 계약이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {empId &&
-              !loading &&
-              contracts.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell>
-                    <Badge variant="secondary">{CONTRACT_TYPE_LABEL[c.contractType]}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">{c.startDate}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {c.endDate ?? '—'}
-                  </TableCell>
-                  <TableCell className="text-sm">{c.positionName}</TableCell>
-                  <TableCell className="text-sm">{c.jobGradeName ?? '—'}</TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground">
-                    {fmt(c.baseSalary)}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{c.note ?? '—'}</TableCell>
-                </TableRow>
-              ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={empId ? contracts : []}
+        columns={columns}
+        getRowId={(c) => c.id}
+        loading={!!empId && loading}
+        empty={
+          <EmptyState
+            title={empId ? '등록된 계약이 없습니다' : '직원을 선택하면 계약 이력이 표시됩니다'}
+          />
+        }
+      />
 
       {/* Create Dialog */}
       <Dialog

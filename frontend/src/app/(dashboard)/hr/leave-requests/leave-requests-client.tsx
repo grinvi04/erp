@@ -14,14 +14,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -131,85 +126,106 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
     })
   }
 
+  const columns: Column<LeaveRequest>[] = [
+    {
+      key: 'employeeName',
+      header: '직원',
+      sortable: true,
+      sortValue: (lr) => lr.employeeName,
+      cell: (lr) => <span className="font-medium">{lr.employeeName}</span>,
+    },
+    {
+      key: 'leavePolicyName',
+      header: '휴가 종류',
+      sortable: true,
+      sortValue: (lr) => lr.leavePolicyName,
+      cell: (lr) => <span className="text-sm">{lr.leavePolicyName}</span>,
+    },
+    {
+      key: 'startDate',
+      header: '시작일',
+      sortable: true,
+      sortValue: (lr) => lr.startDate,
+      cell: (lr) => <span className="text-sm">{lr.startDate}</span>,
+    },
+    {
+      key: 'endDate',
+      header: '종료일',
+      sortable: true,
+      sortValue: (lr) => lr.endDate,
+      cell: (lr) => <span className="text-sm">{lr.endDate}</span>,
+    },
+    {
+      key: 'requestedDays',
+      header: '일수',
+      align: 'right',
+      sortable: true,
+      sortValue: (lr) => lr.requestedDays,
+      cell: (lr) => <span className="text-sm">{lr.requestedDays}일</span>,
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (lr) => STATUS_LABEL[lr.approvalStatus],
+      cell: (lr) => (
+        <Badge variant={STATUS_VARIANT[lr.approvalStatus]}>{STATUS_LABEL[lr.approvalStatus]}</Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-24',
+      cell: (lr) =>
+        lr.approvalStatus === 'PENDING' ? (
+          <div className="flex justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="승인"
+              onClick={() => {
+                setComment('')
+                setDialog({ type: 'approve', req: lr })
+              }}
+            >
+              <CheckIcon className="text-success" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="반려"
+              onClick={() => {
+                setComment('')
+                setDialog({ type: 'reject', req: lr })
+              }}
+            >
+              <XIcon className="text-destructive" />
+            </Button>
+          </div>
+        ) : null,
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">휴가 신청</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            직원 휴가 신청 현황을 조회하고 결재합니다
-          </p>
-        </div>
+      <PageHeader
+        title="휴가 신청"
+        description="직원 휴가 신청 현황을 조회하고 결재합니다"
+        className="mb-6"
+      >
         <Button onClick={openCreate}>
           <PlusIcon />새 휴가 신청
         </Button>
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>직원</TableHead>
-              <TableHead>휴가 종류</TableHead>
-              <TableHead>시작일</TableHead>
-              <TableHead>종료일</TableHead>
-              <TableHead className="text-right">일수</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-24" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {requests.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
-                  휴가 신청 내역이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {requests.map((lr) => (
-              <TableRow key={lr.id}>
-                <TableCell className="font-medium">{lr.employeeName}</TableCell>
-                <TableCell className="text-sm">{lr.leavePolicyName}</TableCell>
-                <TableCell className="text-sm">{lr.startDate}</TableCell>
-                <TableCell className="text-sm">{lr.endDate}</TableCell>
-                <TableCell className="text-right text-sm">{lr.requestedDays}일</TableCell>
-                <TableCell>
-                  <Badge variant={STATUS_VARIANT[lr.approvalStatus]}>
-                    {STATUS_LABEL[lr.approvalStatus]}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {lr.approvalStatus === 'PENDING' && (
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="승인"
-                        onClick={() => {
-                          setComment('')
-                          setDialog({ type: 'approve', req: lr })
-                        }}
-                      >
-                        <CheckIcon className="text-success" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="반려"
-                        onClick={() => {
-                          setComment('')
-                          setDialog({ type: 'reject', req: lr })
-                        }}
-                      >
-                        <XIcon className="text-destructive" />
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-3">
+        <DataTable
+          data={requests}
+          columns={columns}
+          getRowId={(lr) => lr.id}
+          empty={<EmptyState title="휴가 신청 내역이 없습니다" />}
+        />
         <PaginationBar
           page={data.page}
           totalPages={data.totalPages}
