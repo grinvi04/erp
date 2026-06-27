@@ -34,6 +34,54 @@ function SectionCard({ title, action, children }: {
   )
 }
 
+type StatementLine = { accountCode: string; accountName: string; amount: number }
+
+// 손익·재무상태표의 한 그룹(그룹헤더 + 빈 안내/라인 + 합계행)을 tbody 안에 렌더.
+// totalLabel 미지정 시 `${title} 합계`. children은 합계행 직전에 끼워 넣는다(예: 당기순이익 가산).
+function StatementGroup({
+  title,
+  keyPrefix,
+  rows,
+  total,
+  currency,
+  totalLabel,
+  children,
+}: {
+  title: string
+  keyPrefix: string
+  rows: StatementLine[]
+  total: number
+  currency: string
+  totalLabel?: string
+  children?: React.ReactNode
+}) {
+  return (
+    <>
+      <tr className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
+        <td className="py-2 pr-4" colSpan={3}>{title}</td>
+      </tr>
+      {rows.length === 0 ? (
+        <tr className="border-b border-gray-100">
+          <td className="py-2 pr-4 text-gray-400" colSpan={3}>데이터 없음</td>
+        </tr>
+      ) : (
+        rows.map((r) => (
+          <tr key={`${keyPrefix}-${r.accountCode}`} className="border-b border-gray-100">
+            <td className="py-2 pr-4 pl-4 font-mono text-gray-600">{r.accountCode}</td>
+            <td className="py-2 pr-4 text-gray-700">{r.accountName}</td>
+            <td className="py-2 text-right text-gray-700">{formatMoneyOne(r.amount, currency)}</td>
+          </tr>
+        ))
+      )}
+      {children}
+      <tr className="border-b border-gray-200 font-medium text-gray-900">
+        <td className="py-2 pr-4" colSpan={2}>{totalLabel ?? `${title} 합계`}</td>
+        <td className="py-2 text-right">{formatMoneyOne(total, currency)}</td>
+      </tr>
+    </>
+  )
+}
+
 function ExcludedNotice({ count }: { count: number }) {
   if (count <= 0) return null
   return (
@@ -63,9 +111,9 @@ export default async function FinancialReportsPage(props: {
   const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i)
   if (!yearOptions.includes(year)) yearOptions.unshift(year)
 
-  const tbCcy = trialBalance?.baseCurrency ?? 'KRW'
-  const isCcy = incomeStatement?.baseCurrency ?? 'KRW'
-  const bsCcy = balanceSheet?.baseCurrency ?? 'KRW'
+  const trialCcy = trialBalance?.baseCurrency ?? 'KRW'
+  const incomeCcy = incomeStatement?.baseCurrency ?? 'KRW'
+  const balanceCcy = balanceSheet?.baseCurrency ?? 'KRW'
 
   return (
     <div className="p-6">
@@ -107,17 +155,17 @@ export default async function FinancialReportsPage(props: {
                         <tr key={r.accountCode} className="border-b border-gray-100">
                           <td className="py-2 pr-4 font-mono text-gray-700">{r.accountCode}</td>
                           <td className="py-2 pr-4 text-gray-700">{r.accountName}</td>
-                          <td className="py-2 pr-4 text-right text-gray-700">{formatMoneyOne(r.debit, tbCcy)}</td>
-                          <td className="py-2 pr-4 text-right text-gray-700">{formatMoneyOne(r.credit, tbCcy)}</td>
-                          <td className="py-2 text-right text-gray-700">{formatMoneyOne(r.balance, tbCcy)}</td>
+                          <td className="py-2 pr-4 text-right text-gray-700">{formatMoneyOne(r.debit, trialCcy)}</td>
+                          <td className="py-2 pr-4 text-right text-gray-700">{formatMoneyOne(r.credit, trialCcy)}</td>
+                          <td className="py-2 text-right text-gray-700">{formatMoneyOne(r.balance, trialCcy)}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 border-gray-300 font-semibold text-gray-900">
                         <td className="py-2 pr-4" colSpan={2}>합계</td>
-                        <td className="py-2 pr-4 text-right">{formatMoneyOne(trialBalance.totalDebit, tbCcy)}</td>
-                        <td className="py-2 pr-4 text-right">{formatMoneyOne(trialBalance.totalCredit, tbCcy)}</td>
+                        <td className="py-2 pr-4 text-right">{formatMoneyOne(trialBalance.totalDebit, trialCcy)}</td>
+                        <td className="py-2 pr-4 text-right">{formatMoneyOne(trialBalance.totalCredit, trialCcy)}</td>
                         <td className="py-2" />
                       </tr>
                     </tfoot>
@@ -138,55 +186,26 @@ export default async function FinancialReportsPage(props: {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <tbody>
-                    {/* 수익 */}
-                    <tr className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
-                      <td className="py-2 pr-4" colSpan={3}>수익</td>
-                    </tr>
-                    {incomeStatement.revenues.length === 0 ? (
-                      <tr className="border-b border-gray-100">
-                        <td className="py-2 pr-4 text-gray-400" colSpan={3}>데이터 없음</td>
-                      </tr>
-                    ) : (
-                      incomeStatement.revenues.map((r) => (
-                        <tr key={`rev-${r.accountCode}`} className="border-b border-gray-100">
-                          <td className="py-2 pr-4 pl-4 font-mono text-gray-600">{r.accountCode}</td>
-                          <td className="py-2 pr-4 text-gray-700">{r.accountName}</td>
-                          <td className="py-2 text-right text-gray-700">{formatMoneyOne(r.amount, isCcy)}</td>
-                        </tr>
-                      ))
-                    )}
-                    <tr className="border-b border-gray-200 font-medium text-gray-900">
-                      <td className="py-2 pr-4" colSpan={2}>수익 합계</td>
-                      <td className="py-2 text-right">{formatMoneyOne(incomeStatement.totalRevenue, isCcy)}</td>
-                    </tr>
-
-                    {/* 비용 */}
-                    <tr className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
-                      <td className="py-2 pr-4" colSpan={3}>비용</td>
-                    </tr>
-                    {incomeStatement.expenses.length === 0 ? (
-                      <tr className="border-b border-gray-100">
-                        <td className="py-2 pr-4 text-gray-400" colSpan={3}>데이터 없음</td>
-                      </tr>
-                    ) : (
-                      incomeStatement.expenses.map((r) => (
-                        <tr key={`exp-${r.accountCode}`} className="border-b border-gray-100">
-                          <td className="py-2 pr-4 pl-4 font-mono text-gray-600">{r.accountCode}</td>
-                          <td className="py-2 pr-4 text-gray-700">{r.accountName}</td>
-                          <td className="py-2 text-right text-gray-700">{formatMoneyOne(r.amount, isCcy)}</td>
-                        </tr>
-                      ))
-                    )}
-                    <tr className="border-b border-gray-200 font-medium text-gray-900">
-                      <td className="py-2 pr-4" colSpan={2}>비용 합계</td>
-                      <td className="py-2 text-right">{formatMoneyOne(incomeStatement.totalExpense, isCcy)}</td>
-                    </tr>
+                    <StatementGroup
+                      title="수익"
+                      keyPrefix="rev"
+                      rows={incomeStatement.revenues}
+                      total={incomeStatement.totalRevenue}
+                      currency={incomeCcy}
+                    />
+                    <StatementGroup
+                      title="비용"
+                      keyPrefix="exp"
+                      rows={incomeStatement.expenses}
+                      total={incomeStatement.totalExpense}
+                      currency={incomeCcy}
+                    />
 
                     {/* 당기순이익 */}
                     <tr className="border-t-2 border-gray-300 font-semibold text-gray-900">
                       <td className="py-2 pr-4" colSpan={2}>당기순이익</td>
                       <td className={`py-2 text-right ${incomeStatement.netIncome < 0 ? 'text-rose-600' : 'text-gray-900'}`}>
-                        {formatMoneyOne(incomeStatement.netIncome, isCcy)}
+                        {formatMoneyOne(incomeStatement.netIncome, incomeCcy)}
                       </td>
                     </tr>
                   </tbody>
@@ -217,79 +236,35 @@ export default async function FinancialReportsPage(props: {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <tbody>
-                    {/* 자산 */}
-                    <tr className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
-                      <td className="py-2 pr-4" colSpan={3}>자산</td>
-                    </tr>
-                    {balanceSheet.assets.length === 0 ? (
-                      <tr className="border-b border-gray-100">
-                        <td className="py-2 pr-4 text-gray-400" colSpan={3}>데이터 없음</td>
+                    <StatementGroup
+                      title="자산"
+                      keyPrefix="ast"
+                      rows={balanceSheet.assets}
+                      total={balanceSheet.totalAssets}
+                      currency={balanceCcy}
+                    />
+                    <StatementGroup
+                      title="부채"
+                      keyPrefix="lia"
+                      rows={balanceSheet.liabilities}
+                      total={balanceSheet.totalLiabilities}
+                      currency={balanceCcy}
+                    />
+                    <StatementGroup
+                      title="자본"
+                      keyPrefix="eqt"
+                      rows={balanceSheet.equity}
+                      total={balanceSheet.totalEquity + balanceSheet.netIncome}
+                      currency={balanceCcy}
+                      totalLabel="자본 합계(당기순이익 포함)"
+                    >
+                      <tr className="border-b border-gray-100 text-gray-700">
+                        <td className="py-2 pr-4 pl-4" colSpan={2}>당기순이익(이익잉여금 가산)</td>
+                        <td className={`py-2 text-right ${balanceSheet.netIncome < 0 ? 'text-rose-600' : 'text-gray-700'}`}>
+                          {formatMoneyOne(balanceSheet.netIncome, balanceCcy)}
+                        </td>
                       </tr>
-                    ) : (
-                      balanceSheet.assets.map((r) => (
-                        <tr key={`ast-${r.accountCode}`} className="border-b border-gray-100">
-                          <td className="py-2 pr-4 pl-4 font-mono text-gray-600">{r.accountCode}</td>
-                          <td className="py-2 pr-4 text-gray-700">{r.accountName}</td>
-                          <td className="py-2 text-right text-gray-700">{formatMoneyOne(r.amount, bsCcy)}</td>
-                        </tr>
-                      ))
-                    )}
-                    <tr className="border-b border-gray-200 font-medium text-gray-900">
-                      <td className="py-2 pr-4" colSpan={2}>자산 합계</td>
-                      <td className="py-2 text-right">{formatMoneyOne(balanceSheet.totalAssets, bsCcy)}</td>
-                    </tr>
-
-                    {/* 부채 */}
-                    <tr className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
-                      <td className="py-2 pr-4" colSpan={3}>부채</td>
-                    </tr>
-                    {balanceSheet.liabilities.length === 0 ? (
-                      <tr className="border-b border-gray-100">
-                        <td className="py-2 pr-4 text-gray-400" colSpan={3}>데이터 없음</td>
-                      </tr>
-                    ) : (
-                      balanceSheet.liabilities.map((r) => (
-                        <tr key={`lia-${r.accountCode}`} className="border-b border-gray-100">
-                          <td className="py-2 pr-4 pl-4 font-mono text-gray-600">{r.accountCode}</td>
-                          <td className="py-2 pr-4 text-gray-700">{r.accountName}</td>
-                          <td className="py-2 text-right text-gray-700">{formatMoneyOne(r.amount, bsCcy)}</td>
-                        </tr>
-                      ))
-                    )}
-                    <tr className="border-b border-gray-200 font-medium text-gray-900">
-                      <td className="py-2 pr-4" colSpan={2}>부채 합계</td>
-                      <td className="py-2 text-right">{formatMoneyOne(balanceSheet.totalLiabilities, bsCcy)}</td>
-                    </tr>
-
-                    {/* 자본 */}
-                    <tr className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
-                      <td className="py-2 pr-4" colSpan={3}>자본</td>
-                    </tr>
-                    {balanceSheet.equity.length === 0 ? (
-                      <tr className="border-b border-gray-100">
-                        <td className="py-2 pr-4 text-gray-400" colSpan={3}>데이터 없음</td>
-                      </tr>
-                    ) : (
-                      balanceSheet.equity.map((r) => (
-                        <tr key={`eqt-${r.accountCode}`} className="border-b border-gray-100">
-                          <td className="py-2 pr-4 pl-4 font-mono text-gray-600">{r.accountCode}</td>
-                          <td className="py-2 pr-4 text-gray-700">{r.accountName}</td>
-                          <td className="py-2 text-right text-gray-700">{formatMoneyOne(r.amount, bsCcy)}</td>
-                        </tr>
-                      ))
-                    )}
-                    <tr className="border-b border-gray-100 text-gray-700">
-                      <td className="py-2 pr-4 pl-4" colSpan={2}>당기순이익(이익잉여금 가산)</td>
-                      <td className={`py-2 text-right ${balanceSheet.netIncome < 0 ? 'text-rose-600' : 'text-gray-700'}`}>
-                        {formatMoneyOne(balanceSheet.netIncome, bsCcy)}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200 font-medium text-gray-900">
-                      <td className="py-2 pr-4" colSpan={2}>자본 합계(당기순이익 포함)</td>
-                      <td className="py-2 text-right">
-                        {formatMoneyOne(balanceSheet.totalEquity + balanceSheet.netIncome, bsCcy)}
-                      </td>
-                    </tr>
+                    </StatementGroup>
 
                     {/* 부채+자본 */}
                     <tr className="border-t-2 border-gray-300 font-semibold text-gray-900">
@@ -297,7 +272,7 @@ export default async function FinancialReportsPage(props: {
                       <td className="py-2 text-right">
                         {formatMoneyOne(
                           balanceSheet.totalLiabilities + balanceSheet.totalEquity + balanceSheet.netIncome,
-                          bsCcy,
+                          balanceCcy,
                         )}
                       </td>
                     </tr>
