@@ -114,6 +114,48 @@ function SectionCard({ title, children }: { title: string; children: React.React
   )
 }
 
+// 월별 세로 막대차트. 단일 시리즈(w-full 막대 1개) 또는 다중 시리즈(그룹 막대) 지원.
+// 막대 높이는 모든 시리즈 값을 통틀어 계산한 최대값으로 스케일한다(≥1 보장).
+function MonthlyBarChart<T extends { month: number }>({
+  rows,
+  bars,
+  renderTooltip,
+  renderFooter,
+}: {
+  rows: T[]
+  bars: { value: (r: T) => number; color: string; width: string }[]
+  renderTooltip: (r: T) => React.ReactNode
+  renderFooter?: (r: T) => React.ReactNode
+}) {
+  const max = Math.max(...rows.flatMap((r) => bars.map((b) => b.value(r))), 1)
+  const groupGap = bars.length > 1 ? ' gap-0.5' : ''
+  return (
+    <div className="flex items-end gap-2">
+      {rows.map((r, idx) => (
+        <div key={r.month} className="flex flex-col items-center flex-1">
+          <div className={`relative group flex h-40 w-full items-end justify-center${groupGap}`}>
+            <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              {renderTooltip(r)}
+            </div>
+            {bars.map((b, bi) => {
+              const v = b.value(r)
+              return (
+                <div
+                  key={bi}
+                  className={`${b.color} rounded-t ${b.width}`}
+                  style={{ height: `${(v / max) * 100}%`, minHeight: v > 0 ? '4px' : '0px' }}
+                />
+              )
+            })}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
+          {renderFooter?.(r)}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default async function AnalyticsPage() {
   const currentYear = new Date().getFullYear()
 
@@ -168,10 +210,6 @@ export default async function AnalyticsPage() {
   const maxHrPosition = Math.max(...hrByPosition.map((r) => r.count), 1)
   const maxHrEmploymentType = Math.max(...hrByEmploymentType.map((r) => r.count), 1)
   const maxHrLeaveDays = Math.max(...hrLeaves.map((r) => r.totalDays), 1)
-  const maxHiresTerms = Math.max(
-    ...hrHiresTerms.map((r) => Math.max(r.hires, r.terminations)),
-    1,
-  )
 
   // Inventory scaling
   const maxInvCategory = Math.max(...invByCategory.map((r) => r.count), 1)
@@ -198,7 +236,7 @@ export default async function AnalyticsPage() {
                 label={r.stageName}
                 subLabel={`${r.count}건${r.amounts.length ? ' · ' + formatMoneyList(r.amounts) : ''}`
                   + (r.baseTotal != null ? ` · ≈ ${formatMoneyOne(r.baseTotal, pipelineBaseCurrency)}` : '')}
-                pct={maxPipelineCount === 0 ? 0 : Math.round((r.count / maxPipelineCount) * 100)}
+                pct={Math.round((r.count / maxPipelineCount) * 100)}
                 color="bg-blue-500"
               />
             ))
@@ -215,7 +253,7 @@ export default async function AnalyticsPage() {
                 key={r.status}
                 label={LEAD_STATUS_LABELS[r.status] ?? r.status}
                 subLabel={`${r.count}건`}
-                pct={maxLeadCount === 0 ? 0 : Math.round((r.count / maxLeadCount) * 100)}
+                pct={Math.round((r.count / maxLeadCount) * 100)}
                 color="bg-emerald-500"
               />
             ))
@@ -228,69 +266,38 @@ export default async function AnalyticsPage() {
             <p className="text-sm text-gray-400">데이터 없음</p>
           </SectionCard>
         ) : (
-          monthly.map((series) => {
-            // 막대 높이는 그 통화 내 최대 금액으로 스케일
-            const maxAmount = Math.max(...series.months.map((m) => m.totalAmount), 1)
-            return (
-              <SectionCard
-                key={series.currency}
-                title={`월별 매입 인보이스 추이 (${currentYear}년) · ${series.currency}`}
-              >
-                <div className="flex items-end gap-2">
-                  {series.months.map((r, idx) => {
-                    const heightPct = maxAmount === 0 ? 0 : (r.totalAmount / maxAmount) * 100
-                    return (
-                      <div key={r.month} className="flex flex-col items-center flex-1">
-                        {/* 막대 영역: 고정 높이(h-40)를 기준으로 % 높이가 해석되도록 한다. */}
-                        <div className="relative group flex h-40 w-full items-end justify-center">
-                          <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                            {r.count}건<br />{formatMoneyList([{ currency: series.currency, amount: r.totalAmount }])}
-                          </div>
-                          <div
-                            className="bg-violet-500 rounded-t w-full"
-                            style={{ height: `${heightPct}%`, minHeight: r.totalAmount > 0 ? '4px' : '0px' }}
-                          />
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
-                        <div className="text-xs text-gray-600 font-medium">{r.count}</div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </SectionCard>
-            )
-          })
+          monthly.map((series) => (
+            <SectionCard
+              key={series.currency}
+              title={`월별 매입 인보이스 추이 (${currentYear}년) · ${series.currency}`}
+            >
+              {/* 막대 높이는 그 통화 내 최대 금액으로 스케일 */}
+              <MonthlyBarChart
+                rows={series.months}
+                bars={[{ value: (r) => r.totalAmount, color: 'bg-violet-500', width: 'w-full' }]}
+                renderTooltip={(r) => (
+                  <>
+                    {r.count}건<br />{formatMoneyList([{ currency: series.currency, amount: r.totalAmount }])}
+                  </>
+                )}
+                renderFooter={(r) => <div className="text-xs text-gray-600 font-medium">{r.count}</div>}
+              />
+            </SectionCard>
+          ))
         )}
 
         {/* 월별 기준통화 합계 추이 — 모든 통화를 기준통화로 환산해 합산(산정분만). 통화별 카드와 별개로 추가. */}
-        {monthlyBaseTotals.length > 0 && (() => {
-          const maxBase = Math.max(...monthlyBaseTotals.map((m) => m.totalAmount), 1)
-          return (
-            <SectionCard
-              title={`월별 매입 인보이스 추이 (${currentYear}년) · 기준통화 합계(${monthlyBaseCurrency})`}
-            >
-              <div className="flex items-end gap-2">
-                {monthlyBaseTotals.map((r, idx) => {
-                  const heightPct = maxBase === 0 ? 0 : (r.totalAmount / maxBase) * 100
-                  return (
-                    <div key={r.month} className="flex flex-col items-center flex-1">
-                      <div className="relative group flex h-40 w-full items-end justify-center">
-                        <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                          ≈ {formatMoneyOne(r.totalAmount, monthlyBaseCurrency)}
-                        </div>
-                        <div
-                          className="bg-indigo-500 rounded-t w-full"
-                          style={{ height: `${heightPct}%`, minHeight: r.totalAmount > 0 ? '4px' : '0px' }}
-                        />
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
-                    </div>
-                  )
-                })}
-              </div>
-            </SectionCard>
-          )
-        })()}
+        {monthlyBaseTotals.length > 0 && (
+          <SectionCard
+            title={`월별 매입 인보이스 추이 (${currentYear}년) · 기준통화 합계(${monthlyBaseCurrency})`}
+          >
+            <MonthlyBarChart
+              rows={monthlyBaseTotals}
+              bars={[{ value: (r) => r.totalAmount, color: 'bg-indigo-500', width: 'w-full' }]}
+              renderTooltip={(r) => <>≈ {formatMoneyOne(r.totalAmount, monthlyBaseCurrency)}</>}
+            />
+          </SectionCard>
+        )}
 
         {/* ===== HR ===== */}
         <div className="pt-2">
@@ -375,26 +382,18 @@ export default async function AnalyticsPage() {
                 <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-emerald-500" />입사</span>
                 <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-rose-500" />퇴사</span>
               </div>
-              <div className="flex items-end gap-2">
-                {hrHiresTerms.map((r, idx) => (
-                  <div key={r.month} className="flex flex-col items-center flex-1">
-                    <div className="relative group flex h-40 w-full items-end justify-center gap-0.5">
-                      <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                        입사 {r.hires}명<br />퇴사 {r.terminations}명
-                      </div>
-                      <div
-                        className="bg-emerald-500 rounded-t w-1/2"
-                        style={{ height: `${(r.hires / maxHiresTerms) * 100}%`, minHeight: r.hires > 0 ? '4px' : '0px' }}
-                      />
-                      <div
-                        className="bg-rose-500 rounded-t w-1/2"
-                        style={{ height: `${(r.terminations / maxHiresTerms) * 100}%`, minHeight: r.terminations > 0 ? '4px' : '0px' }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
-                  </div>
-                ))}
-              </div>
+              <MonthlyBarChart
+                rows={hrHiresTerms}
+                bars={[
+                  { value: (r) => r.hires, color: 'bg-emerald-500', width: 'w-1/2' },
+                  { value: (r) => r.terminations, color: 'bg-rose-500', width: 'w-1/2' },
+                ]}
+                renderTooltip={(r) => (
+                  <>
+                    입사 {r.hires}명<br />퇴사 {r.terminations}명
+                  </>
+                )}
+              />
             </>
           )}
         </SectionCard>
@@ -495,36 +494,23 @@ export default async function AnalyticsPage() {
             <p className="text-sm text-gray-400">데이터 없음</p>
           </SectionCard>
         ) : (
-          invMonthlyMovements.map((series) => {
-            const maxQty = Math.max(...series.months.map((m) => m.totalQty), 1)
-            return (
-              <SectionCard
-                key={series.movementType}
-                title={`월별 입출고 추이 (${currentYear}년) · ${MOVEMENT_TYPE_LABELS[series.movementType] ?? series.movementType}`}
-              >
-                <div className="flex items-end gap-2">
-                  {series.months.map((r, idx) => {
-                    const heightPct = maxQty === 0 ? 0 : (r.totalQty / maxQty) * 100
-                    return (
-                      <div key={r.month} className="flex flex-col items-center flex-1">
-                        <div className="relative group flex h-40 w-full items-end justify-center">
-                          <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                            {r.count}건<br />수량 {r.totalQty.toLocaleString('ko-KR')}
-                          </div>
-                          <div
-                            className="bg-amber-600 rounded-t w-full"
-                            style={{ height: `${heightPct}%`, minHeight: r.totalQty > 0 ? '4px' : '0px' }}
-                          />
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">{MONTH_LABELS[idx]}</div>
-                        <div className="text-xs text-gray-600 font-medium">{r.count}</div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </SectionCard>
-            )
-          })
+          invMonthlyMovements.map((series) => (
+            <SectionCard
+              key={series.movementType}
+              title={`월별 입출고 추이 (${currentYear}년) · ${MOVEMENT_TYPE_LABELS[series.movementType] ?? series.movementType}`}
+            >
+              <MonthlyBarChart
+                rows={series.months}
+                bars={[{ value: (r) => r.totalQty, color: 'bg-amber-600', width: 'w-full' }]}
+                renderTooltip={(r) => (
+                  <>
+                    {r.count}건<br />수량 {r.totalQty.toLocaleString('ko-KR')}
+                  </>
+                )}
+                renderFooter={(r) => <div className="text-xs text-gray-600 font-medium">{r.count}</div>}
+              />
+            </SectionCard>
+          ))
         )}
 
         {/* 저재고 품목 목록 (Σ현재고 ≤ 재주문점) */}
