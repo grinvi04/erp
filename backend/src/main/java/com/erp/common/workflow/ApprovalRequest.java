@@ -99,6 +99,13 @@ public class ApprovalRequest extends BaseEntity {
         this.completedAt = LocalDateTime.now();
     }
 
+    /** 상신자 철회 — PENDING 결재를 CANCELLED로 종료한다(현재 단계도 취소 처리). */
+    public void cancel(String requesterId, String comment) {
+        getCurrentStepEntity().cancel(comment);
+        this.status = ApprovalStatus.CANCELLED;
+        this.completedAt = LocalDateTime.now();
+    }
+
     private ApprovalStep getCurrentStepEntity() {
         return steps.stream()
                 .filter(s -> s.getStepOrder() == currentStep)

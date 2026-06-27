@@ -25,16 +25,20 @@ const STATUS_VARIANT: Record<ApprovalStatus, 'default' | 'secondary' | 'destruct
 }
 
 // 결재 대상 도메인(entityType) → 처리 화면 라우트 + 인박스 인라인 처리 지원 여부.
-// inline=true 인 유형만 결재함에서 직접 승인/반려한다(나머지는 링크 이동).
-const ENTITY_ROUTE: Record<string, { label: string; href: string; inline: boolean }> = {
-  LEAVE_REQUEST: { label: '휴가 신청', href: '/hr/leave-requests', inline: true },
-  AP_INVOICE: { label: 'AP 전표', href: '/finance/invoices', inline: false },
-  GL_ENTRY: { label: 'GL 전표', href: '/finance/journal-entries', inline: false },
-  STOCK_MOVEMENT: { label: '재고 조정', href: '/inventory/movements', inline: false },
+// inlineApprove=true: 결재함에서 직접 승인. inlineReject=true: 결재함에서 직접 반려.
+// GL 전표·재고 조정은 승인이 전결한도·전기 판단을 동반해 링크 이동하되, 반려는 인라인 지원한다.
+const ENTITY_ROUTE: Record<
+  string, { label: string; href: string; inlineApprove: boolean; inlineReject: boolean }
+> = {
+  LEAVE_REQUEST: { label: '휴가 신청', href: '/hr/leave-requests', inlineApprove: true, inlineReject: true },
+  AP_INVOICE: { label: 'AP 전표', href: '/finance/invoices', inlineApprove: false, inlineReject: false },
+  GL_ENTRY: { label: 'GL 전표', href: '/finance/journal-entries', inlineApprove: false, inlineReject: true },
+  STOCK_MOVEMENT: { label: '재고 조정', href: '/inventory/movements', inlineApprove: false, inlineReject: true },
 }
 
 function entityInfo(entityType: string) {
-  return ENTITY_ROUTE[entityType] ?? { label: entityType, href: '#', inline: false }
+  return ENTITY_ROUTE[entityType]
+    ?? { label: entityType, href: '#', inlineApprove: false, inlineReject: false }
 }
 
 type ActionDialog =
@@ -81,28 +85,34 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
 
   const renderActionCell = (a: ApprovalSummary, actionable: boolean) => {
     const info = entityInfo(a.entityType)
-    if (actionable && info.inline) {
-      return (
-        <div className="flex justify-end gap-1">
+    const showApprove = actionable && info.inlineApprove
+    const showReject = actionable && info.inlineReject
+    // 승인을 인라인 지원하지 않으면(예: GL 전표·재고 조정) 처리 화면으로의 링크를 함께 노출한다.
+    const showLink = !showApprove && info.href !== '#'
+    if (!showApprove && !showReject && !showLink) {
+      return null
+    }
+    return (
+      <div className="flex justify-end items-center gap-1">
+        {showApprove && (
           <Button variant="ghost" size="sm" title="승인" onClick={() => openApprove(a)} disabled={isPending}>
             <CheckIcon className="text-emerald-600" />승인
           </Button>
+        )}
+        {showReject && (
           <Button variant="ghost" size="sm" title="반려" onClick={() => openReject(a)}
             disabled={isPending} className="text-destructive">
             <XIcon />반려
           </Button>
-        </div>
-      )
-    }
-    if (info.href !== '#') {
-      return (
-        <Link href={info.href}
-          className="text-sm text-blue-600 hover:underline flex items-center justify-end">
-          처리하러 가기<ChevronRight className="h-3 w-3" />
-        </Link>
-      )
-    }
-    return null
+        )}
+        {showLink && (
+          <Link href={info.href}
+            className="text-sm text-blue-600 hover:underline flex items-center">
+            처리하러 가기<ChevronRight className="h-3 w-3" />
+          </Link>
+        )}
+      </div>
+    )
   }
 
   const renderTable = (

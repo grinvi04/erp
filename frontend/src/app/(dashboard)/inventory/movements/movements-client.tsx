@@ -21,7 +21,7 @@ import {
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import {
   createMovement, confirmMovement, submitMovement, approveMovement,
-  cancelMovement, getLocationsByWarehouse,
+  cancelMovement, withdrawMovement, getLocationsByWarehouse,
 } from './actions'
 import type { Movement, MovementType, MovementStatus, Item, Warehouse, Location } from '@/types/inventory'
 import type { PageResponse } from '@/types/api'
@@ -158,6 +158,15 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
     })
   }
 
+  const handleWithdraw = (mv: Movement) => {
+    startTransition(async () => {
+      try {
+        await withdrawMovement(mv.id)
+        toast.success('상신을 철회했습니다')
+      } catch (e) { toast.error(e instanceof Error ? e.message : '철회 중 오류가 발생했습니다') }
+    })
+  }
+
   const handleCancel = (mv: Movement) => {
     startTransition(async () => {
       try {
@@ -242,12 +251,20 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                       </Button>
                     </div>
                   )}
-                  {canApprove && mv.status === 'PENDING_APPROVAL' && (
+                  {mv.status === 'PENDING_APPROVAL' && (canApprove || canWrite) && (
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleApprove(mv)}
-                        disabled={isPending} title="승인">
-                        승인
-                      </Button>
+                      {canApprove && (
+                        <Button variant="ghost" size="sm" onClick={() => handleApprove(mv)}
+                          disabled={isPending} title="승인">
+                          승인
+                        </Button>
+                      )}
+                      {canWrite && (
+                        <Button variant="ghost" size="sm" onClick={() => handleWithdraw(mv)}
+                          disabled={isPending} title="철회" className="text-destructive">
+                          철회
+                        </Button>
+                      )}
                     </div>
                   )}
                 </TableCell>

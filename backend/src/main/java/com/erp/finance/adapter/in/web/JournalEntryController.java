@@ -3,6 +3,7 @@ package com.erp.finance.adapter.in.web;
 import com.erp.common.response.ApiResponse;
 import com.erp.common.response.PageResponse;
 import com.erp.finance.application.dto.JournalEntryCreateRequest;
+import com.erp.finance.application.dto.JournalEntryRejectRequest;
 import com.erp.finance.application.dto.JournalEntryResponse;
 import com.erp.finance.application.dto.JournalLineResponse;
 import com.erp.finance.application.service.JournalEntryService;
@@ -61,5 +62,16 @@ public class JournalEntryController {
     @PostMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<JournalEntryResponse>> approve(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(journalEntryService.approve(id)));
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<JournalEntryResponse>> reject(
+        @PathVariable Long id, @Valid @RequestBody JournalEntryRejectRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.reject(id, request.comment())));
+    }
+
+    @PostMapping("/{id}/withdraw")
+    public ResponseEntity<ApiResponse<JournalEntryResponse>> withdraw(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(journalEntryService.withdraw(id)));
     }
 }

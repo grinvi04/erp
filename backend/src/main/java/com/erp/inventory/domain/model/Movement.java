@@ -103,6 +103,17 @@ public class Movement extends BaseEntity {
         this.status = MovementStatus.CONFIRMED;
     }
 
+    /**
+     * 결재 반려·철회 시 되돌리기: PENDING_APPROVAL → DRAFT. 되돌린 조정 이동은 수정 후 재상신할 수 있다.
+     * 상신되지 않은(PENDING_APPROVAL 아님) 이동은 되돌릴 수 없다.
+     */
+    public void returnToDraft() {
+        if (this.status != MovementStatus.PENDING_APPROVAL) {
+            throw new ErpException(ErrorCode.MOVEMENT_NOT_PENDING_APPROVAL);
+        }
+        this.status = MovementStatus.DRAFT;
+    }
+
     public void linkApprovalRequest(Long approvalRequestId) {
         this.approvalRequestId = approvalRequestId;
     }

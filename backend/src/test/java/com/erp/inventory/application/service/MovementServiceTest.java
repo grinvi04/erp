@@ -308,4 +308,150 @@ class MovementServiceTest {
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.MOVEMENT_REQUIRES_APPROVAL);
         assertThat(movement.getStatus()).isEqualTo(MovementStatus.DRAFT);
     }
+
+    // --- 반려(reject) ---
+
+    private com.erp.common.workflow.ApprovalRequest buildApprovalRequest() {
+        return com.erp.common.workflow.ApprovalRequest.create("STOCK_MOVEMENT", 1L, "t", "creator",
+            new java.util.ArrayList<>(List.of(
+                com.erp.common.workflow.ApprovalStep.of(1, "재고 조정 이동 승인",
+                    "@role:inventory:movement:approve"))));
+    }
+
+    private Movement buildPendingAdjustment() {
+        Movement movement = buildAdjustmentMovement();
+        org.springframework.test.util.ReflectionTestUtils.setField(movement, "createdBy", "creator");
+        movement.submitForApproval();
+        movement.linkApprovalRequest(10L);
+        return movement;
+    }
+
+    // 결재자 반려 → DRAFT 복귀 + ApprovalRequest REJECTED(사유 저장)
+    @Test
+    void reject_pendingAdjustment_returnsToDraftAndMarksApprovalRejected() {
+        Movement movement = buildPendingAdjustment();
+        com.erp.common.workflow.ApprovalRequest req = buildApprovalRequest();
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+        given(currentUserProvider.getCurrentUserId()).willReturn("approver");
+        given(approvalRequestRepository.findById(10L)).willReturn(Optional.of(req));
+        given(movementLineRepository.findByMovement_IdOrderByLineNoAsc(1L)).willReturn(List.of());
+
+        MovementResponse result = movementService.reject(1L, "수량 오류");
+
+        assertThat(result.status()).isEqualTo(MovementStatus.DRAFT);
+        assertThat(req.getStatus()).isEqualTo(com.erp.common.workflow.ApprovalStatus.REJECTED);
+        assertThat(req.getSteps().get(0).getComment()).isEqualTo("수량 오류");
+        verify(permissionChecker).require(com.erp.common.security.Permission.INVENTORY_MOVEMENT_APPROVE);
+    }
+
+    // 작성자 본인 반려 차단
+    @Test
+    void reject_approverIsCreator_throwsApproverNotAuthorized() {
+        Movement movement = buildPendingAdjustment();
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+        given(currentUserProvider.getCurrentUserId()).willReturn("creator");
+
+        ErpException ex = assertThrows(ErpException.class, () -> movementService.reject(1L, "사유"));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
+        assertThat(movement.getStatus()).isEqualTo(MovementStatus.PENDING_APPROVAL);
+    }
+
+    // 권한 없음 → 403 FORBIDDEN
+    @Test
+    void reject_noApprovePermission_throwsForbidden() {
+        org.mockito.BDDMockito.willThrow(new ErpException(ErrorCode.FORBIDDEN))
+            .given(permissionChecker).require(com.erp.common.security.Permission.INVENTORY_MOVEMENT_APPROVE);
+
+        ErpException ex = assertThrows(ErpException.class, () -> movementService.reject(1L, "사유"));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+    }
+
+    // PENDING_APPROVAL 아닌 상태(DRAFT) 반려 거부
+    @Test
+    void reject_notPendingApproval_throwsNotPendingApproval() {
+        Movement movement = buildAdjustmentMovement();
+        org.springframework.test.util.ReflectionTestUtils.setField(movement, "createdBy", "creator");
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+        given(currentUserProvider.getCurrentUserId()).willReturn("approver");
+
+        ErpException ex = assertThrows(ErpException.class, () -> movementService.reject(1L, "사유"));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.MOVEMENT_NOT_PENDING_APPROVAL);
+    }
+
+    // 반려 사유 필수
+    @Test
+    void reject_blankComment_throwsInvalidInput() {
+        given(currentUserProvider.getCurrentUserId()).willReturn("approver");
+
+        ErpException ex = assertThrows(ErpException.class, () -> movementService.reject(1L, "  "));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT);
+    }
+
+    // --- 철회(withdraw) ---
+
+    // 상신자 본인 철회 → DRAFT + ApprovalRequest CANCELLED
+    @Test
+    void withdraw_bySubmitter_returnsToDraftAndCancelsApproval() {
+        Movement movement = buildPendingAdjustment();
+        com.erp.common.workflow.ApprovalRequest req = buildApprovalRequest();
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+        given(currentUserProvider.getCurrentUserId()).willReturn("creator");
+        given(approvalRequestRepository.findById(10L)).willReturn(Optional.of(req));
+        given(movementLineRepository.findByMovement_IdOrderByLineNoAsc(1L)).willReturn(List.of());
+
+        MovementResponse result = movementService.withdraw(1L);
+
+        assertThat(result.status()).isEqualTo(MovementStatus.DRAFT);
+        assertThat(req.getStatus()).isEqualTo(com.erp.common.workflow.ApprovalStatus.CANCELLED);
+        verify(permissionChecker).require(com.erp.common.security.Permission.INVENTORY_WRITE);
+    }
+
+    // 타인 철회 차단
+    @Test
+    void withdraw_byNonSubmitter_throwsForbidden() {
+        Movement movement = buildPendingAdjustment();
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+        given(currentUserProvider.getCurrentUserId()).willReturn("someone-else");
+
+        ErpException ex = assertThrows(ErpException.class, () -> movementService.withdraw(1L));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+        assertThat(movement.getStatus()).isEqualTo(MovementStatus.PENDING_APPROVAL);
+    }
+
+    // PENDING_APPROVAL 아닌 상태 철회 거부
+    @Test
+    void withdraw_notPendingApproval_throwsNotPendingApproval() {
+        Movement movement = buildAdjustmentMovement();
+        org.springframework.test.util.ReflectionTestUtils.setField(movement, "createdBy", "creator");
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+        given(currentUserProvider.getCurrentUserId()).willReturn("creator");
+
+        ErpException ex = assertThrows(ErpException.class, () -> movementService.withdraw(1L));
+
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.MOVEMENT_NOT_PENDING_APPROVAL);
+    }
+
+    // 되돌린 DRAFT 재상신 가능
+    @Test
+    void withdrawnAdjustment_canBeResubmitted() {
+        Movement movement = buildPendingAdjustment();
+        com.erp.common.workflow.ApprovalRequest req = buildApprovalRequest();
+        given(movementRepository.findById(1L)).willReturn(Optional.of(movement));
+        given(currentUserProvider.getCurrentUserId()).willReturn("creator");
+        given(approvalRequestRepository.findById(10L)).willReturn(Optional.of(req));
+        given(movementLineRepository.findByMovement_IdOrderByLineNoAsc(1L)).willReturn(List.of());
+
+        movementService.withdraw(1L);
+        assertThat(movement.getStatus()).isEqualTo(MovementStatus.DRAFT);
+
+        given(approvalRequestRepository.save(any())).willReturn(buildApprovalRequest());
+        MovementResponse resubmitted = movementService.submitForApproval(1L);
+
+        assertThat(resubmitted.status()).isEqualTo(MovementStatus.PENDING_APPROVAL);
+    }
 }
