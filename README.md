@@ -52,6 +52,10 @@ HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS 
 
 ## 🏗️ 아키텍처
 
+![아키텍처 다이어그램](docs/architecture.png)
+
+<details><summary>mermaid 소스 (GitHub 웹에선 차트로 렌더)</summary>
+
 ```mermaid
 flowchart LR
     Browser["🖥️ 브라우저"] -->|HTTPS| FE["<b>Next.js 15</b> · App Router<br/>next-auth v5 (BFF)"]
@@ -67,6 +71,8 @@ flowchart LR
     style DB fill:#54aeff,color:#000
     style MOD fill:#f6f8fa,color:#000
 ```
+
+</details>
 
 - **클린 아키텍처** — 모듈 내 `domain`(엔티티·도메인서비스) → `application`(유스케이스·포트) → `adapter`(웹·JPA·이벤트) 3계층. 모듈 간은 `common/` 공유타입·SPI로만 통신(직접 참조 금지).
 - **멀티테넌시** — 모든 테이블 `tenant_id` + Hibernate `@TenantId` 자동 필터. JWT `tenant_id` 클레임 → `TenantContext`(ThreadLocal).
