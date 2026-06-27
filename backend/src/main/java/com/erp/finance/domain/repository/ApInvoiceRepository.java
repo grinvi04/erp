@@ -14,6 +14,9 @@ import org.springframework.data.repository.query.Param;
 public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
     boolean existsByInvoiceNo(String invoiceNo);
 
+    // 기준통화 변경 가드 — base_amount 스냅샷이 하나라도 있으면 변경 거부(현재 테넌트는 @TenantId 자동 필터).
+    boolean existsByBaseAmountIsNotNull();
+
     // ApInvoiceResponse.from은 vendor를 역참조 — 목록 매핑 시 N+1 방지를 위해 vendor(@ManyToOne, LAZY)를
     // 페이지 쿼리에서 함께 페치한다. 카운트는 페치 없는 별도 countQuery로 페이지네이션을 유지한다.
     @Query(value = "SELECT i FROM ApInvoice i LEFT JOIN FETCH i.vendor v WHERE v.id = :vendorId",
