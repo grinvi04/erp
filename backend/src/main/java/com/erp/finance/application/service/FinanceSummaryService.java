@@ -19,6 +19,7 @@ public class FinanceSummaryService {
 
     private final ApInvoiceRepository apInvoiceRepository;
     private final JournalEntryRepository journalEntryRepository;
+    private final BaseCurrencyService baseCurrencyService;
     private final PermissionChecker permissionChecker;
 
     public FinanceSummaryResponse getSummary() {
@@ -27,6 +28,8 @@ public class FinanceSummaryService {
         return new FinanceSummaryResponse(
                 apInvoiceRepository.countUnpaid(),
                 unpaidAmounts,
-                journalEntryRepository.countByStatus(JournalEntryStatus.DRAFT));
+                journalEntryRepository.countByStatus(JournalEntryStatus.DRAFT),
+                baseCurrencyService.currentBaseCurrencyCode(),
+                apInvoiceRepository.sumUnpaidBaseTotal());
     }
 }

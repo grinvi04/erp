@@ -67,7 +67,7 @@ class PipelineDistributionIntegrationTest extends AbstractIntegrationTest {
         opportunityRepository.save(Opportunity.of(account, "Opp 3", stageA,
                 BigDecimal.valueOf(500), "USD", LocalDate.of(2026, 12, 31), 10, "user1", null, null));
 
-        List<PipelineDistributionResponse> result = crmAnalyticsService.getPipelineDistribution();
+        List<PipelineDistributionResponse> result = crmAnalyticsService.getPipelineDistribution().stages();
 
         assertThat(result).hasSize(2);
 
@@ -82,6 +82,8 @@ class PipelineDistributionIntegrationTest extends AbstractIntegrationTest {
         assertThat(rowA.amounts().get(0).amount()).isEqualByComparingTo(BigDecimal.valueOf(300));
         assertThat(rowA.amounts().get(1).currency()).isEqualTo("USD");
         assertThat(rowA.amounts().get(1).amount()).isEqualByComparingTo(BigDecimal.valueOf(500));
+        // 기준통화 환산 없이 생성된 기회(base_amount 미산정)는 단계 기준통화 합계 null
+        assertThat(rowA.baseTotal()).isNull();
 
         // 빈 단계는 count=0, amounts 빈 리스트로 보존
         PipelineDistributionResponse rowB = result.stream()

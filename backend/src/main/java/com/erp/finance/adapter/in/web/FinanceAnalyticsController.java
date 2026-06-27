@@ -1,9 +1,8 @@
 package com.erp.finance.adapter.in.web;
 
 import com.erp.common.response.ApiResponse;
-import com.erp.finance.application.dto.MonthlyInvoiceByCurrencyResponse;
+import com.erp.finance.application.dto.MonthlyInvoiceAnalyticsResponse;
 import com.erp.finance.application.service.FinanceAnalyticsService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +18,7 @@ public class FinanceAnalyticsController {
     private final FinanceAnalyticsService financeAnalyticsService;
 
     @GetMapping("/monthly-invoices")
-    public ResponseEntity<ApiResponse<List<MonthlyInvoiceByCurrencyResponse>>> getMonthlyInvoices(
+    public ResponseEntity<ApiResponse<MonthlyInvoiceAnalyticsResponse>> getMonthlyInvoices(
             @RequestParam(required = false) Integer year) {
         return ResponseEntity.ok(ApiResponse.ok(financeAnalyticsService.getMonthlyInvoices(year)));
     }

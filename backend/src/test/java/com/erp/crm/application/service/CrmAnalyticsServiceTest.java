@@ -4,6 +4,7 @@ import com.erp.common.response.CurrencyAmount;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.LeadStatusCountResponse;
+import com.erp.crm.application.dto.PipelineAnalyticsResponse;
 import com.erp.crm.application.dto.PipelineDistributionResponse;
 import com.erp.crm.domain.model.LeadStatus;
 import com.erp.crm.domain.repository.LeadRepository;
@@ -36,6 +37,7 @@ class CrmAnalyticsServiceTest {
     @Mock private PipelineStageRepository pipelineStageRepository;
     @Mock private LeadRepository leadRepository;
     @Mock private CrmDataScopeResolver dataScopeResolver;
+    @Mock private com.erp.common.currency.CurrencyConversionPort currencyConversionPort;
     @Mock private PermissionChecker permissionChecker;
     @InjectMocks private CrmAnalyticsService crmAnalyticsService;
 
@@ -45,7 +47,7 @@ class CrmAnalyticsServiceTest {
     }
 
     private PipelineDistributionRow pipelineRow(
-            Long stageId, String name, int order, String currency, long count, String amount) {
+            Long stageId, String name, int order, String currency, long count, String amount, String baseTotal) {
         PipelineDistributionRow row = org.mockito.Mockito.mock(PipelineDistributionRow.class);
         // 단계 식별 컬럼은 그룹 첫 행에서만 읽히고, 금액은 currency!=null인 행에서만 읽히므로 lenient.
         lenient().when(row.getStageId()).thenReturn(stageId);
@@ -54,6 +56,7 @@ class CrmAnalyticsServiceTest {
         lenient().when(row.getCurrency()).thenReturn(currency);
         lenient().when(row.getCount()).thenReturn(count);
         lenient().when(row.getTotalAmount()).thenReturn(amount == null ? null : new BigDecimal(amount));
+        lenient().when(row.getBaseTotal()).thenReturn(baseTotal == null ? null : new BigDecimal(baseTotal));
         return row;
     }
 
@@ -67,54 +70,67 @@ class CrmAnalyticsServiceTest {
     @Test
     void getPipelineDistribution_mapsRowsToResponsesPreservingOrder() {
         List<PipelineDistributionRow> rows = List.of(
-                pipelineRow(10L, "리드", 1, "KRW", 4L, "1000000.00"),
-                pipelineRow(20L, "제안", 2, "KRW", 2L, "5000000.00"));
+                pipelineRow(10L, "리드", 1, "KRW", 4L, "1000000.00", "1000000.00"),
+                pipelineRow(20L, "제안", 2, "KRW", 2L, "5000000.00", "5000000.00"));
         givenAllScope();
+        given(currencyConversionPort.baseCurrencyCode()).willReturn("KRW");
         given(pipelineStageRepository.pipelineDistribution(anyBoolean(), anyCollection()))
                 .willReturn(rows);
 
-        List<PipelineDistributionResponse> result = crmAnalyticsService.getPipelineDistribution();
+        PipelineAnalyticsResponse response = crmAnalyticsService.getPipelineDistribution();
 
+        assertThat(response.baseCurrency()).isEqualTo("KRW");
+        List<PipelineDistributionResponse> result = response.stages();
         assertThat(result).hasSize(2);
         assertThat(result.get(0)).isEqualTo(
                 new PipelineDistributionResponse(10L, "리드", 1, 4L,
-                        List.of(new CurrencyAmount("KRW", new BigDecimal("1000000.00")))));
+                        List.of(new CurrencyAmount("KRW", new BigDecimal("1000000.00"))),
+                        new BigDecimal("1000000.00")));
         assertThat(result.get(1)).isEqualTo(
                 new PipelineDistributionResponse(20L, "제안", 2, 2L,
-                        List.of(new CurrencyAmount("KRW", new BigDecimal("5000000.00")))));
+                        List.of(new CurrencyAmount("KRW", new BigDecimal("5000000.00"))),
+                        new BigDecimal("5000000.00")));
     }
 
     @Test
     void getPipelineDistribution_groupsCurrenciesPerStageAndPreservesEmptyStage() {
         // 한 단계(리드)에 KRW·USD 두 통화 행 + 빈 단계(제안)는 currency=null·count=0 단일 행.
+        // KRW base=300, USD base=65000(환산) → 단계 기준통화 합계 65300. 빈 단계는 base null.
         List<PipelineDistributionRow> rows = List.of(
-                pipelineRow(10L, "리드", 1, "KRW", 2L, "300.00"),
-                pipelineRow(10L, "리드", 1, "USD", 1L, "50.00"),
-                pipelineRow(20L, "제안", 2, null, 0L, null));
+                pipelineRow(10L, "리드", 1, "KRW", 2L, "300.00", "300.00"),
+                pipelineRow(10L, "리드", 1, "USD", 1L, "50.00", "65000.00"),
+                pipelineRow(20L, "제안", 2, null, 0L, null, null));
         givenAllScope();
+        given(currencyConversionPort.baseCurrencyCode()).willReturn("KRW");
         given(pipelineStageRepository.pipelineDistribution(anyBoolean(), anyCollection()))
                 .willReturn(rows);
 
-        List<PipelineDistributionResponse> result = crmAnalyticsService.getPipelineDistribution();
+        List<PipelineDistributionResponse> result = crmAnalyticsService.getPipelineDistribution().stages();
 
         assertThat(result).hasSize(2);
 
         PipelineDistributionResponse lead = result.get(0);
         assertThat(lead.stageId()).isEqualTo(10L);
         assertThat(lead.count()).isEqualTo(3L); // 통화 합산
+        // 통화별 분리는 그대로 유지(회귀)
         assertThat(lead.amounts()).containsExactly(
                 new CurrencyAmount("KRW", new BigDecimal("300.00")),
                 new CurrencyAmount("USD", new BigDecimal("50.00")));
+        // 기준통화 합계 = 산정분 합산(KRW 300 + USD환산 65000)
+        assertThat(lead.baseTotal()).isEqualByComparingTo("65300.00");
 
         PipelineDistributionResponse empty = result.get(1);
         assertThat(empty.stageId()).isEqualTo(20L);
         assertThat(empty.count()).isEqualTo(0L);
         assertThat(empty.amounts()).isEmpty();
+        // 산정된 기회가 없는 단계는 기준통화 합계 null
+        assertThat(empty.baseTotal()).isNull();
     }
 
     @Test
     void getPipelineDistribution_requiresCrmRead() {
         givenAllScope();
+        given(currencyConversionPort.baseCurrencyCode()).willReturn("KRW");
         given(pipelineStageRepository.pipelineDistribution(anyBoolean(), anyCollection()))
                 .willReturn(List.of());
 
@@ -127,6 +143,7 @@ class CrmAnalyticsServiceTest {
     void getPipelineDistribution_appliesOwnerScope() {
         given(dataScopeResolver.ownerScope())
                 .willReturn(new CrmDataScopeResolver.OwnerScope(true, Set.of("user-1")));
+        given(currencyConversionPort.baseCurrencyCode()).willReturn("KRW");
         given(pipelineStageRepository.pipelineDistribution(anyBoolean(), anyCollection()))
                 .willReturn(List.of());
 

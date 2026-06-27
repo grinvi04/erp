@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { apiGet } from '@/lib/api'
-import { formatMoneyList } from '@/lib/money'
+import { formatMoneyList, formatMoneyOne } from '@/lib/money'
 import { Card } from '@/components/ui/card'
 import {
   Users, BarChart3, Package, TrendingUp, ChevronRight, AlertTriangle,
@@ -27,7 +27,15 @@ async function safeGet<T>(path: string): Promise<T | null> {
 interface Metric {
   label: string
   value: string
+  // 기준통화 환산 합계 한 줄(예: "≈ ₩13,000,000"). 통화별 분리(value) 아래에 표시.
+  sub?: string
   alert?: boolean
+}
+
+// 기준통화 환산 합계 한 줄 문자열. 산정분 없으면(null) 표시하지 않는다.
+function baseTotalLabel(baseTotal: number | null | undefined, baseCurrency: string | undefined): string | undefined {
+  if (baseTotal == null || !baseCurrency) return undefined
+  return `≈ ${formatMoneyOne(baseTotal, baseCurrency)}`
 }
 
 function ModuleCard({
@@ -60,6 +68,7 @@ function ModuleCard({
                 {m.alert && <AlertTriangle className="inline h-4 w-4 mr-1 -mt-1" />}
                 {m.value}
               </div>
+              {m.sub && <div className="text-xs text-gray-600 mt-0.5 tabular-nums">{m.sub}</div>}
               <div className="text-xs text-gray-500 mt-1">{m.label}</div>
             </div>
           ))}
@@ -97,7 +106,11 @@ export default async function DashboardPage() {
           title="재무(Finance)" href="/finance/invoices" icon={BarChart3} failed={finance === null}
           metrics={[
             { label: '미지급 인보이스', value: fmtNum(finance?.unpaidInvoices ?? 0) },
-            { label: '미지급 금액', value: formatMoneyList(finance?.unpaidAmounts ?? []) },
+            {
+              label: '미지급 금액',
+              value: formatMoneyList(finance?.unpaidAmounts ?? []),
+              sub: baseTotalLabel(finance?.unpaidBaseTotal, finance?.baseCurrency),
+            },
             { label: '임시 전표', value: fmtNum(finance?.draftJournalEntries ?? 0) },
           ]}
         />
@@ -113,7 +126,11 @@ export default async function DashboardPage() {
           title="CRM" href="/crm/opportunities" icon={TrendingUp} failed={crm === null}
           metrics={[
             { label: '진행중 기회', value: fmtNum(crm?.openOpportunities ?? 0) },
-            { label: '파이프라인 금액', value: formatMoneyList(crm?.openOpportunityAmounts ?? []) },
+            {
+              label: '파이프라인 금액',
+              value: formatMoneyList(crm?.openOpportunityAmounts ?? []),
+              sub: baseTotalLabel(crm?.openOpportunityBaseTotal, crm?.baseCurrency),
+            },
             { label: '미완료 활동', value: fmtNum(crm?.openActivities ?? 0) },
           ]}
         />

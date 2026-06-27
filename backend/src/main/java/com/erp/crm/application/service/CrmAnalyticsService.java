@@ -1,15 +1,18 @@
 package com.erp.crm.application.service;
 
+import com.erp.common.currency.CurrencyConversionPort;
 import com.erp.common.response.CurrencyAmount;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.crm.application.dto.LeadStatusCountResponse;
+import com.erp.crm.application.dto.PipelineAnalyticsResponse;
 import com.erp.crm.application.dto.PipelineDistributionResponse;
 import com.erp.crm.domain.model.LeadStatus;
 import com.erp.crm.domain.repository.LeadRepository;
 import com.erp.crm.domain.repository.LeadStatusCountRow;
 import com.erp.crm.domain.repository.PipelineDistributionRow;
 import com.erp.crm.domain.repository.PipelineStageRepository;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -28,9 +31,10 @@ public class CrmAnalyticsService {
     private final PipelineStageRepository pipelineStageRepository;
     private final LeadRepository leadRepository;
     private final CrmDataScopeResolver dataScopeResolver;
+    private final CurrencyConversionPort currencyConversionPort;
     private final PermissionChecker permissionChecker;
 
-    public List<PipelineDistributionResponse> getPipelineDistribution() {
+    public PipelineAnalyticsResponse getPipelineDistribution() {
         permissionChecker.require(Permission.CRM_READ);
         var s = dataScopeResolver.ownerScope();
 
@@ -41,7 +45,7 @@ public class CrmAnalyticsService {
             byStage.computeIfAbsent(row.getStageId(), id -> new ArrayList<>()).add(row);
         }
 
-        List<PipelineDistributionResponse> result = new ArrayList<>(byStage.size());
+        List<PipelineDistributionResponse> stages = new ArrayList<>(byStage.size());
         for (List<PipelineDistributionRow> rows : byStage.values()) {
             PipelineDistributionRow first = rows.get(0);
             long count = rows.stream().mapToLong(PipelineDistributionRow::getCount).sum();
@@ -49,14 +53,24 @@ public class CrmAnalyticsService {
                     .filter(r -> r.getCurrency() != null)
                     .map(r -> new CurrencyAmount(r.getCurrency(), r.getTotalAmount()))
                     .collect(Collectors.toList());
-            result.add(new PipelineDistributionResponse(
+            stages.add(new PipelineDistributionResponse(
                     first.getStageId(),
                     first.getStageName(),
                     first.getStageOrder(),
                     count,
-                    amounts));
+                    amounts,
+                    stageBaseTotal(rows)));
         }
-        return result;
+        return new PipelineAnalyticsResponse(currencyConversionPort.baseCurrencyCode(), stages);
+    }
+
+    // 단계의 기준통화 합계 — 통화 행들의 base_amount 합. 산정된(not-null) 행이 하나도 없으면 null(0과 미산정 구분).
+    private BigDecimal stageBaseTotal(List<PipelineDistributionRow> rows) {
+        return rows.stream()
+                .map(PipelineDistributionRow::getBaseTotal)
+                .filter(b -> b != null)
+                .reduce(BigDecimal::add)
+                .orElse(null);
     }
 
     public List<LeadStatusCountResponse> getLeadsByStatus() {

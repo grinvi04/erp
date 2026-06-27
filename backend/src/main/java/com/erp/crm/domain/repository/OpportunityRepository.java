@@ -2,6 +2,7 @@ package com.erp.crm.domain.repository;
 
 import com.erp.common.response.CurrencyAmount;
 import com.erp.crm.domain.model.Opportunity;
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,4 +38,15 @@ public interface OpportunityRepository extends JpaRepository<Opportunity, Long> 
             + "GROUP BY o.currency ORDER BY o.currency")
     List<CurrencyAmount> sumOpenAmountByCurrency(@Param("scoped") boolean scoped,
                                                  @Param("ownerIds") java.util.Collection<String> ownerIds);
+
+    /**
+     * 진행중 기회의 기준통화 환산액(base_amount) 합계 — 통화별 분리합과 별개의 단일 기준통화 합계.
+     * 스코프 조건은 {@link #sumOpenAmountByCurrency}와 동일. base_amount 미산정(null) 행은 제외(부분 합계)이며,
+     * 산정된 진행중 기회가 없으면 null(0과 미산정을 구분).
+     */
+    @Query("SELECT SUM(o.baseAmount) FROM Opportunity o "
+            + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
+            + "(:scoped = false OR o.ownerId IN :ownerIds) AND o.baseAmount IS NOT NULL")
+    BigDecimal sumOpenBaseTotal(@Param("scoped") boolean scoped,
+                                @Param("ownerIds") java.util.Collection<String> ownerIds);
 }
