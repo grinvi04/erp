@@ -1,5 +1,6 @@
 package com.erp.crm.application.service;
 
+import com.erp.common.currency.CurrencyConversionPort;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
@@ -11,6 +12,7 @@ import com.erp.crm.application.dto.OpportunityResponse;
 import com.erp.crm.application.dto.OpportunityUpdateRequest;
 import com.erp.crm.domain.model.Opportunity;
 import com.erp.crm.domain.repository.OpportunityRepository;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,8 @@ public class OpportunityService {
     private final PermissionChecker permissionChecker;
     private final CrmDataScopeResolver dataScopeResolver;
     private final CurrentUserProvider currentUserProvider;
+    // 모듈 경계: finance를 직접 참조하지 않고 common 환산 포트만 주입(SPI). 구현은 finance CurrencyConverter.
+    private final CurrencyConversionPort currencyConversionPort;
 
     public PageResponse<OpportunityResponse> search(Long accountId, Long stageId, Pageable pageable) {
         permissionChecker.require(Permission.CRM_READ);
@@ -52,6 +56,10 @@ public class OpportunityService {
                 stageService.getOrThrow(req.stageId()),
                 req.amount(), req.currency(), req.closeDate(), req.probability(),
                 currentUserProvider.getCurrentUserId(), req.source(), req.description());
+        // 거래 시점 FX 스냅샷 — 생성일(오늘) 환율로 amount를 기준통화 환산해 저장.
+        // 환율 부재·금액 미정 시 미산정(null) 유지(AC-11).
+        currencyConversionPort.tryConvert(opportunity.getAmount(), opportunity.getCurrency(), LocalDate.now())
+                .ifPresent(c -> opportunity.applyBaseSnapshot(c.baseAmount(), c.rate()));
         return OpportunityResponse.from(opportunityRepository.save(opportunity));
     }
 

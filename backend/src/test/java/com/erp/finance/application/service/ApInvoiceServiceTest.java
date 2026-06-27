@@ -13,8 +13,10 @@ import com.erp.finance.domain.model.ApInvoice;
 import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.VendorRepository;
+import com.erp.common.currency.CurrencyConversionPort.Conversion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -43,6 +45,7 @@ class ApInvoiceServiceTest {
     @Mock private com.erp.common.audit.AuditService auditService;
     @Mock private com.erp.finance.domain.repository.AccountRepository accountRepository;
     @Mock private ApInvoicePostingService apInvoicePostingService;
+    @Mock private CurrencyConverter currencyConverter;
 
     @InjectMocks
     private ApInvoiceService apInvoiceService;
@@ -63,6 +66,7 @@ class ApInvoiceServiceTest {
         given(vendorRepository.findById(1L)).willReturn(Optional.of(buildVendor()));
         ApInvoice invoice = buildInvoice();
         given(apInvoiceRepository.save(any())).willReturn(invoice);
+        given(currencyConverter.tryConvert(any(), any(), any())).willReturn(Optional.empty());
 
         ApInvoiceResponse result = apInvoiceService.create(
             new ApInvoiceCreateRequest("INV-001", 1L,
@@ -71,6 +75,43 @@ class ApInvoiceServiceTest {
 
         assertThat(result.invoiceNo()).isEqualTo("INV-001");
         assertThat(result.totalAmount()).isEqualByComparingTo("100000");
+    }
+
+    @Test
+    void create_foreignCurrencyWithRate_storesBaseSnapshot() {
+        // AC-8: 생성 시 송장일 환율로 base_amount·exchange_rate 저장 (USD 100 × 1300 = 130000).
+        given(apInvoiceRepository.existsByInvoiceNo("INV-USD")).willReturn(false);
+        given(vendorRepository.findById(1L)).willReturn(Optional.of(buildVendor()));
+        given(currencyConverter.tryConvert(any(), any(), any()))
+            .willReturn(Optional.of(new Conversion(new BigDecimal("130000.00"), new BigDecimal("1300.00000000"))));
+        ArgumentCaptor<ApInvoice> captor = ArgumentCaptor.forClass(ApInvoice.class);
+        given(apInvoiceRepository.save(captor.capture())).willAnswer(inv -> inv.getArgument(0));
+
+        apInvoiceService.create(new ApInvoiceCreateRequest("INV-USD", 1L,
+            LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31),
+            new BigDecimal("100"), "USD", null, null));
+
+        ApInvoice saved = captor.getValue();
+        assertThat(saved.getBaseAmount()).isEqualByComparingTo("130000.00");
+        assertThat(saved.getExchangeRate()).isEqualByComparingTo("1300.00000000");
+    }
+
+    @Test
+    void create_noRate_leavesBaseSnapshotNull() {
+        // AC-11: 환율 부재 통화는 정상 생성하되 base_amount·exchange_rate를 null(미산정)로 남긴다(거부 안 함).
+        given(apInvoiceRepository.existsByInvoiceNo("INV-JPY")).willReturn(false);
+        given(vendorRepository.findById(1L)).willReturn(Optional.of(buildVendor()));
+        given(currencyConverter.tryConvert(any(), any(), any())).willReturn(Optional.empty());
+        ArgumentCaptor<ApInvoice> captor = ArgumentCaptor.forClass(ApInvoice.class);
+        given(apInvoiceRepository.save(captor.capture())).willAnswer(inv -> inv.getArgument(0));
+
+        apInvoiceService.create(new ApInvoiceCreateRequest("INV-JPY", 1L,
+            LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31),
+            new BigDecimal("5000"), "JPY", null, null));
+
+        ApInvoice saved = captor.getValue();
+        assertThat(saved.getBaseAmount()).isNull();
+        assertThat(saved.getExchangeRate()).isNull();
     }
 
     @Test

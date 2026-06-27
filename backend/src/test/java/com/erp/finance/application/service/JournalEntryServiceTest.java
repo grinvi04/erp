@@ -17,8 +17,10 @@ import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.FiscalPeriodRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import com.erp.finance.domain.repository.JournalLineRepository;
+import com.erp.common.currency.CurrencyConversionPort.Conversion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,6 +50,7 @@ class JournalEntryServiceTest {
     @Mock private com.erp.common.workflow.repository.ApprovalRequestRepository approvalRequestRepository;
     @Mock private com.erp.common.security.ApprovalAuthorityProvider approvalAuthorityProvider;
     @Mock private com.erp.common.audit.AuditService auditService;
+    @Mock private CurrencyConverter currencyConverter;
 
     @InjectMocks
     private JournalEntryService journalEntryService;
@@ -92,6 +95,7 @@ class JournalEntryServiceTest {
             BigDecimal.ZERO, new BigDecimal("1000"), null, null));
 
         given(journalEntryRepository.save(any())).willReturn(saved);
+        given(currencyConverter.tryConvert(any(), any(), any())).willReturn(Optional.empty());
 
         JournalEntryCreateRequest request = new JournalEntryCreateRequest(
             LocalDate.of(2025, 1, 15), 1L, "테스트전표", JournalEntryType.MANUAL, "KRW",
@@ -103,6 +107,55 @@ class JournalEntryServiceTest {
         JournalEntryResponse result = journalEntryService.create(request);
 
         assertThat(result.entryType()).isEqualTo(JournalEntryType.MANUAL);
+    }
+
+    @Test
+    void create_foreignCurrencyWithRate_storesBaseSnapshotOnTotalDebit() {
+        // AC-8: 생성 시 전표일 환율로 차변합계(1000)를 환산해 base_amount·exchange_rate 저장 (× 1300).
+        FiscalPeriod period = buildOpenPeriod();
+        Account account = buildAccount("1100");
+        given(fiscalPeriodRepository.findById(1L)).willReturn(Optional.of(period));
+        given(accountRepository.findById(anyLong())).willReturn(Optional.of(account));
+        given(journalEntryRepository.existsByEntryNo(anyString())).willReturn(false);
+        given(currencyConverter.tryConvert(any(), any(), any()))
+            .willReturn(Optional.of(new Conversion(new BigDecimal("1300000.00"), new BigDecimal("1300.00000000"))));
+        ArgumentCaptor<JournalEntry> captor = ArgumentCaptor.forClass(JournalEntry.class);
+        given(journalEntryRepository.save(captor.capture())).willAnswer(inv -> inv.getArgument(0));
+
+        journalEntryService.create(new JournalEntryCreateRequest(
+            LocalDate.of(2025, 1, 15), 1L, "USD 전표", JournalEntryType.MANUAL, "USD",
+            List.of(
+                new JournalLineRequest(1L, new BigDecimal("1000"), BigDecimal.ZERO, null, null),
+                new JournalLineRequest(1L, BigDecimal.ZERO, new BigDecimal("1000"), null, null)
+            )));
+
+        JournalEntry saved = captor.getValue();
+        assertThat(saved.getBaseAmount()).isEqualByComparingTo("1300000.00");
+        assertThat(saved.getExchangeRate()).isEqualByComparingTo("1300.00000000");
+    }
+
+    @Test
+    void create_noRate_leavesBaseSnapshotNull() {
+        // AC-11: 환율 부재 통화는 정상 생성하되 base_amount·exchange_rate를 null(미산정)로 남긴다(거부 안 함).
+        FiscalPeriod period = buildOpenPeriod();
+        Account account = buildAccount("1100");
+        given(fiscalPeriodRepository.findById(1L)).willReturn(Optional.of(period));
+        given(accountRepository.findById(anyLong())).willReturn(Optional.of(account));
+        given(journalEntryRepository.existsByEntryNo(anyString())).willReturn(false);
+        given(currencyConverter.tryConvert(any(), any(), any())).willReturn(Optional.empty());
+        ArgumentCaptor<JournalEntry> captor = ArgumentCaptor.forClass(JournalEntry.class);
+        given(journalEntryRepository.save(captor.capture())).willAnswer(inv -> inv.getArgument(0));
+
+        journalEntryService.create(new JournalEntryCreateRequest(
+            LocalDate.of(2025, 1, 15), 1L, "JPY 전표", JournalEntryType.MANUAL, "JPY",
+            List.of(
+                new JournalLineRequest(1L, new BigDecimal("1000"), BigDecimal.ZERO, null, null),
+                new JournalLineRequest(1L, BigDecimal.ZERO, new BigDecimal("1000"), null, null)
+            )));
+
+        JournalEntry saved = captor.getValue();
+        assertThat(saved.getBaseAmount()).isNull();
+        assertThat(saved.getExchangeRate()).isNull();
     }
 
     @Test
