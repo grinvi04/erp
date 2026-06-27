@@ -6,11 +6,16 @@ import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.BaseCurrencyResponse;
 import com.erp.finance.application.dto.BaseCurrencyUpdateRequest;
+import com.erp.finance.application.dto.FxGainLossAccountResponse;
+import com.erp.finance.application.dto.FxGainLossAccountUpdateRequest;
+import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.TenantBaseCurrency;
+import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import com.erp.finance.domain.repository.TenantBaseCurrencyRepository;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +41,11 @@ public class BaseCurrencyService {
     private final ApInvoiceRepository apInvoiceRepository;
     private final ArInvoiceRepository arInvoiceRepository;
     private final JournalEntryRepository journalEntryRepository;
+    private final AccountRepository accountRepository;
     private final PermissionChecker permissionChecker;
+
+    /** 환차손익 분개에 쓰일 환차이익·환차손 계정 — 둘 다 설정된 경우에만 전달(내부용). */
+    public record FxGainLossAccounts(Account gainAccount, Account lossAccount) {}
 
     public BaseCurrencyResponse getBaseCurrency() {
         permissionChecker.require(Permission.FINANCE_READ);
@@ -61,6 +70,51 @@ public class BaseCurrencyService {
             .map(existing -> { existing.changeBaseCurrency(request.baseCurrency()); return existing; })
             .orElseGet(() -> repository.save(TenantBaseCurrency.of(request.baseCurrency())));
         return BaseCurrencyResponse.of(entity.getBaseCurrency());
+    }
+
+    /** 환차손익 계정 설정 조회(FINANCE_READ). 미설정 항목은 null. */
+    public FxGainLossAccountResponse getFxGainLossAccounts() {
+        permissionChecker.require(Permission.FINANCE_READ);
+        return repository.findFirstByOrderByIdAsc()
+            .map(e -> FxGainLossAccountResponse.of(
+                e.getFxGainAccount() != null ? e.getFxGainAccount().getId() : null,
+                e.getFxLossAccount() != null ? e.getFxLossAccount().getId() : null))
+            .orElseGet(() -> FxGainLossAccountResponse.of(null, null));
+    }
+
+    /**
+     * 환차손익 계정 설정 변경(FINANCE_SETTING_WRITE). 환차이익·환차손 계정을 함께 지정·해제한다.
+     * 설정 행이 없으면 현재 기준통화(미설정 시 KRW)로 행을 만들어 계정만 채운다(기준통화 변경 가드와 무관).
+     */
+    @Transactional
+    public FxGainLossAccountResponse updateFxGainLossAccounts(FxGainLossAccountUpdateRequest request) {
+        permissionChecker.require(Permission.FINANCE_SETTING_WRITE);
+        Account gain = resolveAccount(request.fxGainAccountId());
+        Account loss = resolveAccount(request.fxLossAccountId());
+        TenantBaseCurrency entity = repository.findFirstByOrderByIdAsc()
+            .orElseGet(() -> repository.save(TenantBaseCurrency.of(currentBaseCurrencyCode())));
+        entity.assignFxAccounts(gain, loss);
+        return FxGainLossAccountResponse.of(
+            gain != null ? gain.getId() : null,
+            loss != null ? loss.getId() : null);
+    }
+
+    /**
+     * 환차손익 분개용 계정 — 환차이익·환차손이 <b>모두</b> 설정된 경우에만 반환(내부, 권한 검사 없음).
+     * 결제 자동 분개에서 호출하므로 FINANCE_READ를 요구하지 않는다(currentBaseCurrencyCode와 동일 정책).
+     */
+    public Optional<FxGainLossAccounts> currentFxAccounts() {
+        return repository.findFirstByOrderByIdAsc()
+            .filter(e -> e.getFxGainAccount() != null && e.getFxLossAccount() != null)
+            .map(e -> new FxGainLossAccounts(e.getFxGainAccount(), e.getFxLossAccount()));
+    }
+
+    private Account resolveAccount(Long accountId) {
+        if (accountId == null) {
+            return null;
+        }
+        return accountRepository.findById(accountId)
+            .orElseThrow(() -> new ErpException(ErrorCode.ACCOUNT_NOT_FOUND));
     }
 
     /** finance 거래에 base_amount 스냅샷이 하나라도 있으면 true(현재 테넌트만 @TenantId 자동 필터). */

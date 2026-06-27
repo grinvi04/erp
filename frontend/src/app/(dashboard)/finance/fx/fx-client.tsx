@@ -13,18 +13,28 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { updateBaseCurrency, createExchangeRate } from './actions'
-import type { ExchangeRate } from '@/types/finance'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import { updateBaseCurrency, createExchangeRate, updateFxGainLossAccounts } from './actions'
+import type { Account, ExchangeRate, FxGainLossAccounts } from '@/types/finance'
 
 const CURRENCY_PATTERN = /^[A-Z]{3}$/
+const NONE = 'NONE'
 
 type DialogMode = { type: 'none' } | { type: 'base' } | { type: 'rate' }
 
-interface Props { baseCurrency: string; rates: ExchangeRate[] }
+interface Props {
+  baseCurrency: string
+  rates: ExchangeRate[]
+  accounts: Account[]
+  fxAccounts: FxGainLossAccounts
+}
 
-export default function FxClient({ baseCurrency, rates }: Props) {
+export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.FINANCE_SETTING_WRITE)
+  const selectableAccounts = accounts.filter((a) => !a.isSummary && a.isActive)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
@@ -34,6 +44,23 @@ export default function FxClient({ baseCurrency, rates }: Props) {
   const [toCurrency, setToCurrency] = useState(baseCurrency)
   const [effectiveDate, setEffectiveDate] = useState('')
   const [rate, setRate] = useState('')
+
+  const [fxGainAccountId, setFxGainAccountId] = useState(
+    fxAccounts.fxGainAccountId != null ? String(fxAccounts.fxGainAccountId) : '')
+  const [fxLossAccountId, setFxLossAccountId] = useState(
+    fxAccounts.fxLossAccountId != null ? String(fxAccounts.fxLossAccountId) : '')
+
+  const handleSaveFxAccounts = () => {
+    startTransition(async () => {
+      try {
+        await updateFxGainLossAccounts({
+          fxGainAccountId: fxGainAccountId ? Number(fxGainAccountId) : null,
+          fxLossAccountId: fxLossAccountId ? Number(fxLossAccountId) : null,
+        })
+        toast.success('환차손익 계정이 저장되었습니다')
+      } catch (e) { toast.error(e instanceof Error ? e.message : '저장 중 오류가 발생했습니다') }
+    })
+  }
 
   const openBase = () => { setBaseInput(baseCurrency); setDialog({ type: 'base' }) }
   const openRate = () => {
@@ -88,6 +115,46 @@ export default function FxClient({ baseCurrency, rates }: Props) {
             <Button variant="outline" onClick={openBase}><PencilIcon />기준통화 변경</Button>
           )}
         </div>
+      </div>
+
+      <div className="bg-white rounded-lg border p-5 mb-6">
+        <div className="mb-1 text-sm font-medium text-gray-900">환차손익 계정 (실현)</div>
+        <p className="text-xs text-gray-500 mb-4">
+          외화 결제 시 결제환율과 인보이스 환율의 차액을 분개할 계정입니다. 둘 다 설정해야 환차 분개가 적용됩니다.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid gap-1.5">
+            <Label>외환차이익 계정</Label>
+            <Select value={fxGainAccountId || NONE} disabled={!canWrite}
+              onValueChange={(v) => setFxGainAccountId(!v || v === NONE ? '' : v)}>
+              <SelectTrigger className="w-full"><SelectValue placeholder="미설정" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>미설정</SelectItem>
+                {selectableAccounts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>{a.code} {a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>외환차손 계정</Label>
+            <Select value={fxLossAccountId || NONE} disabled={!canWrite}
+              onValueChange={(v) => setFxLossAccountId(!v || v === NONE ? '' : v)}>
+              <SelectTrigger className="w-full"><SelectValue placeholder="미설정" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>미설정</SelectItem>
+                {selectableAccounts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>{a.code} {a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {canWrite && (
+          <div className="mt-4 flex justify-end">
+            <Button onClick={handleSaveFxAccounts} disabled={isPending}>저장</Button>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-lg border overflow-hidden">

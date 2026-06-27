@@ -133,6 +133,11 @@ export interface BaseCurrency {
   baseCurrency: string
 }
 
+export interface FxGainLossAccounts {
+  fxGainAccountId: number | null
+  fxLossAccountId: number | null
+}
+
 export interface ExchangeRate {
   id: number
   fromCurrency: string

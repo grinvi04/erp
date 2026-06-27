@@ -5,6 +5,8 @@ import com.erp.finance.application.dto.BaseCurrencyResponse;
 import com.erp.finance.application.dto.BaseCurrencyUpdateRequest;
 import com.erp.finance.application.dto.ExchangeRateCreateRequest;
 import com.erp.finance.application.dto.ExchangeRateResponse;
+import com.erp.finance.application.dto.FxGainLossAccountResponse;
+import com.erp.finance.application.dto.FxGainLossAccountUpdateRequest;
 import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.application.service.ExchangeRateService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -65,6 +67,29 @@ class FxControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new BaseCurrencyUpdateRequest("usd"))))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getFxGainLossAccounts_returnsOk() throws Exception {
+        given(baseCurrencyService.getFxGainLossAccounts())
+            .willReturn(FxGainLossAccountResponse.of(10L, 20L));
+
+        mockMvc.perform(get("/api/finance/fx/gain-loss-accounts"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.fxGainAccountId").value(10))
+            .andExpect(jsonPath("$.data.fxLossAccountId").value(20));
+    }
+
+    @Test
+    void updateFxGainLossAccounts_returnsOk() throws Exception {
+        given(baseCurrencyService.updateFxGainLossAccounts(any()))
+            .willReturn(FxGainLossAccountResponse.of(10L, 20L));
+
+        mockMvc.perform(put("/api/finance/fx/gain-loss-accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new FxGainLossAccountUpdateRequest(10L, 20L))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.fxGainAccountId").value(10));
     }
 
     @Test
