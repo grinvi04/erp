@@ -1,5 +1,6 @@
 package com.erp.finance;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.AbstractIntegrationTest;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
@@ -147,7 +148,7 @@ class GlEntryApprovalIntegrationTest extends AbstractIntegrationTest {
         authenticate("approver", new BigDecimal("1000000"), "finance:gl:approve");
         var inbox = approvalInboxService.pendingForCurrentUser();
 
-        assertThat(inbox).anyMatch(s -> "GL_ENTRY".equals(s.entityType())
+        assertThat(inbox).anyMatch(s -> ReferenceTypes.GL_ENTRY.equals(s.entityType())
                 && s.entityId().equals(created.id()));
     }
 
@@ -160,6 +161,6 @@ class GlEntryApprovalIntegrationTest extends AbstractIntegrationTest {
         authenticate("approver", new BigDecimal("500"), "finance:gl:approve");
         var inbox = approvalInboxService.pendingForCurrentUser();
 
-        assertThat(inbox).noneMatch(s -> s.entityId().equals(created.id()) && "GL_ENTRY".equals(s.entityType()));
+        assertThat(inbox).noneMatch(s -> s.entityId().equals(created.id()) && ReferenceTypes.GL_ENTRY.equals(s.entityType()));
     }
 }

@@ -1,5 +1,6 @@
 package com.erp.finance.application.service;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.audit.AuditLog;
 import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
@@ -113,7 +114,7 @@ public class ArInvoiceService {
         invoice.submit();
         ApprovalStep step = ApprovalStep.of(1, "AR 전표 승인", ROLE_BASED_APPROVER);
         ApprovalRequest approvalRequest = ApprovalRequest.create(
-            "AR_INVOICE", invoice.getId(),
+            ReferenceTypes.AR_INVOICE, invoice.getId(),
             "AR 전표 승인: " + invoice.getInvoiceNo(),
             userId, new ArrayList<>(List.of(step))
         );
@@ -151,7 +152,7 @@ public class ArInvoiceService {
         if (journalEntryId != null) {
             invoice.linkJournalEntry(journalEntryId);
         }
-        auditService.record("AR_INVOICE", invoice.getId(),
+        auditService.record(ReferenceTypes.AR_INVOICE, invoice.getId(),
             AuditLog.AuditAction.APPROVE, null, null);
         log.atInfo().addKeyValue("event", "AR_INVOICE_APPROVED")
             .addKeyValue("arInvoiceId", invoice.getId())

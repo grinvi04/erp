@@ -1,4 +1,4 @@
-import { apiGet } from '@/lib/api'
+import { safeGet } from '@/lib/api'
 import { formatMoneyOne } from '@/lib/money'
 import { Badge } from '@/components/ui/badge'
 import type {
@@ -9,14 +9,6 @@ import type {
 import YearSelect from './year-select'
 
 export const metadata = { title: '재무제표 | ERP' }
-
-async function safeGet<T>(path: string): Promise<T | null> {
-  try {
-    return await apiGet<T>(path)
-  } catch {
-    return null
-  }
-}
 
 function SectionCard({ title, action, children }: {
   title: string

@@ -1,4 +1,4 @@
-import { apiGet } from '@/lib/api'
+import { safeGet, safeGetArray } from '@/lib/api'
 import { formatMoneyList, formatMoneyOne } from '@/lib/money'
 import type {
   PipelineAnalyticsResponse,
@@ -18,23 +18,6 @@ import type {
 } from '@/types/analytics'
 
 export const metadata = { title: '분석 | ERP' }
-
-async function safeGetArray<T>(path: string): Promise<T[]> {
-  try {
-    const data = await apiGet<T[]>(path)
-    return Array.isArray(data) ? data : []
-  } catch {
-    return []
-  }
-}
-
-async function safeGet<T>(path: string): Promise<T | null> {
-  try {
-    return await apiGet<T>(path)
-  } catch {
-    return null
-  }
-}
 
 const LEAD_STATUS_LABELS: Record<string, string> = {
   NEW: '신규',

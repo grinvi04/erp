@@ -60,6 +60,24 @@ export async function apiGetPage<T>(path: string): Promise<PageResponse<T>> {
   return apiGet<PageResponse<T>>(path)
 }
 
+// 한 모듈의 호출이 실패해도 나머지 화면은 정상 렌더되도록 개별적으로 처리한다.
+export async function safeGet<T>(path: string): Promise<T | null> {
+  try {
+    return await apiGet<T>(path)
+  } catch {
+    return null
+  }
+}
+
+export async function safeGetArray<T>(path: string): Promise<T[]> {
+  try {
+    const data = await apiGet<T[]>(path)
+    return Array.isArray(data) ? data : []
+  } catch {
+    return []
+  }
+}
+
 export async function apiPost<T>(path: string, data: unknown): Promise<T> {
   const body = await apiFetch<T>(path, {
     method: 'POST',

@@ -1,5 +1,6 @@
 package com.erp.finance.application.service;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.security.ApprovalAuthorityProvider;
 import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
@@ -50,7 +51,7 @@ public class ApInvoiceApprovalInboxContributor implements PendingApprovalContrib
 
     private ApprovalSummaryResponse toSummary(ApInvoice inv) {
         return new ApprovalSummaryResponse(
-                inv.getApprovalRequestId(), "AP_INVOICE", inv.getId(),
+                inv.getApprovalRequestId(), ReferenceTypes.AP_INVOICE, inv.getId(),
                 "AP 전표 승인: " + inv.getInvoiceNo(),
                 ApprovalStatus.PENDING, inv.getCreatedBy(),
                 1, 1, "AP 전표 승인", null,

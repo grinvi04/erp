@@ -1,5 +1,6 @@
 package com.erp.finance.application.service;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.security.ApprovalAuthorityProvider;
 import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
@@ -50,7 +51,7 @@ public class GlEntryApprovalInboxContributor implements PendingApprovalContribut
 
     private ApprovalSummaryResponse toSummary(JournalEntry je) {
         return new ApprovalSummaryResponse(
-                je.getApprovalRequestId(), "GL_ENTRY", je.getId(),
+                je.getApprovalRequestId(), ReferenceTypes.GL_ENTRY, je.getId(),
                 "GL 전표 전기 승인: " + je.getEntryNo(),
                 ApprovalStatus.PENDING, je.getCreatedBy(),
                 1, 1, "GL 전표 전기 승인", null,

@@ -1,5 +1,6 @@
 package com.erp.finance;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.AbstractIntegrationTest;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
@@ -110,7 +111,7 @@ class ApInvoiceApprovalAuthorityIntegrationTest extends AbstractIntegrationTest 
         List<ApprovalSummaryResponse> inbox = approvalInboxService.pendingForCurrentUser();
 
         assertThat(inbox).extracting(ApprovalSummaryResponse::entityType, ApprovalSummaryResponse::entityId)
-            .contains(tuple("AP_INVOICE", invoiceId));
+            .contains(tuple(ReferenceTypes.AP_INVOICE, invoiceId));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.erp.finance;
 
+import com.erp.finance.application.ReferenceTypes;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.erp.common.AbstractIntegrationTest;
@@ -135,7 +136,7 @@ class FxGainLossPostingIntegrationTest extends AbstractIntegrationTest {
     private JournalEntry payApInvoice(Long invoiceId, BigDecimal amount, LocalDate paymentDate) {
         authenticate("payer", LIMIT, "finance:invoice:pay");
         apInvoiceService.pay(invoiceId, new ApInvoicePayRequest(amount, cashAccountId, paymentDate));
-        return journalEntryRepository.findByReferenceTypeAndReferenceId("AP_PAYMENT", invoiceId).orElseThrow();
+        return journalEntryRepository.findByReferenceTypeAndReferenceId(ReferenceTypes.AP_PAYMENT, invoiceId).orElseThrow();
     }
 
     private Long createApprovedArInvoice(String no, String currency, LocalDate invoiceDate, BigDecimal amount) {
@@ -152,7 +153,7 @@ class FxGainLossPostingIntegrationTest extends AbstractIntegrationTest {
     private JournalEntry receiveArInvoice(Long invoiceId, BigDecimal amount, LocalDate paymentDate) {
         authenticate("receiver", LIMIT, "finance:invoice:pay");
         arInvoiceService.pay(invoiceId, new ArInvoicePayRequest(amount, cashAccountId, paymentDate));
-        return journalEntryRepository.findByReferenceTypeAndReferenceId("AR_PAYMENT", invoiceId).orElseThrow();
+        return journalEntryRepository.findByReferenceTypeAndReferenceId(ReferenceTypes.AR_PAYMENT, invoiceId).orElseThrow();
     }
 
     private BigDecimal debitOn(JournalEntry je, Long accountId) {

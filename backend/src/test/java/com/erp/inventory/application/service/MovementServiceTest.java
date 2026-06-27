@@ -1,5 +1,6 @@
 package com.erp.inventory.application.service;
 
+import com.erp.inventory.application.ReferenceTypes;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.inventory.application.dto.MovementCreateRequest;
@@ -235,7 +236,7 @@ class MovementServiceTest {
         given(currentUserProvider.getCurrentUserId()).willReturn("creator");
         given(movementLineRepository.findByMovement_IdOrderByLineNoAsc(1L)).willReturn(List.of());
         com.erp.common.workflow.ApprovalRequest saved =
-                com.erp.common.workflow.ApprovalRequest.create("STOCK_MOVEMENT", 1L, "t", "creator",
+                com.erp.common.workflow.ApprovalRequest.create(ReferenceTypes.STOCK_MOVEMENT, 1L, "t", "creator",
                         new java.util.ArrayList<>(List.of(
                                 com.erp.common.workflow.ApprovalStep.of(1, "재고 조정 이동 승인",
                                         "@role:inventory:movement:approve"))));
@@ -312,7 +313,7 @@ class MovementServiceTest {
     // --- 반려(reject) ---
 
     private com.erp.common.workflow.ApprovalRequest buildApprovalRequest() {
-        return com.erp.common.workflow.ApprovalRequest.create("STOCK_MOVEMENT", 1L, "t", "creator",
+        return com.erp.common.workflow.ApprovalRequest.create(ReferenceTypes.STOCK_MOVEMENT, 1L, "t", "creator",
             new java.util.ArrayList<>(List.of(
                 com.erp.common.workflow.ApprovalStep.of(1, "재고 조정 이동 승인",
                     "@role:inventory:movement:approve"))));
@@ -408,7 +409,7 @@ class MovementServiceTest {
         assertThat(result.status()).isEqualTo(MovementStatus.DRAFT);
         assertThat(req.getStatus()).isEqualTo(com.erp.common.workflow.ApprovalStatus.CANCELLED);
         verify(permissionChecker).require(com.erp.common.security.Permission.INVENTORY_WRITE);
-        verify(auditService).record("STOCK_MOVEMENT", movement.getId(),
+        verify(auditService).record(ReferenceTypes.STOCK_MOVEMENT, movement.getId(),
             com.erp.common.audit.AuditLog.AuditAction.WITHDRAW, null, null);
     }
 

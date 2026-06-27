@@ -1,5 +1,6 @@
 package com.erp.finance.application.service;
 
+import com.erp.finance.application.ReferenceTypes;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.CurrentUserProvider;
@@ -211,7 +212,7 @@ class JournalEntryServiceTest {
         given(journalEntryRepository.findById(1L)).willReturn(Optional.of(entry));
         given(currentUserProvider.getCurrentUserId()).willReturn("creator");
         com.erp.common.workflow.ApprovalRequest saved =
-            com.erp.common.workflow.ApprovalRequest.create("GL_ENTRY", 1L, "t", "creator",
+            com.erp.common.workflow.ApprovalRequest.create(ReferenceTypes.GL_ENTRY, 1L, "t", "creator",
                 new java.util.ArrayList<>(List.of(
                     com.erp.common.workflow.ApprovalStep.of(1, "GL 전표 전기 승인", "@role:finance:gl:approve"))));
         given(approvalRequestRepository.save(any())).willReturn(saved);
@@ -301,7 +302,7 @@ class JournalEntryServiceTest {
     // --- 반려(reject) ---
 
     private com.erp.common.workflow.ApprovalRequest buildApprovalRequest() {
-        return com.erp.common.workflow.ApprovalRequest.create("GL_ENTRY", 1L, "t", "creator",
+        return com.erp.common.workflow.ApprovalRequest.create(ReferenceTypes.GL_ENTRY, 1L, "t", "creator",
             new java.util.ArrayList<>(List.of(
                 com.erp.common.workflow.ApprovalStep.of(1, "GL 전표 전기 승인", "@role:finance:gl:approve"))));
     }
@@ -398,7 +399,7 @@ class JournalEntryServiceTest {
         assertThat(result.status().name()).isEqualTo("DRAFT");
         assertThat(req.getStatus()).isEqualTo(com.erp.common.workflow.ApprovalStatus.CANCELLED);
         verify(permissionChecker).require(com.erp.common.security.Permission.FINANCE_WRITE);
-        verify(auditService).record("GL_ENTRY", entry.getId(),
+        verify(auditService).record(ReferenceTypes.GL_ENTRY, entry.getId(),
             com.erp.common.audit.AuditLog.AuditAction.WITHDRAW, null, null);
     }
 

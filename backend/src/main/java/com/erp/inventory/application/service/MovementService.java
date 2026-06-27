@@ -1,5 +1,6 @@
 package com.erp.inventory.application.service;
 
+import com.erp.inventory.application.ReferenceTypes;
 import com.erp.common.audit.AuditLog;
 import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
@@ -131,7 +132,7 @@ public class MovementService {
         movement.submitForApproval();
         ApprovalStep step = ApprovalStep.of(1, "재고 조정 이동 승인", ROLE_BASED_APPROVER);
         ApprovalRequest approvalRequest = ApprovalRequest.create(
-                "STOCK_MOVEMENT", movement.getId(),
+                ReferenceTypes.STOCK_MOVEMENT, movement.getId(),
                 "재고 조정 이동 승인: " + movement.getMovementNo(),
                 userId, new ArrayList<>(List.of(step)));
         ApprovalRequest saved = approvalRequestRepository.save(approvalRequest);
@@ -167,7 +168,7 @@ public class MovementService {
                     .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
             approvalRequest.approve(userId, null);
         }
-        auditService.record("STOCK_MOVEMENT", movement.getId(), AuditLog.AuditAction.APPROVE, null, null);
+        auditService.record(ReferenceTypes.STOCK_MOVEMENT, movement.getId(), AuditLog.AuditAction.APPROVE, null, null);
         log.atInfo().addKeyValue("event", "STOCK_MOVEMENT_APPROVED")
                 .addKeyValue("movementId", movement.getId())
                 .addKeyValue("movementNo", movement.getMovementNo())
@@ -280,7 +281,7 @@ public class MovementService {
                     .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
             approvalRequest.reject(userId, comment);
         }
-        auditService.record("STOCK_MOVEMENT", movement.getId(), AuditLog.AuditAction.REJECT, null, null);
+        auditService.record(ReferenceTypes.STOCK_MOVEMENT, movement.getId(), AuditLog.AuditAction.REJECT, null, null);
         log.atInfo().addKeyValue("event", "STOCK_MOVEMENT_REJECTED")
                 .addKeyValue("movementId", movement.getId())
                 .addKeyValue("movementNo", movement.getMovementNo())
@@ -308,7 +309,7 @@ public class MovementService {
                     .orElseThrow(() -> new ErpException(ErrorCode.APPROVAL_NOT_FOUND));
             approvalRequest.cancel(userId, null);
         }
-        auditService.record("STOCK_MOVEMENT", movement.getId(), AuditLog.AuditAction.WITHDRAW, null, null);
+        auditService.record(ReferenceTypes.STOCK_MOVEMENT, movement.getId(), AuditLog.AuditAction.WITHDRAW, null, null);
         log.atInfo().addKeyValue("event", "STOCK_MOVEMENT_WITHDRAWN")
                 .addKeyValue("movementId", movement.getId())
                 .addKeyValue("movementNo", movement.getMovementNo())
