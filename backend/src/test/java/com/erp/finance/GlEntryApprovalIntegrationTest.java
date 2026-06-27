@@ -26,15 +26,9 @@ import com.erp.finance.domain.repository.JournalEntryRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,17 +66,8 @@ class GlEntryApprovalIntegrationTest extends AbstractIntegrationTest {
                 AccountType.LIABILITY, NormalBalance.CREDIT, null, false)).getId();
     }
 
-    @AfterEach
-    void clear() {
-        SecurityContextHolder.clearContext();
-    }
-
     private void authenticate(String sub, BigDecimal approvalLimit, String... authorities) {
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject(sub)
-                .claim("sub", sub).claim("tenant_id", TEST_TENANT_ID).build();
-        List<GrantedAuthority> auths = java.util.Arrays.stream(authorities)
-                .map(a -> (GrantedAuthority) new SimpleGrantedAuthority(a)).toList();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, auths));
+        authenticate(sub, authorities);
         accessProfileRepository.findByTenantIdAndUserId(TEST_TENANT_ID, sub)
                 .map(p -> { p.update(DataScope.ALL, null, approvalLimit); return p; })
                 .orElseGet(() -> accessProfileRepository.save(

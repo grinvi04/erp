@@ -4,15 +4,9 @@ import com.erp.common.AbstractIntegrationTest;
 import com.erp.common.security.Permission;
 import com.erp.crm.application.dto.SalesTeamResponse;
 import com.erp.crm.application.service.SalesTeamService;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,16 +21,7 @@ class SalesTeamIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void authAsAdmin() {
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject("admin")
-                .claim("tenant_id", TEST_TENANT_ID).build();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
-                List.of(new SimpleGrantedAuthority(Permission.IAM_READ),
-                        new SimpleGrantedAuthority(Permission.IAM_WRITE))));
-    }
-
-    @AfterEach
-    void clear() {
-        SecurityContextHolder.clearContext();
+        authenticate("admin", Permission.IAM_READ, Permission.IAM_WRITE);
     }
 
     @Test

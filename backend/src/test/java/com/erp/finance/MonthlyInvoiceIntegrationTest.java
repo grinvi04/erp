@@ -12,14 +12,9 @@ import com.erp.finance.domain.repository.VendorRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,17 +33,10 @@ class MonthlyInvoiceIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject("test-user").claim("sub", "test-user").build();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
-            List.of(new SimpleGrantedAuthority("finance:read"), new SimpleGrantedAuthority("finance:write"))));
+        authenticate("test-user", "finance:read", "finance:write");
         vendor = vendorRepository.save(
                 Vendor.of("V-ANALYTICS", "Analytics Vendor", "000-00-11111",
                         "홍길동", "vendor@test.com", "010-0000-0000", 30));
-    }
-
-    @AfterEach
-    void clearAuth() {
-        SecurityContextHolder.clearContext();
     }
 
     private ApInvoice invoice(String no, LocalDate date, BigDecimal amount, String currency) {

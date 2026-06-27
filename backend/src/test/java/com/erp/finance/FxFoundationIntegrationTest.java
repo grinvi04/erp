@@ -12,17 +12,9 @@ import com.erp.finance.application.service.CurrencyConverter;
 import com.erp.finance.application.service.ExchangeRateService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,19 +33,6 @@ class FxFoundationIntegrationTest extends AbstractIntegrationTest {
     @Autowired private ExchangeRateService exchangeRateService;
     @Autowired private CurrencyConverter currencyConverter;
     @MockBean private ExchangeRateProvider exchangeRateProvider;
-
-    @AfterEach
-    void clear() {
-        SecurityContextHolder.clearContext();
-    }
-
-    private void authenticate(String sub, String... authorities) {
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none")
-            .subject(sub).claim("sub", sub).claim("tenant_id", TEST_TENANT_ID).build();
-        List<GrantedAuthority> auths = Arrays.stream(authorities)
-            .map(a -> (GrantedAuthority) new SimpleGrantedAuthority(a)).toList();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, auths));
-    }
 
     @Test
     void getBaseCurrency_noSetting_returnsKrwDefault() {

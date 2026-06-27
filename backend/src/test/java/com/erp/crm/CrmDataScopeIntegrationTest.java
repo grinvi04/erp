@@ -12,15 +12,11 @@ import com.erp.crm.application.dto.LeadResponse;
 import com.erp.crm.application.service.LeadService;
 import com.erp.crm.application.service.SalesTeamService;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,17 +40,7 @@ class CrmDataScopeIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void authAsAlice() {
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject(ALICE)
-                .claim("tenant_id", TEST_TENANT_ID).build();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
-                List.of(new SimpleGrantedAuthority(Permission.CRM_READ),
-                        new SimpleGrantedAuthority(Permission.CRM_WRITE),
-                        new SimpleGrantedAuthority(Permission.IAM_WRITE))));
-    }
-
-    @AfterEach
-    void clear() {
-        SecurityContextHolder.clearContext();
+        authenticate(ALICE, Permission.CRM_READ, Permission.CRM_WRITE, Permission.IAM_WRITE);
     }
 
     @Test
@@ -143,10 +129,7 @@ class CrmDataScopeIntegrationTest extends AbstractIntegrationTest {
     /** create는 owner를 현재 인증 사용자로 자동배정하므로, 특정 owner의 리드를 만들려면 그 사용자로 인증한 채 실행한다. */
     private <T> T asUser(String subject, java.util.function.Supplier<T> action) {
         var previous = SecurityContextHolder.getContext().getAuthentication();
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject(subject)
-                .claim("tenant_id", TEST_TENANT_ID).build();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
-                List.of(new SimpleGrantedAuthority(Permission.CRM_WRITE))));
+        authenticate(subject, Permission.CRM_WRITE);
         try {
             return action.get();
         } finally {

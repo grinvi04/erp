@@ -29,14 +29,9 @@ import com.erp.hr.domain.repository.PositionRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -81,11 +76,6 @@ class HrAnalyticsIntegrationTest extends AbstractIntegrationTest {
         save("EMP-D", "user-d", deptA, posEng, EmploymentType.REGULAR, LocalDate.of(2025, 1, 1), true);
     }
 
-    @AfterEach
-    void clearAuth() {
-        SecurityContextHolder.clearContext();
-    }
-
     private Employee save(String empNo, String userId, Department dept, Position pos,
                           EmploymentType type, LocalDate hireDate, boolean terminated) {
         PersonalInfo info = new PersonalInfo("성", empNo, LocalDate.of(1990, 1, 1),
@@ -101,10 +91,7 @@ class HrAnalyticsIntegrationTest extends AbstractIntegrationTest {
 
     private void authenticate(List<String> permissions, DataScope scope, Long deptId) {
         String sub = "user-a";
-        Jwt jwt = Jwt.withTokenValue("t").header("alg", "none").subject(sub)
-                .claim("sub", sub).claim("tenant_id", TEST_TENANT_ID).build();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,
-                permissions.stream().map(SimpleGrantedAuthority::new).toList()));
+        authenticate(sub, permissions.toArray(new String[0]));
         accessProfileRepository.save(UserAccessProfile.of(TEST_TENANT_ID, sub, scope, deptId, null));
     }
 

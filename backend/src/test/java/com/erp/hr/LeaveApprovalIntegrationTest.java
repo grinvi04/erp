@@ -25,15 +25,10 @@ import com.erp.hr.domain.repository.LeaveBalanceRepository;
 import com.erp.hr.domain.repository.LeavePolicyRepository;
 import com.erp.hr.domain.repository.LeaveRequestRepository;
 import com.erp.hr.domain.repository.PositionRepository;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -91,17 +86,8 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
         savedLeaveRequest = lr;
     }
 
-    @AfterEach
-    void clearSecurityContext() {
-        SecurityContextHolder.clearContext();
-    }
-
     private void authenticateAs(String subject) {
-        Jwt jwt = Jwt.withTokenValue("test-token").header("alg", "none")
-            .subject(subject).claim("sub", subject).build();
-        SecurityContextHolder.getContext().setAuthentication(
-            new JwtAuthenticationToken(jwt,
-                List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+        authenticate(subject, "ROLE_USER");
     }
 
     @Test
@@ -151,7 +137,7 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
     @Test
     void approve_unauthenticated_throwsNotAuthorized() {
         // 보안: 인증되지 않은(현재 사용자 null) 요청이 SYSTEM으로 승격돼 결재를 우회하지 못한다.
-        SecurityContextHolder.clearContext();
+        clearAuth();
 
         ErpException ex = assertThrows(ErpException.class, () ->
             leaveRequestService.approve(savedLeaveRequest.getId(), new ApprovalActionRequest("우회 시도")));
