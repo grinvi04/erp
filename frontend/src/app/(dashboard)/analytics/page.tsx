@@ -1,5 +1,6 @@
 import { safeGet, safeGetArray } from '@/lib/api'
 import { formatMoneyList, formatMoneyOne } from '@/lib/money'
+import { MonthlyBarChart } from '@/components/charts/monthly-bar-chart'
 import type {
   PipelineAnalyticsResponse,
   LeadStatusCountResponse,
@@ -93,48 +94,6 @@ function SectionCard({ title, children }: { title: string; children: React.React
     <div className="bg-card rounded-lg border border-border p-6">
       <h2 className="text-lg font-semibold text-foreground mb-4">{title}</h2>
       {children}
-    </div>
-  )
-}
-
-// 월별 세로 막대차트. 단일 시리즈(w-full 막대 1개) 또는 다중 시리즈(그룹 막대) 지원.
-// 막대 높이는 모든 시리즈 값을 통틀어 계산한 최대값으로 스케일한다(≥1 보장).
-function MonthlyBarChart<T extends { month: number }>({
-  rows,
-  bars,
-  renderTooltip,
-  renderFooter,
-}: {
-  rows: T[]
-  bars: { value: (r: T) => number; color: string; width: string }[]
-  renderTooltip: (r: T) => React.ReactNode
-  renderFooter?: (r: T) => React.ReactNode
-}) {
-  const max = Math.max(...rows.flatMap((r) => bars.map((b) => b.value(r))), 1)
-  const groupGap = bars.length > 1 ? ' gap-0.5' : ''
-  return (
-    <div className="flex items-end gap-2">
-      {rows.map((r, idx) => (
-        <div key={r.month} className="flex flex-col items-center flex-1">
-          <div className={`relative group flex h-40 w-full items-end justify-center${groupGap}`}>
-            <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground border border-border shadow-md text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-              {renderTooltip(r)}
-            </div>
-            {bars.map((b, bi) => {
-              const v = b.value(r)
-              return (
-                <div
-                  key={bi}
-                  className={`${b.color} rounded-t ${b.width}`}
-                  style={{ height: `${(v / max) * 100}%`, minHeight: v > 0 ? '4px' : '0px' }}
-                />
-              )
-            })}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">{MONTH_LABELS[idx]}</div>
-          {renderFooter?.(r)}
-        </div>
-      ))}
     </div>
   )
 }
@@ -254,16 +213,10 @@ export default async function AnalyticsPage() {
               key={series.currency}
               title={`월별 매입 인보이스 추이 (${currentYear}년) · ${series.currency}`}
             >
-              {/* 막대 높이는 그 통화 내 최대 금액으로 스케일 */}
               <MonthlyBarChart
-                rows={series.months}
-                bars={[{ value: (r) => r.totalAmount, color: 'bg-chart-5', width: 'w-full' }]}
-                renderTooltip={(r) => (
-                  <>
-                    {r.count}건<br />{formatMoneyList([{ currency: series.currency, amount: r.totalAmount }])}
-                  </>
-                )}
-                renderFooter={(r) => <div className="text-xs text-muted-foreground font-medium">{r.count}</div>}
+                data={series.months.map((r, i) => ({ month: MONTH_LABELS[i], amount: r.totalAmount }))}
+                series={[{ key: 'amount', label: '매입액', color: 'var(--chart-5)' }]}
+                valueFormat={{ kind: 'money', currency: series.currency }}
               />
             </SectionCard>
           ))
@@ -275,9 +228,9 @@ export default async function AnalyticsPage() {
             title={`월별 매입 인보이스 추이 (${currentYear}년) · 기준통화 합계(${monthlyBaseCurrency})`}
           >
             <MonthlyBarChart
-              rows={monthlyBaseTotals}
-              bars={[{ value: (r) => r.totalAmount, color: 'bg-chart-1', width: 'w-full' }]}
-              renderTooltip={(r) => <>≈ {formatMoneyOne(r.totalAmount, monthlyBaseCurrency)}</>}
+              data={monthlyBaseTotals.map((r, i) => ({ month: MONTH_LABELS[i], amount: r.totalAmount }))}
+              series={[{ key: 'amount', label: `기준통화(${monthlyBaseCurrency})`, color: 'var(--chart-1)' }]}
+              valueFormat={{ kind: 'money', currency: monthlyBaseCurrency }}
             />
           </SectionCard>
         )}
@@ -360,24 +313,14 @@ export default async function AnalyticsPage() {
           {hrHiresTerms.length === 0 ? (
             <p className="text-sm text-muted-foreground">데이터 없음</p>
           ) : (
-            <>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-chart-2" />입사</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-chart-4" />퇴사</span>
-              </div>
-              <MonthlyBarChart
-                rows={hrHiresTerms}
-                bars={[
-                  { value: (r) => r.hires, color: 'bg-chart-2', width: 'w-1/2' },
-                  { value: (r) => r.terminations, color: 'bg-chart-4', width: 'w-1/2' },
-                ]}
-                renderTooltip={(r) => (
-                  <>
-                    입사 {r.hires}명<br />퇴사 {r.terminations}명
-                  </>
-                )}
-              />
-            </>
+            <MonthlyBarChart
+              data={hrHiresTerms.map((r, i) => ({ month: MONTH_LABELS[i], hires: r.hires, terminations: r.terminations }))}
+              series={[
+                { key: 'hires', label: '입사', color: 'var(--chart-2)' },
+                { key: 'terminations', label: '퇴사', color: 'var(--chart-4)' },
+              ]}
+              valueFormat={{ kind: 'suffix', suffix: '명' }}
+            />
           )}
         </SectionCard>
 
@@ -483,14 +426,9 @@ export default async function AnalyticsPage() {
               title={`월별 입출고 추이 (${currentYear}년) · ${MOVEMENT_TYPE_LABELS[series.movementType] ?? series.movementType}`}
             >
               <MonthlyBarChart
-                rows={series.months}
-                bars={[{ value: (r) => r.totalQty, color: 'bg-chart-3', width: 'w-full' }]}
-                renderTooltip={(r) => (
-                  <>
-                    {r.count}건<br />수량 {r.totalQty.toLocaleString('ko-KR')}
-                  </>
-                )}
-                renderFooter={(r) => <div className="text-xs text-muted-foreground font-medium">{r.count}</div>}
+                data={series.months.map((r, i) => ({ month: MONTH_LABELS[i], qty: r.totalQty }))}
+                series={[{ key: 'qty', label: '수량', color: 'var(--chart-3)' }]}
+                valueFormat={{ kind: 'suffix', suffix: '개' }}
               />
             </SectionCard>
           ))
