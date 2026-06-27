@@ -137,7 +137,11 @@ export default function UomsClient({ uoms }: Props) {
 
   return (
     <div className="p-6">
-      <PageHeader title="단위 관리" description="측정 단위(UOM) 마스터를 관리합니다" className="mb-6">
+      <PageHeader
+        title="단위 관리"
+        description="측정 단위(UOM) 마스터를 관리합니다"
+        className="mb-6"
+      >
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 단위

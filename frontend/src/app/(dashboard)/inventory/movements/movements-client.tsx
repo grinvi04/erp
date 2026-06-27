@@ -377,7 +377,11 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
 
   return (
     <div className="p-6">
-      <PageHeader title="재고 이동" description="재고 입출고 및 이전 내역을 관리합니다" className="mb-6">
+      <PageHeader
+        title="재고 이동"
+        description="재고 입출고 및 이전 내역을 관리합니다"
+        className="mb-6"
+      >
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 이동 등록
