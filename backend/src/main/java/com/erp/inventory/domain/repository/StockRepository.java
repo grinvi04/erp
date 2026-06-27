@@ -11,11 +11,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface StockRepository extends JpaRepository<Stock, Long> {
-    Optional<Stock> findByItemAndLocationAndLotNoAndSerialNo(
-            Item item, Location location, String lotNo, String serialNo);
+  Optional<Stock> findByItemAndLocationAndLotNoAndSerialNo(
+      Item item, Location location, String lotNo, String serialNo);
 
-    Page<Stock> findByItem_Id(Long itemId, Pageable pageable);
+  Page<Stock> findByItem_Id(Long itemId, Pageable pageable);
 
-    @Query("SELECT s FROM Stock s WHERE s.location.warehouse.id = :warehouseId")
-    Page<Stock> findByWarehouseId(@Param("warehouseId") Long warehouseId, Pageable pageable);
+  @Query("SELECT s FROM Stock s WHERE s.location.warehouse.id = :warehouseId")
+  Page<Stock> findByWarehouseId(@Param("warehouseId") Long warehouseId, Pageable pageable);
 }

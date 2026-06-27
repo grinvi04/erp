@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class FinanceSummaryController {
 
-    private final FinanceSummaryService financeSummaryService;
+  private final FinanceSummaryService financeSummaryService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<FinanceSummaryResponse>> getSummary() {
-        return ResponseEntity.ok(ApiResponse.ok(financeSummaryService.getSummary()));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<FinanceSummaryResponse>> getSummary() {
+    return ResponseEntity.ok(ApiResponse.ok(financeSummaryService.getSummary()));
+  }
 }

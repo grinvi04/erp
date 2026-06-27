@@ -17,17 +17,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class StockController {
 
-    private final StockService stockService;
+  private final StockService stockService;
 
-    @GetMapping("/by-item")
-    public ResponseEntity<ApiResponse<PageResponse<StockResponse>>> findByItem(
-            @RequestParam Long itemId, Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(stockService.findByItem(itemId, pageable)));
-    }
+  @GetMapping("/by-item")
+  public ResponseEntity<ApiResponse<PageResponse<StockResponse>>> findByItem(
+      @RequestParam Long itemId, Pageable pageable) {
+    return ResponseEntity.ok(ApiResponse.ok(stockService.findByItem(itemId, pageable)));
+  }
 
-    @GetMapping("/by-warehouse")
-    public ResponseEntity<ApiResponse<PageResponse<StockResponse>>> findByWarehouse(
-            @RequestParam Long warehouseId, Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(stockService.findByWarehouse(warehouseId, pageable)));
-    }
+  @GetMapping("/by-warehouse")
+  public ResponseEntity<ApiResponse<PageResponse<StockResponse>>> findByWarehouse(
+      @RequestParam Long warehouseId, Pageable pageable) {
+    return ResponseEntity.ok(ApiResponse.ok(stockService.findByWarehouse(warehouseId, pageable)));
+  }
 }

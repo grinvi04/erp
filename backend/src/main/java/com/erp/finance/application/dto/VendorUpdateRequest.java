@@ -14,5 +14,4 @@ public record VendorUpdateRequest(
     @Size(max = 30) String contactPhone,
     @Min(0) int paymentTerms,
     Long payablesAccountId,
-    @NotNull Long version
-) {}
+    @NotNull Long version) {}

@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record UomUpdateRequest(
-        @NotBlank @Size(max = 20) String code,
-        @NotBlank @Size(max = 100) String name,
-        @NotNull Long version
-) {}
+    @NotBlank @Size(max = 20) String code,
+    @NotBlank @Size(max = 100) String name,
+    @NotNull Long version) {}

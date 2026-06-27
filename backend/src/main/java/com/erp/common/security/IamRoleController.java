@@ -25,37 +25,39 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class IamRoleController {
 
-    private final IamService iamService;
+  private final IamService iamService;
 
-    @GetMapping("/permissions")
-    public ResponseEntity<ApiResponse<Set<String>>> permissions() {
-        return ResponseEntity.ok(ApiResponse.ok(iamService.permissionCatalog()));
-    }
+  @GetMapping("/permissions")
+  public ResponseEntity<ApiResponse<Set<String>>> permissions() {
+    return ResponseEntity.ok(ApiResponse.ok(iamService.permissionCatalog()));
+  }
 
-    @GetMapping("/roles")
-    public ResponseEntity<ApiResponse<List<RoleResponse>>> listRoles() {
-        return ResponseEntity.ok(ApiResponse.ok(iamService.listRoles()));
-    }
+  @GetMapping("/roles")
+  public ResponseEntity<ApiResponse<List<RoleResponse>>> listRoles() {
+    return ResponseEntity.ok(ApiResponse.ok(iamService.listRoles()));
+  }
 
-    @GetMapping("/roles/{id}")
-    public ResponseEntity<ApiResponse<RoleResponse>> getRole(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(iamService.getRole(id)));
-    }
+  @GetMapping("/roles/{id}")
+  public ResponseEntity<ApiResponse<RoleResponse>> getRole(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(iamService.getRole(id)));
+  }
 
-    @PostMapping("/roles")
-    public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody RoleCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(iamService.createRole(request)));
-    }
+  @PostMapping("/roles")
+  public ResponseEntity<ApiResponse<RoleResponse>> createRole(
+      @Valid @RequestBody RoleCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(iamService.createRole(request)));
+  }
 
-    @PutMapping("/roles/{id}")
-    public ResponseEntity<ApiResponse<RoleResponse>> updateRole(
-        @PathVariable Long id, @Valid @RequestBody RoleUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(iamService.updateRole(id, request)));
-    }
+  @PutMapping("/roles/{id}")
+  public ResponseEntity<ApiResponse<RoleResponse>> updateRole(
+      @PathVariable Long id, @Valid @RequestBody RoleUpdateRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(iamService.updateRole(id, request)));
+  }
 
-    @DeleteMapping("/roles/{id}")
-    public ResponseEntity<Void> deleteRole(@PathVariable Long id) {
-        iamService.deleteRole(id);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/roles/{id}")
+  public ResponseEntity<Void> deleteRole(@PathVariable Long id) {
+    iamService.deleteRole(id);
+    return ResponseEntity.noContent().build();
+  }
 }

@@ -24,35 +24,34 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PipelineStageController {
 
-    private final PipelineStageService stageService;
+  private final PipelineStageService stageService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<PipelineStageResponse>>> findAll() {
-        return ResponseEntity.ok(ApiResponse.ok(stageService.findAll()));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<List<PipelineStageResponse>>> findAll() {
+    return ResponseEntity.ok(ApiResponse.ok(stageService.findAll()));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<PipelineStageResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(stageService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<PipelineStageResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(stageService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<PipelineStageResponse>> create(
-            @Valid @RequestBody PipelineStageCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(stageService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<PipelineStageResponse>> create(
+      @Valid @RequestBody PipelineStageCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(stageService.create(request)));
+  }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<PipelineStageResponse>> update(
-            @PathVariable Long id,
-            @Valid @RequestBody PipelineStageUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(stageService.update(id, request)));
-    }
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<PipelineStageResponse>> update(
+      @PathVariable Long id, @Valid @RequestBody PipelineStageUpdateRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(stageService.update(id, request)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        stageService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> delete(@PathVariable Long id) {
+    stageService.delete(id);
+    return ResponseEntity.noContent().build();
+  }
 }

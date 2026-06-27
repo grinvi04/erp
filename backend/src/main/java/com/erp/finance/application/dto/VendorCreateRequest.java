@@ -14,5 +14,4 @@ public record VendorCreateRequest(
     @Size(max = 30) String contactPhone,
     @Min(0) int paymentTerms,
     // 외상매입금 통제계정(대변) — 설정 시 AP 전표 승인이 이 계정으로 자동 분개된다.
-    Long payablesAccountId
-) {}
+    Long payablesAccountId) {}

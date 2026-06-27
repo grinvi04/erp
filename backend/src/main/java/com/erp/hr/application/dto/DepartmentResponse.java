@@ -11,19 +11,17 @@ public record DepartmentResponse(
     int sortOrder,
     Long headEmployeeId,
     boolean active,
-    Long version
-) {
-    public static DepartmentResponse from(Department dept) {
-        return new DepartmentResponse(
-            dept.getId(),
-            dept.getCode(),
-            dept.getName(),
-            dept.getParent() != null ? dept.getParent().getId() : null,
-            dept.getDepth(),
-            dept.getSortOrder(),
-            dept.getHeadEmployeeId(),
-            dept.isActive(),
-            dept.getVersion()
-        );
-    }
+    Long version) {
+  public static DepartmentResponse from(Department dept) {
+    return new DepartmentResponse(
+        dept.getId(),
+        dept.getCode(),
+        dept.getName(),
+        dept.getParent() != null ? dept.getParent().getId() : null,
+        dept.getDepth(),
+        dept.getSortOrder(),
+        dept.getHeadEmployeeId(),
+        dept.isActive(),
+        dept.getVersion());
+  }
 }

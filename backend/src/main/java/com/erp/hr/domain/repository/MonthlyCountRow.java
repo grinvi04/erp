@@ -1,6 +1,7 @@
 package com.erp.hr.domain.repository;
 
 public interface MonthlyCountRow {
-    Integer getMonth();
-    long getCount();
+  Integer getMonth();
+
+  long getCount();
 }
