@@ -128,3 +128,15 @@ export interface FiscalPeriod {
   endDate: string
   status: FiscalPeriodStatus
 }
+
+export interface BaseCurrency {
+  baseCurrency: string
+}
+
+export interface ExchangeRate {
+  id: number
+  fromCurrency: string
+  toCurrency: string
+  effectiveDate: string
+  rate: number
+}

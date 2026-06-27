@@ -7,7 +7,7 @@ import {
   Users, Building2, Package, TrendingUp, LayoutDashboard,
   ChevronRight, Briefcase, FileText, Warehouse, BarChart3,
   UserSquare, Target, Activity, GitBranch, Inbox, PieChart,
-  ScrollText, ShieldCheck, Boxes, MapPin, Tags, Ruler, CalendarDays,
+  ScrollText, ShieldCheck, Boxes, MapPin, Tags, Ruler, CalendarDays, Coins,
 } from 'lucide-react'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
@@ -52,6 +52,7 @@ const NAV = [
       { label: '공급업체', href: '/finance/vendors', icon: Building2 },
       { label: '고객', href: '/finance/customers', icon: Building2 },
       { label: '매출 인보이스', href: '/finance/ar-invoices', icon: FileText },
+      { label: 'FX 설정', href: '/finance/fx', icon: Coins },
     ],
   },
   {
