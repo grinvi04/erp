@@ -14,5 +14,4 @@ public record CustomerCreateRequest(
     @Size(max = 30) String contactPhone,
     @Min(0) int paymentTerms,
     // 외상매출금 통제계정(차변) — 설정 시 AR 전표 승인이 이 계정으로 자동 분개된다.
-    Long receivablesAccountId
-) {}
+    Long receivablesAccountId) {}

@@ -8,5 +8,4 @@ public record RoleCreateRequest(
     @NotBlank @Size(max = 50) String code,
     @NotBlank @Size(max = 100) String name,
     @Size(max = 500) String description,
-    Set<String> permissions
-) {}
+    Set<String> permissions) {}

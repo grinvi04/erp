@@ -9,5 +9,4 @@ import java.math.BigDecimal;
 public record ArInvoiceLineRequest(
     @NotNull Long accountId,
     @NotNull @DecimalMin("0.01") BigDecimal amount,
-    @Size(max = 500) String description
-) {}
+    @Size(max = 500) String description) {}

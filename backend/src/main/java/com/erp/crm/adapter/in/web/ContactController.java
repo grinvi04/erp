@@ -25,36 +25,35 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ContactController {
 
-    private final ContactService contactService;
+  private final ContactService contactService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<ContactResponse>>> findByAccount(
-            @RequestParam Long accountId) {
-        return ResponseEntity.ok(ApiResponse.ok(contactService.findByAccount(accountId)));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<List<ContactResponse>>> findByAccount(
+      @RequestParam Long accountId) {
+    return ResponseEntity.ok(ApiResponse.ok(contactService.findByAccount(accountId)));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ContactResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(contactService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<ContactResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(contactService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<ContactResponse>> create(
-            @Valid @RequestBody ContactCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(contactService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<ContactResponse>> create(
+      @Valid @RequestBody ContactCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(contactService.create(request)));
+  }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<ContactResponse>> update(
-            @PathVariable Long id,
-            @Valid @RequestBody ContactUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(contactService.update(id, request)));
-    }
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<ContactResponse>> update(
+      @PathVariable Long id, @Valid @RequestBody ContactUpdateRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(contactService.update(id, request)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        contactService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> delete(@PathVariable Long id) {
+    contactService.delete(id);
+    return ResponseEntity.noContent().build();
+  }
 }

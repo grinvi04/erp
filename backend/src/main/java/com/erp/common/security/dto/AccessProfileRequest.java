@@ -6,7 +6,4 @@ import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 
 public record AccessProfileRequest(
-    @NotNull DataScope dataScope,
-    Long departmentId,
-    @PositiveOrZero BigDecimal approvalLimit
-) {}
+    @NotNull DataScope dataScope, Long departmentId, @PositiveOrZero BigDecimal approvalLimit) {}

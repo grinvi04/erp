@@ -27,39 +27,38 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class OpportunityController {
 
-    private final OpportunityService opportunityService;
+  private final OpportunityService opportunityService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<OpportunityResponse>>> search(
-            @RequestParam(required = false) Long accountId,
-            @RequestParam(required = false) Long stageId,
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(
-                opportunityService.search(accountId, stageId, pageable)));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<PageResponse<OpportunityResponse>>> search(
+      @RequestParam(required = false) Long accountId,
+      @RequestParam(required = false) Long stageId,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(
+        ApiResponse.ok(opportunityService.search(accountId, stageId, pageable)));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<OpportunityResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(opportunityService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<OpportunityResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(opportunityService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<OpportunityResponse>> create(
-            @Valid @RequestBody OpportunityCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(opportunityService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<OpportunityResponse>> create(
+      @Valid @RequestBody OpportunityCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(opportunityService.create(request)));
+  }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<OpportunityResponse>> update(
-            @PathVariable Long id,
-            @Valid @RequestBody OpportunityUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(opportunityService.update(id, request)));
-    }
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<OpportunityResponse>> update(
+      @PathVariable Long id, @Valid @RequestBody OpportunityUpdateRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(opportunityService.update(id, request)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        opportunityService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> delete(@PathVariable Long id) {
+    opportunityService.delete(id);
+    return ResponseEntity.noContent().build();
+  }
 }

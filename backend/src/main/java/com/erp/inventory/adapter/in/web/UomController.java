@@ -24,32 +24,32 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UomController {
 
-    private final UomService uomService;
+  private final UomService uomService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<UomResponse>>> findAll() {
-        return ResponseEntity.ok(ApiResponse.ok(uomService.findAll()));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<List<UomResponse>>> findAll() {
+    return ResponseEntity.ok(ApiResponse.ok(uomService.findAll()));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<UomResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(uomService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<UomResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(uomService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<UomResponse>> create(@Valid @RequestBody UomCreateRequest req) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(uomService.create(req)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<UomResponse>> create(@Valid @RequestBody UomCreateRequest req) {
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(uomService.create(req)));
+  }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<UomResponse>> update(@PathVariable Long id,
-            @Valid @RequestBody UomUpdateRequest req) {
-        return ResponseEntity.ok(ApiResponse.ok(uomService.update(id, req)));
-    }
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<UomResponse>> update(
+      @PathVariable Long id, @Valid @RequestBody UomUpdateRequest req) {
+    return ResponseEntity.ok(ApiResponse.ok(uomService.update(id, req)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        uomService.delete(id);
-        return ResponseEntity.ok(ApiResponse.ok());
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+    uomService.delete(id);
+    return ResponseEntity.ok(ApiResponse.ok());
+  }
 }

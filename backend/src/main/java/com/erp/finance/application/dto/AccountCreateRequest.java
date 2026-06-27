@@ -12,5 +12,4 @@ public record AccountCreateRequest(
     @NotNull AccountType accountType,
     @NotNull NormalBalance normalBalance,
     Long parentId,
-    boolean isSummary
-) {}
+    boolean isSummary) {}

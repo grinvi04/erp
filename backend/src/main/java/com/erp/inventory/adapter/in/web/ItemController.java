@@ -26,34 +26,36 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ItemController {
 
-    private final ItemService itemService;
+  private final ItemService itemService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<ItemResponse>>> findAll(
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) String keyword, Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(itemService.findAll(categoryId, keyword, pageable)));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<PageResponse<ItemResponse>>> findAll(
+      @RequestParam(required = false) Long categoryId,
+      @RequestParam(required = false) String keyword,
+      Pageable pageable) {
+    return ResponseEntity.ok(ApiResponse.ok(itemService.findAll(categoryId, keyword, pageable)));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ItemResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(itemService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<ItemResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(itemService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<ItemResponse>> create(@Valid @RequestBody ItemCreateRequest req) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(itemService.create(req)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<ItemResponse>> create(
+      @Valid @RequestBody ItemCreateRequest req) {
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(itemService.create(req)));
+  }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<ItemResponse>> update(@PathVariable Long id,
-            @Valid @RequestBody ItemUpdateRequest req) {
-        return ResponseEntity.ok(ApiResponse.ok(itemService.update(id, req)));
-    }
+  @PutMapping("/{id}")
+  public ResponseEntity<ApiResponse<ItemResponse>> update(
+      @PathVariable Long id, @Valid @RequestBody ItemUpdateRequest req) {
+    return ResponseEntity.ok(ApiResponse.ok(itemService.update(id, req)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
-        itemService.deactivate(id);
-        return ResponseEntity.ok(ApiResponse.ok());
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
+    itemService.deactivate(id);
+    return ResponseEntity.ok(ApiResponse.ok());
+  }
 }

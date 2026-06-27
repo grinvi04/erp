@@ -15,20 +15,22 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class StockService {
 
-    private final StockRepository stockRepository;
-    private final ItemService itemService;
-    private final WarehouseService warehouseService;
-    private final PermissionChecker permissionChecker;
+  private final StockRepository stockRepository;
+  private final ItemService itemService;
+  private final WarehouseService warehouseService;
+  private final PermissionChecker permissionChecker;
 
-    public PageResponse<StockResponse> findByItem(Long itemId, Pageable pageable) {
-        permissionChecker.require(Permission.INVENTORY_READ);
-        itemService.getOrThrow(itemId);
-        return PageResponse.from(stockRepository.findByItem_Id(itemId, pageable).map(StockResponse::from));
-    }
+  public PageResponse<StockResponse> findByItem(Long itemId, Pageable pageable) {
+    permissionChecker.require(Permission.INVENTORY_READ);
+    itemService.getOrThrow(itemId);
+    return PageResponse.from(
+        stockRepository.findByItem_Id(itemId, pageable).map(StockResponse::from));
+  }
 
-    public PageResponse<StockResponse> findByWarehouse(Long warehouseId, Pageable pageable) {
-        permissionChecker.require(Permission.INVENTORY_READ);
-        warehouseService.getOrThrow(warehouseId);
-        return PageResponse.from(stockRepository.findByWarehouseId(warehouseId, pageable).map(StockResponse::from));
-    }
+  public PageResponse<StockResponse> findByWarehouse(Long warehouseId, Pageable pageable) {
+    permissionChecker.require(Permission.INVENTORY_READ);
+    warehouseService.getOrThrow(warehouseId);
+    return PageResponse.from(
+        stockRepository.findByWarehouseId(warehouseId, pageable).map(StockResponse::from));
+  }
 }

@@ -21,36 +21,37 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class HrAnalyticsController {
 
-    private final HrAnalyticsService hrAnalyticsService;
+  private final HrAnalyticsService hrAnalyticsService;
 
-    @GetMapping("/status-distribution")
-    public ResponseEntity<ApiResponse<List<EmployeeStatusCountResponse>>> getStatusDistribution() {
-        return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getStatusDistribution()));
-    }
+  @GetMapping("/status-distribution")
+  public ResponseEntity<ApiResponse<List<EmployeeStatusCountResponse>>> getStatusDistribution() {
+    return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getStatusDistribution()));
+  }
 
-    @GetMapping("/by-department")
-    public ResponseEntity<ApiResponse<List<DepartmentHeadcountResponse>>> getHeadcountByDepartment() {
-        return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getHeadcountByDepartment()));
-    }
+  @GetMapping("/by-department")
+  public ResponseEntity<ApiResponse<List<DepartmentHeadcountResponse>>> getHeadcountByDepartment() {
+    return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getHeadcountByDepartment()));
+  }
 
-    @GetMapping("/by-position")
-    public ResponseEntity<ApiResponse<List<PositionHeadcountResponse>>> getHeadcountByPosition() {
-        return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getHeadcountByPosition()));
-    }
+  @GetMapping("/by-position")
+  public ResponseEntity<ApiResponse<List<PositionHeadcountResponse>>> getHeadcountByPosition() {
+    return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getHeadcountByPosition()));
+  }
 
-    @GetMapping("/by-employment-type")
-    public ResponseEntity<ApiResponse<List<EmploymentTypeCountResponse>>> getEmploymentTypeDistribution() {
-        return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getEmploymentTypeDistribution()));
-    }
+  @GetMapping("/by-employment-type")
+  public ResponseEntity<ApiResponse<List<EmploymentTypeCountResponse>>>
+      getEmploymentTypeDistribution() {
+    return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getEmploymentTypeDistribution()));
+  }
 
-    @GetMapping("/hires-terminations")
-    public ResponseEntity<ApiResponse<List<MonthlyHiresTerminationsResponse>>> getHiresTerminations(
-            @RequestParam(required = false) Integer year) {
-        return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getHiresTerminations(year)));
-    }
+  @GetMapping("/hires-terminations")
+  public ResponseEntity<ApiResponse<List<MonthlyHiresTerminationsResponse>>> getHiresTerminations(
+      @RequestParam(required = false) Integer year) {
+    return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getHiresTerminations(year)));
+  }
 
-    @GetMapping("/leaves-by-type")
-    public ResponseEntity<ApiResponse<List<LeaveTypeStatResponse>>> getLeavesByType() {
-        return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getLeavesByType()));
-    }
+  @GetMapping("/leaves-by-type")
+  public ResponseEntity<ApiResponse<List<LeaveTypeStatResponse>>> getLeavesByType() {
+    return ResponseEntity.ok(ApiResponse.ok(hrAnalyticsService.getLeavesByType()));
+  }
 }

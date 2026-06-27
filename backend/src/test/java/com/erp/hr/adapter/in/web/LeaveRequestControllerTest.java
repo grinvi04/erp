@@ -1,5 +1,13 @@
 package com.erp.hr.adapter.in.web;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.erp.common.config.TestSecurityConfig;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
@@ -8,6 +16,9 @@ import com.erp.hr.application.dto.LeaveRequestCreateRequest;
 import com.erp.hr.application.dto.LeaveRequestResponse;
 import com.erp.hr.application.service.LeaveRequestService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -19,101 +30,119 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 @WebMvcTest(LeaveRequestController.class)
 @ActiveProfiles("test")
 @Import(TestSecurityConfig.class)
 class LeaveRequestControllerTest {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
-    @MockBean private LeaveRequestService leaveRequestService;
+  @Autowired private MockMvc mockMvc;
+  @Autowired private ObjectMapper objectMapper;
+  @MockBean private LeaveRequestService leaveRequestService;
 
-    private LeaveRequestResponse sampleResponse() {
-        return new LeaveRequestResponse(
-            1L, 1L, "김 개발", 1L, "연차",
-            LocalDate.of(2024, 3, 1), LocalDate.of(2024, 3, 5),
-            BigDecimal.valueOf(5), ApprovalStatus.PENDING, null, 10L);
-    }
+  private LeaveRequestResponse sampleResponse() {
+    return new LeaveRequestResponse(
+        1L,
+        1L,
+        "김 개발",
+        1L,
+        "연차",
+        LocalDate.of(2024, 3, 1),
+        LocalDate.of(2024, 3, 5),
+        BigDecimal.valueOf(5),
+        ApprovalStatus.PENDING,
+        null,
+        10L);
+  }
 
-    @Test
-    void findByEmployee_returnsPagedResult() throws Exception {
-        var page = new PageImpl<>(List.of(sampleResponse()), PageRequest.of(0, 20), 1);
-        given(leaveRequestService.findByEmployee(eq(1L), any())).willReturn(page);
+  @Test
+  void findByEmployee_returnsPagedResult() throws Exception {
+    var page = new PageImpl<>(List.of(sampleResponse()), PageRequest.of(0, 20), 1);
+    given(leaveRequestService.findByEmployee(eq(1L), any())).willReturn(page);
 
-        mockMvc.perform(get("/api/hr/leave-requests").param("employeeId", "1"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.content[0].leavePolicyName").value("연차"))
-            .andExpect(jsonPath("$.data.totalElements").value(1));
-    }
+    mockMvc
+        .perform(get("/api/hr/leave-requests").param("employeeId", "1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.content[0].leavePolicyName").value("연차"))
+        .andExpect(jsonPath("$.data.totalElements").value(1));
+  }
 
-    @Test
-    void findAll_returnsPagedResult() throws Exception {
-        var page = new PageImpl<>(List.of(sampleResponse()), PageRequest.of(0, 20), 1);
-        given(leaveRequestService.findAll(any())).willReturn(page);
+  @Test
+  void findAll_returnsPagedResult() throws Exception {
+    var page = new PageImpl<>(List.of(sampleResponse()), PageRequest.of(0, 20), 1);
+    given(leaveRequestService.findAll(any())).willReturn(page);
 
-        mockMvc.perform(get("/api/hr/leave-requests"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.content[0].approvalStatus").value("PENDING"));
-    }
+    mockMvc
+        .perform(get("/api/hr/leave-requests"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.content[0].approvalStatus").value("PENDING"));
+  }
 
-    @Test
-    void create_insufficientBalance_returns409() throws Exception {
-        given(leaveRequestService.create(any()))
-            .willThrow(new ErpException(ErrorCode.LEAVE_BALANCE_INSUFFICIENT));
+  @Test
+  void create_insufficientBalance_returns409() throws Exception {
+    given(leaveRequestService.create(any()))
+        .willThrow(new ErpException(ErrorCode.LEAVE_BALANCE_INSUFFICIENT));
 
-        LeaveRequestCreateRequest request = new LeaveRequestCreateRequest(
-            1L, 1L, LocalDate.of(2024, 3, 1), LocalDate.of(2024, 3, 5),
-            BigDecimal.valueOf(5), null);
+    LeaveRequestCreateRequest request =
+        new LeaveRequestCreateRequest(
+            1L,
+            1L,
+            LocalDate.of(2024, 3, 1),
+            LocalDate.of(2024, 3, 5),
+            BigDecimal.valueOf(5),
+            null);
 
-        mockMvc.perform(post("/api/hr/leave-requests")
+    mockMvc
+        .perform(
+            post("/api/hr/leave-requests")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isConflict())
-            .andExpect(jsonPath("$.error.code").value("H008"));
-    }
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error.code").value("H008"));
+  }
 
-    @Test
-    void create_overlap_returns409() throws Exception {
-        given(leaveRequestService.create(any()))
-            .willThrow(new ErpException(ErrorCode.LEAVE_OVERLAP));
+  @Test
+  void create_overlap_returns409() throws Exception {
+    given(leaveRequestService.create(any())).willThrow(new ErpException(ErrorCode.LEAVE_OVERLAP));
 
-        LeaveRequestCreateRequest request = new LeaveRequestCreateRequest(
-            1L, 1L, LocalDate.of(2024, 3, 1), LocalDate.of(2024, 3, 5),
-            BigDecimal.valueOf(5), null);
+    LeaveRequestCreateRequest request =
+        new LeaveRequestCreateRequest(
+            1L,
+            1L,
+            LocalDate.of(2024, 3, 1),
+            LocalDate.of(2024, 3, 5),
+            BigDecimal.valueOf(5),
+            null);
 
-        mockMvc.perform(post("/api/hr/leave-requests")
+    mockMvc
+        .perform(
+            post("/api/hr/leave-requests")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isConflict())
-            .andExpect(jsonPath("$.error.code").value("H009"));
-    }
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error.code").value("H009"));
+  }
 
-    @Test
-    void create_valid_returns201() throws Exception {
-        given(leaveRequestService.create(any())).willReturn(sampleResponse());
+  @Test
+  void create_valid_returns201() throws Exception {
+    given(leaveRequestService.create(any())).willReturn(sampleResponse());
 
-        LeaveRequestCreateRequest request = new LeaveRequestCreateRequest(
-            1L, 1L, LocalDate.of(2024, 3, 1), LocalDate.of(2024, 3, 5),
-            BigDecimal.valueOf(5), null);
+    LeaveRequestCreateRequest request =
+        new LeaveRequestCreateRequest(
+            1L,
+            1L,
+            LocalDate.of(2024, 3, 1),
+            LocalDate.of(2024, 3, 5),
+            BigDecimal.valueOf(5),
+            null);
 
-        mockMvc.perform(post("/api/hr/leave-requests")
+    mockMvc
+        .perform(
+            post("/api/hr/leave-requests")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.data.approvalStatus").value("PENDING"));
-    }
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.approvalStatus").value("PENDING"));
+  }
 }

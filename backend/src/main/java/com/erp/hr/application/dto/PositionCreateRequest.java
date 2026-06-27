@@ -7,5 +7,4 @@ import jakarta.validation.constraints.Size;
 public record PositionCreateRequest(
     @NotBlank @Size(max = 30) String code,
     @NotBlank @Size(max = 100) String name,
-    @Min(0) int levelOrder
-) {}
+    @Min(0) int levelOrder) {}

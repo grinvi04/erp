@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-
 import java.math.BigDecimal;
 
 public record JobGradeUpdateRequest(
@@ -13,5 +12,4 @@ public record JobGradeUpdateRequest(
     @Min(0) int gradeOrder,
     @DecimalMin("0") BigDecimal minSalary,
     @DecimalMin("0") BigDecimal maxSalary,
-    @NotNull Long version
-) {}
+    @NotNull Long version) {}

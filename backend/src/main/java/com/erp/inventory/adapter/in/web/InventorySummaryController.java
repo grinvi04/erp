@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class InventorySummaryController {
 
-    private final InventorySummaryService inventorySummaryService;
+  private final InventorySummaryService inventorySummaryService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<InventorySummaryResponse>> getSummary() {
-        return ResponseEntity.ok(ApiResponse.ok(inventorySummaryService.getSummary()));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<InventorySummaryResponse>> getSummary() {
+    return ResponseEntity.ok(ApiResponse.ok(inventorySummaryService.getSummary()));
+  }
 }

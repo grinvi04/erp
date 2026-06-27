@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CrmSummaryController {
 
-    private final CrmSummaryService crmSummaryService;
+  private final CrmSummaryService crmSummaryService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<CrmSummaryResponse>> getSummary() {
-        return ResponseEntity.ok(ApiResponse.ok(crmSummaryService.getSummary()));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<CrmSummaryResponse>> getSummary() {
+    return ResponseEntity.ok(ApiResponse.ok(crmSummaryService.getSummary()));
+  }
 }

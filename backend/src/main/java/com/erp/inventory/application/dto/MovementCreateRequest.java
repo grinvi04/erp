@@ -9,10 +9,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record MovementCreateRequest(
-        @NotNull MovementType movementType,
-        @NotNull LocalDate movementDate,
-        @Size(max = 100) String referenceType,
-        Long referenceId,
-        String note,
-        @NotEmpty @Valid List<MovementLineRequest> lines
-) {}
+    @NotNull MovementType movementType,
+    @NotNull LocalDate movementDate,
+    @Size(max = 100) String referenceType,
+    Long referenceId,
+    String note,
+    @NotEmpty @Valid List<MovementLineRequest> lines) {}
