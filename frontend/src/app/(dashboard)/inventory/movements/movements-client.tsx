@@ -24,6 +24,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -247,131 +250,152 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
   const needsTo =
     movementType === 'RECEIPT' || movementType === 'TRANSFER' || movementType === 'ADJUSTMENT'
 
+  const columns: Column<Movement>[] = [
+    {
+      key: 'movementNo',
+      header: '이동번호',
+      sortable: true,
+      sortValue: (mv) => mv.movementNo,
+      cell: (mv) => <span className="font-mono text-sm">{mv.movementNo}</span>,
+    },
+    {
+      key: 'type',
+      header: '유형',
+      sortable: true,
+      sortValue: (mv) => TYPE_LABEL[mv.movementType],
+      cell: (mv) => <Badge variant="secondary">{TYPE_LABEL[mv.movementType]}</Badge>,
+    },
+    {
+      key: 'item',
+      header: '품목',
+      cell: (mv) => (
+        <span className="text-sm text-foreground">
+          {mv.lines && mv.lines.length > 0
+            ? mv.lines.length === 1
+              ? mv.lines[0].itemName
+              : `${mv.lines[0].itemName} 외 ${mv.lines.length - 1}건`
+            : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'movementDate',
+      header: '이동일',
+      sortable: true,
+      sortValue: (mv) => mv.movementDate,
+      cell: (mv) => <span className="text-sm">{mv.movementDate}</span>,
+    },
+    {
+      key: 'note',
+      header: '메모',
+      cell: (mv) => (
+        <span className="block max-w-xs truncate text-sm text-muted-foreground">
+          {mv.note ?? '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (mv) => STATUS_LABEL[mv.status],
+      cell: (mv) => <Badge variant={STATUS_VARIANT[mv.status]}>{STATUS_LABEL[mv.status]}</Badge>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-32',
+      cell: (mv) => (
+        <>
+          {canWrite && mv.status === 'DRAFT' && (
+            <div className="flex justify-end gap-1">
+              {mv.movementType === 'ADJUSTMENT' ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSubmit(mv)}
+                  disabled={isPending}
+                  title="결재상신"
+                >
+                  결재상신
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleConfirm(mv)}
+                  disabled={isPending}
+                  title="확정"
+                >
+                  확정
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDialog({ type: 'cancel', mv })}
+                disabled={isPending}
+                title="취소"
+                className="text-destructive"
+              >
+                취소
+              </Button>
+            </div>
+          )}
+          {mv.status === 'PENDING_APPROVAL' && (canApprove || canWrite) && (
+            <div className="flex justify-end gap-1">
+              {canApprove && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleApprove(mv)}
+                  disabled={isPending}
+                  title="승인"
+                >
+                  승인
+                </Button>
+              )}
+              {canWrite && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleWithdraw(mv)}
+                  disabled={isPending}
+                  title="철회"
+                  className="text-destructive"
+                >
+                  철회
+                </Button>
+              )}
+            </div>
+          )}
+        </>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">재고 이동</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            재고 입출고 및 이전 내역을 관리합니다
-          </p>
-        </div>
+      <PageHeader
+        title="재고 이동"
+        description="재고 입출고 및 이전 내역을 관리합니다"
+        className="mb-6"
+      >
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 이동 등록
           </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>이동번호</TableHead>
-              <TableHead>유형</TableHead>
-              <TableHead>품목</TableHead>
-              <TableHead>이동일</TableHead>
-              <TableHead>메모</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-32" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
-                  재고 이동 내역이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((mv) => (
-              <TableRow key={mv.id}>
-                <TableCell className="font-mono text-sm">{mv.movementNo}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{TYPE_LABEL[mv.movementType]}</Badge>
-                </TableCell>
-                <TableCell className="text-sm text-foreground">
-                  {mv.lines && mv.lines.length > 0
-                    ? mv.lines.length === 1
-                      ? mv.lines[0].itemName
-                      : `${mv.lines[0].itemName} 외 ${mv.lines.length - 1}건`
-                    : '—'}
-                </TableCell>
-                <TableCell className="text-sm">{mv.movementDate}</TableCell>
-                <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                  {mv.note ?? '—'}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={STATUS_VARIANT[mv.status]}>{STATUS_LABEL[mv.status]}</Badge>
-                </TableCell>
-                <TableCell>
-                  {canWrite && mv.status === 'DRAFT' && (
-                    <div className="flex justify-end gap-1">
-                      {mv.movementType === 'ADJUSTMENT' ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleSubmit(mv)}
-                          disabled={isPending}
-                          title="결재상신"
-                        >
-                          결재상신
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleConfirm(mv)}
-                          disabled={isPending}
-                          title="확정"
-                        >
-                          확정
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDialog({ type: 'cancel', mv })}
-                        disabled={isPending}
-                        title="취소"
-                        className="text-destructive"
-                      >
-                        취소
-                      </Button>
-                    </div>
-                  )}
-                  {mv.status === 'PENDING_APPROVAL' && (canApprove || canWrite) && (
-                    <div className="flex justify-end gap-1">
-                      {canApprove && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleApprove(mv)}
-                          disabled={isPending}
-                          title="승인"
-                        >
-                          승인
-                        </Button>
-                      )}
-                      {canWrite && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleWithdraw(mv)}
-                          disabled={isPending}
-                          title="철회"
-                          className="text-destructive"
-                        >
-                          철회
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(mv) => mv.id}
+          empty={<EmptyState title="재고 이동 내역이 없습니다" />}
+        />
         <PaginationBar
           page={data.page}
           totalPages={data.totalPages}

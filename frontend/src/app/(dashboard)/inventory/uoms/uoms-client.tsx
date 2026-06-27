@@ -14,14 +14,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import { createUom, updateUom, deleteUom } from './actions'
 import type { Uom } from '@/types/inventory'
 
@@ -98,70 +93,73 @@ export default function UomsClient({ uoms }: Props) {
     })
   }
 
+  const columns: Column<Uom>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (u) => u.code,
+      cell: (u) => <span className="font-mono text-sm">{u.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '단위명',
+      sortable: true,
+      sortValue: (u) => u.name,
+      cell: (u) => <span className="font-medium">{u.name}</span>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (uom) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(uom)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="삭제"
+              onClick={() => setDialog({ type: 'delete', uom })}
+            >
+              <Trash2Icon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">단위 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">측정 단위(UOM) 마스터를 관리합니다</p>
-        </div>
+      <PageHeader
+        title="단위 관리"
+        description="측정 단위(UOM) 마스터를 관리합니다"
+        className="mb-6"
+      >
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 단위
           </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>단위명</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {uoms.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground py-10">
-                  등록된 단위가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {uoms.map((uom) => (
-              <TableRow key={uom.id}>
-                <TableCell className="font-mono text-sm">{uom.code}</TableCell>
-                <TableCell className="font-medium">{uom.name}</TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="수정"
-                        onClick={() => openEdit(uom)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="삭제"
-                        onClick={() => setDialog({ type: 'delete', uom })}
-                      >
-                        <Trash2Icon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={uoms}
+        columns={columns}
+        getRowId={(u) => u.id}
+        empty={
+          <EmptyState
+            title="등록된 단위가 없습니다"
+            description={canWrite ? '우측 상단에서 새 단위를 등록하세요.' : undefined}
+          />
+        }
+      />
 
       {/* Create Dialog */}
       <Dialog

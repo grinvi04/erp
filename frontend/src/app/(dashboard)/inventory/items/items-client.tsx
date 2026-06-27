@@ -16,14 +16,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -184,6 +179,92 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
     })
   }
 
+  const columns: Column<Item>[] = [
+    {
+      key: 'sku',
+      header: 'SKU',
+      sortable: true,
+      sortValue: (i) => i.sku,
+      cell: (i) => <span className="font-mono text-sm">{i.sku}</span>,
+    },
+    {
+      key: 'name',
+      header: '품목명',
+      sortable: true,
+      sortValue: (i) => i.name,
+      cell: (i) => <span className="font-medium">{i.name}</span>,
+    },
+    {
+      key: 'category',
+      header: '분류',
+      cell: (i) => <span className="text-sm text-muted-foreground">{i.categoryName ?? '—'}</span>,
+    },
+    {
+      key: 'uom',
+      header: '단위',
+      cell: (i) => <span className="text-sm text-muted-foreground">{i.uomCode}</span>,
+    },
+    {
+      key: 'costMethod',
+      header: '원가법',
+      cell: (i) => <span className="text-sm text-muted-foreground">{i.costMethod}</span>,
+    },
+    {
+      key: 'standardCost',
+      header: '표준원가',
+      align: 'right',
+      sortable: true,
+      sortValue: (i) => i.standardCost,
+      cell: (i) => <span className="font-mono text-sm">{fmtNum(i.standardCost)}</span>,
+    },
+    {
+      key: 'lot',
+      header: 'LOT',
+      align: 'center',
+      cell: (i) => <span className="text-sm">{i.lotTracked ? '●' : '○'}</span>,
+    },
+    {
+      key: 'serial',
+      header: '시리얼',
+      align: 'center',
+      cell: (i) => <span className="text-sm">{i.serialTracked ? '●' : '○'}</span>,
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (i) => (i.active ? 0 : 1),
+      cell: (i) => (
+        <Badge variant={i.active ? 'default' : 'secondary'}>{i.active ? '활성' : '비활성'}</Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (item) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(item)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && item.active && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="비활성화"
+              onClick={() => setDialog({ type: 'deactivate', item })}
+            >
+              <BanIcon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   const itemForm = (
     <div className="grid gap-4 py-2">
       <div className="grid grid-cols-2 gap-4">
@@ -333,94 +414,27 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">품목 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">재고 품목 마스터를 관리합니다</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <SearchInput placeholder="이름·코드 검색" className="w-64" />
-          {canWrite && (
-            <Button onClick={openCreate}>
-              <PlusIcon />새 품목
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader title="품목 관리" description="재고 품목 마스터를 관리합니다" className="mb-6">
+        <SearchInput placeholder="이름·코드 검색" className="w-64" />
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 품목
+          </Button>
+        )}
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>SKU</TableHead>
-              <TableHead>품목명</TableHead>
-              <TableHead>분류</TableHead>
-              <TableHead>단위</TableHead>
-              <TableHead>원가법</TableHead>
-              <TableHead className="text-right">표준원가</TableHead>
-              <TableHead>LOT</TableHead>
-              <TableHead>시리얼</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground py-10">
-                  등록된 품목이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-mono text-sm">{item.sku}</TableCell>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {item.categoryName ?? '—'}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{item.uomCode}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{item.costMethod}</TableCell>
-                <TableCell className="text-right font-mono text-sm">
-                  {fmtNum(item.standardCost)}
-                </TableCell>
-                <TableCell className="text-center text-sm">{item.lotTracked ? '●' : '○'}</TableCell>
-                <TableCell className="text-center text-sm">
-                  {item.serialTracked ? '●' : '○'}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={item.active ? 'default' : 'secondary'}>
-                    {item.active ? '활성' : '비활성'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="수정"
-                        onClick={() => openEdit(item)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && item.active && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="비활성화"
-                        onClick={() => setDialog({ type: 'deactivate', item })}
-                      >
-                        <BanIcon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(i) => i.id}
+          empty={
+            <EmptyState
+              title="등록된 품목이 없습니다"
+              description={canWrite ? '우측 상단에서 새 품목을 등록하세요.' : undefined}
+            />
+          }
+        />
         <PaginationBar
           page={data.page}
           totalPages={data.totalPages}
