@@ -140,3 +140,55 @@ export interface ExchangeRate {
   effectiveDate: string
   rate: number
 }
+
+// 재무제표 — 백엔드 TrialBalanceResponse / IncomeStatementResponse / BalanceSheetResponse record와 1:1
+export interface TrialBalanceRow {
+  accountCode: string
+  accountName: string
+  debit: number
+  credit: number
+  balance: number
+}
+
+export interface TrialBalanceResponse {
+  baseCurrency: string
+  rows: TrialBalanceRow[]
+  totalDebit: number
+  totalCredit: number
+  excludedEntryCount: number
+}
+
+export interface IncomeStatementLine {
+  accountCode: string
+  accountName: string
+  amount: number
+}
+
+export interface IncomeStatementResponse {
+  baseCurrency: string
+  revenues: IncomeStatementLine[]
+  totalRevenue: number
+  expenses: IncomeStatementLine[]
+  totalExpense: number
+  netIncome: number
+  excludedEntryCount: number
+}
+
+export interface BalanceSheetLine {
+  accountCode: string
+  accountName: string
+  amount: number
+}
+
+export interface BalanceSheetResponse {
+  baseCurrency: string
+  assets: BalanceSheetLine[]
+  totalAssets: number
+  liabilities: BalanceSheetLine[]
+  totalLiabilities: number
+  equity: BalanceSheetLine[]
+  totalEquity: number
+  netIncome: number
+  balanced: boolean
+  excludedEntryCount: number
+}
