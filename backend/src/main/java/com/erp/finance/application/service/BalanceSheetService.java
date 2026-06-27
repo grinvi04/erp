@@ -14,6 +14,7 @@ import com.erp.finance.domain.repository.FiscalYearRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import com.erp.finance.domain.repository.JournalLineRepository;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.ArrayList;
@@ -64,21 +65,22 @@ public class BalanceSheetService {
         BigDecimal totalExpense = BigDecimal.ZERO;
         for (AccountBalanceRow r : journalLineRepository.aggregateUpTo(asOf)) {
             Account account = accounts.get(r.getAccountId());
-            if (account == null) {
+            if (account == null || account.isSummary()) {
                 continue;
             }
+            // 원시(full precision)로 누적·균형 산정 — 표시용 반올림은 행·합계 출력 시점에만 적용한다.
             BigDecimal amount = account.getNormalBalance().balance(r.getDebitSum(), r.getCreditSum());
             switch (account.getAccountType()) {
                 case ASSET -> {
-                    assets.add(new BalanceSheetLine(account.getCode(), account.getName(), amount));
+                    assets.add(new BalanceSheetLine(account.getCode(), account.getName(), display(amount)));
                     totalAssets = totalAssets.add(amount);
                 }
                 case LIABILITY -> {
-                    liabilities.add(new BalanceSheetLine(account.getCode(), account.getName(), amount));
+                    liabilities.add(new BalanceSheetLine(account.getCode(), account.getName(), display(amount)));
                     totalLiabilities = totalLiabilities.add(amount);
                 }
                 case EQUITY -> {
-                    equity.add(new BalanceSheetLine(account.getCode(), account.getName(), amount));
+                    equity.add(new BalanceSheetLine(account.getCode(), account.getName(), display(amount)));
                     totalEquity = totalEquity.add(amount);
                 }
                 case REVENUE -> totalRevenue = totalRevenue.add(amount);
@@ -90,19 +92,25 @@ public class BalanceSheetService {
         liabilities.sort(Comparator.comparing(BalanceSheetLine::accountCode));
         equity.sort(Comparator.comparing(BalanceSheetLine::accountCode));
 
+        // 균형 판정은 원시값으로 — 복식부기 항등식상 Σ차변=Σ대변이 정확히 성립한다(계정별 반올림 누적오차 없음).
         BigDecimal netIncome = totalRevenue.subtract(totalExpense);
         BigDecimal rightSide = totalLiabilities.add(totalEquity).add(netIncome);
         boolean balanced = totalAssets.subtract(rightSide).abs().compareTo(BALANCE_TOLERANCE) <= 0;
 
         long excluded = journalEntryRepository.countPostedWithoutRateUpTo(asOf);
         return new BalanceSheetResponse(baseCurrencyService.currentBaseCurrencyCode(),
-                assets, totalAssets, liabilities, totalLiabilities, equity, totalEquity,
-                netIncome, balanced, excluded);
+                assets, display(totalAssets), liabilities, display(totalLiabilities),
+                equity, display(totalEquity), display(netIncome), balanced, excluded);
     }
 
     private FiscalYear resolveFiscalYear(Integer year) {
         int target = year != null ? year : Year.now().getValue();
         return fiscalYearRepository.findByYear(target)
                 .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_YEAR_NOT_FOUND));
+    }
+
+    /** 표시용 반올림 — 기준통화 2자리(HALF_UP). 균형 판정·합계 산정은 원시값으로 끝낸 뒤에만 적용한다. */
+    private static BigDecimal display(BigDecimal amount) {
+        return amount.setScale(2, RoundingMode.HALF_UP);
     }
 }

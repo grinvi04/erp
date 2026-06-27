@@ -15,6 +15,7 @@ import com.erp.finance.domain.repository.FiscalYearRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import com.erp.finance.domain.repository.JournalLineRepository;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -54,15 +55,16 @@ public class IncomeStatementService {
         BigDecimal totalExpense = BigDecimal.ZERO;
         for (AccountBalanceRow r : journalLineRepository.aggregateBetween(fy.getStartDate(), fy.getEndDate())) {
             Account account = accounts.get(r.getAccountId());
-            if (account == null) {
+            if (account == null || account.isSummary()) {
                 continue;
             }
+            // 원시(full precision)로 누적 — 표시용 반올림은 행·합계 출력 시점에만 적용한다.
             BigDecimal amount = account.getNormalBalance().balance(r.getDebitSum(), r.getCreditSum());
             if (account.getAccountType() == AccountType.REVENUE) {
-                revenues.add(new IncomeStatementLine(account.getCode(), account.getName(), amount));
+                revenues.add(new IncomeStatementLine(account.getCode(), account.getName(), display(amount)));
                 totalRevenue = totalRevenue.add(amount);
             } else if (account.getAccountType() == AccountType.EXPENSE) {
-                expenses.add(new IncomeStatementLine(account.getCode(), account.getName(), amount));
+                expenses.add(new IncomeStatementLine(account.getCode(), account.getName(), display(amount)));
                 totalExpense = totalExpense.add(amount);
             }
         }
@@ -71,13 +73,18 @@ public class IncomeStatementService {
 
         long excluded = journalEntryRepository.countPostedWithoutRateBetween(fy.getStartDate(), fy.getEndDate());
         return new IncomeStatementResponse(baseCurrencyService.currentBaseCurrencyCode(),
-                revenues, totalRevenue, expenses, totalExpense,
-                totalRevenue.subtract(totalExpense), excluded);
+                revenues, display(totalRevenue), expenses, display(totalExpense),
+                display(totalRevenue.subtract(totalExpense)), excluded);
     }
 
     private FiscalYear resolveFiscalYear(Integer year) {
         int target = year != null ? year : Year.now().getValue();
         return fiscalYearRepository.findByYear(target)
                 .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_YEAR_NOT_FOUND));
+    }
+
+    /** 표시용 반올림 — 기준통화 2자리(HALF_UP). 합계 비교·순이익 산정은 원시값으로 끝낸 뒤에만 적용한다. */
+    private static BigDecimal display(BigDecimal amount) {
+        return amount.setScale(2, RoundingMode.HALF_UP);
     }
 }

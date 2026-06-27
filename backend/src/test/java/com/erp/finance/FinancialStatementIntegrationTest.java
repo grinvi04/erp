@@ -217,6 +217,38 @@ class FinancialStatementIntegrationTest extends AbstractIntegrationTest {
         assertThat(bs.balanced()).isTrue();
     }
 
+    // AC-10(회귀): 소수 환율·다계정 분산 — 계정별 반올림 누적오차가 총차변≠총대변·BS 불균형을 만들지 않아야 한다.
+    // 차변은 한 계정(현금)에 집계되고 대변은 4개 계정에 분산돼 계정 분할이 다르다 →
+    // 쿼리가 계정별 ROUND 후 재합산하던 (수정 전) 코드에서는 Σ ROUND ≠ ROUND Σ로 0.02 오차가 나 실패한다.
+    @Test
+    void decimalExchangeRate_perAccountRoundingDoesNotBreakBalance() {
+        Account sales2 = accountRepository.save(
+                Account.of("40200", "기타매출", AccountType.REVENUE, NormalBalance.CREDIT, null, false));
+        BigDecimal rate = new BigDecimal("1234.5678"); // 소수 환율 — 0.01 × rate = 12.345678 (계정별 ROUND 시 12.35)
+        BigDecimal cents = new BigDecimal("0.01");
+        // 차변 현금 0.01 / 대변 4개 계정 0.01 — 4건. 차변 합 0.04×rate=49.382712, 대변 합도 동일(원시).
+        seedPosted(period2025, LocalDate.of(2025, 7, 1), "JE-DEC-1", "USD", rate,
+                new Posting(cash, cents, null), new Posting(payable, null, cents));
+        seedPosted(period2025, LocalDate.of(2025, 7, 2), "JE-DEC-2", "USD", rate,
+                new Posting(cash, cents, null), new Posting(capital, null, cents));
+        seedPosted(period2025, LocalDate.of(2025, 7, 3), "JE-DEC-3", "USD", rate,
+                new Posting(cash, cents, null), new Posting(sales, null, cents));
+        seedPosted(period2025, LocalDate.of(2025, 7, 4), "JE-DEC-4", "USD", rate,
+                new Posting(cash, cents, null), new Posting(sales2, null, cents));
+
+        // 시산표: 총차변 == 총대변 (원시 49.382712, 표시 49.38) — 정확 일치
+        TrialBalanceResponse tb = trialBalanceService.getTrialBalance(2025);
+        assertThat(tb.totalDebit()).isEqualByComparingTo("49.38");
+        assertThat(tb.totalCredit()).isEqualByComparingTo("49.38");
+        assertThat(tb.totalDebit()).isEqualByComparingTo(tb.totalCredit());
+        assertThat(tb.excludedEntryCount()).isZero();
+
+        // 재무상태표: 자산 == 부채+자본+당기순이익, 균형 유지 (수정 전이라면 0.02 오차로 false)
+        BalanceSheetResponse bs = balanceSheetService.getBalanceSheet(2025);
+        assertThat(bs.totalAssets()).isEqualByComparingTo("49.38");
+        assertThat(bs.balanced()).isTrue();
+    }
+
     // --- 시드 헬퍼 ---
 
     private record Posting(Account account, BigDecimal debit, BigDecimal credit) {}

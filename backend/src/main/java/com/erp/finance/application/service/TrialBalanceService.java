@@ -14,6 +14,7 @@ import com.erp.finance.domain.repository.FiscalYearRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import com.erp.finance.domain.repository.JournalLineRepository;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -55,23 +56,31 @@ public class TrialBalanceService {
             if (account == null || account.isSummary()) {
                 continue;
             }
+            // 원시(full precision)로 누적 — 표시용 반올림은 행·합계 출력 시점에만 적용한다.
             BigDecimal debit = r.getDebitSum();
             BigDecimal credit = r.getCreditSum();
             totalDebit = totalDebit.add(debit);
             totalCredit = totalCredit.add(credit);
-            rows.add(new TrialBalanceRow(account.getCode(), account.getName(), debit, credit,
-                    account.getNormalBalance().balance(debit, credit)));
+            rows.add(new TrialBalanceRow(account.getCode(), account.getName(),
+                    display(debit), display(credit),
+                    display(account.getNormalBalance().balance(debit, credit))));
         }
         rows.sort(Comparator.comparing(TrialBalanceRow::accountCode));
 
         long excluded = journalEntryRepository.countPostedWithoutRateBetween(fy.getStartDate(), fy.getEndDate());
+        // 원시 총차변==총대변이 정확히 성립하므로 표시 반올림 후에도 동일하다.
         return new TrialBalanceResponse(baseCurrencyService.currentBaseCurrencyCode(),
-                rows, totalDebit, totalCredit, excluded);
+                rows, display(totalDebit), display(totalCredit), excluded);
     }
 
     private FiscalYear resolveFiscalYear(Integer year) {
         int target = year != null ? year : Year.now().getValue();
         return fiscalYearRepository.findByYear(target)
                 .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_YEAR_NOT_FOUND));
+    }
+
+    /** 표시용 반올림 — 기준통화 2자리(HALF_UP). 균형·총합 비교는 원시값으로 끝낸 뒤에만 적용한다. */
+    private static BigDecimal display(BigDecimal amount) {
+        return amount.setScale(2, RoundingMode.HALF_UP);
     }
 }
