@@ -110,8 +110,7 @@ export default function EmployeesClient({
   const close = () => setDialog({ type: 'none' })
 
   // 결재자(매니저) 후보 — 자기 자신은 매니저가 될 수 없으므로 제외한다.
-  const managerOptions = (excludeId?: number) =>
-    employees.filter((e) => e.id !== excludeId)
+  const managerOptions = (excludeId?: number) => employees.filter((e) => e.id !== excludeId)
 
   // Create form state
   const [empNo, setEmpNo] = useState('')
