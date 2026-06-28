@@ -79,7 +79,7 @@ public class SalesTeamService {
   public void deleteTeam(Long id) {
     permissionChecker.require(Permission.IAM_WRITE);
     SalesTeam team = getOrThrow(id);
-    salesTeamRepository.delete(team);
+    team.softDelete();
     auditService.record(
         "SALES_TEAM", id, AuditLog.AuditAction.DELETE, null, json(Map.of("code", team.getCode())));
   }
