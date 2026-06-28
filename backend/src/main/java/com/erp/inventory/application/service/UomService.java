@@ -8,6 +8,7 @@ import com.erp.inventory.application.dto.UomCreateRequest;
 import com.erp.inventory.application.dto.UomResponse;
 import com.erp.inventory.application.dto.UomUpdateRequest;
 import com.erp.inventory.domain.model.UnitOfMeasure;
+import com.erp.inventory.domain.repository.ItemRepository;
 import com.erp.inventory.domain.repository.UnitOfMeasureRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UomService {
 
   private final UnitOfMeasureRepository uomRepository;
+  private final ItemRepository itemRepository;
   private final PermissionChecker permissionChecker;
 
   public List<UomResponse> findAll() {
@@ -55,6 +57,9 @@ public class UomService {
   public void delete(Long id) {
     permissionChecker.require(Permission.INVENTORY_WRITE);
     UnitOfMeasure uom = getOrThrow(id);
+    if (itemRepository.existsByUom_Id(id)) {
+      throw new ErpException(ErrorCode.UOM_IN_USE);
+    }
     uom.softDelete();
   }
 
