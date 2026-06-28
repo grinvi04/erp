@@ -33,7 +33,7 @@ import type { CrmAccount, AccountType } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
 
 const TYPE_LABEL: Record<AccountType, string> = {
-  PROSPECT: '잠재',
+  PROSPECT: '가망',
   CUSTOMER: '고객',
   PARTNER: '파트너',
   COMPETITOR: '경쟁사',

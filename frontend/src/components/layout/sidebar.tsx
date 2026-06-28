@@ -64,10 +64,10 @@ const MODULES: (NavItem & { children: NavChild[] })[] = [
     children: [
       { label: '계정과목', href: '/finance/accounts', icon: Briefcase },
       { label: '전표', href: '/finance/journal-entries', icon: FileText },
-      { label: '매입 인보이스', href: '/finance/invoices', icon: FileText },
+      { label: '매입계산서', href: '/finance/invoices', icon: FileText },
       { label: '공급업체', href: '/finance/vendors', icon: Building2 },
       { label: '고객', href: '/finance/customers', icon: Building2 },
-      { label: '매출 인보이스', href: '/finance/ar-invoices', icon: FileText },
+      { label: '매출계산서', href: '/finance/ar-invoices', icon: FileText },
       { label: '재무제표', href: '/finance/reports', icon: BarChart3 },
       { label: 'FX 설정', href: '/finance/fx', icon: Coins },
     ],

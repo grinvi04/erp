@@ -33,10 +33,10 @@ import type { PageResponse } from '@/types/api'
 
 const STATUS_LABEL: Record<LeadStatus, string> = {
   NEW: '신규',
-  CONTACTED: '접촉',
+  CONTACTED: '접촉완료',
   QUALIFIED: '적격',
   CONVERTED: '전환',
-  DISQUALIFIED: '불량',
+  DISQUALIFIED: '부적격',
 }
 const STATUS_VARIANT: Record<LeadStatus, 'default' | 'secondary' | 'destructive'> = {
   NEW: 'secondary',
