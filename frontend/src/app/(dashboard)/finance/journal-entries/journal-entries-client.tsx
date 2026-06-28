@@ -589,7 +589,9 @@ export default function JournalEntriesClient({
                               {line.accountName}
                             </div>
                             {line.description && (
-                              <div className="text-xs text-muted-foreground">{line.description}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {line.description}
+                              </div>
                             )}
                           </TableCell>
                           <TableCell className="text-right font-mono text-sm tabular-nums">

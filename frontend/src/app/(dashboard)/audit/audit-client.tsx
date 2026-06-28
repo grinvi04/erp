@@ -274,11 +274,7 @@ export default function AuditClient({
               </TableRow>
             ) : (
               data.content.map((log) => (
-                <TableRow
-                  key={log.id}
-                  className="cursor-pointer"
-                  onClick={() => openDetail(log)}
-                >
+                <TableRow key={log.id} className="cursor-pointer" onClick={() => openDetail(log)}>
                   <TableCell className="whitespace-nowrap">
                     {fmtDateTime(log.performedAt)}
                   </TableCell>

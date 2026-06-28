@@ -34,10 +34,7 @@ function DetailSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className={cn('w-full gap-0 sm:max-w-xl', className)}
-      >
+      <SheetContent side="right" className={cn('w-full gap-0 sm:max-w-xl', className)}>
         <SheetHeader className="border-b border-border">
           <SheetTitle>{title}</SheetTitle>
           {description ? <SheetDescription>{description}</SheetDescription> : null}

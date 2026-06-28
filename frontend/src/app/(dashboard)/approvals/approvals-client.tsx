@@ -296,9 +296,7 @@ export default function ApprovalsClient({
                 <Badge variant={STATUS_VARIANT[detail.status]}>{STATUS_LABEL[detail.status]}</Badge>
               </DetailRow>
               <DetailRow label="상신자">
-                <span title={detail.requesterId}>
-                  {formatUserName(detail.requesterId, names)}
-                </span>
+                <span title={detail.requesterId}>{formatUserName(detail.requesterId, names)}</span>
               </DetailRow>
               <DetailRow label="현재 단계">
                 {detail.currentStep}/{detail.totalSteps}
