@@ -8,6 +8,7 @@ import com.erp.common.audit.AuditLog;
 import com.erp.common.audit.AuditLogRepository;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.security.Permission;
 import com.erp.common.workflow.ApprovalRequest;
 import com.erp.common.workflow.ApprovalStatus;
 import com.erp.common.workflow.repository.ApprovalRequestRepository;
@@ -226,6 +227,110 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
 
     assertThat(logs).hasSize(1);
     assertThat(logs.get(0).getAction()).isEqualTo(AuditLog.AuditAction.REJECT);
+  }
+
+  /** create()를 통해 매니저 기반 결재선을 세운 휴가신청을 만든다. managerSub가 null이면 매니저에 로그인 계정을 연결하지 않는다. */
+  private LeaveRequestResponse createManagedLeave(String suffix, String managerSub) {
+    Department dept = departmentRepository.save(Department.createRoot("D" + suffix, "팀" + suffix));
+    Position pos = positionRepository.save(Position.of("PS" + suffix, "Eng", 2));
+
+    PersonalInfo mInfo =
+        new PersonalInfo(
+            "이", "매니저", LocalDate.of(1980, 1, 1), PersonalInfo.Gender.MALE, null, null, null);
+    Employee manager =
+        Employee.create(
+            "MGR-" + suffix,
+            mInfo,
+            dept,
+            pos,
+            null,
+            LocalDate.of(2015, 1, 1),
+            EmploymentType.REGULAR,
+            "mgr" + suffix + "@test.com",
+            BigDecimal.valueOf(70000000));
+    if (managerSub != null) {
+      manager.linkUserAccount(managerSub);
+    }
+    manager = employeeRepository.save(manager);
+
+    PersonalInfo eInfo =
+        new PersonalInfo(
+            "김", "사원", LocalDate.of(1990, 1, 1), PersonalInfo.Gender.MALE, null, null, null);
+    Employee emp =
+        Employee.create(
+            "EMP-" + suffix,
+            eInfo,
+            dept,
+            pos,
+            null,
+            LocalDate.of(2021, 1, 1),
+            EmploymentType.REGULAR,
+            "emp" + suffix + "@test.com",
+            BigDecimal.valueOf(50000000));
+    emp.assignManager(manager);
+    emp = employeeRepository.save(emp);
+
+    LeavePolicy policy =
+        leavePolicyRepository.save(
+            LeavePolicy.of("AN-" + suffix, "연차", LeavePolicy.LeaveType.ANNUAL, 15, 5, true, 1));
+    leaveBalanceRepository.save(
+        LeaveBalance.create(emp, policy, 2024, BigDecimal.valueOf(15), BigDecimal.ZERO));
+
+    authenticate("applicant-" + suffix, Permission.HR_LEAVE_WRITE);
+    return leaveRequestService.create(
+        new com.erp.hr.application.dto.LeaveRequestCreateRequest(
+            emp.getId(),
+            policy.getId(),
+            LocalDate.of(2024, 5, 1),
+            LocalDate.of(2024, 5, 3),
+            BigDecimal.valueOf(3),
+            "개인 사정"));
+  }
+
+  @Test
+  void create_thenApproveByManagerSub_approvesAndDeductsBalance() {
+    // 결재자 = 신청자 매니저의 sub. 그 sub로 로그인한 사용자가 승인하면 성공하고 잔여가 차감된다(T1-10 동반 해소).
+    LeaveRequestResponse created = createManagedLeave("A", "manager-sub-A");
+
+    clearAuth();
+    authenticateAs("manager-sub-A");
+    LeaveRequestResponse approved =
+        leaveRequestService.approve(created.id(), new ApprovalActionRequest("승인합니다"));
+
+    assertThat(approved.approvalStatus()).isEqualTo(ApprovalStatus.APPROVED);
+
+    LeaveRequest lr = leaveRequestRepository.findById(created.id()).orElseThrow();
+    int year = lr.getStartDate().getYear();
+    LeaveBalance balance =
+        leaveBalanceRepository
+            .findByEmployeeIdAndLeavePolicyIdAndYear(
+                lr.getEmployee().getId(), lr.getLeavePolicy().getId(), year)
+            .orElseThrow();
+    assertThat(balance.getUsedDays()).isEqualByComparingTo(BigDecimal.valueOf(3));
+    assertThat(balance.getRemainingDays()).isEqualByComparingTo(BigDecimal.valueOf(12));
+  }
+
+  @Test
+  void create_managerWithoutUserAccount_throwsApproverNotResolved() {
+    // 차단 정책: 매니저의 로그인 계정이 없어 결재자를 해소하지 못하면 제출 자체를 막는다.
+    ErpException ex = assertThrows(ErpException.class, () -> createManagedLeave("B", null));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_RESOLVED);
+  }
+
+  @Test
+  void create_thenApproveByNonManager_throwsNotAuthorized() {
+    // 매니저(=결재자)가 아닌 다른 사용자는 승인할 수 없다.
+    LeaveRequestResponse created = createManagedLeave("C", "manager-sub-C");
+
+    clearAuth();
+    authenticateAs("someone-else");
+    ErpException ex =
+        assertThrows(
+            ErpException.class,
+            () -> leaveRequestService.approve(created.id(), new ApprovalActionRequest("권한 없음")));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_AUTHORIZED);
   }
 
   @Test

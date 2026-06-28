@@ -22,6 +22,7 @@ export async function createEmployee(data: {
   workEmail: string
   baseSalary: number | null
   managerId: number | null
+  userId: string | null
 }): Promise<void> {
   await apiPost<Employee>('/api/hr/employees', data)
   revalidatePath(PATH)

@@ -107,6 +107,7 @@ class EmployeeServiceTest {
             EmploymentType.REGULAR,
             "dev@test.com",
             null,
+            null,
             null);
 
     ErpException ex = assertThrows(ErpException.class, () -> employeeService.create(request));
@@ -135,6 +136,7 @@ class EmployeeServiceTest {
             LocalDate.now(),
             EmploymentType.REGULAR,
             "dev@test.com",
+            null,
             null,
             null);
 
@@ -173,6 +175,7 @@ class EmployeeServiceTest {
             EmploymentType.REGULAR,
             "dev@test.com",
             BigDecimal.valueOf(50000000),
+            null,
             null);
 
     EmployeeResponse result = employeeService.create(request);

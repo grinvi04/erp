@@ -135,6 +135,12 @@ public class EmployeeService {
       Employee manager = getOrThrow(request.managerId());
       employee.assignManager(manager);
     }
+    if (request.userId() != null && !request.userId().isBlank()) {
+      if (employeeRepository.existsByUserId(request.userId())) {
+        throw new ErpException(ErrorCode.DUPLICATE_CODE);
+      }
+      employee.linkUserAccount(request.userId());
+    }
     Employee saved = employeeRepository.save(employee);
     auditService.record(
         "EMPLOYEE", saved.getId(), AuditLog.AuditAction.CREATE, null, event("HIRE"));
@@ -248,6 +254,7 @@ public class EmployeeService {
         throw new ErpException(ErrorCode.INVALID_INPUT);
       }
       Employee manager = getOrThrow(request.managerId());
+      assertNoManagerCycle(id, manager);
       employee.assignManager(manager);
     }
     if (request.userId() != null) {
@@ -262,6 +269,17 @@ public class EmployeeService {
     auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("UPDATE"));
     employeeRepository.flush();
     return EmployeeResponse.from(employee);
+  }
+
+  /** 매니저 체인을 거슬러 올라가며 자기 자신이 나오면 순환 결재선이므로 거부한다. */
+  private void assertNoManagerCycle(Long employeeId, Employee manager) {
+    Employee cursor = manager;
+    while (cursor != null) {
+      if (employeeId.equals(cursor.getId())) {
+        throw new ErpException(ErrorCode.INVALID_INPUT);
+      }
+      cursor = cursor.getManager();
+    }
   }
 
   private Employee getOrThrow(Long id) {
