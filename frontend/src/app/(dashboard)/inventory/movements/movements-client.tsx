@@ -497,12 +497,18 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>재고 이동 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className={isTransfer ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-3 gap-4'}>
+            <div
+              className={
+                isTransfer
+                  ? 'grid grid-cols-1 gap-4 sm:grid-cols-2'
+                  : 'grid grid-cols-1 gap-4 sm:grid-cols-3'
+              }
+            >
               <div className="grid gap-1.5">
                 <Label>유형 *</Label>
                 <Select value={movementType} onValueChange={onMovementTypeChange}>
@@ -539,7 +545,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
               )}
             </div>
             {isTransfer && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <Label>출고 창고 *</Label>
                   <Select value={fromWarehouseId} onValueChange={onFromWarehouseChange}>

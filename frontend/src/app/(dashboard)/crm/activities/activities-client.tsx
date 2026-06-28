@@ -423,7 +423,7 @@ export default function ActivitiesClient({ data, accounts }: Props) {
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>새 활동 등록</DialogTitle>
           </DialogHeader>

@@ -355,7 +355,7 @@ export default function ContactsClient({ accounts }: Props) {
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>새 담당자 등록</DialogTitle>
           </DialogHeader>
@@ -375,7 +375,7 @@ export default function ContactsClient({ accounts }: Props) {
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>담당자 수정</DialogTitle>
           </DialogHeader>

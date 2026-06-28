@@ -221,7 +221,7 @@ export default function IamClient({
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{dialog.mode === 'create' ? '새 역할' : '역할 수정'}</DialogTitle>
           </DialogHeader>
@@ -455,14 +455,15 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
                 {roles.map((role) => {
                   const has = loaded.roleIds.has(role.id)
                   return (
-                    <label key={role.id} className="flex items-center gap-2 text-sm">
+                    <label key={role.id} className="flex min-w-0 items-center gap-2 text-sm">
                       <input
                         type="checkbox"
                         checked={has}
                         disabled={!canWrite || isPending || locked}
                         onChange={() => toggleRole(role.id, has)}
+                        className="shrink-0"
                       />
-                      <span>
+                      <span className="min-w-0 break-words">
                         {role.name}{' '}
                         <span className="text-muted-foreground font-mono text-xs">
                           ({role.code})
