@@ -55,6 +55,7 @@ class LeadControllerTest {
         null,
         null,
         null,
+        null,
         "메모",
         LocalDateTime.now(),
         0L);
@@ -168,6 +169,7 @@ class LeadControllerTest {
             LeadStatus.CONVERTED,
             "user-001",
             10L,
+            15L,
             20L,
             LocalDateTime.now(),
             "메모",
@@ -179,20 +181,13 @@ class LeadControllerTest {
         .perform(
             post("/api/crm/leads/1/convert")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new LeadConvertRequest(10L, 20L))))
+                .content(
+                    objectMapper.writeValueAsString(
+                        new LeadConvertRequest(10L, false, null, null, null, null, null))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.status").value("CONVERTED"))
-        .andExpect(jsonPath("$.data.convertedAccountId").value(10));
-  }
-
-  @Test
-  void convert_missingAccountId_returns400() throws Exception {
-    mockMvc
-        .perform(
-            post("/api/crm/leads/1/convert")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new LeadConvertRequest(null, 20L))))
-        .andExpect(status().isBadRequest());
+        .andExpect(jsonPath("$.data.convertedAccountId").value(10))
+        .andExpect(jsonPath("$.data.convertedContactId").value(15));
   }
 
   @Test

@@ -1,5 +1,5 @@
 import { apiGet, apiGetPage } from '@/lib/api'
-import type { CrmAccount, Lead } from '@/types/crm'
+import type { CrmAccount, Lead, PipelineStage } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
 import LeadsClient from './leads-client'
 
@@ -12,10 +12,13 @@ export default async function LeadsPage(props: {
   const page = Number(sp.page ?? 0)
   const size = Number(sp.size ?? 20)
 
-  const [data, accounts] = await Promise.all([
+  const [data, accounts, stages] = await Promise.all([
     apiGetPage<Lead>(`/api/crm/leads?page=${page}&size=${size}`),
     apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?isActive=true&size=1000'),
+    apiGet<PipelineStage[]>('/api/crm/pipeline-stages'),
   ])
 
-  return <LeadsClient data={data as PageResponse<Lead>} accounts={accounts.content} />
+  return (
+    <LeadsClient data={data as PageResponse<Lead>} accounts={accounts.content} stages={stages} />
+  )
 }

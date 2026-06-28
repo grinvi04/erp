@@ -27,10 +27,17 @@ export async function updateLead(
   revalidatePath('/crm/leads')
 }
 
-export async function convertLead(
-  id: number,
-  data: { accountId: number; opportunityId: number | null },
-): Promise<void> {
+export interface ConvertPayload {
+  accountId: number | null
+  createOpportunity: boolean
+  opportunityName: string | null
+  stageId: number | null
+  opportunityAmount: number | null
+  opportunityCurrency: string | null
+  opportunityCloseDate: string | null
+}
+
+export async function convertLead(id: number, data: ConvertPayload): Promise<void> {
   await apiPost(`/api/crm/leads/${id}/convert`, data)
   revalidatePath('/crm/leads')
 }

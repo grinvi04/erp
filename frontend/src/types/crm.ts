@@ -58,6 +58,7 @@ export interface Lead {
   status: LeadStatus
   ownerId: string
   convertedAccountId: number | null
+  convertedContactId: number | null
   convertedOpportunityId: number | null
   convertedAt: string | null
   note: string | null

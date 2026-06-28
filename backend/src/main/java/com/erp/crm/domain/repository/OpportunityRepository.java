@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface OpportunityRepository extends JpaRepository<Opportunity, Long> {
+  boolean existsByStage_Id(Long stageId);
+
   @Query(
       value =
           "SELECT o FROM Opportunity o JOIN FETCH o.account a JOIN FETCH o.stage s WHERE "

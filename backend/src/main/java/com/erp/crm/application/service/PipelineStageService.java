@@ -8,6 +8,7 @@ import com.erp.crm.application.dto.PipelineStageCreateRequest;
 import com.erp.crm.application.dto.PipelineStageResponse;
 import com.erp.crm.application.dto.PipelineStageUpdateRequest;
 import com.erp.crm.domain.model.PipelineStage;
+import com.erp.crm.domain.repository.OpportunityRepository;
 import com.erp.crm.domain.repository.PipelineStageRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PipelineStageService {
 
   private final PipelineStageRepository stageRepository;
+  private final OpportunityRepository opportunityRepository;
   private final PermissionChecker permissionChecker;
 
   public List<PipelineStageResponse> findAll() {
@@ -57,7 +59,11 @@ public class PipelineStageService {
   @Transactional
   public void delete(Long id) {
     permissionChecker.require(Permission.CRM_WRITE);
-    getOrThrow(id).softDelete();
+    PipelineStage stage = getOrThrow(id);
+    if (opportunityRepository.existsByStage_Id(id)) {
+      throw new ErpException(ErrorCode.PIPELINE_STAGE_IN_USE);
+    }
+    stage.softDelete();
   }
 
   public PipelineStage getOrThrow(Long id) {
