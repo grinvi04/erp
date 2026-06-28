@@ -31,6 +31,7 @@ import { SearchInput } from '@/components/ui/search-input'
 import { createAccount, updateAccount, deactivateAccount, type AccountPayload } from './actions'
 import type { CrmAccount, AccountType } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
+import { formatUserName } from '@/lib/utils'
 
 const TYPE_LABEL: Record<AccountType, string> = {
   PROSPECT: '가망',
@@ -48,9 +49,10 @@ type DialogMode =
 interface Props {
   data: PageResponse<CrmAccount>
   keyword: string
+  names: Record<string, string>
 }
 
-export default function AccountsClient({ data, keyword }: Props) {
+export default function AccountsClient({ data, keyword, names }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -296,6 +298,17 @@ export default function AccountsClient({ data, keyword }: Props) {
       key: 'phone',
       header: '전화',
       cell: (acc) => <span className="text-sm text-muted-foreground">{acc.phone ?? '—'}</span>,
+    },
+    {
+      key: 'owner',
+      header: '담당자',
+      sortable: true,
+      sortValue: (acc) => formatUserName(acc.ownerId, names),
+      cell: (acc) => (
+        <span className="text-sm" title={acc.ownerId}>
+          {formatUserName(acc.ownerId, names)}
+        </span>
+      ),
     },
     {
       key: 'status',

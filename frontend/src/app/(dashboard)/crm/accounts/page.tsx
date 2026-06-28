@@ -1,4 +1,5 @@
 import { apiGetPage } from '@/lib/api'
+import { resolveUserNames } from '@/lib/users'
 import type { CrmAccount } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
 import AccountsClient from './accounts-client'
@@ -17,6 +18,7 @@ export default async function CrmAccountsPage(props: {
   const data = await apiGetPage<CrmAccount>(
     `/api/crm/accounts?page=${page}&size=${size}${keywordQuery}`,
   )
+  const names = await resolveUserNames(data.content.map((a) => a.ownerId))
 
-  return <AccountsClient data={data as PageResponse<CrmAccount>} keyword={keyword} />
+  return <AccountsClient data={data as PageResponse<CrmAccount>} keyword={keyword} names={names} />
 }

@@ -1,4 +1,5 @@
 import { apiGet, apiGetPage } from '@/lib/api'
+import { resolveUserNames } from '@/lib/users'
 import type { Opportunity, CrmAccount, PipelineStage } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
 import OpportunitiesClient from './opportunities-client'
@@ -17,12 +18,14 @@ export default async function OpportunitiesPage(props: {
     apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?isActive=true&size=1000'),
     apiGet<PipelineStage[]>('/api/crm/pipeline-stages'),
   ])
+  const names = await resolveUserNames(data.content.map((o) => o.ownerId))
 
   return (
     <OpportunitiesClient
       data={data as PageResponse<Opportunity>}
       accounts={accountsPage.content}
       stages={stages}
+      names={names}
     />
   )
 }

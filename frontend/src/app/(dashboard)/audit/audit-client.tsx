@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { AUDIT_ACTIONS, type AuditAction, type AuditFilters, type AuditLog } from '@/types/audit'
+import { formatUserName } from '@/lib/utils'
 import type { PageResponse } from '@/types/api'
 
 const ACTION_LABEL: Record<AuditAction, string> = {
@@ -64,9 +65,11 @@ function fmtDateTime(iso: string) {
 export default function AuditClient({
   data,
   filters,
+  names,
 }: {
   data: PageResponse<AuditLog>
   filters: AuditFilters
+  names: Record<string, string>
 }) {
   const router = useRouter()
   const [performedBy, setPerformedBy] = useState(filters.performedBy)
@@ -228,7 +231,9 @@ export default function AuditClient({
                       {ACTION_LABEL[log.action] ?? log.action}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{log.performedBy}</TableCell>
+                  <TableCell className="text-sm" title={log.performedBy}>
+                    {formatUserName(log.performedBy, names)}
+                  </TableCell>
                 </TableRow>
               ))
             )}

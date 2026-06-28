@@ -1,4 +1,5 @@
 import { apiGet } from '@/lib/api'
+import { resolveUserNames } from '@/lib/users'
 import type { ApprovalSummary } from '@/types/approval'
 import ApprovalsClient from './approvals-client'
 
@@ -28,12 +29,16 @@ export default async function ApprovalsPage() {
     loadList('/api/approvals/pending'),
     loadList('/api/approvals/mine'),
   ])
+  const names = await resolveUserNames(
+    [...pending.rows, ...mine.rows].flatMap((a) => [a.requesterId, a.currentApproverId]),
+  )
   return (
     <ApprovalsClient
       pending={pending.rows}
       pendingFailed={pending.failed}
       mine={mine.rows}
       mineFailed={mine.failed}
+      names={names}
     />
   )
 }

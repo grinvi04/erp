@@ -1,5 +1,6 @@
 import { apiGetPage, getMyPermissions } from '@/lib/api'
 import { auditBackendQuery } from '@/lib/audit-query'
+import { resolveUserNames } from '@/lib/users'
 import { PERM } from '@/lib/permissions'
 import type { PageResponse } from '@/types/api'
 import type { AuditAction, AuditFilters, AuditLog } from '@/types/audit'
@@ -62,6 +63,7 @@ export default async function AuditPage(props: {
 
   const query = auditBackendQuery({ page, size, ...filters })
   const data = await apiGetPage<AuditLog>(`/api/audit/logs?${query}`)
+  const names = await resolveUserNames(data.content.map((log) => log.performedBy))
 
-  return <AuditClient data={data as PageResponse<AuditLog>} filters={filters} />
+  return <AuditClient data={data as PageResponse<AuditLog>} filters={filters} names={names} />
 }

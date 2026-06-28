@@ -31,6 +31,7 @@ import { PaginationBar } from '@/components/ui/pagination-bar'
 import { createLead, updateLead, convertLead, deleteLead, type LeadPayload } from './actions'
 import type { CrmAccount, Lead, LeadStatus, PipelineStage } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
+import { formatUserName } from '@/lib/utils'
 
 const STATUS_LABEL: Record<LeadStatus, string> = {
   NEW: '신규',
@@ -58,9 +59,10 @@ interface Props {
   data: PageResponse<Lead>
   accounts: CrmAccount[]
   stages: PipelineStage[]
+  names: Record<string, string>
 }
 
-export default function LeadsClient({ data, accounts, stages }: Props) {
+export default function LeadsClient({ data, accounts, stages, names }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -313,6 +315,17 @@ export default function LeadsClient({ data, accounts, stages }: Props) {
       sortValue: (lead) => STATUS_LABEL[lead.status],
       cell: (lead) => (
         <Badge variant={STATUS_VARIANT[lead.status]}>{STATUS_LABEL[lead.status]}</Badge>
+      ),
+    },
+    {
+      key: 'owner',
+      header: '담당자',
+      sortable: true,
+      sortValue: (lead) => formatUserName(lead.ownerId, names),
+      cell: (lead) => (
+        <span className="text-sm" title={lead.ownerId}>
+          {formatUserName(lead.ownerId, names)}
+        </span>
       ),
     },
     {

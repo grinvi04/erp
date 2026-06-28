@@ -23,6 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { approveInboxItem, rejectInboxItem } from './actions'
+import { formatUserName } from '@/lib/utils'
 import type { ApprovalSummary, ApprovalStatus } from '@/types/approval'
 
 const STATUS_LABEL: Record<ApprovalStatus, string> = {
@@ -94,9 +95,16 @@ interface Props {
   pendingFailed: boolean
   mine: ApprovalSummary[]
   mineFailed: boolean
+  names: Record<string, string>
 }
 
-export default function ApprovalsClient({ pending, pendingFailed, mine, mineFailed }: Props) {
+export default function ApprovalsClient({
+  pending,
+  pendingFailed,
+  mine,
+  mineFailed,
+  names,
+}: Props) {
   const [dialog, setDialog] = useState<ActionDialog>({ type: 'none' })
   const [comment, setComment] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -220,8 +228,8 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
                 {a.currentStepName ? ` · ${a.currentStepName}` : ''}
               </TableCell>
               {showRequester && (
-                <TableCell className="text-sm text-muted-foreground font-mono">
-                  {a.requesterId}
+                <TableCell className="text-sm text-muted-foreground" title={a.requesterId}>
+                  {formatUserName(a.requesterId, names)}
                 </TableCell>
               )}
               <TableCell>

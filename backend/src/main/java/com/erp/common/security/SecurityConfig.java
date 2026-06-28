@@ -1,5 +1,7 @@
 package com.erp.common.security;
 
+import com.erp.common.userdirectory.UserDirectoryService;
+import com.erp.common.userdirectory.UserDirectorySyncFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +24,7 @@ public class SecurityConfig {
 
   private final JwtTenantFilter jwtTenantFilter;
   private final AuthorizationResolver authorizationResolver;
+  private final UserDirectoryService userDirectoryService;
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -37,7 +40,9 @@ public class SecurityConfig {
             oauth2 ->
                 oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
         // JWT 인증 완료 후 tenant 추출
-        .addFilterAfter(jwtTenantFilter, BearerTokenAuthenticationFilter.class);
+        .addFilterAfter(jwtTenantFilter, BearerTokenAuthenticationFilter.class)
+        // tenant 세팅 직후 — 현재 사용자(JWT 클레임)를 user_directory에 미러 upsert
+        .addFilterAfter(new UserDirectorySyncFilter(userDirectoryService), JwtTenantFilter.class);
 
     return http.build();
   }
