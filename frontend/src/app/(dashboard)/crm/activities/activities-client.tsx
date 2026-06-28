@@ -40,12 +40,12 @@ import type { PageResponse } from '@/types/api'
 const TYPE_LABEL: Record<ActivityType, string> = {
   CALL: '전화',
   EMAIL: '이메일',
-  MEETING: '미팅',
-  TASK: '과업',
+  MEETING: '회의',
+  TASK: '업무',
   NOTE: '메모',
 }
 const STATUS_LABEL: Record<ActivityStatus, string> = {
-  OPEN: '진행',
+  OPEN: '예정',
   COMPLETED: '완료',
   CANCELLED: '취소',
 }

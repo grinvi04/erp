@@ -38,7 +38,7 @@ const ACTION_VARIANT: Record<AuditAction, 'default' | 'secondary' | 'destructive
 }
 const ENTITY_LABEL: Record<string, string> = {
   LEAVE_REQUEST: '휴가 신청',
-  AP_INVOICE: '매입 인보이스',
+  AP_INVOICE: '매입계산서',
   EMPLOYEE: '직원',
   ROLE: '역할',
   USER_ROLE: '역할 배정',
@@ -82,7 +82,7 @@ export default function AuditClient({
           <SelectContent>
             <SelectItem value={ALL}>전체 대상</SelectItem>
             <SelectItem value="LEAVE_REQUEST">휴가 신청</SelectItem>
-            <SelectItem value="AP_INVOICE">매입 인보이스</SelectItem>
+            <SelectItem value="AP_INVOICE">매입계산서</SelectItem>
             <SelectItem value="EMPLOYEE">직원</SelectItem>
             <SelectItem value="ROLE">역할</SelectItem>
             <SelectItem value="USER_ROLE">역할 배정</SelectItem>

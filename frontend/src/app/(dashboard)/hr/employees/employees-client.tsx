@@ -68,7 +68,7 @@ const STATUS_VARIANT: Record<EmployeeStatus, 'default' | 'secondary' | 'destruct
 const EMPLOYMENT_TYPE_LABEL: Record<EmploymentType, string> = {
   REGULAR: '정규직',
   CONTRACT: '계약직',
-  PART_TIME: '파트타임',
+  PART_TIME: '시간제',
   INTERN: '인턴',
   DISPATCH: '파견직',
 }

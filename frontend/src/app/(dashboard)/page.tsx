@@ -129,7 +129,7 @@ export default async function DashboardPage() {
       {/* 차트 행 1 — 매입 추이 + 파이프라인 분포 */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <ChartCard
-          title="월별 매입 인보이스 추이"
+          title="월별 매입계산서 추이"
           description={`${year}년 · 기준통화(${invBaseCurrency}) 환산 합계`}
           href="/finance/invoices"
           className="lg:col-span-2"

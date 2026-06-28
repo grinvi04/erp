@@ -3,7 +3,7 @@ import type { Account, ApInvoice, Vendor } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
 import InvoicesClient from './invoices-client'
 
-export const metadata = { title: '매입 인보이스 | ERP' }
+export const metadata = { title: '매입계산서 | ERP' }
 
 export default async function InvoicesPage(props: {
   searchParams: Promise<{ page?: string; size?: string; status?: string }>

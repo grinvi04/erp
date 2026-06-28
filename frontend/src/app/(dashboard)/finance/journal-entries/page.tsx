@@ -3,7 +3,7 @@ import type { FiscalYear, FiscalPeriod, JournalEntry, Account } from '@/types/fi
 import type { PageResponse } from '@/types/api'
 import JournalEntriesClient from './journal-entries-client'
 
-export const metadata = { title: '분개장 | ERP' }
+export const metadata = { title: '전표 | ERP' }
 
 export default async function JournalEntriesPage(props: {
   searchParams: Promise<{

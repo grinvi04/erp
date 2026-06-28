@@ -61,7 +61,7 @@ const ENTRY_TYPE_LABEL: Record<JournalEntryType, string> = {
   ADJUSTMENT: '조정',
 }
 const STATUS_LABEL: Record<JournalEntryStatus, string> = {
-  DRAFT: '임시',
+  DRAFT: '미결',
   PENDING_APPROVAL: '결재중',
   POSTED: '전기완료',
   REVERSED: '역분개',
@@ -197,7 +197,7 @@ export default function JournalEntriesClient({
             departmentId: null,
           })),
         })
-        toast.success('분개가 등록되었습니다')
+        toast.success('전표가 등록되었습니다')
         setShowCreate(false)
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
@@ -342,17 +342,17 @@ export default function JournalEntriesClient({
   return (
     <div className="p-6">
       <PageHeader
-        title="분개장"
-        description="회계 기간을 선택하여 분개 내역을 조회합니다"
+        title="전표"
+        description="회계 기간을 선택하여 전표 내역을 조회합니다"
         className="mb-6"
       >
         {canWrite && selectedPeriodId != null && (
           <Button
             onClick={openCreate}
             disabled={isPending || isPeriodClosed}
-            title={isPeriodClosed ? '마감된 기간에는 분개를 등록할 수 없습니다' : undefined}
+            title={isPeriodClosed ? '마감된 기간에는 전표를 등록할 수 없습니다' : undefined}
           >
-            <PlusIcon />새 분개
+            <PlusIcon />새 전표
           </Button>
         )}
       </PageHeader>
@@ -411,7 +411,7 @@ export default function JournalEntriesClient({
             data={entries?.content ?? []}
             columns={columns}
             getRowId={(e) => e.id}
-            empty={<EmptyState title="등록된 분개가 없습니다" />}
+            empty={<EmptyState title="등록된 전표가 없습니다" />}
           />
           {entries && (
             <PaginationBar
@@ -438,7 +438,7 @@ export default function JournalEntriesClient({
       >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>새 분개 등록</DialogTitle>
+            <DialogTitle>새 전표 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             {/* Header fields */}
@@ -495,7 +495,7 @@ export default function JournalEntriesClient({
             {/* Lines */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label>분개 행</Label>
+                <Label>전표 행</Label>
                 <Button variant="ghost" size="sm" onClick={addLine}>
                   <PlusIcon />행 추가
                 </Button>

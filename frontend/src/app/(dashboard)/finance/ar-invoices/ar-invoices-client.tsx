@@ -41,7 +41,7 @@ type LineForm = { accountId: string; amount: string; description: string }
 
 const STATUS_LABEL: Record<ArInvoiceStatus, string> = {
   DRAFT: '임시',
-  PENDING_APPROVAL: '결재대기',
+  PENDING_APPROVAL: '결재중',
   APPROVED: '승인',
   PAID: '완납',
   CANCELLED: '취소',
@@ -171,7 +171,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
           note: note || null,
           lines: lines.length > 0 ? [...supplyLines, ...vatLine] : null,
         })
-        toast.success('인보이스가 등록되었습니다')
+        toast.success('계산서가 등록되었습니다')
         close()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
@@ -194,7 +194,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
     startTransition(async () => {
       try {
         await approveArInvoice(inv.id)
-        toast.success('인보이스가 승인되었습니다')
+        toast.success('계산서가 승인되었습니다')
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '승인 중 오류가 발생했습니다')
       }
@@ -226,7 +226,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
     startTransition(async () => {
       try {
         await cancelArInvoice(inv.id)
-        toast.success('인보이스가 취소되었습니다')
+        toast.success('계산서가 취소되었습니다')
         close()
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '취소 중 오류가 발생했습니다')
@@ -237,7 +237,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
   const columns: Column<ArInvoice>[] = [
     {
       key: 'invoiceNo',
-      header: '인보이스번호',
+      header: '계산서번호',
       sortable: true,
       sortValue: (inv) => inv.invoiceNo,
       cell: (inv) => <span className="font-mono text-sm">{inv.invoiceNo}</span>,
@@ -251,7 +251,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
     },
     {
       key: 'invoiceDate',
-      header: '인보이스일',
+      header: '계산서일',
       sortable: true,
       sortValue: (inv) => inv.invoiceDate,
       cell: (inv) => <span className="text-sm">{inv.invoiceDate}</span>,
@@ -381,13 +381,13 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
   return (
     <div className="p-6">
       <PageHeader
-        title="매출 인보이스"
-        description="고객 인보이스 및 수금 현황을 관리합니다"
+        title="매출계산서"
+        description="고객 계산서 및 수금 현황을 관리합니다"
         className="mb-6"
       >
         {canWrite && (
           <Button onClick={openCreate}>
-            <PlusIcon />새 인보이스
+            <PlusIcon />새 계산서
           </Button>
         )}
       </PageHeader>
@@ -399,8 +399,8 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
           getRowId={(inv) => inv.id}
           empty={
             <EmptyState
-              title="등록된 인보이스가 없습니다"
-              description={canWrite ? '우측 상단에서 새 인보이스를 등록하세요.' : undefined}
+              title="등록된 계산서가 없습니다"
+              description={canWrite ? '우측 상단에서 새 계산서를 등록하세요.' : undefined}
             />
           }
         />
@@ -422,12 +422,12 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>새 인보이스 등록</DialogTitle>
+            <DialogTitle>새 계산서 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
-                <Label>인보이스번호 *</Label>
+                <Label>계산서번호 *</Label>
                 <Input
                   value={invoiceNo}
                   onChange={(e) => setInvoiceNo(e.target.value)}
@@ -454,7 +454,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
-                <Label>인보이스일 *</Label>
+                <Label>계산서일 *</Label>
                 <Input
                   type="date"
                   value={invoiceDate}
@@ -708,7 +708,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>인보이스 취소</DialogTitle>
+            <DialogTitle>계산서 취소</DialogTitle>
           </DialogHeader>
           {dialog.type === 'cancel' && (
             <p className="text-sm text-muted-foreground py-2">

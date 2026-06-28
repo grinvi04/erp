@@ -154,7 +154,7 @@ export default function AccountsClient({ accounts }: Props) {
     },
     {
       key: 'normalBalance',
-      header: '정산방향',
+      header: '대차구분',
       cell: (acc) => (
         <span className="text-sm text-muted-foreground">{NORMAL_LABEL[acc.normalBalance]}</span>
       ),
@@ -281,7 +281,7 @@ export default function AccountsClient({ accounts }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
-                <Label>정산방향 *</Label>
+                <Label>대차구분 *</Label>
                 <Select value={normalBalance} onValueChange={(v) => setNormalBalance(v ?? '')}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="선택" />

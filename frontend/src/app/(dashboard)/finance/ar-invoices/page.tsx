@@ -3,7 +3,7 @@ import type { Account, ArInvoice, Customer } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
 import ArInvoicesClient from './ar-invoices-client'
 
-export const metadata = { title: '매출 인보이스 | ERP' }
+export const metadata = { title: '매출계산서 | ERP' }
 
 export default async function ArInvoicesPage(props: {
   searchParams: Promise<{ page?: string; size?: string; status?: string }>

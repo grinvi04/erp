@@ -26,7 +26,7 @@ import { approveInboxItem, rejectInboxItem } from './actions'
 import type { ApprovalSummary, ApprovalStatus } from '@/types/approval'
 
 const STATUS_LABEL: Record<ApprovalStatus, string> = {
-  PENDING: '대기',
+  PENDING: '결재중',
   APPROVED: '승인',
   REJECTED: '반려',
   CANCELLED: '취소',
@@ -42,7 +42,7 @@ const STATUS_VARIANT: Record<ApprovalStatus, 'default' | 'secondary' | 'destruct
 
 // 결재 대상 도메인(entityType) → 처리 화면 라우트 + 인박스 인라인 처리 지원 여부.
 // inlineApprove=true: 결재함에서 직접 승인. inlineReject=true: 결재함에서 직접 반려.
-// GL 전표·재고 조정은 승인이 전결한도·전기 판단을 동반해 링크 이동하되, 반려는 인라인 지원한다.
+// 일반전표·재고 조정은 승인이 전결한도·전기 판단을 동반해 링크 이동하되, 반려는 인라인 지원한다.
 const ENTITY_ROUTE: Record<
   string,
   { label: string; href: string; inlineApprove: boolean; inlineReject: boolean }
@@ -54,13 +54,13 @@ const ENTITY_ROUTE: Record<
     inlineReject: true,
   },
   AP_INVOICE: {
-    label: 'AP 전표',
+    label: '매입전표',
     href: '/finance/invoices',
     inlineApprove: false,
     inlineReject: false,
   },
   GL_ENTRY: {
-    label: 'GL 전표',
+    label: '일반전표',
     href: '/finance/journal-entries',
     inlineApprove: false,
     inlineReject: true,
@@ -136,7 +136,7 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
     const info = entityInfo(a.entityType)
     const showApprove = actionable && info.inlineApprove
     const showReject = actionable && info.inlineReject
-    // 승인을 인라인 지원하지 않으면(예: GL 전표·재고 조정) 처리 화면으로의 링크를 함께 노출한다.
+    // 승인을 인라인 지원하지 않으면(예: 일반전표·재고 조정) 처리 화면으로의 링크를 함께 노출한다.
     const showLink = !showApprove && info.href !== '#'
     if (!showApprove && !showReject && !showLink) {
       return null

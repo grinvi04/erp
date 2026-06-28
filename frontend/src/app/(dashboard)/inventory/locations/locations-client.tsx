@@ -32,10 +32,10 @@ import type { Warehouse, Location, LocationType } from '@/types/inventory'
 const NONE = '__none__'
 
 const LOCATION_TYPE_LABEL: Record<LocationType, string> = {
-  ZONE: 'ZONE (구역)',
-  AISLE: 'AISLE (통로)',
-  RACK: 'RACK (선반)',
-  BIN: 'BIN (칸)',
+  ZONE: '구역',
+  AISLE: '통로',
+  RACK: '랙',
+  BIN: '로케이션',
 }
 
 type DialogMode =

@@ -33,8 +33,8 @@ import type { Item, ItemCategory, Uom, CostMethod } from '@/types/inventory'
 import type { PageResponse } from '@/types/api'
 
 const COST_METHOD_LABEL: Record<CostMethod, string> = {
-  FIFO: 'FIFO (선입선출)',
-  LIFO: 'LIFO (후입선출)',
+  FIFO: '선입선출(FIFO)',
+  LIFO: '후입선출(LIFO)',
   WEIGHTED_AVG: '총평균법',
   STANDARD: '표준원가',
 }
