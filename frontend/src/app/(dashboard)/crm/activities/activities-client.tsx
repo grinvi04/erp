@@ -32,9 +32,18 @@ import {
   completeActivity,
   cancelActivity,
   deleteActivity,
+  fetchContactsByAccount,
+  fetchOpportunitiesByAccount,
   type ActivityPayload,
 } from './actions'
-import type { Activity, ActivityType, ActivityStatus, CrmAccount } from '@/types/crm'
+import type {
+  Activity,
+  ActivityType,
+  ActivityStatus,
+  CrmAccount,
+  Contact,
+  Opportunity,
+} from '@/types/crm'
 import type { PageResponse } from '@/types/api'
 
 const TYPE_LABEL: Record<ActivityType, string> = {
@@ -77,6 +86,10 @@ export default function ActivitiesClient({ data, accounts }: Props) {
   const [activityType, setActivityType] = useState<ActivityType>('CALL')
   const [subject, setSubject] = useState('')
   const [accountId, setAccountId] = useState('')
+  const [contactId, setContactId] = useState('')
+  const [opportunityId, setOpportunityId] = useState('')
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [dueDate, setDueDate] = useState('')
   const [description, setDescription] = useState('')
 
@@ -84,15 +97,44 @@ export default function ActivitiesClient({ data, accounts }: Props) {
     setActivityType('CALL')
     setSubject('')
     setAccountId('')
+    setContactId('')
+    setOpportunityId('')
+    setContacts([])
+    setOpportunities([])
     setDueDate('')
     setDescription('')
     setDialog({ type: 'create' })
+  }
+
+  // 고객사 선택 시 그 고객사의 담당자·영업기회 목록을 on-demand 조회한다.
+  const selectAccount = (value: string) => {
+    setAccountId(value)
+    setContactId('')
+    setOpportunityId('')
+    setContacts([])
+    setOpportunities([])
+    if (!value) return
+    const id = Number(value)
+    void (async () => {
+      try {
+        const [c, o] = await Promise.all([
+          fetchContactsByAccount(id),
+          fetchOpportunitiesByAccount(id),
+        ])
+        setContacts(c)
+        setOpportunities(o)
+      } catch {
+        toast.error('담당자·영업기회 목록을 불러오지 못했습니다')
+      }
+    })()
   }
 
   const buildPayload = (): ActivityPayload => ({
     activityType,
     subject: subject.trim(),
     accountId: accountId ? Number(accountId) : null,
+    contactId: contactId ? Number(contactId) : null,
+    opportunityId: opportunityId ? Number(opportunityId) : null,
     dueDate: dueDate ? `${dueDate}:00` : null,
     description: description.trim() || null,
   })
@@ -177,7 +219,7 @@ export default function ActivitiesClient({ data, accounts }: Props) {
         </div>
         <div className="grid gap-1.5">
           <Label>고객사</Label>
-          <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
+          <Select value={accountId} onValueChange={(v) => selectAccount(v ?? '')}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="선택 안 함" />
             </SelectTrigger>
@@ -185,6 +227,46 @@ export default function ActivitiesClient({ data, accounts }: Props) {
               {accounts.map((acc) => (
                 <SelectItem key={acc.id} value={String(acc.id)}>
                   {acc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-1.5">
+          <Label>담당자</Label>
+          <Select
+            value={contactId}
+            onValueChange={(v) => setContactId(v ?? '')}
+            disabled={!accountId}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={accountId ? '선택 안 함' : '고객사 먼저 선택'} />
+            </SelectTrigger>
+            <SelectContent>
+              {contacts.map((c) => (
+                <SelectItem key={c.id} value={String(c.id)}>
+                  {c.lastName} {c.firstName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-1.5">
+          <Label>영업기회</Label>
+          <Select
+            value={opportunityId}
+            onValueChange={(v) => setOpportunityId(v ?? '')}
+            disabled={!accountId}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={accountId ? '선택 안 함' : '고객사 먼저 선택'} />
+            </SelectTrigger>
+            <SelectContent>
+              {opportunities.map((o) => (
+                <SelectItem key={o.id} value={String(o.id)}>
+                  {o.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -233,6 +315,13 @@ export default function ActivitiesClient({ data, accounts }: Props) {
       header: '담당자',
       cell: (act) => (
         <span className="text-sm text-muted-foreground">{act.contactName ?? '—'}</span>
+      ),
+    },
+    {
+      key: 'opportunityName',
+      header: '영업기회',
+      cell: (act) => (
+        <span className="text-sm text-muted-foreground">{act.opportunityName ?? '—'}</span>
       ),
     },
     {
