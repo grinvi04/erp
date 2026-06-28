@@ -16,14 +16,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -270,90 +265,103 @@ export default function AccountsClient({ data, keyword }: Props) {
     </div>
   )
 
-  return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">고객사</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            고객사 및 잠재 고객 정보를 관리합니다
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <SearchInput placeholder="이름·코드 검색" className="w-64" />
+  const columns: Column<CrmAccount>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (acc) => acc.code,
+      cell: (acc) => <span className="font-mono text-sm">{acc.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '고객사명',
+      sortable: true,
+      sortValue: (acc) => acc.name,
+      cell: (acc) => <span className="font-medium">{acc.name}</span>,
+    },
+    {
+      key: 'accountType',
+      header: '유형',
+      sortable: true,
+      sortValue: (acc) => TYPE_LABEL[acc.accountType],
+      cell: (acc) => <Badge variant="secondary">{TYPE_LABEL[acc.accountType]}</Badge>,
+    },
+    {
+      key: 'industry',
+      header: '업종',
+      cell: (acc) => <span className="text-sm text-muted-foreground">{acc.industry ?? '—'}</span>,
+    },
+    {
+      key: 'phone',
+      header: '전화',
+      cell: (acc) => <span className="text-sm text-muted-foreground">{acc.phone ?? '—'}</span>,
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (acc) => (acc.isActive ? 0 : 1),
+      cell: (acc) => (
+        <Badge variant={acc.isActive ? 'default' : 'secondary'}>
+          {acc.isActive ? '활성' : '비활성'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (acc) => (
+        <div className="flex justify-end gap-1">
           {canWrite && (
-            <Button onClick={openCreate}>
-              <PlusIcon />새 고객사
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(acc)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && acc.isActive && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="비활성화"
+              onClick={() => setDialog({ type: 'deactivate', account: acc })}
+            >
+              <BanIcon className="text-destructive" />
             </Button>
           )}
         </div>
-      </div>
+      ),
+    },
+  ]
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>고객사명</TableHead>
-              <TableHead>유형</TableHead>
-              <TableHead>업종</TableHead>
-              <TableHead>전화</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
-                  등록된 고객사가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((acc) => (
-              <TableRow key={acc.id}>
-                <TableCell className="font-mono text-sm">{acc.code}</TableCell>
-                <TableCell className="font-medium">{acc.name}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{TYPE_LABEL[acc.accountType]}</Badge>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {acc.industry ?? '—'}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{acc.phone ?? '—'}</TableCell>
-                <TableCell>
-                  <Badge variant={acc.isActive ? 'default' : 'secondary'}>
-                    {acc.isActive ? '활성' : '비활성'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="수정"
-                        onClick={() => openEdit(acc)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && acc.isActive && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="비활성화"
-                        onClick={() => setDialog({ type: 'deactivate', account: acc })}
-                      >
-                        <BanIcon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+  return (
+    <div className="p-6">
+      <PageHeader
+        title="고객사"
+        description="고객사 및 잠재 고객 정보를 관리합니다"
+        className="mb-6"
+      >
+        <SearchInput placeholder="이름·코드 검색" className="w-64" />
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 고객사
+          </Button>
+        )}
+      </PageHeader>
+
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(acc) => acc.id}
+          empty={
+            <EmptyState
+              title="등록된 고객사가 없습니다"
+              description={canWrite ? '우측 상단에서 새 고객사를 등록하세요.' : undefined}
+            />
+          }
+        />
         <PaginationBar
           page={data.page}
           totalPages={data.totalPages}

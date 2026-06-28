@@ -15,14 +15,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -237,21 +232,87 @@ export default function ContactsClient({ accounts }: Props) {
     </div>
   )
 
+  const columns: Column<Contact>[] = [
+    {
+      key: 'name',
+      header: '이름',
+      sortable: true,
+      sortValue: (ct) => `${ct.lastName}${ct.firstName}`,
+      cell: (ct) => (
+        <span className="font-medium">
+          {ct.lastName}
+          {ct.firstName}
+        </span>
+      ),
+    },
+    {
+      key: 'title',
+      header: '직함',
+      cell: (ct) => <span className="text-sm text-muted-foreground">{ct.title ?? '—'}</span>,
+    },
+    {
+      key: 'department',
+      header: '부서',
+      cell: (ct) => <span className="text-sm text-muted-foreground">{ct.department ?? '—'}</span>,
+    },
+    {
+      key: 'email',
+      header: '이메일',
+      cell: (ct) => <span className="text-sm text-muted-foreground">{ct.email ?? '—'}</span>,
+    },
+    {
+      key: 'phone',
+      header: '전화',
+      cell: (ct) => <span className="text-sm text-muted-foreground">{ct.phone ?? '—'}</span>,
+    },
+    {
+      key: 'mobile',
+      header: '휴대폰',
+      cell: (ct) => <span className="text-sm text-muted-foreground">{ct.mobile ?? '—'}</span>,
+    },
+    {
+      key: 'isPrimary',
+      header: '주 담당자',
+      cell: (ct) => ct.isPrimary && <Badge>주 담당자</Badge>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (ct) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <>
+              <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(ct)}>
+                <PencilIcon />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                title="삭제"
+                onClick={() => setDialog({ type: 'delete', contact: ct })}
+              >
+                <Trash2Icon className="text-destructive" />
+              </Button>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">담당자</h1>
-          <p className="text-sm text-muted-foreground mt-1">고객사 담당자 정보를 관리합니다</p>
-        </div>
+      <PageHeader title="담당자" description="고객사 담당자 정보를 관리합니다" className="mb-6">
         {canWrite && (
           <Button onClick={openCreate} disabled={!selectedAccountId}>
             <PlusIcon />새 담당자
           </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="mb-4 max-w-md">
+      <div className="mb-4 mt-6 max-w-md">
         <Label className="mb-1.5 block">고객사</Label>
         <Select
           value={selectedAccountId}
@@ -271,92 +332,21 @@ export default function ContactsClient({ accounts }: Props) {
         </Select>
       </div>
 
-      {!selectedAccountId ? (
-        <div className="bg-card rounded-lg border py-16 text-center text-muted-foreground">
-          고객사를 선택하면 담당자 목록이 표시됩니다
-        </div>
-      ) : (
-        <div className="bg-card rounded-lg border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>이름</TableHead>
-                <TableHead>직함</TableHead>
-                <TableHead>부서</TableHead>
-                <TableHead>이메일</TableHead>
-                <TableHead>전화</TableHead>
-                <TableHead>휴대폰</TableHead>
-                <TableHead>주 담당자</TableHead>
-                <TableHead className="w-20" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoadingContacts ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                    불러오는 중...
-                  </TableCell>
-                </TableRow>
-              ) : contacts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                    등록된 담당자가 없습니다
-                  </TableCell>
-                </TableRow>
-              ) : (
-                contacts.map((ct) => (
-                  <TableRow key={ct.id}>
-                    <TableCell className="font-medium">
-                      {ct.lastName}
-                      {ct.firstName}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {ct.title ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {ct.department ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {ct.email ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {ct.phone ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {ct.mobile ?? '—'}
-                    </TableCell>
-                    <TableCell>{ct.isPrimary && <Badge>주 담당자</Badge>}</TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-1">
-                        {canWrite && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              title="수정"
-                              onClick={() => openEdit(ct)}
-                            >
-                              <PencilIcon />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              title="삭제"
-                              onClick={() => setDialog({ type: 'delete', contact: ct })}
-                            >
-                              <Trash2Icon className="text-destructive" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <DataTable
+        data={selectedAccountId ? contacts : []}
+        columns={columns}
+        getRowId={(ct) => ct.id}
+        loading={!!selectedAccountId && isLoadingContacts}
+        empty={
+          <EmptyState
+            title={
+              selectedAccountId
+                ? '등록된 담당자가 없습니다'
+                : '고객사를 선택하면 담당자 목록이 표시됩니다'
+            }
+          />
+        }
+      />
 
       {/* Create */}
       <Dialog

@@ -16,14 +16,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Select,
   SelectContent,
@@ -252,100 +247,113 @@ export default function LeadsClient({ data, accounts }: Props) {
     </div>
   )
 
+  const columns: Column<Lead>[] = [
+    {
+      key: 'name',
+      header: '이름',
+      sortable: true,
+      sortValue: (lead) => `${lead.lastName}${lead.firstName}`,
+      cell: (lead) => (
+        <span className="font-medium">
+          {lead.lastName}
+          {lead.firstName}
+        </span>
+      ),
+    },
+    {
+      key: 'company',
+      header: '회사',
+      sortable: true,
+      sortValue: (lead) => lead.company,
+      cell: (lead) => <span className="text-sm text-muted-foreground">{lead.company ?? '—'}</span>,
+    },
+    {
+      key: 'title',
+      header: '직함',
+      cell: (lead) => <span className="text-sm text-muted-foreground">{lead.title ?? '—'}</span>,
+    },
+    {
+      key: 'email',
+      header: '이메일',
+      cell: (lead) => <span className="text-sm text-muted-foreground">{lead.email ?? '—'}</span>,
+    },
+    {
+      key: 'source',
+      header: '출처',
+      cell: (lead) => <span className="text-sm text-muted-foreground">{lead.source ?? '—'}</span>,
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (lead) => STATUS_LABEL[lead.status],
+      cell: (lead) => (
+        <Badge variant={STATUS_VARIANT[lead.status]}>{STATUS_LABEL[lead.status]}</Badge>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: '생성일',
+      sortable: true,
+      sortValue: (lead) => lead.createdAt,
+      cell: (lead) => (
+        <span className="text-sm text-muted-foreground">{lead.createdAt.slice(0, 10)}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-28',
+      cell: (lead) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && lead.status !== 'CONVERTED' && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(lead)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && lead.status !== 'CONVERTED' && lead.status !== 'DISQUALIFIED' && (
+            <Button variant="ghost" size="icon-xs" title="전환" onClick={() => openConvert(lead)}>
+              <ArrowRightLeft />
+            </Button>
+          )}
+          {canWrite && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="삭제"
+              onClick={() => setDialog({ type: 'delete', lead })}
+            >
+              <Trash2Icon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">리드</h1>
-          <p className="text-sm text-muted-foreground mt-1">잠재 고객 리드를 관리합니다</p>
-        </div>
+      <PageHeader title="리드" description="잠재 고객 리드를 관리합니다" className="mb-6">
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 리드
           </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>이름</TableHead>
-              <TableHead>회사</TableHead>
-              <TableHead>직함</TableHead>
-              <TableHead>이메일</TableHead>
-              <TableHead>출처</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead>생성일</TableHead>
-              <TableHead className="w-28" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                  등록된 리드가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((lead) => (
-              <TableRow key={lead.id}>
-                <TableCell className="font-medium">
-                  {lead.lastName}
-                  {lead.firstName}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {lead.company ?? '—'}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{lead.title ?? '—'}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{lead.email ?? '—'}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {lead.source ?? '—'}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={STATUS_VARIANT[lead.status]}>{STATUS_LABEL[lead.status]}</Badge>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {lead.createdAt.slice(0, 10)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && lead.status !== 'CONVERTED' && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="수정"
-                        onClick={() => openEdit(lead)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && lead.status !== 'CONVERTED' && lead.status !== 'DISQUALIFIED' && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="전환"
-                        onClick={() => openConvert(lead)}
-                      >
-                        <ArrowRightLeft />
-                      </Button>
-                    )}
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        title="삭제"
-                        onClick={() => setDialog({ type: 'delete', lead })}
-                      >
-                        <Trash2Icon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(lead) => lead.id}
+          empty={
+            <EmptyState
+              title="등록된 리드가 없습니다"
+              description={canWrite ? '우측 상단에서 새 리드를 등록하세요.' : undefined}
+            />
+          }
+        />
         <PaginationBar
           page={data.page}
           totalPages={data.totalPages}
