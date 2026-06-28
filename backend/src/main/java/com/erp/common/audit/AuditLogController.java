@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,6 +41,12 @@ public class AuditLogController {
             PageResponse.from(
                 auditService.search(
                     entityType, entityId, performedBy, action, from, to, pageable))));
+  }
+
+  /** 감사 로그 단건 상세(변경 내역 before/after 포함). */
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<AuditLogDetailResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(auditService.findById(id)));
   }
 
   /** 현재 필터 조건의 감사 로그를 CSV로 내보낸다(text/csv 첨부). */

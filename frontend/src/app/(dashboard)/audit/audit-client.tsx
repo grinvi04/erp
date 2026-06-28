@@ -1,11 +1,13 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { DownloadIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -21,10 +23,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { DetailSheet, DetailRow, DetailSection } from '@/components/ui/detail-sheet'
 import { PaginationBar } from '@/components/ui/pagination-bar'
-import { AUDIT_ACTIONS, type AuditAction, type AuditFilters, type AuditLog } from '@/types/audit'
+import {
+  AUDIT_ACTIONS,
+  type AuditAction,
+  type AuditFilters,
+  type AuditLog,
+  type AuditLogDetail,
+} from '@/types/audit'
 import { formatUserName } from '@/lib/utils'
 import type { PageResponse } from '@/types/api'
+import { getAuditLogDetail } from './actions'
 
 const ACTION_LABEL: Record<AuditAction, string> = {
   CREATE: '생성',
@@ -62,6 +72,32 @@ function fmtDateTime(iso: string) {
   return new Date(iso).toLocaleString('ko-KR')
 }
 
+// 변경 내역 JSON 문자열을 보기 좋게 들여쓰기한다 — 파싱 실패 시 원문 그대로.
+function prettyJson(raw: string): string {
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2)
+  } catch {
+    return raw
+  }
+}
+
+function ChangeBlock({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div>
+      <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
+      {value ? (
+        <pre className="overflow-x-auto rounded-md border border-border bg-muted/40 p-2 text-xs text-foreground">
+          {prettyJson(value)}
+        </pre>
+      ) : (
+        <div className="rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground">
+          없음
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AuditClient({
   data,
   filters,
@@ -73,6 +109,24 @@ export default function AuditClient({
 }) {
   const router = useRouter()
   const [performedBy, setPerformedBy] = useState(filters.performedBy)
+
+  // 감사 상세(drill-in) — 행 클릭 시 변경 내역(before/after)을 읽기전용으로 연다.
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detail, setDetail] = useState<AuditLogDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  const openDetail = (log: AuditLog) => {
+    setDetailOpen(true)
+    setDetail(null)
+    setDetailLoading(true)
+    getAuditLogDetail(log.id)
+      .then((d) => setDetail(d))
+      .catch(() => {
+        toast.error('감사 로그 상세를 불러오지 못했습니다')
+        setDetailOpen(false)
+      })
+      .finally(() => setDetailLoading(false))
+  }
 
   // 필터 일부를 바꿔 URL로 반영한다 — URL이 단일 출처(공유·새로고침 가능), 변경 시 첫 페이지로.
   function applyFilters(patch: Partial<AuditFilters>) {
@@ -220,7 +274,7 @@ export default function AuditClient({
               </TableRow>
             ) : (
               data.content.map((log) => (
-                <TableRow key={log.id}>
+                <TableRow key={log.id} className="cursor-pointer" onClick={() => openDetail(log)}>
                   <TableCell className="whitespace-nowrap">
                     {fmtDateTime(log.performedAt)}
                   </TableCell>
@@ -248,6 +302,59 @@ export default function AuditClient({
           searchParams={Object.keys(activeParams).length ? activeParams : undefined}
         />
       </div>
+
+      {/* 감사 상세 (drill-in) */}
+      <DetailSheet
+        open={detailOpen}
+        onOpenChange={(o) => {
+          setDetailOpen(o)
+          if (!o) setDetail(null)
+        }}
+        title="감사 로그 상세"
+        description="누가 무엇을 언제 변경했는지와 변경 내역(before/after)"
+      >
+        {detailLoading || !detail ? (
+          <div className="space-y-2 py-4">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        ) : (
+          <>
+            <DetailSection title="기본 정보">
+              <dl>
+                <DetailRow label="대상">
+                  {ENTITY_LABEL[detail.entityType] ?? detail.entityType}
+                </DetailRow>
+                <DetailRow label="대상 ID">{detail.entityId}</DetailRow>
+                <DetailRow label="액션">
+                  <Badge variant={ACTION_VARIANT[detail.action]}>
+                    {ACTION_LABEL[detail.action] ?? detail.action}
+                  </Badge>
+                </DetailRow>
+                <DetailRow label="수행자">
+                  <span title={detail.performedBy}>
+                    {formatUserName(detail.performedBy, names)}
+                  </span>
+                </DetailRow>
+                <DetailRow label="일시">{fmtDateTime(detail.performedAt)}</DetailRow>
+                {detail.ipAddress && (
+                  <DetailRow label="IP 주소">
+                    <span className="font-mono">{detail.ipAddress}</span>
+                  </DetailRow>
+                )}
+              </dl>
+            </DetailSection>
+
+            <DetailSection title="변경 내역">
+              <div className="space-y-3">
+                <ChangeBlock label="변경 전 (before)" value={detail.beforeData} />
+                <ChangeBlock label="변경 후 (after)" value={detail.afterData} />
+              </div>
+            </DetailSection>
+          </>
+        )}
+      </DetailSheet>
     </div>
   )
 }
