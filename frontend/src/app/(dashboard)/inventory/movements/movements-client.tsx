@@ -57,7 +57,7 @@ import type { PageResponse } from '@/types/api'
 const TYPE_LABEL: Record<MovementType, string> = {
   RECEIPT: '입고',
   ISSUE: '출고',
-  TRANSFER: '이전',
+  TRANSFER: '창고이동',
   ADJUSTMENT: '조정',
 }
 const STATUS_LABEL: Record<MovementStatus, string> = {

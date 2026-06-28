@@ -30,7 +30,7 @@ import type { LeaveRequest, Employee, LeavePolicy, ApprovalStatus } from '@/type
 import type { PageResponse } from '@/types/api'
 
 const STATUS_LABEL: Record<ApprovalStatus, string> = {
-  PENDING: '대기',
+  PENDING: '결재중',
   APPROVED: '승인',
   REJECTED: '반려',
 }

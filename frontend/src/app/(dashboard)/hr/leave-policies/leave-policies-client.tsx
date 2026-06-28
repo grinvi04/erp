@@ -32,7 +32,7 @@ const LEAVE_TYPE_LABEL: Record<LeaveType, string> = {
   PARENTAL: '육아휴직',
   BEREAVEMENT: '경조사',
   UNPAID: '무급',
-  COMPENSATORY: '보상 휴가',
+  COMPENSATORY: '보상휴가',
 }
 const LEAVE_TYPES = Object.keys(LEAVE_TYPE_LABEL) as LeaveType[]
 

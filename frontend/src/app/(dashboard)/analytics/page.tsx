@@ -28,10 +28,10 @@ export const metadata = { title: '분석 | ERP' }
 
 const LEAD_STATUS_LABELS: Record<string, string> = {
   NEW: '신규',
-  CONTACTED: '접촉',
+  CONTACTED: '접촉완료',
   QUALIFIED: '적격',
   CONVERTED: '전환',
-  DISQUALIFIED: '불량',
+  DISQUALIFIED: '부적격',
 }
 
 const EMPLOYEE_STATUS_LABELS: Record<string, string> = {
@@ -44,7 +44,7 @@ const EMPLOYEE_STATUS_LABELS: Record<string, string> = {
 const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
   REGULAR: '정규직',
   CONTRACT: '계약직',
-  PART_TIME: '파트타임',
+  PART_TIME: '시간제',
   INTERN: '인턴',
   DISPATCH: '파견직',
 }
@@ -61,7 +61,7 @@ const LEAVE_TYPE_LABELS: Record<string, string> = {
 const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   RECEIPT: '입고',
   ISSUE: '출고',
-  TRANSFER: '이동',
+  TRANSFER: '창고이동',
   ADJUSTMENT: '조정',
   RETURN: '반품',
 }
@@ -172,14 +172,14 @@ export default async function AnalyticsPage() {
         <h2 className="mb-3 text-base font-semibold text-foreground">재무</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           {monthly.length === 0 ? (
-            <ChartCard title={`월별 매입 인보이스 (${currentYear}년)`}>
+            <ChartCard title={`월별 매입계산서 (${currentYear}년)`}>
               <EmptyState title="데이터가 없습니다" className="py-10" />
             </ChartCard>
           ) : (
             monthly.map((series) => (
               <ChartCard
                 key={series.currency}
-                title={`월별 매입 인보이스 · ${series.currency}`}
+                title={`월별 매입계산서 · ${series.currency}`}
                 description={`${currentYear}년`}
               >
                 <MonthlyBarChart

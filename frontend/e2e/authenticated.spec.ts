@@ -14,7 +14,7 @@ test.describe('인증된 사용자 — 렌더 스모크', () => {
     await expect(page.getByRole('heading', { name: '대시보드', level: 1 })).toBeVisible()
     // KPI 카드 라벨 + 차트 카드 헤딩(차트 중심 대시보드).
     await expect(page.getByText('재직 직원')).toBeVisible()
-    await expect(page.getByRole('heading', { name: '월별 매입 인보이스 추이' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '월별 매입계산서 추이' })).toBeVisible()
     await expect(page.getByRole('heading', { name: '영업 파이프라인' })).toBeVisible()
   })
 
