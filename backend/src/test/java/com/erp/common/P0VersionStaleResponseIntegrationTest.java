@@ -43,7 +43,9 @@ class P0VersionStaleResponseIntegrationTest extends AbstractIntegrationTest {
 
     DepartmentResponse updated =
         departmentService.update(
-            created.id(), new DepartmentUpdateRequest("개발1팀", 0, created.version()));
+            created.id(),
+            new DepartmentUpdateRequest(
+                "개발1팀", 0, created.parentId(), created.active(), created.version()));
 
     // 대칭 검증: DB는 실제로 version을 증가시켰다(=DTO만 stale임을 입증). 이 단언은 통과한다.
     departmentRepository.flush();
