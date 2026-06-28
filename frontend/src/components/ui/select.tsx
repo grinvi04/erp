@@ -6,7 +6,50 @@ import { Select as SelectPrimitive } from '@base-ui/react/select'
 import { cn } from '@/lib/utils'
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from 'lucide-react'
 
-const Select = SelectPrimitive.Root
+type SelectItemEntry = { value: unknown; label: React.ReactNode }
+
+/**
+ * SelectItem 자식들을 재귀로 훑어 {value, label} 목록을 만든다.
+ * Base UI Select.Root의 `items` prop에 넘기면 Select.Value가 raw value(ID)
+ * 대신 선택 항목의 라벨을 트리거에 표시한다. (SelectGroup 등 중첩도 처리)
+ */
+function collectSelectItems(children: React.ReactNode, acc: SelectItemEntry[]): void {
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement<{ value?: unknown; children?: React.ReactNode }>(child)) {
+      return
+    }
+    if (child.type === SelectItem) {
+      acc.push({ value: child.props.value, label: child.props.children })
+    } else if (child.props.children != null) {
+      collectSelectItems(child.props.children, acc)
+    }
+  })
+}
+
+/**
+ * Base UI Select.Root 래퍼. 렌더된 SelectItem에서 라벨 맵(`items`)을 자동 도출해
+ * 트리거가 선택값을 라벨로 표시하도록 한다. `items`를 직접 넘기면 그대로 우선한다.
+ */
+function Select<Value, Multiple extends boolean | undefined = false>({
+  children,
+  items,
+  ...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) {
+  const derivedItems = React.useMemo(() => {
+    if (items != null) {
+      return items
+    }
+    const acc: SelectItemEntry[] = []
+    collectSelectItems(children, acc)
+    return acc.length > 0 ? acc : undefined
+  }, [items, children])
+
+  return (
+    <SelectPrimitive.Root items={derivedItems} {...props}>
+      {children}
+    </SelectPrimitive.Root>
+  )
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
