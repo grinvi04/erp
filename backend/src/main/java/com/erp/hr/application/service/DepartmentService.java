@@ -56,8 +56,40 @@ public class DepartmentService {
     Department dept = getOrThrow(id);
     dept.checkVersion(request.version());
     dept.rename(request.name());
+
+    Long currentParentId = dept.getParent() != null ? dept.getParent().getId() : null;
+    if (!java.util.Objects.equals(currentParentId, request.parentId())) {
+      Department newParent = request.parentId() != null ? getOrThrow(request.parentId()) : null;
+      verifyNoCycle(dept, newParent);
+      dept.changeParent(newParent);
+      cascadeDepth(dept.getId());
+    }
+
+    if (request.active()) {
+      dept.activate();
+    } else {
+      dept.deactivate();
+    }
+
     departmentRepository.flush();
     return DepartmentResponse.from(dept);
+  }
+
+  /** 순환 방지 — 새 상위가 자기 자신이거나 자기 하위(조상 체인에 자신이 등장)이면 거부한다. */
+  private void verifyNoCycle(Department dept, Department newParent) {
+    for (Department ancestor = newParent; ancestor != null; ancestor = ancestor.getParent()) {
+      if (ancestor.getId().equals(dept.getId())) {
+        throw new ErpException(ErrorCode.DEPARTMENT_CYCLE);
+      }
+    }
+  }
+
+  /** 상위 이동 후 하위 트리의 depth를 재귀적으로 보정한다. */
+  private void cascadeDepth(Long parentId) {
+    for (Department child : departmentRepository.findByParentId(parentId)) {
+      child.refreshDepthFromParent();
+      cascadeDepth(child.getId());
+    }
   }
 
   @Transactional

@@ -85,6 +85,21 @@ public class Department extends BaseEntity {
     this.active = false;
   }
 
+  public void activate() {
+    this.active = true;
+  }
+
+  /** 상위 부서를 변경하고 depth를 재계산한다. null이면 최상위로 승격. 순환 검증은 호출 측(서비스)이 수행. */
+  public void changeParent(Department newParent) {
+    this.parent = newParent;
+    refreshDepthFromParent();
+  }
+
+  /** 현재 parent 기준으로 depth를 재계산한다. 상위 이동 후 하위 트리 depth 보정에 사용. */
+  public void refreshDepthFromParent() {
+    this.depth = (parent == null) ? 0 : parent.depth + 1;
+  }
+
   public boolean isRoot() {
     return parent == null;
   }

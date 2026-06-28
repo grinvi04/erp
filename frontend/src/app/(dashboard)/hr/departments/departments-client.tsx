@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,30 @@ interface Props {
 
 export default function DepartmentsClient({ departments }: Props) {
   const deptById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
+  // 부모 재지정 시 순환을 막기 위해 자기 자신과 모든 하위 부서를 후보에서 제외한다(백엔드도 거부).
+  const childrenByParent = useMemo(() => {
+    const map = new Map<number, Department[]>()
+    for (const d of departments) {
+      if (d.parentId != null) {
+        const list = map.get(d.parentId) ?? []
+        list.push(d)
+        map.set(d.parentId, list)
+      }
+    }
+    return map
+  }, [departments])
+  const collectSelfAndDescendants = (rootId: number): Set<number> => {
+    const result = new Set<number>()
+    const stack = [rootId]
+    while (stack.length > 0) {
+      const id = stack.pop() as number
+      if (result.has(id)) continue
+      result.add(id)
+      for (const child of childrenByParent.get(id) ?? []) stack.push(child.id)
+    }
+    return result
+  }
+
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
 
@@ -45,19 +70,22 @@ export default function DepartmentsClient({ departments }: Props) {
   const [name, setName] = useState('')
   const [parentId, setParentId] = useState<string>('')
   const [sortOrder, setSortOrder] = useState('0')
+  const [active, setActive] = useState(true)
 
   const openCreate = () => {
     setCode('')
     setName('')
     setParentId('')
     setSortOrder('0')
+    setActive(true)
     setDialog({ type: 'create' })
   }
 
   const openEdit = (dept: Department) => {
     setName(dept.name)
     setSortOrder(String(dept.sortOrder))
-    setParentId('')
+    setParentId(dept.parentId != null ? String(dept.parentId) : '')
+    setActive(dept.active)
     setDialog({ type: 'edit', dept })
   }
 
@@ -94,6 +122,8 @@ export default function DepartmentsClient({ departments }: Props) {
         await updateDepartment(dept.id, {
           name: name.trim(),
           sortOrder: Number(sortOrder),
+          parentId: parentId ? Number(parentId) : null,
+          active,
           version: dept.version,
         })
         toast.success('부서 정보가 수정되었습니다')
@@ -188,6 +218,12 @@ export default function DepartmentsClient({ departments }: Props) {
     },
   ]
 
+  // 수정 다이얼로그의 상위 부서 후보 — 순환 방지를 위해 자기 자신·하위 부서 제외.
+  const parentOptions =
+    dialog.type === 'edit'
+      ? departments.filter((d) => !collectSelfAndDescendants(dialog.dept.id).has(d.id))
+      : departments
+
   return (
     <div className="p-6">
       <PageHeader title="부서 관리" description="조직 부서 구조를 관리합니다" className="mb-6">
@@ -239,24 +275,22 @@ export default function DepartmentsClient({ departments }: Props) {
                 maxLength={100}
               />
             </div>
-            {dialog.type === 'create' && (
-              <div className="grid gap-1.5">
-                <Label>상위 부서</Label>
-                <Select value={parentId} onValueChange={(v) => setParentId(v ?? '')}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="상위 부서 없음" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">상위 부서 없음</SelectItem>
-                    {departments.map((d) => (
-                      <SelectItem key={d.id} value={String(d.id)}>
-                        {d.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="grid gap-1.5">
+              <Label>상위 부서</Label>
+              <Select value={parentId} onValueChange={(v) => setParentId(v ?? '')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="상위 부서 없음" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">상위 부서 없음</SelectItem>
+                  {parentOptions.map((d) => (
+                    <SelectItem key={d.id} value={String(d.id)}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid gap-1.5">
               <Label htmlFor="dept-sort">정렬 순서</Label>
               <Input
@@ -267,6 +301,16 @@ export default function DepartmentsClient({ departments }: Props) {
                 min={0}
               />
             </div>
+            {dialog.type === 'edit' && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="dept-active"
+                  checked={active}
+                  onCheckedChange={(checked) => setActive(checked === true)}
+                />
+                <Label htmlFor="dept-active">활성 (해제 시 비활성화)</Label>
+              </div>
+            )}
           </div>
           <DialogFooter showCloseButton>
             <Button

@@ -30,6 +30,7 @@ public enum ErrorCode {
   EMPLOYEE_STATUS_CONFLICT(HttpStatus.CONFLICT, "H015", "유효하지 않은 직원 상태 전이입니다"),
   LEAVE_BALANCE_NOT_FOUND(HttpStatus.NOT_FOUND, "H016", "휴가 잔여 기록을 찾을 수 없습니다"),
   LEAVE_CROSS_YEAR(HttpStatus.BAD_REQUEST, "H017", "연도를 넘어가는 휴가 신청은 허용되지 않습니다. 연도별로 분리해서 신청하세요"),
+  DEPARTMENT_CYCLE(HttpStatus.BAD_REQUEST, "H018", "부서를 자기 자신 또는 하위 부서의 하위로 이동할 수 없습니다"),
 
   // Finance
   ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "F001", "계정을 찾을 수 없습니다"),
