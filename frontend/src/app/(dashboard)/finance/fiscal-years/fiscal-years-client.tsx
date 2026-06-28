@@ -68,8 +68,7 @@ export default function FiscalYearsClient({ years, periods }: Props) {
   const [selectedYearId, setSelectedYearId] = useState<number | null>(years[0]?.id ?? null)
   const selectedYear = years.find((y) => y.id === selectedYearId) ?? null
   const selectedPeriods = useMemo(
-    () =>
-      selectedYearId == null ? [] : periods.filter((p) => p.fiscalYearId === selectedYearId),
+    () => (selectedYearId == null ? [] : periods.filter((p) => p.fiscalYearId === selectedYearId)),
     [periods, selectedYearId],
   )
 
@@ -354,8 +353,8 @@ export default function FiscalYearsClient({ years, periods }: Props) {
           </DialogHeader>
           {dialog.type === 'closeYear' && (
             <p className="py-2 text-sm text-muted-foreground">
-              <strong>{dialog.year.year}</strong> 회계연도를 마감하시겠습니까? 소속된 열린 기간도 함께
-              마감되며, 이후 해당 연도에는 전표를 입력할 수 없습니다.
+              <strong>{dialog.year.year}</strong> 회계연도를 마감하시겠습니까? 소속된 열린 기간도
+              함께 마감되며, 이후 해당 연도에는 전표를 입력할 수 없습니다.
             </p>
           )}
           <DialogFooter showCloseButton>
