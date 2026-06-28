@@ -42,4 +42,26 @@ test.describe('백엔드 통합 — 실 데이터 렌더', () => {
     await expect(page.getByRole('heading', { name: '재무제표', level: 1 })).toBeVisible()
     await expect(page.getByRole('heading', { name: '시산표' })).toBeVisible()
   })
+
+  test('매입 인보이스(/finance/invoices)가 실 데이터로 크래시 없이 렌더된다', async ({ page }) => {
+    // vendors 페이지네이션 응답을 배열로 캐스팅하던 버그(T0-1)로 vendors.filter 크래시 →
+    // error.tsx 폴백이 떠 AP 인보이스 10건이 통째로 비가시였다. 회귀 가드.
+    await page.goto('/finance/invoices')
+    await expect(page).not.toHaveURL(/\/login/)
+    await expect(page.getByRole('heading', { name: '매입 인보이스', level: 1 })).toBeVisible()
+    await expect(page.getByText('문제가 발생했습니다. 다시 시도해 주세요.')).toHaveCount(0)
+    // 백엔드에 AP 인보이스가 존재하므로 표 본문 행이 1건 이상 보여야 한다.
+    expect(await page.locator('table tbody tr').count()).toBeGreaterThanOrEqual(1)
+  })
+
+  test('매출 인보이스(/finance/ar-invoices)가 실 데이터로 크래시 없이 렌더된다', async ({
+    page,
+  }) => {
+    // customers 페이지네이션 응답 배열캐스팅 버그(T0-1) 대칭 케이스. AR은 데이터 0건일 수
+    // 있으므로 행수는 단언하지 않고 헤딩 노출 + 폴백 없음만 검증한다.
+    await page.goto('/finance/ar-invoices')
+    await expect(page).not.toHaveURL(/\/login/)
+    await expect(page.getByRole('heading', { name: '매출 인보이스', level: 1 })).toBeVisible()
+    await expect(page.getByText('문제가 발생했습니다. 다시 시도해 주세요.')).toHaveCount(0)
+  })
 })

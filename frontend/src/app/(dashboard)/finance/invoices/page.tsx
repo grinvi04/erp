@@ -15,11 +15,15 @@ export default async function InvoicesPage(props: {
 
   const [data, vendors, accounts] = await Promise.all([
     apiGetPage<ApInvoice>(`/api/finance/invoices?page=${page}&size=${size}${statusFilter}`),
-    apiGet<Vendor[]>('/api/finance/vendors?size=1000'),
+    apiGetPage<Vendor>('/api/finance/vendors?size=1000'),
     apiGet<Account[]>('/api/finance/accounts'),
   ])
 
   return (
-    <InvoicesClient data={data as PageResponse<ApInvoice>} vendors={vendors} accounts={accounts} />
+    <InvoicesClient
+      data={data as PageResponse<ApInvoice>}
+      vendors={vendors.content}
+      accounts={accounts}
+    />
   )
 }
