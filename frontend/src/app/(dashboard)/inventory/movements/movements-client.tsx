@@ -531,7 +531,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                   <Label>창고 (위치 조회용)</Label>
                   <Select value={dialogWarehouseId} onValueChange={onWarehouseChange}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="창고 선택 (선택)" />
+                      <SelectValue placeholder="창고(선택)" />
                     </SelectTrigger>
                     <SelectContent>{warehouseOptions}</SelectContent>
                   </Select>
@@ -615,7 +615,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                               disabled={isTransfer ? isLoadingFromLocations : isLoadingLocations}
                             >
                               <SelectTrigger className="w-full h-8 text-sm">
-                                <SelectValue placeholder="—" />
+                                <SelectValue placeholder="위치 선택" />
                               </SelectTrigger>
                               <SelectContent>
                                 {(isTransfer ? activeFromLocations : activeLocations).map((l) => (
@@ -635,7 +635,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                               disabled={isTransfer ? isLoadingToLocations : isLoadingLocations}
                             >
                               <SelectTrigger className="w-full h-8 text-sm">
-                                <SelectValue placeholder="—" />
+                                <SelectValue placeholder="위치 선택" />
                               </SelectTrigger>
                               <SelectContent>
                                 {(isTransfer ? activeToLocations : activeLocations).map((l) => (
