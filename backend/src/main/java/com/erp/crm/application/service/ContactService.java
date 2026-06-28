@@ -76,6 +76,7 @@ public class ContactService {
         req.phone(),
         req.mobile(),
         req.isPrimary());
+    contactRepository.flush();
     return ContactResponse.from(contact);
   }
 

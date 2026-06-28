@@ -92,6 +92,7 @@ public class ItemService {
         req.maxStock(),
         req.lotTracked(),
         req.serialTracked());
+    itemRepository.flush();
     return ItemResponse.from(item);
   }
 

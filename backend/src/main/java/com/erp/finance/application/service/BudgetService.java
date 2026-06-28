@@ -70,6 +70,7 @@ public class BudgetService {
     Budget budget = getOrThrow(id);
     budget.checkVersion(request.version());
     budget.updateBudgetAmount(request.budgetAmount());
+    budgetRepository.flush();
     return BudgetResponse.from(budget);
   }
 

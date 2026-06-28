@@ -74,6 +74,7 @@ public class AccountService {
     Account account = getOrThrow(id);
     account.checkVersion(request.version());
     account.update(request.name(), request.isSummary());
+    accountRepository.flush();
     return AccountResponse.from(account);
   }
 

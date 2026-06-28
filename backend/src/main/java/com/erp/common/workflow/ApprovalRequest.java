@@ -17,6 +17,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * 제네릭 결재 요청 — HR 휴가, Finance AP 전표, 구매 발주 등 모든 결재 흐름에 사용. 결재 대상 도메인은 entity_type + entity_id로 참조
@@ -24,6 +25,7 @@ import java.util.List;
  */
 @Entity
 @Table(name = "approval_request", schema = "common")
+@SQLRestriction("deleted_at IS NULL")
 public class ApprovalRequest extends BaseEntity {
 
   @Id

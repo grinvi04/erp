@@ -11,9 +11,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "contact", schema = "crm")
+@SQLRestriction("deleted_at IS NULL")
 public class Contact extends BaseEntity {
 
   @Id

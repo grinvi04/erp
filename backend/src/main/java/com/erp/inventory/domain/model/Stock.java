@@ -15,9 +15,11 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "stock", schema = "inventory")
+@SQLRestriction("deleted_at IS NULL")
 public class Stock extends BaseEntity {
 
   private static final int COST_SCALE = 4;

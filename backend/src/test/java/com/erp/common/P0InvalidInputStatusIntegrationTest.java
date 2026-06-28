@@ -15,9 +15,9 @@ import org.springframework.http.ResponseEntity;
 /**
  * 버그3 재현(RED) — 클라이언트 입력오류가 400이 아닌 500으로 응답된다.
  *
- * <p>{@code GlobalExceptionHandler}에 {@code HttpMessageNotReadableException}(잘못된 enum 값·깨진 JSON)·{@code
- * MethodArgumentTypeMismatchException}(path var 타입 불일치) 핸들러가 없어 모두 마지막 {@code Exception} 핸들러로 떨어져 500
- * C999가 된다. 서버 결함이 아니라 클라이언트 입력 오류이므로 4xx여야 한다.
+ * <p>{@code GlobalExceptionHandler}에 {@code HttpMessageNotReadableException}(잘못된 enum 값·깨진
+ * JSON)·{@code MethodArgumentTypeMismatchException}(path var 타입 불일치) 핸들러가 없어 모두 마지막 {@code
+ * Exception} 핸들러로 떨어져 500 C999가 된다. 서버 결함이 아니라 클라이언트 입력 오류이므로 4xx여야 한다.
  *
  * <p>web 계층 결함이라 서비스 직접 호출로는 재현 불가 — 실제 엔드포인트로 HTTP 호출(test 프로파일은 security permitAll이라 인증 불필요).
  *

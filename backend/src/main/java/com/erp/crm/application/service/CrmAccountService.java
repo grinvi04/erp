@@ -80,6 +80,7 @@ public class CrmAccountService {
         req.annualRevenue(),
         req.accountType(),
         req.ownerId());
+    accountRepository.flush();
     return AccountResponse.from(account);
   }
 

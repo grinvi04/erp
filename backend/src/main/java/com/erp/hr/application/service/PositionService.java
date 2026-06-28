@@ -54,6 +54,7 @@ public class PositionService {
     Position position = getOrThrow(id);
     position.checkVersion(request.version());
     position.update(request.name(), request.levelOrder());
+    positionRepository.flush();
     return PositionResponse.from(position);
   }
 

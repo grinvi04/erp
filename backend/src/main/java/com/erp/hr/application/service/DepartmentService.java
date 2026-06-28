@@ -56,6 +56,7 @@ public class DepartmentService {
     Department dept = getOrThrow(id);
     dept.checkVersion(request.version());
     dept.rename(request.name());
+    departmentRepository.flush();
     return DepartmentResponse.from(dept);
   }
 

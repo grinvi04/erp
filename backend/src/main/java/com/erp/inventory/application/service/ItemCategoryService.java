@@ -67,6 +67,7 @@ public class ItemCategoryService {
     cat.checkVersion(req.version());
     ItemCategory parent = req.parentId() != null ? getOrThrow(req.parentId()) : null;
     cat.update(req.name(), parent);
+    categoryRepository.flush();
     return ItemCategoryResponse.from(cat);
   }
 

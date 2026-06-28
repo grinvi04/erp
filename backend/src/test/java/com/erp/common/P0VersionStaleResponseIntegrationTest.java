@@ -18,9 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 버그1 재현(RED) — UPDATE 응답이 stale version을 돌려준다.
  *
- * <p>서비스 {@code update()}가 flush 전에 {@code XxxResponse.from(entity)}로 매핑하므로, 갱신 응답 DTO의 version이 증가 전
- * 값(예: 0)으로 나간다. 실제 DB·후속 조회 version은 1로 증가해 있어 클라이언트가 다음 read-modify-write에서 stale version을 다시 보내
- * 거짓 낙관적 잠금 충돌(409)을 맞는다. (전 18개 update 서비스 공통 — 여기선 HR Department로 대표 박제.)
+ * <p>서비스 {@code update()}가 flush 전에 {@code XxxResponse.from(entity)}로 매핑하므로, 갱신 응답 DTO의 version이 증가
+ * 전 값(예: 0)으로 나간다. 실제 DB·후속 조회 version은 1로 증가해 있어 클라이언트가 다음 read-modify-write에서 stale version을 다시
+ * 보내 거짓 낙관적 잠금 충돌(409)을 맞는다. (전 18개 update 서비스 공통 — 여기선 HR Department로 대표 박제.)
  *
  * <p>계약: 지금은 의도적으로 RED(AssertionError) — 서비스가 flush 후 재매핑하도록 고치면 GREEN.
  */

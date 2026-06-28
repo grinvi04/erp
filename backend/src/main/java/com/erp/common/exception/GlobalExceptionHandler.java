@@ -1,14 +1,17 @@
 package com.erp.common.exception;
 
 import com.erp.common.response.ApiResponse;
+import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
 @RestControllerAdvice
@@ -40,6 +43,18 @@ public class GlobalExceptionHandler {
     ErrorCode code = ErrorCode.INVALID_INPUT;
     return ResponseEntity.status(code.getHttpStatus())
         .body(ApiResponse.error(code.getCode(), detail));
+  }
+
+  @ExceptionHandler({
+    HttpMessageNotReadableException.class,
+    MethodArgumentTypeMismatchException.class,
+    ConstraintViolationException.class
+  })
+  public ResponseEntity<ApiResponse<Void>> handleInvalidInput(Exception e) {
+    ErrorCode code = ErrorCode.INVALID_INPUT;
+    log.warn("Invalid client input: {}", e.getMessage());
+    return ResponseEntity.status(code.getHttpStatus())
+        .body(ApiResponse.error(code.getCode(), code.getMessage()));
   }
 
   @ExceptionHandler(Exception.class)

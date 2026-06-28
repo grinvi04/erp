@@ -47,6 +47,7 @@ public class UomService {
     UnitOfMeasure uom = getOrThrow(id);
     uom.checkVersion(req.version());
     uom.update(req.name());
+    uomRepository.flush();
     return UomResponse.from(uom);
   }
 

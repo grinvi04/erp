@@ -13,9 +13,11 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "opportunity", schema = "crm")
+@SQLRestriction("deleted_at IS NULL")
 public class Opportunity extends BaseEntity {
 
   @Id

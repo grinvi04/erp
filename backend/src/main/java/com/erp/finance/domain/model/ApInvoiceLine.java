@@ -12,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * AP 전표 라인 — 차변 계정(비용/자산·부가세대급금 등)과 금액. 승인 시 GL 분개의 차변이 된다 (대변은 공급업체 외상매입금 통제계정). 실무: 비용/세액을 라인별
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
  */
 @Entity
 @Table(name = "ap_invoice_line", schema = "finance")
+@SQLRestriction("deleted_at IS NULL")
 public class ApInvoiceLine extends BaseEntity {
 
   @Id

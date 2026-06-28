@@ -11,9 +11,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "item_category", schema = "inventory")
+@SQLRestriction("deleted_at IS NULL")
 public class ItemCategory extends BaseEntity {
 
   @Id

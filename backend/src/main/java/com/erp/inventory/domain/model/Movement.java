@@ -13,9 +13,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "movement", schema = "inventory")
+@SQLRestriction("deleted_at IS NULL")
 public class Movement extends BaseEntity {
 
   @Id

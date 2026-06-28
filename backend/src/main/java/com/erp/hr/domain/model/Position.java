@@ -8,10 +8,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLRestriction;
 
 /** 직위 (사원, 대리, 과장, 차장, 부장 등). */
 @Entity
 @Table(name = "position", schema = "hr")
+@SQLRestriction("deleted_at IS NULL")
 public class Position extends BaseEntity {
 
   @Id
