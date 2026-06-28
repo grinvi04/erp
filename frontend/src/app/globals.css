@@ -58,6 +58,7 @@
  * 카테고리 차트 팔레트(인디고·틸·앰버·로즈·바이올렛) · status 토큰
  */
 :root {
+  color-scheme: light;
   --background: oklch(0.985 0.003 247);
   --foreground: oklch(0.22 0.025 264);
   --card: oklch(1 0 0);
@@ -97,6 +98,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.17 0.02 264);
   --foreground: oklch(0.95 0.005 247);
   --card: oklch(0.21 0.022 264);

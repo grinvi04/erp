@@ -411,7 +411,7 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>새 계산서 등록</DialogTitle>
           </DialogHeader>
@@ -457,7 +457,7 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
                 <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="grid gap-1.5 col-span-2">
                 <Label>총금액 *</Label>
                 <Input

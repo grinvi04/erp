@@ -420,7 +420,7 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>새 영업 기회 등록</DialogTitle>
           </DialogHeader>
@@ -440,7 +440,7 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               영업 기회 수정{dialog.type === 'edit' && ` — ${dialog.opp.name}`}

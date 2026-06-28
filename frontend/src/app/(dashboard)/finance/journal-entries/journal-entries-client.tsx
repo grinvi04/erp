@@ -641,13 +641,13 @@ export default function JournalEntriesClient({
           if (!o) setShowCreate(false)
         }}
       >
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>새 전표 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             {/* Header fields */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="grid gap-1.5">
                 <Label>전표일 *</Label>
                 <Input
