@@ -1,6 +1,7 @@
 package com.erp.common.security;
 
 import com.erp.common.audit.AuditLog;
+import com.erp.common.audit.AuditLogRepository;
 import com.erp.common.audit.AuditService;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
@@ -9,6 +10,7 @@ import com.erp.common.security.dto.AccessProfileResponse;
 import com.erp.common.security.dto.RoleCreateRequest;
 import com.erp.common.security.dto.RoleResponse;
 import com.erp.common.security.dto.RoleUpdateRequest;
+import com.erp.common.security.dto.UserLookupResponse;
 import com.erp.common.tenant.TenantContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +35,7 @@ public class IamService {
   private final UserAccessProfileRepository accessProfileRepository;
   private final PermissionChecker permissionChecker;
   private final AuditService auditService;
+  private final AuditLogRepository auditLogRepository;
   private final ObjectMapper objectMapper;
 
   // --- 권한 카탈로그 ---
@@ -98,6 +101,22 @@ public class IamService {
     roleRepository.delete(role);
     auditService.record(
         "ROLE", id, AuditLog.AuditAction.DELETE, null, json(Map.of("code", role.getCode())));
+  }
+
+  // --- 사용자 존재 검증 ---
+  /**
+   * sub가 실재하는 사용자인지 IAM이 아는 흔적으로 검증한다 — user_directory가 없으므로 감사 기록·역할 배정·접근 프로파일 중 하나라도 있으면 known.
+   * 화면이 이 신호로 "알 수 없는 사용자"를 경고·차단해 유령 sub 무단 배정을 막는다. (확정 단정이 아닌 신호이므로 차단이 아닌 검증 정보만 제공한다.)
+   */
+  public UserLookupResponse lookupUser(String userId) {
+    permissionChecker.require(Permission.IAM_READ);
+    Long tenant = tenant();
+    int roleCount = userRoleRepository.findByTenantIdAndUserId(tenant, userId).size();
+    boolean hasProfile =
+        accessProfileRepository.findByTenantIdAndUserId(tenant, userId).isPresent();
+    boolean audited = auditLogRepository.existsByTenantIdAndPerformedBy(tenant, userId);
+    boolean known = roleCount > 0 || hasProfile || audited;
+    return new UserLookupResponse(userId, known, roleCount, hasProfile, audited);
   }
 
   // --- 사용자 역할 배정 ---

@@ -202,6 +202,9 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
                 "LEAVE_REQUEST",
                 savedLeaveRequest.getId(),
                 "MANAGER",
+                null,
+                null,
+                null,
                 PageRequest.of(0, 10))
             .getContent();
 
@@ -222,6 +225,9 @@ class LeaveApprovalIntegrationTest extends AbstractIntegrationTest {
                 "LEAVE_REQUEST",
                 savedLeaveRequest.getId(),
                 "MANAGER",
+                null,
+                null,
+                null,
                 PageRequest.of(0, 10))
             .getContent();
 

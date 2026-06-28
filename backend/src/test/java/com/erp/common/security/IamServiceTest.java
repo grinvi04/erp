@@ -31,6 +31,7 @@ class IamServiceTest {
   @Mock private UserAccessProfileRepository accessProfileRepository;
   @Mock private PermissionChecker permissionChecker;
   @Mock private AuditService auditService;
+  @Mock private com.erp.common.audit.AuditLogRepository auditLogRepository;
   @org.mockito.Spy private ObjectMapper objectMapper = new ObjectMapper();
 
   @InjectMocks private IamService iamService;
@@ -93,6 +94,33 @@ class IamServiceTest {
     ErpException ex = assertThrows(ErpException.class, () -> iamService.assignRole("bob", 7L));
 
     assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.DUPLICATE_CODE);
+  }
+
+  @Test
+  void lookupUser_ghostSub_isUnknown() {
+    given(userRoleRepository.findByTenantIdAndUserId(1L, "ghost")).willReturn(java.util.List.of());
+    given(accessProfileRepository.findByTenantIdAndUserId(1L, "ghost"))
+        .willReturn(java.util.Optional.empty());
+    given(auditLogRepository.existsByTenantIdAndPerformedBy(1L, "ghost")).willReturn(false);
+
+    var result = iamService.lookupUser("ghost");
+
+    verify(permissionChecker).require(Permission.IAM_READ);
+    assertThat(result.known()).isFalse();
+    assertThat(result.roleCount()).isZero();
+  }
+
+  @Test
+  void lookupUser_auditedSub_isKnown() {
+    given(userRoleRepository.findByTenantIdAndUserId(1L, "bob")).willReturn(java.util.List.of());
+    given(accessProfileRepository.findByTenantIdAndUserId(1L, "bob"))
+        .willReturn(java.util.Optional.empty());
+    given(auditLogRepository.existsByTenantIdAndPerformedBy(1L, "bob")).willReturn(true);
+
+    var result = iamService.lookupUser("bob");
+
+    assertThat(result.known()).isTrue();
+    assertThat(result.audited()).isTrue();
   }
 
   @Test

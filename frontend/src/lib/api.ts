@@ -36,6 +36,12 @@ export async function apiFetch<T>(
   return body
 }
 
+/** 토큰을 주입해 백엔드 응답을 가공 없이 그대로 반환한다(CSV 등 비-JSON 다운로드 프록시용). */
+export async function apiGetRaw(path: string): Promise<Response> {
+  const headers = await getHeaders()
+  return fetch(`${API_BASE}${path}`, { headers, cache: 'no-store' })
+}
+
 /** 현재 로그인 사용자의 Keycloak subject(고유 ID)를 access token에서 추출한다. */
 export async function getCurrentUserId(): Promise<string> {
   const session = await auth()

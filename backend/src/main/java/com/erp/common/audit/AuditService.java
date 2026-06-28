@@ -4,8 +4,11 @@ import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.common.tenant.TenantContext;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,12 +49,53 @@ public class AuditService {
     auditLogRepository.save(log);
   }
 
+  /** CSV 내보내기 1회 상한 — 한 번의 다운로드가 메모리·응답을 압도하지 않도록 제한한다. */
+  private static final int EXPORT_MAX_ROWS = 10_000;
+
   @Transactional(readOnly = true)
   public Page<AuditLogResponse> search(
-      String entityType, Long entityId, String performedBy, Pageable pageable) {
+      String entityType,
+      Long entityId,
+      String performedBy,
+      AuditLog.AuditAction action,
+      LocalDateTime from,
+      LocalDateTime to,
+      Pageable pageable) {
     permissionChecker.require(Permission.AUDIT_READ);
     return auditLogRepository
-        .search(TenantContext.requireTenantId(), entityType, entityId, performedBy, pageable)
+        .search(
+            TenantContext.requireTenantId(),
+            entityType,
+            entityId,
+            performedBy,
+            action,
+            from,
+            to,
+            pageable)
         .map(AuditLogResponse::from);
+  }
+
+  /** 현재 필터 조건의 감사 로그를 CSV 내보내기용으로 반환한다(최신순, {@link #EXPORT_MAX_ROWS} 상한). */
+  @Transactional(readOnly = true)
+  public List<AuditLogResponse> export(
+      String entityType,
+      Long entityId,
+      String performedBy,
+      AuditLog.AuditAction action,
+      LocalDateTime from,
+      LocalDateTime to) {
+    permissionChecker.require(Permission.AUDIT_READ);
+    return auditLogRepository
+        .search(
+            TenantContext.requireTenantId(),
+            entityType,
+            entityId,
+            performedBy,
+            action,
+            from,
+            to,
+            PageRequest.of(0, EXPORT_MAX_ROWS))
+        .map(AuditLogResponse::from)
+        .getContent();
   }
 }
