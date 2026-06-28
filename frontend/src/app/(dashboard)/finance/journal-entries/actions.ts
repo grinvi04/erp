@@ -40,3 +40,15 @@ export async function withdrawJournalEntry(id: number): Promise<void> {
   await apiPost<JournalEntry>(`/api/finance/journal-entries/${id}/withdraw`, {})
   revalidatePath(PATH)
 }
+
+// 반려: 승인권자가 결재 대기 전표를 사유와 함께 DRAFT로 되돌린다(권한·직무분리는 서버가 최종 수행).
+export async function rejectJournalEntry(id: number, comment: string): Promise<void> {
+  await apiPost<JournalEntry>(`/api/finance/journal-entries/${id}/reject`, { comment })
+  revalidatePath(PATH)
+}
+
+// 역분개: 승인권자가 전기 완료 전표를 차/대 반대인 새 전표로 상쇄한다(원 전표는 REVERSED 표시).
+export async function reverseJournalEntry(id: number): Promise<void> {
+  await apiPost<JournalEntry>(`/api/finance/journal-entries/${id}/reverse`, {})
+  revalidatePath(PATH)
+}

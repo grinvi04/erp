@@ -42,6 +42,8 @@ import {
   submitJournalEntry,
   approveJournalEntry,
   withdrawJournalEntry,
+  rejectJournalEntry,
+  reverseJournalEntry,
 } from './actions'
 import type {
   FiscalYear,
@@ -89,6 +91,11 @@ const emptyLine = (): LineRow => ({
   description: '',
 })
 
+type ActionDialog =
+  | { type: 'none' }
+  | { type: 'reject'; entry: JournalEntry }
+  | { type: 'reverse'; entry: JournalEntry }
+
 interface Props {
   fiscalYears: FiscalYear[]
   selectedYearId: number | null
@@ -111,6 +118,8 @@ export default function JournalEntriesClient({
   const canApprove = can(PERM.FINANCE_GL_APPROVE)
   const router = useRouter()
   const [showCreate, setShowCreate] = useState(false)
+  const [actionDialog, setActionDialog] = useState<ActionDialog>({ type: 'none' })
+  const [comment, setComment] = useState('')
   const [isPending, startTransition] = useTransition()
 
   const [entryDate, setEntryDate] = useState('')
@@ -238,6 +247,41 @@ export default function JournalEntriesClient({
     })
   }
 
+  const openReject = (entry: JournalEntry) => {
+    setComment('')
+    setActionDialog({ type: 'reject', entry })
+  }
+  const openReverse = (entry: JournalEntry) => setActionDialog({ type: 'reverse', entry })
+  const closeAction = () => setActionDialog({ type: 'none' })
+
+  const handleReject = (entry: JournalEntry) => {
+    if (!comment.trim()) {
+      toast.error('반려 사유를 입력해주세요')
+      return
+    }
+    startTransition(async () => {
+      try {
+        await rejectJournalEntry(entry.id, comment.trim())
+        toast.success('반려되었습니다')
+        closeAction()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '반려 중 오류가 발생했습니다')
+      }
+    })
+  }
+
+  const handleReverse = (entry: JournalEntry) => {
+    startTransition(async () => {
+      try {
+        await reverseJournalEntry(entry.id)
+        toast.success('역분개 전표가 생성되었습니다')
+        closeAction()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '역분개 중 오류가 발생했습니다')
+      }
+    })
+  }
+
   const columns: Column<JournalEntry>[] = [
     {
       key: 'entryNo',
@@ -322,6 +366,18 @@ export default function JournalEntriesClient({
               승인
             </Button>
           )}
+          {canApprove && entry.status === 'PENDING_APPROVAL' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openReject(entry)}
+              disabled={isPending}
+              title="반려"
+              className="text-destructive"
+            >
+              반려
+            </Button>
+          )}
           {canWrite && entry.status === 'PENDING_APPROVAL' && (
             <Button
               variant="ghost"
@@ -332,6 +388,18 @@ export default function JournalEntriesClient({
               className="text-destructive"
             >
               철회
+            </Button>
+          )}
+          {canApprove && entry.status === 'POSTED' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openReverse(entry)}
+              disabled={isPending}
+              title="역분개"
+              className="text-destructive"
+            >
+              역분개
             </Button>
           )}
         </div>
@@ -590,6 +658,59 @@ export default function JournalEntriesClient({
             <Button onClick={handleCreate} disabled={isPending || !balanced}>
               등록
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 반려 / 역분개 다이얼로그 */}
+      <Dialog
+        open={actionDialog.type !== 'none'}
+        onOpenChange={(o) => {
+          if (!o) closeAction()
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {actionDialog.type === 'reject' ? '전표 반려' : '전표 역분개'}
+            </DialogTitle>
+          </DialogHeader>
+          {actionDialog.type === 'reject' && (
+            <div className="grid gap-1.5 py-2">
+              <Label>반려 사유 *</Label>
+              <Textarea
+                rows={3}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="반려 사유를 입력하세요"
+              />
+            </div>
+          )}
+          {actionDialog.type === 'reverse' && (
+            <p className="py-2 text-sm text-muted-foreground">
+              전표 <span className="font-mono">{actionDialog.entry.entryNo}</span>를 역분개합니다.
+              차/대가 반대인 새 전표가 생성되고 원 전표는 역분개 처리됩니다. 계속하시겠습니까?
+            </p>
+          )}
+          <DialogFooter showCloseButton>
+            {actionDialog.type === 'reject' && (
+              <Button
+                variant="destructive"
+                onClick={() => handleReject(actionDialog.entry)}
+                disabled={isPending}
+              >
+                반려
+              </Button>
+            )}
+            {actionDialog.type === 'reverse' && (
+              <Button
+                variant="destructive"
+                onClick={() => handleReverse(actionDialog.entry)}
+                disabled={isPending}
+              >
+                역분개
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
