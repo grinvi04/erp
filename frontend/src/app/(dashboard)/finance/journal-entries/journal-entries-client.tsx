@@ -502,7 +502,14 @@ export default function JournalEntriesClient({
             columns={columns}
             getRowId={(e) => e.id}
             onRowClick={openDetail}
-            empty={<EmptyState title="등록된 전표가 없습니다" />}
+            empty={
+              <EmptyState
+                title="등록된 전표가 없습니다"
+                description={
+                  !isPeriodClosed ? '우측 상단의 「새 전표」로 전표를 등록하세요.' : undefined
+                }
+              />
+            }
           />
           {entries && (
             <PaginationBar
