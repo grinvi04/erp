@@ -29,6 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   createRole,
   updateRole,
@@ -65,6 +67,7 @@ export default function IamClient({
 }) {
   const [isPending, startTransition] = useTransition()
   const [dialog, setDialog] = useState<RoleDialog>({ mode: 'none' })
+  const [deleteTarget, setDeleteTarget] = useState<Role | null>(null)
   const [form, setForm] = useState({
     code: '',
     name: '',
@@ -126,12 +129,14 @@ export default function IamClient({
     })
   }
 
-  function removeRole(role: Role) {
-    if (!window.confirm(`역할 '${role.name}'을(를) 삭제할까요?`)) return
+  function confirmDelete() {
+    const role = deleteTarget
+    if (!role) return
     startTransition(async () => {
       try {
         await deleteRole(role.id)
         toast.success('역할이 삭제되었습니다')
+        setDeleteTarget(null)
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다')
       }
@@ -140,7 +145,7 @@ export default function IamClient({
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold text-foreground">역할·권한 관리</h1>
+      <PageHeader title="역할·권한 관리" />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -164,8 +169,8 @@ export default function IamClient({
             <TableBody>
               {roles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
-                    역할이 없습니다.
+                  <TableCell colSpan={4} className="p-0">
+                    <EmptyState title="역할이 없습니다" />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -192,7 +197,7 @@ export default function IamClient({
                             variant="ghost"
                             size="icon-xs"
                             title="삭제"
-                            onClick={() => removeRole(role)}
+                            onClick={() => setDeleteTarget(role)}
                             disabled={isPending}
                           >
                             <Trash2Icon className="text-destructive" />
@@ -281,6 +286,31 @@ export default function IamClient({
               disabled={isPending || !form.name || (dialog.mode === 'create' && !form.code)}
             >
               저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 역할 삭제 확인 */}
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => {
+          if (!o) setDeleteTarget(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>역할 삭제</DialogTitle>
+          </DialogHeader>
+          {deleteTarget && (
+            <p className="text-sm text-muted-foreground py-2">
+              <strong>{deleteTarget.name}</strong> 역할을 삭제하시겠습니까? 이 역할이 배정된
+              사용자가 있으면 삭제할 수 없습니다.
+            </p>
+          )}
+          <DialogFooter showCloseButton>
+            <Button variant="destructive" onClick={confirmDelete} disabled={isPending}>
+              삭제
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -221,7 +221,7 @@ export default function ActivitiesClient({ data, accounts }: Props) {
           <Label>고객사</Label>
           <Select value={accountId} onValueChange={(v) => selectAccount(v ?? '')}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="선택 안 함" />
+              <SelectValue placeholder="고객사(선택)" />
             </SelectTrigger>
             <SelectContent>
               {accounts.map((acc) => (

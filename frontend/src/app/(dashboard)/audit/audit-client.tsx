@@ -24,6 +24,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DetailSheet, DetailRow, DetailSection } from '@/components/ui/detail-sheet'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import {
   AUDIT_ACTIONS,
@@ -32,7 +34,7 @@ import {
   type AuditLog,
   type AuditLogDetail,
 } from '@/types/audit'
-import { formatUserName } from '@/lib/utils'
+import { formatUserName, formatDateTime } from '@/lib/utils'
 import type { PageResponse } from '@/types/api'
 import { getAuditLogDetail } from './actions'
 
@@ -67,10 +69,6 @@ const ENTITY_LABEL: Record<string, string> = {
 const ENTITY_OPTIONS = Object.entries(ENTITY_LABEL)
 
 const ALL = 'ALL'
-
-function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString('ko-KR')
-}
 
 // 변경 내역 JSON 문자열을 보기 좋게 들여쓰기한다 — 파싱 실패 시 원문 그대로.
 function prettyJson(raw: string): string {
@@ -159,13 +157,11 @@ export default function AuditClient({
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">감사 로그</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            누가 무엇을 언제 결재·변경했는지 추적합니다.
-          </p>
-        </div>
+      <PageHeader
+        className="mb-6"
+        title="감사 로그"
+        description="누가 무엇을 언제 결재·변경했는지 추적합니다."
+      >
         <a
           href={exportHref}
           download
@@ -174,7 +170,7 @@ export default function AuditClient({
           <DownloadIcon />
           CSV 내보내기
         </a>
-      </div>
+      </PageHeader>
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="grid gap-1.5">
@@ -268,15 +264,18 @@ export default function AuditClient({
           <TableBody>
             {data.content.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
-                  감사 로그가 없습니다.
+                <TableCell colSpan={5} className="p-0">
+                  <EmptyState
+                    title="감사 로그가 없습니다"
+                    description="선택한 조건에 해당하는 감사 기록이 없습니다."
+                  />
                 </TableCell>
               </TableRow>
             ) : (
               data.content.map((log) => (
                 <TableRow key={log.id} className="cursor-pointer" onClick={() => openDetail(log)}>
                   <TableCell className="whitespace-nowrap">
-                    {fmtDateTime(log.performedAt)}
+                    {formatDateTime(log.performedAt)}
                   </TableCell>
                   <TableCell>{ENTITY_LABEL[log.entityType] ?? log.entityType}</TableCell>
                   <TableCell>{log.entityId}</TableCell>
@@ -337,7 +336,7 @@ export default function AuditClient({
                     {formatUserName(detail.performedBy, names)}
                   </span>
                 </DetailRow>
-                <DetailRow label="일시">{fmtDateTime(detail.performedAt)}</DetailRow>
+                <DetailRow label="일시">{formatDateTime(detail.performedAt)}</DetailRow>
                 {detail.ipAddress && (
                   <DetailRow label="IP 주소">
                     <span className="font-mono">{detail.ipAddress}</span>

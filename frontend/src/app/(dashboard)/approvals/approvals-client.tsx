@@ -23,8 +23,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DetailSheet, DetailRow, DetailSection } from '@/components/ui/detail-sheet'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState, ErrorState } from '@/components/ui/empty-state'
 import { approveInboxItem, rejectInboxItem } from './actions'
-import { formatUserName } from '@/lib/utils'
+import { formatUserName, formatDate } from '@/lib/utils'
 import type { ApprovalSummary, ApprovalStatus } from '@/types/approval'
 
 const STATUS_LABEL: Record<ApprovalStatus, string> = {
@@ -214,11 +216,15 @@ export default function ApprovalsClient({
         <TableBody>
           {rows.length === 0 && (
             <TableRow>
-              <TableCell
-                colSpan={showRequester ? 7 : 6}
-                className={`text-center py-10 ${failed ? 'text-destructive' : 'text-muted-foreground'}`}
-              >
-                {failed ? '결재 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.' : emptyText}
+              <TableCell colSpan={showRequester ? 7 : 6} className="p-0">
+                {failed ? (
+                  <ErrorState
+                    title="결재 정보를 불러오지 못했습니다"
+                    description="잠시 후 다시 시도해주세요."
+                  />
+                ) : (
+                  <EmptyState title={emptyText} />
+                )}
               </TableCell>
             </TableRow>
           )}
@@ -241,7 +247,7 @@ export default function ApprovalsClient({
                 <Badge variant={STATUS_VARIANT[a.status]}>{STATUS_LABEL[a.status]}</Badge>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {a.requestedAt.slice(0, 10)}
+                {formatDate(a.requestedAt)}
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
                 {renderActionCell(a, actionable)}
@@ -257,12 +263,10 @@ export default function ApprovalsClient({
 
   return (
     <div className="p-6 space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">결재함</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          내가 처리할 결재와 내가 상신한 결재를 한 곳에서 확인합니다
-        </p>
-      </div>
+      <PageHeader
+        title="결재함"
+        description="내가 처리할 결재와 내가 상신한 결재를 한 곳에서 확인합니다"
+      />
 
       <section>
         <h2 className="text-lg font-semibold text-foreground mb-3">
@@ -309,9 +313,9 @@ export default function ApprovalsClient({
                   </span>
                 </DetailRow>
               )}
-              <DetailRow label="요청일">{detail.requestedAt.slice(0, 10)}</DetailRow>
+              <DetailRow label="요청일">{formatDate(detail.requestedAt)}</DetailRow>
               {detail.completedAt && (
-                <DetailRow label="완료일">{detail.completedAt.slice(0, 10)}</DetailRow>
+                <DetailRow label="완료일">{formatDate(detail.completedAt)}</DetailRow>
               )}
               {entityInfo(detail.entityType).href !== '#' && (
                 <DetailRow label="대상">

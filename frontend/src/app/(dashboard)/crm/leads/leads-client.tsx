@@ -31,7 +31,7 @@ import { PaginationBar } from '@/components/ui/pagination-bar'
 import { createLead, updateLead, convertLead, deleteLead, type LeadPayload } from './actions'
 import type { CrmAccount, Lead, LeadStatus, PipelineStage } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
-import { formatUserName } from '@/lib/utils'
+import { formatUserName, formatDate } from '@/lib/utils'
 
 const STATUS_LABEL: Record<LeadStatus, string> = {
   NEW: '신규',
@@ -334,7 +334,7 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
       sortable: true,
       sortValue: (lead) => lead.createdAt,
       cell: (lead) => (
-        <span className="text-sm text-muted-foreground">{lead.createdAt.slice(0, 10)}</span>
+        <span className="text-sm text-muted-foreground">{formatDate(lead.createdAt)}</span>
       ),
     },
     {
