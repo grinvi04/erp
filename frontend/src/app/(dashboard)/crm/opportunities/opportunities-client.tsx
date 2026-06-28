@@ -79,11 +79,19 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
     setAmount('')
     setCurrency('KRW')
     setCloseDate('')
-    setProbability('0')
     setSource('')
     setDescription('')
-    setStageId(stages.length > 0 ? String(stages[0].id) : '')
+    const first = stages.length > 0 ? stages[0] : null
+    setStageId(first ? String(first.id) : '')
+    setProbability(first ? String(first.probability) : '0')
     setDialog({ type: 'create' })
+  }
+
+  // 단계 선택 시 해당 단계의 기본확률을 확률 입력에 자동 채운다(사용자가 덮어쓸 수 있음).
+  const selectStage = (value: string) => {
+    setStageId(value)
+    const stage = stages.find((s) => String(s.id) === value)
+    if (stage) setProbability(String(stage.probability))
   }
 
   const openEdit = (opp: Opportunity) => {
@@ -212,7 +220,7 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-1.5">
           <Label>단계 *</Label>
-          <Select value={stageId} onValueChange={(v) => setStageId(v ?? '')}>
+          <Select value={stageId} onValueChange={(v) => selectStage(v ?? '')}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="선택" />
             </SelectTrigger>
