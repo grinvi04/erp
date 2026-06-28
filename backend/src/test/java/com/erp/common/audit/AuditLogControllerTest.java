@@ -103,6 +103,44 @@ class AuditLogControllerTest {
   }
 
   @Test
+  void findById_returnsDetailWithBeforeAfter() throws Exception {
+    AuditLogDetailResponse detail =
+        new AuditLogDetailResponse(
+            5L,
+            "LEAVE_REQUEST",
+            10L,
+            AuditLog.AuditAction.UPDATE,
+            "MANAGER",
+            LocalDateTime.of(2026, 1, 1, 9, 0),
+            "10.0.0.1",
+            "{\"status\":\"DRAFT\"}",
+            "{\"status\":\"APPROVED\"}");
+    given(auditService.findById(5L)).willReturn(detail);
+
+    mockMvc
+        .perform(get("/api/audit/logs/5"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.action").value("UPDATE"))
+        .andExpect(jsonPath("$.data.beforeData").value("{\"status\":\"DRAFT\"}"))
+        .andExpect(jsonPath("$.data.afterData").value("{\"status\":\"APPROVED\"}"));
+  }
+
+  @Test
+  void findById_whenMissing_returnsNotFound() throws Exception {
+    given(auditService.findById(404L)).willThrow(new ErpException(ErrorCode.RESOURCE_NOT_FOUND));
+
+    mockMvc.perform(get("/api/audit/logs/404")).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void findById_withoutPermission_returnsForbidden() throws Exception {
+    given(auditService.findById(any())).willThrow(new ErpException(ErrorCode.FORBIDDEN));
+
+    mockMvc.perform(get("/api/audit/logs/5")).andExpect(status().isForbidden());
+  }
+
+  @Test
   void search_withoutPermission_returnsForbidden() throws Exception {
     given(auditService.search(any(), any(), any(), any(), any(), any(), any()))
         .willThrow(new ErpException(ErrorCode.FORBIDDEN));

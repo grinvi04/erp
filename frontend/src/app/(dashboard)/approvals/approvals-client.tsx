@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { DetailSheet, DetailRow, DetailSection } from '@/components/ui/detail-sheet'
 import { approveInboxItem, rejectInboxItem } from './actions'
 import { formatUserName } from '@/lib/utils'
 import type { ApprovalSummary, ApprovalStatus } from '@/types/approval'
@@ -109,6 +110,10 @@ export default function ApprovalsClient({
   const [comment, setComment] = useState('')
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
+
+  // 결재 상세(drill-in) — 행 클릭 시 결재 건 정보(대상·상신자·현재단계 등)를 읽기전용으로 연다.
+  // 전체 결재선(단계별 이력)을 주는 백엔드 엔드포인트는 아직 없어, 요약에 담긴 현재 단계까지 표시한다.
+  const [detail, setDetail] = useState<ApprovalSummary | null>(null)
 
   const openApprove = (item: ApprovalSummary) => {
     setComment('')
@@ -218,7 +223,7 @@ export default function ApprovalsClient({
             </TableRow>
           )}
           {rows.map((a) => (
-            <TableRow key={a.id}>
+            <TableRow key={a.id} className="cursor-pointer" onClick={() => setDetail(a)}>
               <TableCell>
                 <Badge variant="secondary">{entityInfo(a.entityType).label}</Badge>
               </TableCell>
@@ -238,7 +243,9 @@ export default function ApprovalsClient({
               <TableCell className="text-sm text-muted-foreground">
                 {a.requestedAt.slice(0, 10)}
               </TableCell>
-              <TableCell>{renderActionCell(a, actionable)}</TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                {renderActionCell(a, actionable)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -268,6 +275,61 @@ export default function ApprovalsClient({
         <h2 className="text-lg font-semibold text-foreground mb-3">내가 상신한 결재</h2>
         {renderTable(mine, '상신한 결재가 없습니다', false, mineFailed, false)}
       </section>
+
+      {/* 결재 상세 (drill-in) */}
+      <DetailSheet
+        open={detail !== null}
+        onOpenChange={(o) => {
+          if (!o) setDetail(null)
+        }}
+        title="결재 상세"
+        description={detail?.title}
+      >
+        {detail && (
+          <DetailSection title="결재 정보">
+            <dl>
+              <DetailRow label="유형">
+                <Badge variant="secondary">{entityInfo(detail.entityType).label}</Badge>
+              </DetailRow>
+              <DetailRow label="제목">{detail.title}</DetailRow>
+              <DetailRow label="상태">
+                <Badge variant={STATUS_VARIANT[detail.status]}>{STATUS_LABEL[detail.status]}</Badge>
+              </DetailRow>
+              <DetailRow label="상신자">
+                <span title={detail.requesterId}>
+                  {formatUserName(detail.requesterId, names)}
+                </span>
+              </DetailRow>
+              <DetailRow label="현재 단계">
+                {detail.currentStep}/{detail.totalSteps}
+                {detail.currentStepName ? ` · ${detail.currentStepName}` : ''}
+              </DetailRow>
+              {detail.currentApproverId && (
+                <DetailRow label="현재 결재자">
+                  <span title={detail.currentApproverId}>
+                    {formatUserName(detail.currentApproverId, names)}
+                  </span>
+                </DetailRow>
+              )}
+              <DetailRow label="요청일">{detail.requestedAt.slice(0, 10)}</DetailRow>
+              {detail.completedAt && (
+                <DetailRow label="완료일">{detail.completedAt.slice(0, 10)}</DetailRow>
+              )}
+              {entityInfo(detail.entityType).href !== '#' && (
+                <DetailRow label="대상">
+                  <Link
+                    href={entityInfo(detail.entityType).href}
+                    className="inline-flex items-center text-primary hover:underline"
+                  >
+                    처리 화면으로 이동
+                    <ChevronRight className="h-3 w-3" />
+                  </Link>
+                </DetailRow>
+              )}
+            </dl>
+          </DetailSection>
+        )}
+      </DetailSheet>
 
       {/* 승인/반려 다이얼로그 */}
       <Dialog

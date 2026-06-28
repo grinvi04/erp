@@ -33,8 +33,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DataTable, type Column } from '@/components/ui/data-table'
+import { DetailSheet, DetailRow, DetailSection } from '@/components/ui/detail-sheet'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Skeleton } from '@/components/ui/skeleton'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { formatMoneyOne } from '@/lib/money'
 import {
@@ -44,6 +46,7 @@ import {
   withdrawJournalEntry,
   rejectJournalEntry,
   reverseJournalEntry,
+  getJournalLines,
 } from './actions'
 import type {
   FiscalYear,
@@ -51,6 +54,7 @@ import type {
   JournalEntry,
   JournalEntryStatus,
   JournalEntryType,
+  JournalLine,
   Account,
 } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
@@ -121,6 +125,24 @@ export default function JournalEntriesClient({
   const [actionDialog, setActionDialog] = useState<ActionDialog>({ type: 'none' })
   const [comment, setComment] = useState('')
   const [isPending, startTransition] = useTransition()
+
+  // 전표 상세(drill-in) — 행 클릭 시 헤더 정보 + 차/대변 라인 명세를 읽기전용으로 연다.
+  const [detailEntry, setDetailEntry] = useState<JournalEntry | null>(null)
+  const [detailLines, setDetailLines] = useState<JournalLine[] | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  const openDetail = (entry: JournalEntry) => {
+    setDetailEntry(entry)
+    setDetailLines(null)
+    setDetailLoading(true)
+    getJournalLines(entry.id)
+      .then((lines) => setDetailLines(lines))
+      .catch(() => {
+        toast.error('전표 라인을 불러오지 못했습니다')
+        setDetailLines([])
+      })
+      .finally(() => setDetailLoading(false))
+  }
 
   const [entryDate, setEntryDate] = useState('')
   const [description, setDescription] = useState('')
@@ -343,7 +365,7 @@ export default function JournalEntriesClient({
       align: 'right',
       headerClassName: 'w-20',
       cell: (entry) => (
-        <div className="flex justify-end gap-1">
+        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           {canWrite && entry.status === 'DRAFT' && (
             <Button
               variant="ghost"
@@ -479,6 +501,7 @@ export default function JournalEntriesClient({
             data={entries?.content ?? []}
             columns={columns}
             getRowId={(e) => e.id}
+            onRowClick={openDetail}
             empty={<EmptyState title="등록된 전표가 없습니다" />}
           />
           {entries && (
@@ -496,6 +519,118 @@ export default function JournalEntriesClient({
           )}
         </div>
       )}
+
+      {/* 전표 상세 (drill-in) */}
+      <DetailSheet
+        open={detailEntry !== null}
+        onOpenChange={(o) => {
+          if (!o) setDetailEntry(null)
+        }}
+        title={detailEntry ? `전표 ${detailEntry.entryNo}` : '전표 상세'}
+        description="차변·대변 분개 라인 명세"
+      >
+        {detailEntry && (
+          <>
+            <DetailSection title="전표 정보">
+              <dl>
+                <DetailRow label="전표번호">
+                  <span className="font-mono">{detailEntry.entryNo}</span>
+                </DetailRow>
+                <DetailRow label="전표일">{detailEntry.entryDate}</DetailRow>
+                <DetailRow label="유형">{ENTRY_TYPE_LABEL[detailEntry.entryType]}</DetailRow>
+                <DetailRow label="상태">
+                  <Badge variant={STATUS_VARIANT[detailEntry.status]}>
+                    {STATUS_LABEL[detailEntry.status]}
+                  </Badge>
+                </DetailRow>
+                <DetailRow label="통화">{detailEntry.currency}</DetailRow>
+                <DetailRow label="적요">{detailEntry.description}</DetailRow>
+                {detailEntry.postedAt && (
+                  <DetailRow label="전기일시">
+                    {new Date(detailEntry.postedAt).toLocaleString('ko-KR')}
+                  </DetailRow>
+                )}
+              </dl>
+            </DetailSection>
+
+            <DetailSection title="분개 라인">
+              <div className="overflow-hidden rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>계정과목</TableHead>
+                      <TableHead className="text-right">차변</TableHead>
+                      <TableHead className="text-right">대변</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {detailLoading ? (
+                      Array.from({ length: 2 }).map((_, i) => (
+                        <TableRow key={i} className="hover:bg-transparent">
+                          <TableCell>
+                            <Skeleton className="h-4 w-32" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="ml-auto h-4 w-16" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="ml-auto h-4 w-16" />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : detailLines && detailLines.length > 0 ? (
+                      detailLines.map((line) => (
+                        <TableRow key={line.id} className="hover:bg-transparent">
+                          <TableCell>
+                            <div className="text-sm">
+                              <span className="font-mono text-muted-foreground">
+                                {line.accountCode}
+                              </span>{' '}
+                              {line.accountName}
+                            </div>
+                            {line.description && (
+                              <div className="text-xs text-muted-foreground">{line.description}</div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm tabular-nums">
+                            {line.debitAmount
+                              ? formatMoneyOne(line.debitAmount, detailEntry.currency)
+                              : '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm tabular-nums">
+                            {line.creditAmount
+                              ? formatMoneyOne(line.creditAmount, detailEntry.currency)
+                              : '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell
+                          colSpan={3}
+                          className="py-6 text-center text-sm text-muted-foreground"
+                        >
+                          분개 라인이 없습니다
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="mt-2 flex justify-end gap-6 font-mono text-sm">
+                <span>
+                  차변 합계:{' '}
+                  <strong>{formatMoneyOne(detailEntry.totalDebit, detailEntry.currency)}</strong>
+                </span>
+                <span>
+                  대변 합계:{' '}
+                  <strong>{formatMoneyOne(detailEntry.totalCredit, detailEntry.currency)}</strong>
+                </span>
+              </div>
+            </DetailSection>
+          </>
+        )}
+      </DetailSheet>
 
       {/* Create Dialog */}
       <Dialog

@@ -1,9 +1,14 @@
 'use server'
-import { apiPost } from '@/lib/api'
+import { apiGet, apiPost } from '@/lib/api'
 import { revalidatePath } from 'next/cache'
-import type { JournalEntry, JournalEntryType } from '@/types/finance'
+import type { JournalEntry, JournalEntryType, JournalLine } from '@/types/finance'
 
 const PATH = '/finance/journal-entries'
+
+// 전표 상세(drill-in)용 차/대변 라인 명세 조회 — 읽기전용.
+export async function getJournalLines(id: number): Promise<JournalLine[]> {
+  return apiGet<JournalLine[]>(`/api/finance/journal-entries/${id}/lines`)
+}
 
 export interface JournalLineInput {
   accountId: number

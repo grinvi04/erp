@@ -1,5 +1,7 @@
 package com.erp.common.audit;
 
+import com.erp.common.exception.ErpException;
+import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
@@ -73,6 +75,21 @@ public class AuditService {
             to,
             pageable)
         .map(AuditLogResponse::from);
+  }
+
+  /**
+   * 감사 로그 단건 상세(변경 내역 포함). AuditLog는 {@code @TenantId} 자동 필터 대상이 아니므로 테넌트 일치를 명시적으로 검증한다 — 다른 테넌트의
+   * 로그는 존재하지 않는 것으로 취급(테넌트 격리).
+   */
+  @Transactional(readOnly = true)
+  public AuditLogDetailResponse findById(Long id) {
+    permissionChecker.require(Permission.AUDIT_READ);
+    Long tenantId = TenantContext.requireTenantId();
+    return auditLogRepository
+        .findById(id)
+        .filter(log -> tenantId.equals(log.getTenantId()))
+        .map(AuditLogDetailResponse::from)
+        .orElseThrow(() -> new ErpException(ErrorCode.RESOURCE_NOT_FOUND));
   }
 
   /** 현재 필터 조건의 감사 로그를 CSV 내보내기용으로 반환한다(최신순, {@link #EXPORT_MAX_ROWS} 상한). */
