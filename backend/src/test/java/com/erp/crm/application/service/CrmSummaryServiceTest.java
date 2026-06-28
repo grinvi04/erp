@@ -52,6 +52,8 @@ class CrmSummaryServiceTest {
     given(currencyConversionPort.baseCurrencyCode()).willReturn("KRW");
     given(opportunityRepository.sumOpenBaseTotal(anyBoolean(), anyCollection()))
         .willReturn(new BigDecimal("11750000.00"));
+    // 환율 미산정으로 합계에서 빠진 진행중 기회가 있으면 partial=true
+    given(opportunityRepository.countOpenUnconverted(anyBoolean(), anyCollection())).willReturn(2L);
 
     CrmSummaryResponse result = crmSummaryService.getSummary();
 
@@ -67,6 +69,7 @@ class CrmSummaryServiceTest {
     // 기준통화 합계 추가
     assertThat(result.baseCurrency()).isEqualTo("KRW");
     assertThat(result.openOpportunityBaseTotal()).isEqualByComparingTo("11750000.00");
+    assertThat(result.openOpportunityBaseTotalPartial()).isTrue();
   }
 
   @Test
@@ -89,6 +92,8 @@ class CrmSummaryServiceTest {
     assertThat(result.openOpportunityAmounts()).isEmpty();
     assertThat(result.openOpportunityBaseTotal()).isNull();
     assertThat(result.baseCurrency()).isEqualTo("KRW");
+    // 미산정 진행중 기회가 없으므로(기본 0) 일부 미환산 아님
+    assertThat(result.openOpportunityBaseTotalPartial()).isFalse();
   }
 
   @Test

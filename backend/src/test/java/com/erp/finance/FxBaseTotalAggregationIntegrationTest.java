@@ -59,6 +59,9 @@ class FxBaseTotalAggregationIntegrationTest extends AbstractIntegrationTest {
     // JPY는 미산정(null)이라 제외.
     assertThat(apInvoiceRepository.sumUnpaidBaseTotal()).isEqualByComparingTo("730000");
 
+    // 합계가 "일부 미환산"임을 알리는 신호: 미산정(JPY) 1건이 제외됐으므로 카운트 > 0.
+    assertThat(apInvoiceRepository.countUnpaidUnconverted()).isEqualTo(1L);
+
     // 통화별 분리도 미지급잔액 기준(회귀) — currency 정렬: JPY, KRW, USD
     List<CurrencyAmount> split = apInvoiceRepository.sumUnpaidAmountByCurrency();
     assertThat(split).extracting(CurrencyAmount::currency).containsExactly("JPY", "KRW", "USD");
@@ -117,6 +120,9 @@ class FxBaseTotalAggregationIntegrationTest extends AbstractIntegrationTest {
     // 기준통화 합계 = 산정분만(JPY 제외)
     assertThat(opportunityRepository.sumOpenBaseTotal(allScope, noOwners))
         .isEqualByComparingTo("6300000");
+
+    // "일부 미환산" 신호: 미산정(JPY) 1건이 제외됐으므로 카운트 > 0.
+    assertThat(opportunityRepository.countOpenUnconverted(allScope, noOwners)).isEqualTo(1L);
 
     // 통화별 분리 유지(회귀) — JPY, KRW, USD
     List<CurrencyAmount> split = opportunityRepository.sumOpenAmountByCurrency(allScope, noOwners);

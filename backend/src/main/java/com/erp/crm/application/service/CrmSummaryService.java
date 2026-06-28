@@ -38,6 +38,7 @@ public class CrmSummaryService {
         leadRepository.countByStatus(LeadStatus.NEW, s.scoped(), s.ownerIds()),
         activityRepository.countByStatus(ActivityStatus.OPEN, s.scoped(), s.ownerIds()),
         currencyConversionPort.baseCurrencyCode(),
-        opportunityRepository.sumOpenBaseTotal(s.scoped(), s.ownerIds()));
+        opportunityRepository.sumOpenBaseTotal(s.scoped(), s.ownerIds()),
+        opportunityRepository.countOpenUnconverted(s.scoped(), s.ownerIds()) > 0);
   }
 }
