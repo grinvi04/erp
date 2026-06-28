@@ -105,6 +105,8 @@ public enum ErrorCode {
   ACTIVITY_INVALID_STATUS_TRANSITION(HttpStatus.CONFLICT, "CR009", "유효하지 않은 활동 상태 전이입니다"),
   LEAD_ALREADY_CONVERTED_UPDATE(HttpStatus.CONFLICT, "CR010", "전환된 리드는 수정할 수 없습니다"),
   CONTACT_PRIMARY_DUPLICATE(HttpStatus.CONFLICT, "CR011", "해당 고객사에 이미 주 담당자가 존재합니다"),
+  PIPELINE_STAGE_IN_USE(HttpStatus.CONFLICT, "CR012", "해당 단계를 사용 중인 영업 기회가 있어 삭제할 수 없습니다"),
+  LEAD_CONVERT_STAGE_REQUIRED(HttpStatus.BAD_REQUEST, "CR013", "영업 기회를 생성하려면 파이프라인 단계가 필요합니다"),
 
   // Workflow
   APPROVAL_NOT_FOUND(HttpStatus.NOT_FOUND, "W001", "결재 요청을 찾을 수 없습니다"),

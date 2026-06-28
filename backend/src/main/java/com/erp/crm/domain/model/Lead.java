@@ -58,6 +58,9 @@ public class Lead extends BaseEntity {
   @JoinColumn(name = "converted_account_id")
   private Account convertedAccount;
 
+  @Column(name = "converted_contact_id")
+  private Long convertedContactId;
+
   @Column(name = "converted_opportunity_id")
   private Long convertedOpportunityId;
 
@@ -126,9 +129,10 @@ public class Lead extends BaseEntity {
     this.status = LeadStatus.DISQUALIFIED;
   }
 
-  public void convert(Account account, Long opportunityId) {
+  public void convert(Account account, Long contactId, Long opportunityId) {
     this.status = LeadStatus.CONVERTED;
     this.convertedAccount = account;
+    this.convertedContactId = contactId;
     this.convertedOpportunityId = opportunityId;
     this.convertedAt = LocalDateTime.now();
   }
@@ -179,6 +183,10 @@ public class Lead extends BaseEntity {
 
   public Account getConvertedAccount() {
     return convertedAccount;
+  }
+
+  public Long getConvertedContactId() {
+    return convertedContactId;
   }
 
   public Long getConvertedOpportunityId() {

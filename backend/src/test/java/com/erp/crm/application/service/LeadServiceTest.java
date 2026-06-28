@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.crm.application.dto.ContactResponse;
 import com.erp.crm.application.dto.LeadConvertRequest;
 import com.erp.crm.application.dto.LeadCreateRequest;
 import com.erp.crm.application.dto.LeadResponse;
@@ -29,7 +30,9 @@ class LeadServiceTest {
 
   @Mock private LeadRepository leadRepository;
   @Mock private CrmAccountService accountService;
+  @Mock private ContactService contactService;
   @Mock private OpportunityService opportunityService;
+  @Mock private PipelineStageService stageService;
   @Mock private com.erp.common.security.PermissionChecker permissionChecker;
   @Mock private com.erp.common.security.CurrentUserProvider currentUserProvider;
   @InjectMocks private LeadService leadService;
@@ -74,11 +77,29 @@ class LeadServiceTest {
 
     given(leadRepository.findById(1L)).willReturn(Optional.of(lead));
     given(accountService.getOrThrow(10L)).willReturn(account);
+    given(contactService.create(any()))
+        .willReturn(
+            new ContactResponse(
+                50L,
+                10L,
+                "ABC주식회사",
+                "김",
+                "철수",
+                "팀장",
+                null,
+                "kim@abc.com",
+                "010-0000-0000",
+                null,
+                false,
+                null,
+                0L));
 
-    LeadResponse result = leadService.convert(1L, new LeadConvertRequest(10L, null));
+    LeadResponse result =
+        leadService.convert(1L, new LeadConvertRequest(10L, false, null, null, null, null, null));
 
     assertThat(result.status()).isEqualTo(LeadStatus.CONVERTED);
     assertThat(result.convertedAccountId()).isEqualTo(account.getId());
+    assertThat(result.convertedContactId()).isEqualTo(50L);
   }
 
   @Test
@@ -97,13 +118,16 @@ class LeadServiceTest {
             null,
             AccountType.CUSTOMER,
             "sales-001");
-    lead.convert(account, null);
+    lead.convert(account, null, null);
 
     given(leadRepository.findById(1L)).willReturn(Optional.of(lead));
 
     ErpException ex =
         assertThrows(
-            ErpException.class, () -> leadService.convert(1L, new LeadConvertRequest(10L, null)));
+            ErpException.class,
+            () ->
+                leadService.convert(
+                    1L, new LeadConvertRequest(10L, false, null, null, null, null, null)));
     assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LEAD_ALREADY_CONVERTED);
   }
 
@@ -131,7 +155,7 @@ class LeadServiceTest {
             null,
             AccountType.CUSTOMER,
             "sales-001");
-    lead.convert(account, null);
+    lead.convert(account, null, null);
     ReflectionTestUtils.setField(lead, "version", 0L);
     given(leadRepository.findById(1L)).willReturn(Optional.of(lead));
 

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
@@ -28,7 +29,7 @@ import {
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { createLead, updateLead, convertLead, deleteLead, type LeadPayload } from './actions'
-import type { CrmAccount, Lead, LeadStatus } from '@/types/crm'
+import type { CrmAccount, Lead, LeadStatus, PipelineStage } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
 
 const STATUS_LABEL: Record<LeadStatus, string> = {
@@ -56,9 +57,10 @@ type DialogMode =
 interface Props {
   data: PageResponse<Lead>
   accounts: CrmAccount[]
+  stages: PipelineStage[]
 }
 
-export default function LeadsClient({ data, accounts }: Props) {
+export default function LeadsClient({ data, accounts, stages }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -76,6 +78,11 @@ export default function LeadsClient({ data, accounts }: Props) {
   const [note, setNote] = useState('')
 
   const [accountId, setAccountId] = useState('')
+  const [createNewAccount, setCreateNewAccount] = useState(false)
+  const [createOpp, setCreateOpp] = useState(false)
+  const [oppName, setOppName] = useState('')
+  const [oppStageId, setOppStageId] = useState('')
+  const [oppAmount, setOppAmount] = useState('')
 
   const openCreate = () => {
     setLastName('')
@@ -108,6 +115,11 @@ export default function LeadsClient({ data, accounts }: Props) {
 
   const openConvert = (lead: Lead) => {
     setAccountId('')
+    setCreateNewAccount(false)
+    setCreateOpp(false)
+    setOppName('')
+    setOppStageId('')
+    setOppAmount('')
     setDialog({ type: 'convert', lead })
   }
 
@@ -169,13 +181,25 @@ export default function LeadsClient({ data, accounts }: Props) {
   }
 
   const handleConvert = (lead: Lead) => {
-    if (!accountId) {
-      toast.error('고객사를 선택해주세요')
+    if (!createNewAccount && !accountId) {
+      toast.error('고객사를 선택하거나 신규 생성을 선택해주세요')
+      return
+    }
+    if (createOpp && !oppStageId) {
+      toast.error('영업기회 단계를 선택해주세요')
       return
     }
     startTransition(async () => {
       try {
-        await convertLead(lead.id, { accountId: Number(accountId), opportunityId: null })
+        await convertLead(lead.id, {
+          accountId: createNewAccount ? null : Number(accountId),
+          createOpportunity: createOpp,
+          opportunityName: createOpp ? oppName.trim() || null : null,
+          stageId: createOpp ? Number(oppStageId) : null,
+          opportunityAmount: createOpp && oppAmount.trim() ? Number(oppAmount) : null,
+          opportunityCurrency: null,
+          opportunityCloseDate: null,
+        })
         toast.success('리드가 전환되었습니다')
         close()
       } catch (e) {
@@ -424,21 +448,84 @@ export default function LeadsClient({ data, accounts }: Props) {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>고객사 *</Label>
-              <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="고객사 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((acc) => (
-                    <SelectItem key={acc.id} value={String(acc.id)}>
-                      {acc.code} {acc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <p className="text-sm text-muted-foreground">
+              전환 시 리드 정보로 담당자가 생성되어 아래 고객사에 연결됩니다.
+            </p>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="convert-new-account"
+                checked={createNewAccount}
+                onCheckedChange={(c) => setCreateNewAccount(c === true)}
+              />
+              <Label htmlFor="convert-new-account" className="font-normal">
+                리드 정보로 신규 고객사 생성
+              </Label>
             </div>
+            {!createNewAccount && (
+              <div className="grid gap-1.5">
+                <Label>고객사 *</Label>
+                <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="고객사 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map((acc) => (
+                      <SelectItem key={acc.id} value={String(acc.id)}>
+                        {acc.code} {acc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="flex items-center gap-2 border-t pt-4">
+              <Checkbox
+                id="convert-create-opp"
+                checked={createOpp}
+                onCheckedChange={(c) => setCreateOpp(c === true)}
+              />
+              <Label htmlFor="convert-create-opp" className="font-normal">
+                영업기회 함께 생성
+              </Label>
+            </div>
+            {createOpp && (
+              <>
+                <div className="grid gap-1.5">
+                  <Label>기회명</Label>
+                  <Input
+                    value={oppName}
+                    placeholder="비워두면 회사명으로 생성됩니다"
+                    onChange={(e) => setOppName(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-1.5">
+                    <Label>단계 *</Label>
+                    <Select value={oppStageId} onValueChange={(v) => setOppStageId(v ?? '')}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="단계 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stages.map((stage) => (
+                          <SelectItem key={stage.id} value={String(stage.id)}>
+                            {stage.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>예상 금액</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={oppAmount}
+                      onChange={(e) => setOppAmount(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter showCloseButton>
             <Button
