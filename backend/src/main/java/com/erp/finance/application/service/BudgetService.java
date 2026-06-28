@@ -78,7 +78,7 @@ public class BudgetService {
   public void delete(Long id) {
     permissionChecker.require(Permission.FINANCE_WRITE);
     Budget budget = getOrThrow(id);
-    budgetRepository.delete(budget);
+    budget.softDelete();
   }
 
   private Budget getOrThrow(Long id) {
