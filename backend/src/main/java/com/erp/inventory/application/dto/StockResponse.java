@@ -17,7 +17,9 @@ public record StockResponse(
     String serialNo,
     BigDecimal qtyOnHand,
     BigDecimal qtyReserved,
-    BigDecimal unitCost) {
+    BigDecimal unitCost,
+    BigDecimal reorderPoint,
+    BigDecimal minStock) {
   public static StockResponse from(Stock s) {
     return new StockResponse(
         s.getId(),
@@ -33,6 +35,8 @@ public record StockResponse(
         s.getSerialNo(),
         s.getQtyOnHand(),
         s.getQtyReserved(),
-        s.getUnitCost());
+        s.getUnitCost(),
+        s.getItem().getReorderPoint(),
+        s.getItem().getMinStock());
   }
 }

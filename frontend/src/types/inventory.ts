@@ -108,4 +108,6 @@ export interface StockBalance {
   qtyOnHand: number
   qtyReserved: number
   unitCost: number
+  reorderPoint: number
+  minStock: number
 }

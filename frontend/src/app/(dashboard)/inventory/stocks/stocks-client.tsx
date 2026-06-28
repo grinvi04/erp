@@ -1,9 +1,11 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { PackageSearchIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -23,6 +25,15 @@ interface Props {
 
 function fmtNum(n: number) {
   return n.toLocaleString('ko-KR')
+}
+
+// 보유 수량을 품목 안전재고(minStock)·재주문점(reorderPoint)과 대조해 경고 수준을 산출.
+// 임계값이 0(미설정)인 경우는 신호를 내지 않는다 — 동작 안 하는 표시 금지(정직성).
+type StockLevel = 'critical' | 'reorder' | null
+function stockLevel(s: StockBalance): StockLevel {
+  if (s.minStock > 0 && s.qtyOnHand < s.minStock) return 'critical'
+  if (s.reorderPoint > 0 && s.qtyOnHand <= s.reorderPoint) return 'reorder'
+  return null
 }
 
 export default function StocksClient({ warehouses, warehouseId, data }: Props) {
@@ -77,27 +88,30 @@ export default function StocksClient({ warehouses, warehouseId, data }: Props) {
       align: 'right',
       sortable: true,
       sortValue: (s) => s.qtyOnHand,
-      cell: (s) => <span className="font-mono text-sm">{fmtNum(s.qtyOnHand)}</span>,
+      cell: (s) => {
+        const lv = stockLevel(s)
+        return (
+          <span
+            className={cn(
+              'font-mono text-sm',
+              lv === 'critical' && 'font-semibold text-destructive',
+              lv === 'reorder' && 'font-medium text-warning',
+            )}
+          >
+            {fmtNum(s.qtyOnHand)}
+          </span>
+        )
+      },
     },
     {
-      key: 'qtyReserved',
-      header: '예약',
-      align: 'right',
-      sortable: true,
-      sortValue: (s) => s.qtyReserved,
-      cell: (s) => (
-        <span className="font-mono text-sm text-muted-foreground">{fmtNum(s.qtyReserved)}</span>
-      ),
-    },
-    {
-      key: 'qtyAvailable',
-      header: '가용',
-      align: 'right',
-      sortable: true,
-      sortValue: (s) => s.qtyOnHand - s.qtyReserved,
-      cell: (s) => (
-        <span className="font-mono text-sm font-medium">{fmtNum(s.qtyOnHand - s.qtyReserved)}</span>
-      ),
+      key: 'status',
+      header: '상태',
+      cell: (s) => {
+        const lv = stockLevel(s)
+        if (lv === 'critical') return <Badge variant="destructive">안전재고 미달</Badge>
+        if (lv === 'reorder') return <Badge variant="warning">재주문 필요</Badge>
+        return <span className="text-sm text-muted-foreground">—</span>
+      },
     },
     {
       key: 'unitCost',
@@ -113,7 +127,7 @@ export default function StocksClient({ warehouses, warehouseId, data }: Props) {
     <div className="p-6">
       <PageHeader
         title="재고 현황"
-        description="창고별 품목 재고 보유·예약·가용 수량을 조회합니다"
+        description="창고별 품목 재고 보유 수량을 조회하고 안전재고 미달 품목을 식별합니다"
         className="mb-6"
       >
         <div className="w-64">
