@@ -188,6 +188,49 @@ public class JournalEntry extends BaseEntity {
     this.status = JournalEntryStatus.REVERSED;
   }
 
+  /**
+   * 역분개 전표 생성: POSTED 전표의 차/대를 라인별로 맞바꾼 새 전표를 만들어 즉시 전기(POSTED)한다. 새 전표는 원 전표와 같은 회계기간·전표일·통화·FX
+   * 스냅샷을 그대로 가져 원 전표를 차대 균형·기준통화까지 정확히 상쇄한다. 원 전표를 REVERSED로 표시하는 것은 호출자({@link #markReversed()})
+   * 책임이다. 마감 회계기간으로는 역분개할 수 없다.
+   */
+  public JournalEntry createReversal(String reversalEntryNo, String postedBy) {
+    if (status != JournalEntryStatus.POSTED) {
+      throw new ErpException(ErrorCode.JOURNAL_ENTRY_NOT_POSTED);
+    }
+    if (!fiscalPeriod.isOpen()) {
+      throw new ErpException(ErrorCode.FISCAL_PERIOD_CLOSED);
+    }
+    JournalEntry reversal = new JournalEntry();
+    reversal.entryNo = reversalEntryNo;
+    reversal.entryDate = this.entryDate;
+    reversal.fiscalPeriod = this.fiscalPeriod;
+    reversal.description = "역분개: " + this.entryNo;
+    reversal.entryType = this.entryType;
+    reversal.status = JournalEntryStatus.POSTED;
+    reversal.totalDebit = BigDecimal.ZERO;
+    reversal.totalCredit = BigDecimal.ZERO;
+    reversal.currency = this.currency;
+    reversal.baseAmount = this.baseAmount;
+    reversal.exchangeRate = this.exchangeRate;
+    reversal.postedAt = LocalDateTime.now();
+    reversal.postedBy = postedBy;
+    int lineNo = 1;
+    for (JournalLine line : this.lines) {
+      // 차변↔대변을 맞바꿔 원 라인을 상쇄한다.
+      JournalLine swapped =
+          JournalLine.of(
+              reversal,
+              lineNo++,
+              line.getAccount(),
+              line.getCreditAmount(),
+              line.getDebitAmount(),
+              line.getDescription(),
+              line.getDepartmentId());
+      reversal.addLine(swapped);
+    }
+    return reversal;
+  }
+
   public void linkReference(String referenceType, Long referenceId) {
     this.referenceType = referenceType;
     this.referenceId = referenceId;

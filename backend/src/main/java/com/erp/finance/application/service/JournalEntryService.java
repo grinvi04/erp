@@ -292,6 +292,36 @@ public class JournalEntryService {
     return JournalEntryResponse.from(entry);
   }
 
+  /**
+   * 역분개: 이미 전기된(POSTED) 전표를 차/대를 뒤집은 새 전표로 상쇄(원장 즉시 반영)하고 원 전표를 REVERSED로 표시한다. 새 역분개 전표가 전기 상태로
+   * 원장에 직접 반영되므로 전기 권한(finance:gl:approve)을 요구한다. 차대 균형은 도메인({@link JournalEntry#createReversal})이
+   * 보존한다. 원자적(단일 트랜잭션).
+   */
+  @Transactional
+  public JournalEntryResponse reverse(Long id) {
+    permissionChecker.require(Permission.FINANCE_GL_APPROVE);
+    String userId = currentUserProvider.getCurrentUserId();
+    if (userId == null) {
+      throw new ErpException(ErrorCode.APPROVER_NOT_AUTHORIZED);
+    }
+    JournalEntry entry = getOrThrow(id);
+    String reversalEntryNo = generateEntryNo(entry.getEntryDate());
+    JournalEntry reversal = entry.createReversal(reversalEntryNo, userId);
+    reversal.linkReference(ReferenceTypes.GL_REVERSAL, entry.getId());
+    entry.markReversed();
+    JournalEntry savedReversal = journalEntryRepository.save(reversal);
+    auditService.record(
+        ReferenceTypes.GL_ENTRY, entry.getId(), AuditLog.AuditAction.REVERSE, null, null);
+    log.atInfo()
+        .addKeyValue("event", "JOURNAL_ENTRY_REVERSED")
+        .addKeyValue("journalEntryId", entry.getId())
+        .addKeyValue("entryNo", entry.getEntryNo())
+        .addKeyValue("reversalEntryId", savedReversal.getId())
+        .addKeyValue("reversalEntryNo", savedReversal.getEntryNo())
+        .log("전표 역분개");
+    return JournalEntryResponse.from(savedReversal);
+  }
+
   private JournalEntry getOrThrow(Long id) {
     return journalEntryRepository
         .findById(id)
