@@ -37,6 +37,8 @@ class FinanceSummaryServiceTest {
     given(baseCurrencyService.currentBaseCurrencyCode()).willReturn("KRW");
     // 통화별 분리(12345.67 KRW + 89.00 USD환산)와 별개의 기준통화 합계
     given(apInvoiceRepository.sumUnpaidBaseTotal()).willReturn(new BigDecimal("131045.67"));
+    // 환율 미산정으로 합계에서 빠진 미지급 행이 있으면 partial=true(과소 표시를 정직하게 표기)
+    given(apInvoiceRepository.countUnpaidUnconverted()).willReturn(1L);
 
     FinanceSummaryResponse result = financeSummaryService.getSummary();
 
@@ -51,6 +53,7 @@ class FinanceSummaryServiceTest {
     // 기준통화 합계 추가
     assertThat(result.baseCurrency()).isEqualTo("KRW");
     assertThat(result.unpaidBaseTotal()).isEqualByComparingTo("131045.67");
+    assertThat(result.unpaidBaseTotalPartial()).isTrue();
   }
 
   @Test
@@ -67,5 +70,7 @@ class FinanceSummaryServiceTest {
     assertThat(result.unpaidAmounts()).isEmpty();
     assertThat(result.unpaidBaseTotal()).isNull();
     assertThat(result.baseCurrency()).isEqualTo("KRW");
+    // 미산정 미지급 행이 없으므로(기본 0) 일부 미환산 아님
+    assertThat(result.unpaidBaseTotalPartial()).isFalse();
   }
 }

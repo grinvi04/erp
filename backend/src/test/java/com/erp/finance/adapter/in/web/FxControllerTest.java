@@ -41,6 +41,41 @@ class FxControllerTest {
   @MockBean private ExchangeRateService exchangeRateService;
 
   @Test
+  void getOverview_returnsAggregateOk() throws Exception {
+    // 바 경로 GET /api/finance/fx — 기준통화·환율·환차계정을 한 번에 200으로 반환(이전엔 매핑 부재로 500).
+    given(baseCurrencyService.getBaseCurrency()).willReturn(BaseCurrencyResponse.of("KRW"));
+    given(exchangeRateService.findAll())
+        .willReturn(
+            List.of(
+                new ExchangeRateResponse(
+                    1L, "USD", "KRW", LocalDate.of(2026, 6, 24), new BigDecimal("1500"))));
+    given(baseCurrencyService.getFxGainLossAccounts())
+        .willReturn(FxGainLossAccountResponse.of(3L, 4L));
+
+    mockMvc
+        .perform(get("/api/finance/fx"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.baseCurrency.baseCurrency").value("KRW"))
+        .andExpect(jsonPath("$.data.rates[0].fromCurrency").value("USD"))
+        .andExpect(jsonPath("$.data.gainLossAccounts.fxGainAccountId").value(3));
+  }
+
+  @Test
+  void getOverview_noData_returnsDefaultsOk() throws Exception {
+    // 데이터가 없어도 200: 기준통화 기본(KRW)·빈 환율·환차계정 null.
+    given(baseCurrencyService.getBaseCurrency()).willReturn(BaseCurrencyResponse.of("KRW"));
+    given(exchangeRateService.findAll()).willReturn(List.of());
+    given(baseCurrencyService.getFxGainLossAccounts())
+        .willReturn(FxGainLossAccountResponse.of(null, null));
+
+    mockMvc
+        .perform(get("/api/finance/fx"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.baseCurrency.baseCurrency").value("KRW"))
+        .andExpect(jsonPath("$.data.rates").isEmpty());
+  }
+
+  @Test
   void getBaseCurrency_returnsOk() throws Exception {
     given(baseCurrencyService.getBaseCurrency()).willReturn(BaseCurrencyResponse.of("KRW"));
 

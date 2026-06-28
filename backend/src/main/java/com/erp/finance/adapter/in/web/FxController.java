@@ -7,6 +7,7 @@ import com.erp.finance.application.dto.ExchangeRateCreateRequest;
 import com.erp.finance.application.dto.ExchangeRateResponse;
 import com.erp.finance.application.dto.FxGainLossAccountResponse;
 import com.erp.finance.application.dto.FxGainLossAccountUpdateRequest;
+import com.erp.finance.application.dto.FxOverviewResponse;
 import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.application.service.ExchangeRateService;
 import jakarta.validation.Valid;
@@ -29,6 +30,17 @@ public class FxController {
 
   private final BaseCurrencyService baseCurrencyService;
   private final ExchangeRateService exchangeRateService;
+
+  /** FX 설정 한눈 조회 — 기준통화·환율·환차계정 통합 반환(데이터 없어도 기본값으로 200). */
+  @GetMapping
+  public ResponseEntity<ApiResponse<FxOverviewResponse>> getOverview() {
+    return ResponseEntity.ok(
+        ApiResponse.ok(
+            new FxOverviewResponse(
+                baseCurrencyService.getBaseCurrency(),
+                exchangeRateService.findAll(),
+                baseCurrencyService.getFxGainLossAccounts())));
+  }
 
   @GetMapping("/base-currency")
   public ResponseEntity<ApiResponse<BaseCurrencyResponse>> getBaseCurrency() {

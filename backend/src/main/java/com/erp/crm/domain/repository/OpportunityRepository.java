@@ -56,4 +56,15 @@ public interface OpportunityRepository extends JpaRepository<Opportunity, Long> 
           + "(:scoped = false OR o.ownerId IN :ownerIds) AND o.baseAmount IS NOT NULL")
   BigDecimal sumOpenBaseTotal(
       @Param("scoped") boolean scoped, @Param("ownerIds") java.util.Collection<String> ownerIds);
+
+  /**
+   * 진행중인데 기준통화 환산이 안 된(base_amount NULL=환율 미산정) 기회 수. {@link #sumOpenBaseTotal}에서 제외된 행이 있는지 판정해
+   * 파이프라인 환산 합계가 "일부 미환산"임을 정직하게 표기하기 위함(스코프 조건은 동일).
+   */
+  @Query(
+      "SELECT COUNT(o) FROM Opportunity o "
+          + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
+          + "(:scoped = false OR o.ownerId IN :ownerIds) AND o.baseAmount IS NULL")
+  long countOpenUnconverted(
+      @Param("scoped") boolean scoped, @Param("ownerIds") java.util.Collection<String> ownerIds);
 }

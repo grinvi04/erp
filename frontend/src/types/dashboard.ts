@@ -15,6 +15,8 @@ export interface FinanceSummary {
   baseCurrency: string
   // 미지급 금액의 기준통화 환산 합계(base_amount 산정분만). 산정분 없으면 null.
   unpaidBaseTotal: number | null
+  // 환율 미산정으로 환산 합계에서 제외된 미지급 행이 있으면 true(합계가 일부 미환산).
+  unpaidBaseTotalPartial: boolean
 }
 
 export interface InventorySummary {
@@ -31,4 +33,6 @@ export interface CrmSummary {
   baseCurrency: string
   // 진행중 파이프라인 금액의 기준통화 환산 합계(base_amount 산정분만). 산정분 없으면 null.
   openOpportunityBaseTotal: number | null
+  // 환율 미산정으로 환산 합계에서 제외된 진행중 기회가 있으면 true(합계가 일부 미환산).
+  openOpportunityBaseTotalPartial: boolean
 }

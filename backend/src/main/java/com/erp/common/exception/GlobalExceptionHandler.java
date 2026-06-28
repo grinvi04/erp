@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -53,6 +54,17 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiResponse<Void>> handleInvalidInput(Exception e) {
     ErrorCode code = ErrorCode.INVALID_INPUT;
     log.warn("Invalid client input: {}", e.getMessage());
+    return ResponseEntity.status(code.getHttpStatus())
+        .body(ApiResponse.error(code.getCode(), code.getMessage()));
+  }
+
+  /**
+   * 존재하지 않는 경로 — 정적 리소스로 폴백하다 매핑 실패한 케이스. 기본 catch-all로 떨어지면 500(C999)으로 잘못 분류되므로 명시적으로 404를 돌려준다.
+   */
+  @ExceptionHandler(NoResourceFoundException.class)
+  public ResponseEntity<ApiResponse<Void>> handleNoResource(NoResourceFoundException e) {
+    ErrorCode code = ErrorCode.RESOURCE_NOT_FOUND;
+    log.warn("No resource found: {}", e.getResourcePath());
     return ResponseEntity.status(code.getHttpStatus())
         .body(ApiResponse.error(code.getCode(), code.getMessage()));
   }

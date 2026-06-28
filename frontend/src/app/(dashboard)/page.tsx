@@ -36,19 +36,23 @@ function fmtNum(n: number) {
   return n.toLocaleString('ko-KR')
 }
 // 금액 KPI — 기준통화 환산 합계를 헤드라인으로(균일한 한 줄), 통화가 여럿이면 내역을 sub로.
+// partial=true면 환율 미산정으로 합계에서 빠진 외화가 있다는 뜻 → 통화별 내역을 항상 노출하고
+// "일부 미환산"을 명시해 과소 표시를 조용히 숨기지 않는다.
 function moneyKpi(
   amounts: Parameters<typeof formatMoneyList>[0] | undefined,
   baseTotal: number | null | undefined,
   baseCurrency: string | undefined,
   hasAny: boolean,
+  partial: boolean,
 ): { value: string; sub?: string } {
   const list = amounts ?? []
   if (!hasAny || list.length === 0) return { value: '₩0' }
   if (baseTotal != null && baseCurrency) {
-    return {
-      value: formatMoneyOne(baseTotal, baseCurrency),
-      sub: list.length > 1 ? formatMoneyList(list) : undefined,
-    }
+    const breakdown = list.length > 1 || partial ? formatMoneyList(list) : undefined
+    const sub = partial
+      ? `${breakdown ? `${breakdown} · ` : ''}일부 미환산(환율 미설정)`
+      : breakdown
+    return { value: formatMoneyOne(baseTotal, baseCurrency), sub }
   }
   return { value: formatMoneyList(list) }
 }
@@ -80,12 +84,14 @@ export default async function DashboardPage() {
     finance?.unpaidBaseTotal,
     finance?.baseCurrency,
     !!finance?.unpaidInvoices,
+    !!finance?.unpaidBaseTotalPartial,
   )
   const pipelineKpi = moneyKpi(
     crm?.openOpportunityAmounts,
     crm?.openOpportunityBaseTotal,
     crm?.baseCurrency,
     !!crm?.openOpportunities,
+    !!crm?.openOpportunityBaseTotalPartial,
   )
 
   return (

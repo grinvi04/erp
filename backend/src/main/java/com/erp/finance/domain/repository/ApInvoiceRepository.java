@@ -80,6 +80,18 @@ public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
           + "AND i.baseAmount IS NOT NULL")
   BigDecimal sumUnpaidBaseTotal();
 
+  /**
+   * 미지급인데 기준통화 환산이 안 된(base_amount NULL=환율 미산정) 인보이스 수. {@link #sumUnpaidBaseTotal()}에서 제외된 행이 있는지
+   * 판정해, 환산 합계가 "일부 미환산"임을 정직하게 표기하기 위함(미지급 조건은 동일).
+   */
+  @Query(
+      "SELECT COUNT(i) FROM ApInvoice i "
+          + "WHERE i.status NOT IN (com.erp.finance.domain.model.ApInvoiceStatus.PAID, "
+          + "com.erp.finance.domain.model.ApInvoiceStatus.CANCELLED) "
+          + "AND i.totalAmount > i.paidAmount "
+          + "AND i.baseAmount IS NULL")
+  long countUnpaidUnconverted();
+
   @Query(
       "SELECT EXTRACT(MONTH FROM i.invoiceDate) AS month, i.currency AS currency, "
           + "COUNT(i) AS count, COALESCE(SUM(i.totalAmount), 0) AS totalAmount "

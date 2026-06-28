@@ -30,6 +30,7 @@ public class FinanceSummaryService {
         unpaidAmounts,
         journalEntryRepository.countByStatus(JournalEntryStatus.DRAFT),
         baseCurrencyService.currentBaseCurrencyCode(),
-        apInvoiceRepository.sumUnpaidBaseTotal());
+        apInvoiceRepository.sumUnpaidBaseTotal(),
+        apInvoiceRepository.countUnpaidUnconverted() > 0);
   }
 }
