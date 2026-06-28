@@ -8,6 +8,7 @@ package com.erp.finance.application;
 public final class ReferenceTypes {
 
   public static final String GL_ENTRY = "GL_ENTRY";
+  public static final String GL_REVERSAL = "GL_REVERSAL";
   public static final String AP_INVOICE = "AP_INVOICE";
   public static final String AP_PAYMENT = "AP_PAYMENT";
   public static final String AR_INVOICE = "AR_INVOICE";
