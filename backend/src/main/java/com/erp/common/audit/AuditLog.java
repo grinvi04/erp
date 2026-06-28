@@ -87,7 +87,8 @@ public class AuditLog {
     VIEW,
     APPROVE,
     REJECT,
-    WITHDRAW
+    WITHDRAW,
+    REVERSE
   }
 
   public Long getId() {

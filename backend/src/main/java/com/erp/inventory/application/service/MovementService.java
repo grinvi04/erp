@@ -281,6 +281,10 @@ public class MovementService {
     if (type == MovementType.TRANSFER && (from == null || to == null)) {
       throw new ErpException(ErrorCode.LOCATION_REQUIRED);
     }
+    // 조정(ADJUSTMENT)은 증감 방향이 필요하다 — from/to 둘 다 비면 무동작(no-op)이므로 최소 한 쪽은 필수.
+    if (type == MovementType.ADJUSTMENT && from == null && to == null) {
+      throw new ErpException(ErrorCode.LOCATION_REQUIRED);
+    }
   }
 
   private String generateMovementNo() {

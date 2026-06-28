@@ -11,6 +11,7 @@ import com.erp.inventory.application.dto.UomCreateRequest;
 import com.erp.inventory.application.dto.UomResponse;
 import com.erp.inventory.application.dto.UomUpdateRequest;
 import com.erp.inventory.domain.model.UnitOfMeasure;
+import com.erp.inventory.domain.repository.ItemRepository;
 import com.erp.inventory.domain.repository.UnitOfMeasureRepository;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +27,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 class UomServiceTest {
 
   @Mock private UnitOfMeasureRepository uomRepository;
+  @Mock private ItemRepository itemRepository;
   @Mock private com.erp.common.security.PermissionChecker permissionChecker;
   @InjectMocks private UomService uomService;
 
@@ -94,9 +96,21 @@ class UomServiceTest {
   void delete_existingUom_softDeletes() {
     UnitOfMeasure uom = UnitOfMeasure.of("EA", "개");
     given(uomRepository.findById(1L)).willReturn(Optional.of(uom));
+    given(itemRepository.existsByUom_Id(1L)).willReturn(false);
 
     uomService.delete(1L);
 
     assertThat(uom.getDeletedAt()).isNotNull();
+  }
+
+  @Test
+  void delete_referencedByItem_throwsUomInUse() {
+    UnitOfMeasure uom = UnitOfMeasure.of("EA", "개");
+    given(uomRepository.findById(1L)).willReturn(Optional.of(uom));
+    given(itemRepository.existsByUom_Id(1L)).willReturn(true);
+
+    ErpException ex = assertThrows(ErpException.class, () -> uomService.delete(1L));
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.UOM_IN_USE);
+    assertThat(uom.getDeletedAt()).isNull();
   }
 }

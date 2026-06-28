@@ -75,4 +75,9 @@ public class JournalEntryController {
   public ResponseEntity<ApiResponse<JournalEntryResponse>> withdraw(@PathVariable Long id) {
     return ResponseEntity.ok(ApiResponse.ok(journalEntryService.withdraw(id)));
   }
+
+  @PostMapping("/{id}/reverse")
+  public ResponseEntity<ApiResponse<JournalEntryResponse>> reverse(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(journalEntryService.reverse(id)));
+  }
 }
