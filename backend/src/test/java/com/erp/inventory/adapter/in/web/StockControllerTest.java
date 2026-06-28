@@ -44,7 +44,9 @@ class StockControllerTest {
         null,
         new BigDecimal("10"),
         BigDecimal.ZERO,
-        BigDecimal.ONE);
+        BigDecimal.ONE,
+        new BigDecimal("5"),
+        new BigDecimal("3"));
   }
 
   @Test
