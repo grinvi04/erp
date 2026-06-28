@@ -36,7 +36,7 @@ class CustomerServiceTest {
   void create_newCode_returnsCustomerResponse() {
     given(customerRepository.existsByCode("C001")).willReturn(false);
     Customer customer =
-        Customer.of("C001", "테스트고객사", "123-45-67890", "홍길동", "hong@test.com", "010-1234-5678", 30);
+        Customer.of("C001", "테스트고객사", "120-81-47521", "홍길동", "hong@test.com", "010-1234-5678", 30);
     given(customerRepository.save(any())).willReturn(customer);
 
     CustomerResponse result =
@@ -44,7 +44,7 @@ class CustomerServiceTest {
             new CustomerCreateRequest(
                 "C001",
                 "테스트고객사",
-                "123-45-67890",
+                "120-81-47521",
                 "홍길동",
                 "hong@test.com",
                 "010-1234-5678",
@@ -53,6 +53,21 @@ class CustomerServiceTest {
 
     assertThat(result.code()).isEqualTo("C001");
     assertThat(result.paymentTerms()).isEqualTo(30);
+  }
+
+  @Test
+  void create_invalidBusinessNo_throwsBusinessNoInvalid() {
+    given(customerRepository.existsByCode("C002")).willReturn(false);
+
+    ErpException ex =
+        assertThrows(
+            ErpException.class,
+            () ->
+                customerService.create(
+                    new CustomerCreateRequest(
+                        "C002", "고객사", "123-45-67890", null, null, null, 0, null)));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.BUSINESS_NO_INVALID);
   }
 
   @Test

@@ -36,7 +36,7 @@ class VendorServiceTest {
   void create_newCode_returnsVendorResponse() {
     given(vendorRepository.existsByCode("V001")).willReturn(false);
     Vendor vendor =
-        Vendor.of("V001", "테스트공급사", "123-45-67890", "홍길동", "hong@test.com", "010-1234-5678", 30);
+        Vendor.of("V001", "테스트공급사", "120-81-47521", "홍길동", "hong@test.com", "010-1234-5678", 30);
     given(vendorRepository.save(any())).willReturn(vendor);
 
     VendorResponse result =
@@ -44,7 +44,7 @@ class VendorServiceTest {
             new VendorCreateRequest(
                 "V001",
                 "테스트공급사",
-                "123-45-67890",
+                "120-81-47521",
                 "홍길동",
                 "hong@test.com",
                 "010-1234-5678",
