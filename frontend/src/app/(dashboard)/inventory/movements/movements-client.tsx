@@ -6,6 +6,7 @@ import { PERM } from '@/lib/permissions'
 import { PlusIcon, TrashIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -526,11 +527,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
               </div>
               <div className="grid gap-1.5">
                 <Label>이동일 *</Label>
-                <Input
-                  type="date"
-                  value={movementDate}
-                  onChange={(e) => setMovementDate(e.target.value)}
-                />
+                <DatePicker value={movementDate} onChange={setMovementDate} />
               </div>
               {!isTransfer && (
                 <div className="grid gap-1.5">

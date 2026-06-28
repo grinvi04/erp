@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -537,7 +538,7 @@ export default function EmployeesClient({
             </div>
             <div className="grid gap-1.5">
               <Label>입사일 *</Label>
-              <Input type="date" value={hireDate} onChange={(e) => setHireDate(e.target.value)} />
+              <DatePicker value={hireDate} onChange={setHireDate} />
             </div>
             <div className="grid gap-1.5">
               <Label>부서 *</Label>
@@ -613,7 +614,7 @@ export default function EmployeesClient({
             </div>
             <div className="grid gap-1.5">
               <Label>생년월일</Label>
-              <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+              <DatePicker value={dob} onChange={setDob} />
             </div>
             <div className="grid gap-1.5">
               <Label>연락처</Label>
@@ -891,11 +892,7 @@ export default function EmployeesClient({
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
               <Label>퇴직일 *</Label>
-              <Input
-                type="date"
-                value={terminationDate}
-                onChange={(e) => setTerminationDate(e.target.value)}
-              />
+              <DatePicker value={terminationDate} onChange={setTerminationDate} />
             </div>
           </div>
           <DialogFooter showCloseButton>
