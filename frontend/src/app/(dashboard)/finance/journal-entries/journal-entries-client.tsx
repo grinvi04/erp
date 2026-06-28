@@ -36,6 +36,7 @@ import { DataTable, type Column } from '@/components/ui/data-table'
 import { DetailSheet, DetailRow, DetailSection } from '@/components/ui/detail-sheet'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { formatMoneyOne } from '@/lib/money'
@@ -657,11 +658,7 @@ export default function JournalEntriesClient({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="grid gap-1.5">
                 <Label>전표일 *</Label>
-                <Input
-                  type="date"
-                  value={entryDate}
-                  onChange={(e) => setEntryDate(e.target.value)}
-                />
+                <DatePicker value={entryDate} onChange={setEntryDate} />
               </div>
               <div className="grid gap-1.5">
                 <Label>유형 *</Label>

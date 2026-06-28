@@ -6,6 +6,7 @@ import { DownloadIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -231,21 +232,19 @@ export default function AuditClient({
 
         <div className="grid gap-1.5">
           <Label className="text-xs text-muted-foreground">시작일</Label>
-          <Input
-            type="date"
+          <DatePicker
             value={filters.from}
             max={filters.to || undefined}
-            onChange={(e) => applyFilters({ from: e.target.value })}
+            onChange={(v) => applyFilters({ from: v })}
           />
         </div>
 
         <div className="grid gap-1.5">
           <Label className="text-xs text-muted-foreground">종료일</Label>
-          <Input
-            type="date"
+          <DatePicker
             value={filters.to}
             min={filters.from || undefined}
-            onChange={(e) => applyFilters({ to: e.target.value })}
+            onChange={(v) => applyFilters({ to: v })}
           />
         </div>
       </div>
