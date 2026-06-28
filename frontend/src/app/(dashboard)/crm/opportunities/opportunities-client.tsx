@@ -35,6 +35,7 @@ import {
 } from './actions'
 import type { Opportunity, CrmAccount, PipelineStage } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
+import { formatUserName } from '@/lib/utils'
 
 function formatAmount(amount: number | null, currency: string) {
   if (amount === null) return '—'
@@ -51,9 +52,10 @@ interface Props {
   data: PageResponse<Opportunity>
   accounts: CrmAccount[]
   stages: PipelineStage[]
+  names: Record<string, string>
 }
 
-export default function OpportunitiesClient({ data, accounts, stages }: Props) {
+export default function OpportunitiesClient({ data, accounts, stages, names }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -324,6 +326,17 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
       sortable: true,
       sortValue: (opp) => opp.closeDate,
       cell: (opp) => <span className="text-sm text-muted-foreground">{opp.closeDate ?? '—'}</span>,
+    },
+    {
+      key: 'owner',
+      header: '담당자',
+      sortable: true,
+      sortValue: (opp) => formatUserName(opp.ownerId, names),
+      cell: (opp) => (
+        <span className="text-sm" title={opp.ownerId}>
+          {formatUserName(opp.ownerId, names)}
+        </span>
+      ),
     },
     {
       key: 'actions',

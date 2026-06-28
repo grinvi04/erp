@@ -1,4 +1,5 @@
 import { apiGetPage, getMyPermissions } from '@/lib/api'
+import { resolveUserNames } from '@/lib/users'
 import { PERM } from '@/lib/permissions'
 import type { PageResponse } from '@/types/api'
 import type { AuditLog } from '@/types/audit'
@@ -41,6 +42,7 @@ export default async function AuditPage(props: {
   const typeFilter = entityType ? `&entityType=${encodeURIComponent(entityType)}` : ''
 
   const data = await apiGetPage<AuditLog>(`/api/audit/logs?page=${page}&size=${size}${typeFilter}`)
+  const names = await resolveUserNames(data.content.map((log) => log.performedBy))
 
-  return <AuditClient data={data as PageResponse<AuditLog>} entityType={entityType} />
+  return <AuditClient data={data as PageResponse<AuditLog>} entityType={entityType} names={names} />
 }
