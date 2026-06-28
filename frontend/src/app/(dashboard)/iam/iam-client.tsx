@@ -262,13 +262,16 @@ export default function IamClient({
                     </div>
                     <div className="grid grid-cols-2 gap-1">
                       {perms.map((p) => (
-                        <label key={p} className="flex items-center gap-2 text-sm">
+                        <label key={p} className="flex min-w-0 items-center gap-2 text-sm">
                           <input
                             type="checkbox"
+                            className="shrink-0"
                             checked={form.permissions.has(p)}
                             onChange={() => togglePerm(p)}
                           />
-                          <span className="font-mono text-xs">{p}</span>
+                          <span className="truncate font-mono text-xs" title={p}>
+                            {p}
+                          </span>
                         </label>
                       ))}
                     </div>
