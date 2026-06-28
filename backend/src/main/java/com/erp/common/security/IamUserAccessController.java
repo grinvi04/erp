@@ -4,6 +4,7 @@ import com.erp.common.response.ApiResponse;
 import com.erp.common.security.dto.AccessProfileRequest;
 import com.erp.common.security.dto.AccessProfileResponse;
 import com.erp.common.security.dto.RoleResponse;
+import com.erp.common.security.dto.UserLookupResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class IamUserAccessController {
 
   private final IamService iamService;
+
+  /** sub 존재 검증 — 화면이 유령 sub에 역할/프로파일을 무단 배정하지 않도록 사전 확인한다. */
+  @GetMapping
+  public ResponseEntity<ApiResponse<UserLookupResponse>> lookup(@PathVariable String userId) {
+    return ResponseEntity.ok(ApiResponse.ok(iamService.lookupUser(userId)));
+  }
 
   @GetMapping("/roles")
   public ResponseEntity<ApiResponse<List<RoleResponse>>> userRoles(@PathVariable String userId) {

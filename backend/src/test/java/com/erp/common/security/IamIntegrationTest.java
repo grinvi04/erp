@@ -75,6 +75,22 @@ class IamIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void lookupUser_ghostSub_unknown_butKnownAfterRoleAssignment() {
+    // 아무 흔적 없는 임의 문자열 → 알 수 없는 사용자.
+    assertThat(iamService.lookupUser("ghost-sub-typo").known()).isFalse();
+
+    RoleResponse role =
+        iamService.createRole(
+            new RoleCreateRequest("OPS", "운영", null, Set.of(Permission.CRM_READ)));
+    iamService.assignRole("dave", role.id());
+
+    // 역할이 배정된 sub는 실재 사용자로 인식된다.
+    var lookup = iamService.lookupUser("dave");
+    assertThat(lookup.known()).isTrue();
+    assertThat(lookup.roleCount()).isEqualTo(1);
+  }
+
+  @Test
   void unassignRole_unknownAssignment_throws() {
     assertThrows(
         com.erp.common.exception.ErpException.class, () -> iamService.unassignRole("nobody", 999L));

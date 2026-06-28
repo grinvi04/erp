@@ -73,7 +73,15 @@ class EmployeeAuditIntegrationTest extends AbstractIntegrationTest {
 
     List<AuditLog> logs =
         auditLogRepository
-            .search(TEST_TENANT_ID, "EMPLOYEE", created.id(), "hr-admin", PageRequest.of(0, 10))
+            .search(
+                TEST_TENANT_ID,
+                "EMPLOYEE",
+                created.id(),
+                "hr-admin",
+                null,
+                null,
+                null,
+                PageRequest.of(0, 10))
             .getContent();
 
     assertThat(logs).hasSize(1);
@@ -91,7 +99,15 @@ class EmployeeAuditIntegrationTest extends AbstractIntegrationTest {
 
     List<AuditLog> logs =
         auditLogRepository
-            .search(TEST_TENANT_ID, "EMPLOYEE", created.id(), "hr-admin", PageRequest.of(0, 10))
+            .search(
+                TEST_TENANT_ID,
+                "EMPLOYEE",
+                created.id(),
+                "hr-admin",
+                null,
+                null,
+                null,
+                PageRequest.of(0, 10))
             .getContent();
 
     // 같은 트랜잭션 내 동일 타임스탬프라 순서 비의존 — 두 이벤트 모두 기록됐는지 확인.

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { PlusIcon, PencilIcon, Trash2Icon, SearchIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, SearchIcon, TriangleAlertIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,6 +33,7 @@ import {
   createRole,
   updateRole,
   deleteRole,
+  lookupUser,
   getUserRoles,
   getAccessProfile,
   assignRole,
@@ -293,23 +294,36 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
   const [sub, setSub] = useState('')
   const [loaded, setLoaded] = useState<{
     sub: string
+    known: boolean
     roleIds: Set<number>
     profile: AccessProfile | null
   } | null>(null)
+  // 알 수 없는 sub일 때 관리자가 "유효한 사용자"임을 명시 확인해야 편집이 열린다(유령 sub 무단 배정 방지).
+  const [confirmedUnknown, setConfirmedUnknown] = useState(false)
   const [scope, setScope] = useState<DataScope>('ALL')
   const [deptId, setDeptId] = useState('')
   const [limit, setLimit] = useState('')
+
+  // 알 수 없는 사용자이고 아직 확인하지 않았으면 모든 배정·저장을 잠근다.
+  const locked = loaded ? !loaded.known && !confirmedUnknown : true
 
   function load() {
     const target = sub.trim()
     if (!target) return
     startTransition(async () => {
       try {
-        const [userRoles, profile] = await Promise.all([
+        const [lookup, userRoles, profile] = await Promise.all([
+          lookupUser(target),
           getUserRoles(target),
           getAccessProfile(target),
         ])
-        setLoaded({ sub: target, roleIds: new Set(userRoles.map((r) => r.id)), profile })
+        setConfirmedUnknown(false)
+        setLoaded({
+          sub: target,
+          known: lookup.known,
+          roleIds: new Set(userRoles.map((r) => r.id)),
+          profile,
+        })
         setScope(profile?.dataScope ?? 'ALL')
         setDeptId(profile?.departmentId != null ? String(profile.departmentId) : '')
         setLimit(profile?.approvalLimit != null ? String(profile.approvalLimit) : '')
@@ -375,6 +389,31 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
 
         {loaded && (
           <div className="space-y-5 border-t pt-4">
+            {!loaded.known && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                <div className="flex items-start gap-2 text-destructive">
+                  <TriangleAlertIcon className="size-4 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="font-medium">알 수 없는 사용자</div>
+                    <p className="mt-0.5 text-muted-foreground">
+                      이 ID로 된 감사 기록·역할·접근 프로파일이 없습니다. Keycloak sub가 정확한지
+                      확인하세요. 유령 ID에 권한을 잘못 배정하지 않도록 아래를 확인해야 편집이
+                      열립니다.
+                    </p>
+                    {canWrite && (
+                      <label className="mt-2 flex items-center gap-2 text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={confirmedUnknown}
+                          onChange={(e) => setConfirmedUnknown(e.target.checked)}
+                        />
+                        <span>유효한 사용자임을 확인했습니다</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             <div>
               <div className="text-sm font-medium mb-2">
                 역할 배정 — <span className="font-mono text-xs">{loaded.sub}</span>
@@ -387,7 +426,7 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
                       <input
                         type="checkbox"
                         checked={has}
-                        disabled={!canWrite || isPending}
+                        disabled={!canWrite || isPending || locked}
                         onChange={() => toggleRole(role.id, has)}
                       />
                       <span>
@@ -438,7 +477,12 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
                 </div>
               </div>
               {canWrite && (
-                <Button className="mt-3" size="sm" onClick={saveProfile} disabled={isPending}>
+                <Button
+                  className="mt-3"
+                  size="sm"
+                  onClick={saveProfile}
+                  disabled={isPending || locked}
+                >
                   프로파일 저장
                 </Button>
               )}
