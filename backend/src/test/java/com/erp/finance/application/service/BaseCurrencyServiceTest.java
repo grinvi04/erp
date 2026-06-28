@@ -15,6 +15,8 @@ import com.erp.finance.application.dto.BaseCurrencyResponse;
 import com.erp.finance.application.dto.BaseCurrencyUpdateRequest;
 import com.erp.finance.application.dto.FxGainLossAccountResponse;
 import com.erp.finance.application.dto.FxGainLossAccountUpdateRequest;
+import com.erp.finance.application.dto.VatAccountResponse;
+import com.erp.finance.application.dto.VatAccountUpdateRequest;
 import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.TenantBaseCurrency;
 import com.erp.finance.domain.repository.AccountRepository;
@@ -188,6 +190,67 @@ class BaseCurrencyServiceTest {
             () ->
                 baseCurrencyService.updateFxGainLossAccounts(
                     new FxGainLossAccountUpdateRequest(10L, 20L)));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+  }
+
+  @Test
+  void getVatAccounts_existing_returnsAccountIds() {
+    Account receivable = mock(Account.class);
+    Account payable = mock(Account.class);
+    given(receivable.getId()).willReturn(11L);
+    given(payable.getId()).willReturn(21L);
+    TenantBaseCurrency entity = TenantBaseCurrency.of("KRW");
+    entity.assignVatAccounts(receivable, payable);
+    given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(entity));
+
+    VatAccountResponse result = baseCurrencyService.getVatAccounts();
+
+    assertThat(result.vatReceivableAccountId()).isEqualTo(11L);
+    assertThat(result.vatPayableAccountId()).isEqualTo(21L);
+  }
+
+  @Test
+  void getVatAccounts_noSetting_returnsNulls() {
+    given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.empty());
+
+    VatAccountResponse result = baseCurrencyService.getVatAccounts();
+
+    assertThat(result.vatReceivableAccountId()).isNull();
+    assertThat(result.vatPayableAccountId()).isNull();
+  }
+
+  @Test
+  void updateVatAccounts_setsBothAccounts() {
+    Account receivable = mock(Account.class);
+    Account payable = mock(Account.class);
+    given(receivable.getId()).willReturn(11L);
+    given(payable.getId()).willReturn(21L);
+    given(accountRepository.findById(11L)).willReturn(Optional.of(receivable));
+    given(accountRepository.findById(21L)).willReturn(Optional.of(payable));
+    TenantBaseCurrency entity = TenantBaseCurrency.of("KRW");
+    given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(entity));
+
+    VatAccountResponse result =
+        baseCurrencyService.updateVatAccounts(new VatAccountUpdateRequest(11L, 21L));
+
+    assertThat(result.vatReceivableAccountId()).isEqualTo(11L);
+    assertThat(result.vatPayableAccountId()).isEqualTo(21L);
+    assertThat(entity.getVatReceivableAccount()).isSameAs(receivable);
+    assertThat(entity.getVatPayableAccount()).isSameAs(payable);
+  }
+
+  @Test
+  void updateVatAccounts_withoutPermission_throwsForbidden() {
+    // AC-10: FINANCE_SETTING_WRITE 없으면 403.
+    doThrow(new ErpException(ErrorCode.FORBIDDEN))
+        .when(permissionChecker)
+        .require(Permission.FINANCE_SETTING_WRITE);
+
+    ErpException ex =
+        assertThrows(
+            ErpException.class,
+            () -> baseCurrencyService.updateVatAccounts(new VatAccountUpdateRequest(11L, 21L)));
 
     assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
   }

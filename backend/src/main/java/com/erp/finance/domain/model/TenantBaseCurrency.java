@@ -45,6 +45,16 @@ public class TenantBaseCurrency extends BaseEntity {
   @JoinColumn(name = "fx_loss_account_id")
   private Account fxLossAccount;
 
+  // 부가세 통제계정 — 부가세대급금(매입, AP)·부가세예수금(매출, AR). 각각 독립적으로 쓰며,
+  // 미설정이면 해당 인보이스 부가세 라인을 생략한다(폴백).
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "vat_receivable_account_id")
+  private Account vatReceivableAccount;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "vat_payable_account_id")
+  private Account vatPayableAccount;
+
   protected TenantBaseCurrency() {}
 
   public static TenantBaseCurrency of(String baseCurrency) {
@@ -63,6 +73,12 @@ public class TenantBaseCurrency extends BaseEntity {
     this.fxLossAccount = fxLossAccount;
   }
 
+  /** 부가세 통제계정 설정 — 부가세대급금(매입)·부가세예수금(매출). 각각 nullable(미설정 시 부가세 분개 폴백). */
+  public void assignVatAccounts(Account vatReceivableAccount, Account vatPayableAccount) {
+    this.vatReceivableAccount = vatReceivableAccount;
+    this.vatPayableAccount = vatPayableAccount;
+  }
+
   public Long getId() {
     return id;
   }
@@ -77,5 +93,13 @@ public class TenantBaseCurrency extends BaseEntity {
 
   public Account getFxLossAccount() {
     return fxLossAccount;
+  }
+
+  public Account getVatReceivableAccount() {
+    return vatReceivableAccount;
+  }
+
+  public Account getVatPayableAccount() {
+    return vatPayableAccount;
   }
 }
