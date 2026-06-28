@@ -183,7 +183,7 @@ export function DataTable<T>({
                             <ArrowDown className="h-3.5 w-3.5" />
                           )
                         ) : (
-                          <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/40" />
+                          <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />
                         )}
                       </button>
                     ) : (

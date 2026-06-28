@@ -448,8 +448,8 @@ export default function JournalEntriesClient({
       </PageHeader>
 
       {/* Fiscal Period Selector */}
-      <div className="mb-6 flex gap-4">
-        <div className="w-48">
+      <div className="mb-6 flex flex-wrap gap-4">
+        <div className="w-full sm:w-48">
           <Label className="text-xs text-muted-foreground mb-1 block">회계연도</Label>
           <Select
             value={selectedYearId != null ? String(selectedYearId) : ''}
@@ -468,7 +468,7 @@ export default function JournalEntriesClient({
           </Select>
         </div>
         {selectedYearId != null && periods.length > 0 && (
-          <div className="w-56">
+          <div className="w-full sm:w-80">
             <Label className="text-xs text-muted-foreground mb-1 block">회계 기간</Label>
             <Select
               value={selectedPeriodId != null ? String(selectedPeriodId) : ''}

@@ -84,7 +84,7 @@ function ChangeBlock({ label, value }: { label: string; value: string | null }) 
     <div>
       <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
       {value ? (
-        <pre className="overflow-x-auto rounded-md border border-border bg-muted/40 p-2 text-xs text-foreground">
+        <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-md border border-border bg-muted/40 p-2 text-xs text-foreground">
           {prettyJson(value)}
         </pre>
       ) : (

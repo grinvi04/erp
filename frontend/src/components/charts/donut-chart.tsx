@@ -78,7 +78,7 @@ export function DonutChart({
                 className="h-2.5 w-2.5 shrink-0 rounded-sm"
                 style={{ backgroundColor: d.color }}
               />
-              <span className="truncate">{d.label}</span>
+              <span className="break-keep">{d.label}</span>
             </span>
             <span className="shrink-0 font-medium tabular-nums text-foreground">
               {formatValue(d.value, valueFormat)}
