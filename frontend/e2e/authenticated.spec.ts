@@ -71,6 +71,7 @@ test.describe('인증된 사용자 — 보호 라우트 인증 셸 렌더', () =
   // apiGet 직접 호출 페이지: 백엔드 미기동 시 error.tsx로 폴백하지만, /login으로
   // 튕기지 않고 레이아웃(사이드바·헤더)이 유지됨을 단언한다(= 인증 게이트 통과).
   const shellRoutes = [
+    '/finance/fiscal-years',
     '/finance/accounts',
     '/finance/journal-entries',
     '/finance/fx',

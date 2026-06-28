@@ -62,6 +62,7 @@ const MODULES: (NavItem & { children: NavChild[] })[] = [
     label: '재무',
     icon: BarChart3,
     children: [
+      { label: '회계기간', href: '/finance/fiscal-years', icon: CalendarDays },
       { label: '계정과목', href: '/finance/accounts', icon: Briefcase },
       { label: '전표', href: '/finance/journal-entries', icon: FileText },
       { label: '매입계산서', href: '/finance/invoices', icon: FileText },
