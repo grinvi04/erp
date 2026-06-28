@@ -78,6 +78,8 @@ interface LineRow {
   itemId: string
   fromLocationId: string
   toLocationId: string
+  lotNo: string
+  serialNo: string
   qty: string
   unitCost: string
 }
@@ -85,6 +87,8 @@ const emptyLine = (): LineRow => ({
   itemId: '',
   fromLocationId: '',
   toLocationId: '',
+  lotNo: '',
+  serialNo: '',
   qty: '',
   unitCost: '0',
 })
@@ -112,9 +116,39 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
   const [lines, setLines] = useState<LineRow[]>([emptyLine()])
   const [dialogWarehouseId, setDialogWarehouseId] = useState('')
   const [dialogLocations, setDialogLocations] = useState<Location[]>([])
+  // 창고간(TRANSFER) 이동: 출고/입고 창고를 서로 독립적으로 선택하므로 위치 목록을 양쪽 따로 유지한다.
+  const [fromWarehouseId, setFromWarehouseId] = useState('')
+  const [fromLocations, setFromLocations] = useState<Location[]>([])
+  const [toWarehouseId, setToWarehouseId] = useState('')
+  const [toLocations, setToLocations] = useState<Location[]>([])
+  const [isLoadingFromLocations, setIsLoadingFromLocations] = useState(false)
+  const [isLoadingToLocations, setIsLoadingToLocations] = useState(false)
 
+  const isTransfer = movementType === 'TRANSFER'
   const activeItems = useMemo(() => items.filter((i) => i.active), [items])
   const activeLocations = useMemo(() => dialogLocations.filter((l) => l.active), [dialogLocations])
+  const activeFromLocations = useMemo(() => fromLocations.filter((l) => l.active), [fromLocations])
+  const activeToLocations = useMemo(() => toLocations.filter((l) => l.active), [toLocations])
+  const warehouseOptions = warehouses
+    .filter((w) => w.active)
+    .map((w) => (
+      <SelectItem key={w.id} value={String(w.id)}>
+        {w.code} {w.name}
+      </SelectItem>
+    ))
+
+  const itemOf = (line: LineRow): Item | undefined =>
+    items.find((i) => String(i.id) === line.itemId)
+  const anyLotTracked = useMemo(
+    () => lines.some((l) => itemOf(l)?.lotTracked),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lines, items],
+  )
+  const anySerialTracked = useMemo(
+    () => lines.some((l) => itemOf(l)?.serialTracked),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lines, items],
+  )
 
   const onWarehouseChange = (val: string | null) => {
     const wId = val ?? ''
@@ -130,13 +164,56 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
     }
   }
 
+  const onFromWarehouseChange = (val: string | null) => {
+    const wId = val ?? ''
+    setFromWarehouseId(wId)
+    setFromLocations([])
+    setLines((prev) => prev.map((l) => ({ ...l, fromLocationId: '' })))
+    if (wId) {
+      setIsLoadingFromLocations(true)
+      getLocationsByWarehouse(Number(wId))
+        .then((locs) => setFromLocations(locs))
+        .catch(() => {})
+        .finally(() => setIsLoadingFromLocations(false))
+    }
+  }
+
+  const onToWarehouseChange = (val: string | null) => {
+    const wId = val ?? ''
+    setToWarehouseId(wId)
+    setToLocations([])
+    setLines((prev) => prev.map((l) => ({ ...l, toLocationId: '' })))
+    if (wId) {
+      setIsLoadingToLocations(true)
+      getLocationsByWarehouse(Number(wId))
+        .then((locs) => setToLocations(locs))
+        .catch(() => {})
+        .finally(() => setIsLoadingToLocations(false))
+    }
+  }
+
+  const resetWarehouses = () => {
+    setDialogWarehouseId('')
+    setDialogLocations([])
+    setFromWarehouseId('')
+    setFromLocations([])
+    setToWarehouseId('')
+    setToLocations([])
+  }
+
+  const onMovementTypeChange = (v: string | null) => {
+    const t = (v ?? 'RECEIPT') as MovementType
+    setMovementType(t)
+    setLines((prev) => prev.map((l) => ({ ...l, fromLocationId: '', toLocationId: '' })))
+    resetWarehouses()
+  }
+
   const openCreate = () => {
     setMovementType('RECEIPT')
     setMovementDate('')
     setNote('')
     setLines([emptyLine()])
-    setDialogWarehouseId('')
-    setDialogLocations([])
+    resetWarehouses()
     setDialog({ type: 'create' })
   }
 
@@ -164,6 +241,14 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
       toast.error('입고 위치를 선택해주세요')
       return
     }
+    if (lines.some((l) => itemOf(l)?.lotTracked && !l.lotNo.trim())) {
+      toast.error('로트 추적 품목은 로트 번호가 필수입니다')
+      return
+    }
+    if (lines.some((l) => itemOf(l)?.serialTracked && !l.serialNo.trim())) {
+      toast.error('시리얼 추적 품목은 시리얼 번호가 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
         await createMovement({
@@ -175,8 +260,8 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
             itemId: Number(l.itemId),
             fromLocationId: l.fromLocationId ? Number(l.fromLocationId) : null,
             toLocationId: l.toLocationId ? Number(l.toLocationId) : null,
-            lotNo: null,
-            serialNo: null,
+            lotNo: itemOf(l)?.lotTracked ? l.lotNo.trim() : null,
+            serialNo: itemOf(l)?.serialTracked ? l.serialNo.trim() : null,
             qty: Number(l.qty),
             unitCost: Number(l.unitCost) || 0,
           })),
@@ -417,19 +502,10 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
             <DialogTitle>재고 이동 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid grid-cols-3 gap-4">
+            <div className={isTransfer ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-3 gap-4'}>
               <div className="grid gap-1.5">
                 <Label>유형 *</Label>
-                <Select
-                  value={movementType}
-                  onValueChange={(v) => {
-                    const t = (v ?? 'RECEIPT') as MovementType
-                    setMovementType(t)
-                    setLines((prev) =>
-                      prev.map((l) => ({ ...l, fromLocationId: '', toLocationId: '' })),
-                    )
-                  }}
-                >
+                <Select value={movementType} onValueChange={onMovementTypeChange}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -450,24 +526,40 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                   onChange={(e) => setMovementDate(e.target.value)}
                 />
               </div>
-              <div className="grid gap-1.5">
-                <Label>창고 (위치 조회용)</Label>
-                <Select value={dialogWarehouseId} onValueChange={onWarehouseChange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="창고 선택 (선택)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses
-                      .filter((w) => w.active)
-                      .map((w) => (
-                        <SelectItem key={w.id} value={String(w.id)}>
-                          {w.code} {w.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isTransfer && (
+                <div className="grid gap-1.5">
+                  <Label>창고 (위치 조회용)</Label>
+                  <Select value={dialogWarehouseId} onValueChange={onWarehouseChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="창고 선택 (선택)" />
+                    </SelectTrigger>
+                    <SelectContent>{warehouseOptions}</SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
+            {isTransfer && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-1.5">
+                  <Label>출고 창고 *</Label>
+                  <Select value={fromWarehouseId} onValueChange={onFromWarehouseChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="출고 창고 선택" />
+                    </SelectTrigger>
+                    <SelectContent>{warehouseOptions}</SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>입고 창고 *</Label>
+                  <Select value={toWarehouseId} onValueChange={onToWarehouseChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="입고 창고 선택" />
+                    </SelectTrigger>
+                    <SelectContent>{warehouseOptions}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
             <div className="grid gap-1.5">
               <Label>메모</Label>
               <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
@@ -488,6 +580,8 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                       <TableHead className="w-48">품목 *</TableHead>
                       {needsFrom && <TableHead className="w-36">출고 위치</TableHead>}
                       {needsTo && <TableHead className="w-36">입고 위치</TableHead>}
+                      {anyLotTracked && <TableHead className="w-32">로트번호</TableHead>}
+                      {anySerialTracked && <TableHead className="w-32">시리얼번호</TableHead>}
                       <TableHead className="text-right w-24">수량 *</TableHead>
                       <TableHead className="text-right w-28">단가</TableHead>
                       <TableHead className="w-8" />
@@ -518,13 +612,13 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                             <Select
                               value={line.fromLocationId}
                               onValueChange={(v) => setLine(i, 'fromLocationId', v ?? '')}
-                              disabled={isLoadingLocations}
+                              disabled={isTransfer ? isLoadingFromLocations : isLoadingLocations}
                             >
                               <SelectTrigger className="w-full h-8 text-sm">
                                 <SelectValue placeholder="—" />
                               </SelectTrigger>
                               <SelectContent>
-                                {activeLocations.map((l) => (
+                                {(isTransfer ? activeFromLocations : activeLocations).map((l) => (
                                   <SelectItem key={l.id} value={String(l.id)}>
                                     {l.code}
                                   </SelectItem>
@@ -538,19 +632,47 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                             <Select
                               value={line.toLocationId}
                               onValueChange={(v) => setLine(i, 'toLocationId', v ?? '')}
-                              disabled={isLoadingLocations}
+                              disabled={isTransfer ? isLoadingToLocations : isLoadingLocations}
                             >
                               <SelectTrigger className="w-full h-8 text-sm">
                                 <SelectValue placeholder="—" />
                               </SelectTrigger>
                               <SelectContent>
-                                {activeLocations.map((l) => (
+                                {(isTransfer ? activeToLocations : activeLocations).map((l) => (
                                   <SelectItem key={l.id} value={String(l.id)}>
                                     {l.code}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
+                          </TableCell>
+                        )}
+                        {anyLotTracked && (
+                          <TableCell className="py-1">
+                            {itemOf(line)?.lotTracked ? (
+                              <Input
+                                className="h-8 text-sm"
+                                value={line.lotNo}
+                                onChange={(e) => setLine(i, 'lotNo', e.target.value)}
+                                placeholder="로트번호"
+                              />
+                            ) : (
+                              <span className="text-sm text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        )}
+                        {anySerialTracked && (
+                          <TableCell className="py-1">
+                            {itemOf(line)?.serialTracked ? (
+                              <Input
+                                className="h-8 text-sm"
+                                value={line.serialNo}
+                                onChange={(e) => setLine(i, 'serialNo', e.target.value)}
+                                placeholder="시리얼번호"
+                              />
+                            ) : (
+                              <span className="text-sm text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                         )}
                         <TableCell className="py-1">

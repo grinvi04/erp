@@ -13,6 +13,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
   boolean existsByCategory_Id(Long categoryId);
 
+  boolean existsByUom_Id(Long uomId);
+
   long countByActiveTrue();
 
   // keyword는 서비스에서 소문자로 정규화되어 전달된다(LOWER(컬럼)과 매칭 → 대소문자 무시).

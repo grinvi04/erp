@@ -93,6 +93,7 @@ public enum ErrorCode {
   MOVEMENT_APPROVAL_NOT_APPLICABLE(HttpStatus.CONFLICT, "I020", "재고 조정 이동만 결재 상신할 수 있습니다"),
   MOVEMENT_REQUIRES_APPROVAL(HttpStatus.CONFLICT, "I021", "재고 조정 이동은 결재 승인을 거쳐야 확정됩니다"),
   MOVEMENT_NOT_PENDING_APPROVAL(HttpStatus.CONFLICT, "I022", "결재 상신된 재고 이동만 승인할 수 있습니다"),
+  UOM_IN_USE(HttpStatus.CONFLICT, "I023", "사용 중인 단위는 삭제할 수 없습니다"),
 
   // CRM
   ACCOUNT_COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "CR001", "고객사를 찾을 수 없습니다"),
