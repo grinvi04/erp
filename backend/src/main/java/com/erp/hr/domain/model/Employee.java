@@ -16,6 +16,7 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * 직원 마스터 — 인적사항 + 재직 정보. 급여는 기록 목적(Finance 연산 없음). 조직 구조: Employee → Department → Department(상위) →
@@ -23,6 +24,7 @@ import java.time.LocalDate;
  */
 @Entity
 @Table(name = "employee", schema = "hr")
+@SQLRestriction("deleted_at IS NULL")
 public class Employee extends BaseEntity {
 
   @Id

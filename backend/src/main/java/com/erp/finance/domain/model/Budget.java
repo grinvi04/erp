@@ -12,9 +12,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "budget", schema = "finance")
+@SQLRestriction("deleted_at IS NULL")
 public class Budget extends BaseEntity {
 
   @Id

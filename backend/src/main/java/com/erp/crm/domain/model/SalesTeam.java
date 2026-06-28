@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * 영업팀(CRM 영업조직) — DataScope의 DEPARTMENT(팀) 스코프 기준. 팀원(사용자 sub)을 묶어, DEPARTMENT 스코프 사용자가 같은 팀 팀원들의
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
  */
 @Entity
 @Table(name = "sales_team", schema = "crm")
+@SQLRestriction("deleted_at IS NULL")
 public class SalesTeam extends BaseEntity {
 
   @Id

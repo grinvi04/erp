@@ -260,6 +260,7 @@ public class EmployeeService {
       employee.linkUserAccount(newUserId);
     }
     auditService.record("EMPLOYEE", id, AuditLog.AuditAction.UPDATE, null, event("UPDATE"));
+    employeeRepository.flush();
     return EmployeeResponse.from(employee);
   }
 

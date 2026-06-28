@@ -12,10 +12,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import org.hibernate.annotations.SQLRestriction;
 
 /** 직원별 휴가 잔여 일수 — 연도별 관리. */
 @Entity
 @Table(name = "leave_balance", schema = "hr")
+@SQLRestriction("deleted_at IS NULL")
 public class LeaveBalance extends BaseEntity {
 
   @Id

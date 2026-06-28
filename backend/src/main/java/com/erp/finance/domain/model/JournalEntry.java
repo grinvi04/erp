@@ -23,9 +23,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "journal_entry", schema = "finance")
+@SQLRestriction("deleted_at IS NULL")
 public class JournalEntry extends BaseEntity {
 
   @Id

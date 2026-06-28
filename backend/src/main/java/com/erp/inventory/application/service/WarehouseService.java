@@ -48,6 +48,7 @@ public class WarehouseService {
     Warehouse w = getOrThrow(id);
     w.checkVersion(req.version());
     w.update(req.name(), req.address());
+    warehouseRepository.flush();
     return WarehouseResponse.from(w);
   }
 

@@ -8,9 +8,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "pipeline_stage", schema = "crm")
+@SQLRestriction("deleted_at IS NULL")
 public class PipelineStage extends BaseEntity {
 
   @Id

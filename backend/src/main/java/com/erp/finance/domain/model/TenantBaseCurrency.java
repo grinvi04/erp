@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * 테넌트별 기준통화 — 혼합통화 거래를 합산·환산하는 기준. 테넌트당 1행(tenant_id UNIQUE). 미설정 테넌트는 서비스가 KRW를 기본으로 반환한다(행 없음 =
@@ -18,6 +19,7 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(name = "tenant_base_currency", schema = "finance")
+@SQLRestriction("deleted_at IS NULL")
 public class TenantBaseCurrency extends BaseEntity {
 
   public static final String DEFAULT_BASE_CURRENCY = "KRW";

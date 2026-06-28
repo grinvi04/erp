@@ -22,9 +22,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "ar_invoice", schema = "finance")
+@SQLRestriction("deleted_at IS NULL")
 public class ArInvoice extends BaseEntity {
 
   @Id

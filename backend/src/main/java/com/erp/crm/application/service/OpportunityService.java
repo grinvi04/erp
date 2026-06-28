@@ -86,6 +86,7 @@ public class OpportunityService {
         req.ownerId(),
         req.source(),
         req.description());
+    opportunityRepository.flush();
     return OpportunityResponse.from(opportunity);
   }
 

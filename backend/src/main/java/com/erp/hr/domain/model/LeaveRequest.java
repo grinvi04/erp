@@ -16,10 +16,12 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import org.hibernate.annotations.SQLRestriction;
 
 /** 휴가 신청 — 신청→결재→반영 흐름. ApprovalRequest와 entity_type='LEAVE_REQUEST', entity_id=this.id로 연결. */
 @Entity
 @Table(name = "leave_request", schema = "hr")
+@SQLRestriction("deleted_at IS NULL")
 public class LeaveRequest extends BaseEntity {
 
   @Id

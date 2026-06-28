@@ -11,10 +11,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLRestriction;
 
 /** 조직 단위 — 트리 구조 (parent_id 자기 참조). null parent = 최상위 법인(Company). */
 @Entity
 @Table(name = "department", schema = "hr")
+@SQLRestriction("deleted_at IS NULL")
 public class Department extends BaseEntity {
 
   @Id

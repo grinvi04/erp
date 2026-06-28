@@ -73,6 +73,7 @@ public class VendorService {
         request.contactPhone(),
         request.paymentTerms());
     applyPayablesAccount(vendor, request.payablesAccountId());
+    vendorRepository.flush();
     return VendorResponse.from(vendor);
   }
 

@@ -12,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * AR 전표 라인 — 대변 계정(매출·부가세예수금 등)과 금액. 승인 시 GL 분개의 대변이 된다 (차변은 고객 외상매출금 통제계정). 실무: 매출/세액을 라인별 계정으로
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
  */
 @Entity
 @Table(name = "ar_invoice_line", schema = "finance")
+@SQLRestriction("deleted_at IS NULL")
 public class ArInvoiceLine extends BaseEntity {
 
   @Id

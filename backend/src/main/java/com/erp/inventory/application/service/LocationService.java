@@ -66,6 +66,7 @@ public class LocationService {
     loc.checkVersion(req.version());
     Location parent = req.parentId() != null ? getOrThrow(req.parentId()) : null;
     loc.update(req.name(), parent, req.locationType());
+    locationRepository.flush();
     return LocationResponse.from(loc);
   }
 

@@ -60,6 +60,7 @@ public class JobGradeService {
     JobGrade grade = getOrThrow(id);
     grade.checkVersion(request.version());
     grade.update(request.name(), request.gradeOrder(), request.minSalary(), request.maxSalary());
+    jobGradeRepository.flush();
     return JobGradeResponse.from(grade);
   }
 

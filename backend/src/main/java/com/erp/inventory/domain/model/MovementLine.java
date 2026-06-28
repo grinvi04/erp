@@ -14,9 +14,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "movement_line", schema = "inventory")
+@SQLRestriction("deleted_at IS NULL")
 public class MovementLine extends BaseEntity {
 
   @Id

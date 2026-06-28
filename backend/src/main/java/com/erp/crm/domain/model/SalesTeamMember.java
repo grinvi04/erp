@@ -11,10 +11,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLRestriction;
 
 /** 영업팀 멤버 — 팀(SalesTeam)에 속한 사용자(sub). 반드시 부모 {@link SalesTeam}을 통해 추가/제거한다. */
 @Entity
 @Table(name = "sales_team_member", schema = "crm")
+@SQLRestriction("deleted_at IS NULL")
 public class SalesTeamMember extends BaseEntity {
 
   @Id

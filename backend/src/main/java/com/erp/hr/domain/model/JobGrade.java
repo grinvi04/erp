@@ -9,10 +9,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import org.hibernate.annotations.SQLRestriction;
 
 /** 직급/호봉 — 급여 밴드의 기준. */
 @Entity
 @Table(name = "job_grade", schema = "hr")
+@SQLRestriction("deleted_at IS NULL")
 public class JobGrade extends BaseEntity {
 
   @Id

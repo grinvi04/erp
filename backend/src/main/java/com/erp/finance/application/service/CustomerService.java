@@ -73,6 +73,7 @@ public class CustomerService {
         request.contactPhone(),
         request.paymentTerms());
     applyReceivablesAccount(customer, request.receivablesAccountId());
+    customerRepository.flush();
     return CustomerResponse.from(customer);
   }
 

@@ -11,9 +11,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity(name = "CrmAccount")
 @Table(name = "account", schema = "crm")
+@SQLRestriction("deleted_at IS NULL")
 public class Account extends BaseEntity {
 
   @Id

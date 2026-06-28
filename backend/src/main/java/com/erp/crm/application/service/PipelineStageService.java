@@ -50,6 +50,7 @@ public class PipelineStageService {
     stage.checkVersion(req.version());
     stage.update(
         req.name(), req.stageOrder(), req.probability(), req.isClosedWon(), req.isClosedLost());
+    stageRepository.flush();
     return PipelineStageResponse.from(stage);
   }
 

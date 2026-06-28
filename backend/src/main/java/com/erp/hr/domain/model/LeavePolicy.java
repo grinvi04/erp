@@ -10,10 +10,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLRestriction;
 
 /** 휴가 유형 정책 — 테넌트별 설정 가능 (연차, 병가, 경조사 등). */
 @Entity
 @Table(name = "leave_policy", schema = "hr")
+@SQLRestriction("deleted_at IS NULL")
 public class LeavePolicy extends BaseEntity {
 
   @Id

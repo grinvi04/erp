@@ -10,6 +10,7 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * 환율 — from_currency 1단위를 to_currency로 환산하는 비율(발효일 기준). 조회는 effectiveDate ≤ 조회일 중 최신을 사용한다. 수동
@@ -17,6 +18,7 @@ import java.time.LocalDate;
  */
 @Entity
 @Table(name = "exchange_rate", schema = "finance")
+@SQLRestriction("deleted_at IS NULL")
 public class ExchangeRate extends BaseEntity {
 
   @Id

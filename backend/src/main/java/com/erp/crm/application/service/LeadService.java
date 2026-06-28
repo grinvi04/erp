@@ -81,6 +81,7 @@ public class LeadService {
         req.source(),
         req.ownerId(),
         req.note());
+    leadRepository.flush();
     return LeadResponse.from(lead);
   }
 
