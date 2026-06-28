@@ -7,7 +7,14 @@ import { ko } from 'react-day-picker/locale'
 import 'react-day-picker/style.css'
 import { CalendarIcon, XIcon } from 'lucide-react'
 
-import { cn, formatDate } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+
+/** 트리거 라벨용 ko-KR 포맷(YYYY. MM. DD.). 로컬 Date를 직접 포맷 — 문자열 재파싱(UTC) off-by-one 방지. */
+const LABEL_FMT = new Intl.DateTimeFormat('ko-KR', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
 
 /** 'yyyy-MM-dd' → 로컬 Date (UTC 파싱 off-by-one 방지). 빈/형식오류는 undefined. */
 function parseISODate(value?: string): Date | undefined {
@@ -72,7 +79,7 @@ export function DatePicker({
           data-placeholder={selected ? undefined : ''}
           className="flex h-8 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-input bg-transparent py-1 pr-2.5 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-placeholder:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50"
         >
-          <span className="truncate">{selected ? formatDate(value) : placeholder}</span>
+          <span className="truncate">{selected ? LABEL_FMT.format(selected) : placeholder}</span>
           <CalendarIcon className="pointer-events-none size-4 shrink-0 text-muted-foreground" />
         </PopoverPrimitive.Trigger>
         {selected && !disabled && (
