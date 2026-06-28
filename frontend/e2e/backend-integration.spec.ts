@@ -14,9 +14,10 @@ test.describe('백엔드 통합 — 실 데이터 렌더', () => {
     await expect(page.getByRole('heading', { name: '대시보드', level: 1 })).toBeVisible()
     // 백엔드 200이면 요약 카드가 실패 안내("요약 정보를 불러오지 못했습니다")를 띄우지 않는다.
     await expect(page.getByText('요약 정보를 불러오지 못했습니다')).toHaveCount(0)
-    // 모듈 카드 헤딩이 정상 노출.
-    await expect(page.getByRole('heading', { name: '인사(HR)' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: '재무(Finance)' })).toBeVisible()
+    // 차트 중심 대시보드(재설계) — KPI 라벨 + 차트 카드 헤딩이 정상 노출.
+    await expect(page.getByText('재직 직원')).toBeVisible()
+    await expect(page.getByRole('heading', { name: '월별 매입 인보이스 추이' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '영업 파이프라인' })).toBeVisible()
   })
 
   test('계정과목(/finance/accounts)이 백엔드 데이터로 렌더된다', async ({ page }) => {
