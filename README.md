@@ -1,14 +1,14 @@
 # 🏢 ERP — 멀티테넌트 SaaS ERP
 
 [![ci-gate](https://github.com/grinvi04/erp/actions/workflows/ci-gate.yml/badge.svg)](https://github.com/grinvi04/erp/actions/workflows/ci-gate.yml)
-![e2e](https://img.shields.io/badge/e2e-32%20passed-brightgreen)
-![version](https://img.shields.io/badge/version-v0.4.1-blue)
+![e2e](https://img.shields.io/badge/e2e-34%20passed-brightgreen)
+![version](https://img.shields.io/badge/version-v0.5.1-blue)
 ![deploy](https://img.shields.io/badge/deploy-local%20only-lightgrey)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
 > **"수백 개 기업의 인사·재무·재고·영업을 한 플랫폼에서 — 테넌트별 완전 격리로."**
 
-HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS ERP. Spring Boot + Next.js 풀스택. 운영 미배포(로컬 풀스택 실행 지원), 현재 `v0.4.1`.
+HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS ERP. Spring Boot + Next.js 풀스택. 운영 미배포(로컬 풀스택 실행 지원), 현재 `v0.5.1`.
 
 ---
 
@@ -28,8 +28,23 @@ HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS 
 
 ## 📸 스크린샷
 
-> 인증(Keycloak 로그인) 뒤 화면이라 캡처는 준비 중 — 로그인 후 `docs/screenshots/`에 추가 예정.
-> [시작하기](#-시작하기)로 로컬 풀스택을 띄우면 `admin / Admin123!`로 직접 둘러볼 수 있다.
+> 로컬 풀스택(실데이터)에서 캡처. [시작하기](#-시작하기)로 띄우면 `admin / Admin123!`로 직접 둘러볼 수 있다.
+
+**대시보드** — KPI · 차트 중심, 멀티커런시 환산(미환산 명시), 저재고 경고
+
+![대시보드](docs/screenshots/dashboard.png)
+
+| 다크모드 (테마 패리티) | 분석 — 차트 |
+|---|---|
+| ![다크모드](docs/screenshots/dashboard-dark.png) | ![분석](docs/screenshots/analytics.png) |
+
+| 감사 로그 상세 (drill-in · 변경 전/후 · 사용자명) | 고객사 등록 (인라인 검증 폼) |
+|---|---|
+| ![감사 상세](docs/screenshots/audit-detail.png) | ![고객사 등록](docs/screenshots/crm-account-dialog.png) |
+
+| 매입계산서 — AP (직무분리 결재·지급) | 직원 관리 — HR |
+|---|---|
+| ![매입계산서](docs/screenshots/finance-invoices.png) | ![직원 관리](docs/screenshots/hr-employees.png) |
 
 ## ✨ 주요 기능
 

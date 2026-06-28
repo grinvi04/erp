@@ -15,6 +15,26 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 
 ---
 
+## ✅ 배포 전 점검 (pre-flight — v0.5.0 코드 기준 검증)
+
+> 코드가 실제로 읽는 환경변수 이름을 v0.5.0 소스로 교차검증한 결과. 이 표 기준으로 플랫폼 변수를 설정하면 "배포는 됐는데 안 됨"을 피한다.
+
+| 대상 | 변수 | 코드 출처 | 주의 |
+|---|---|---|---|
+| 백엔드 | `SPRING_DATASOURCE_URL`·`_USERNAME`·`_PASSWORD` | application.yml | — |
+| 백엔드 | `KEYCLOAK_ISSUER_URI` | application.yml(resource server) | 백엔드용. `.../realms/erp` |
+| 백엔드 | `ERP_IAM_BOOTSTRAP_ADMIN_SUB`·`ERP_IAM_BOOTSTRAP_TENANT_ID` | IamBootstrap.java(`erp.iam.bootstrap.*`) | **미설정 시 권한 보유자 0(fail-closed)** — 필수 |
+| 프론트 | `BACKEND_URL` | lib/api.ts | `NEXT_PUBLIC_API_URL` 폴백 |
+| 프론트 | `AUTH_KEYCLOAK_ID`·`AUTH_KEYCLOAK_SECRET` | lib/auth.ts | next-auth Keycloak provider |
+| 프론트 | **`KEYCLOAK_ISSUER`** | lib/auth.ts:27,56 | ⚠️ `AUTH_KEYCLOAK_ISSUER` **아님**(관례와 다름) — 틀리면 로그인 깨짐 |
+| 프론트 | `AUTH_SECRET`·`AUTH_URL` | next-auth(프레임워크 관례) | `AUTH_SECRET`=`openssl rand -base64 32` |
+
+**기타 검증됨**: `backend/railway.json`(헬스 `/actuator/health`·Dockerfile 빌더)·`frontend` `output:'standalone'`·`flyway.out-of-order:true`(필수, 아래 1-4 주석)·`migration-safety` CI 게이트.
+
+**당신이 인터랙티브로 실행할 것(제가 못 하는 것)**: Railway/Vercel **계정 생성·로그인**, 시크릿 값 생성·주입(DB비번·Keycloak 시크릿·`AUTH_SECRET`), Keycloak realm/client/user 최초 셋업(1-3). 그 외 설정 파일·변수 목록·절차는 이 문서가 준비물.
+
+---
+
 ## 0. 비용 (2026 기준, 대략)
 
 | 대상 | 플랜 | 월 비용 | 비고 |
@@ -76,7 +96,8 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
    ERP_IAM_BOOTSTRAP_TENANT_ID=1
    ```
 3. Settings → Networking → **Generate Domain** → 백엔드 공개 URL(헬스체크 `/actuator/health`).
-4. 첫 배포 후 Flyway가 V0001~V2002 적용. 부트스트랩이 해당 sub에 SUPER_ADMIN 자동 배정.
+4. 첫 배포 후 Flyway가 전체 마이그레이션(common 0xxx ~ crm 4xxx, 현재 V0008·V4005 포함)을 적용. 부트스트랩이 해당 sub에 SUPER_ADMIN 자동 배정.
+   > ℹ️ 백엔드는 `flyway.out-of-order: true`다(접두사 번호 규약 전제 — 새 common 0xxx가 기존 4xxx보다 낮아도 증분 적용). 기존 DB에 배포할 때 이 설정이 없으면 기동 실패하므로 변경 금지. CI의 `migration-safety` 게이트가 이를 강제한다.
 
 > `ERP_IAM_BOOTSTRAP_ADMIN_SUB` 미설정으로 기동하면 **권한 보유자가 없어** 관리 API를 쓸 수 없다(설계상 fail-closed). 반드시 설정.
 
@@ -93,8 +114,9 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
    AUTH_URL=https://<vercel-domain>
    AUTH_KEYCLOAK_ID=erp-frontend
    AUTH_KEYCLOAK_SECRET=<Keycloak 클라이언트 시크릿>
-   AUTH_KEYCLOAK_ISSUER=https://<keycloak-domain>/realms/erp
+   KEYCLOAK_ISSUER=https://<keycloak-domain>/realms/erp
    ```
+   > ⚠️ 이슈어 변수명은 **`KEYCLOAK_ISSUER`** 다(`src/lib/auth.ts`가 읽는 이름 — next-auth 관례 `AUTH_KEYCLOAK_ISSUER`가 **아니다**). 잘못 쓰면 issuer가 undefined로 로그인이 깨진다.
 4. Deploy. 발급된 도메인을 Keycloak redirect URI(1-3)에 반영.
 
 ---
