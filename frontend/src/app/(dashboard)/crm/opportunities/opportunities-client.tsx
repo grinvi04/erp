@@ -6,6 +6,7 @@ import { PERM } from '@/lib/permissions'
 import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -266,7 +267,7 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
         </div>
         <div className="grid gap-1.5">
           <Label>예상 종결일</Label>
-          <Input type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} />
+          <DatePicker value={closeDate} onChange={setCloseDate} />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -420,7 +421,7 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>새 영업 기회 등록</DialogTitle>
           </DialogHeader>
@@ -440,7 +441,7 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               영업 기회 수정{dialog.type === 'edit' && ` — ${dialog.opp.name}`}

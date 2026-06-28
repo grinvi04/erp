@@ -392,7 +392,7 @@ export default function AccountsClient({ data, keyword, names }: Props) {
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>새 고객사 등록</DialogTitle>
           </DialogHeader>
@@ -412,7 +412,7 @@ export default function AccountsClient({ data, keyword, names }: Props) {
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               고객사 수정{dialog.type === 'edit' && ` — ${dialog.account.code}`}

@@ -36,6 +36,7 @@ import { DataTable, type Column } from '@/components/ui/data-table'
 import { DetailSheet, DetailRow, DetailSection } from '@/components/ui/detail-sheet'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { formatMoneyOne } from '@/lib/money'
@@ -448,8 +449,8 @@ export default function JournalEntriesClient({
       </PageHeader>
 
       {/* Fiscal Period Selector */}
-      <div className="mb-6 flex gap-4">
-        <div className="w-48">
+      <div className="mb-6 flex flex-wrap gap-4">
+        <div className="w-full sm:w-48">
           <Label className="text-xs text-muted-foreground mb-1 block">회계연도</Label>
           <Select
             value={selectedYearId != null ? String(selectedYearId) : ''}
@@ -468,7 +469,7 @@ export default function JournalEntriesClient({
           </Select>
         </div>
         {selectedYearId != null && periods.length > 0 && (
-          <div className="w-56">
+          <div className="w-full sm:w-80">
             <Label className="text-xs text-muted-foreground mb-1 block">회계 기간</Label>
             <Select
               value={selectedPeriodId != null ? String(selectedPeriodId) : ''}
@@ -502,7 +503,14 @@ export default function JournalEntriesClient({
             columns={columns}
             getRowId={(e) => e.id}
             onRowClick={openDetail}
-            empty={<EmptyState title="등록된 전표가 없습니다" />}
+            empty={
+              <EmptyState
+                title="등록된 전표가 없습니다"
+                description={
+                  !isPeriodClosed ? '우측 상단의 「새 전표」로 전표를 등록하세요.' : undefined
+                }
+              />
+            }
           />
           {entries && (
             <PaginationBar
@@ -641,20 +649,16 @@ export default function JournalEntriesClient({
           if (!o) setShowCreate(false)
         }}
       >
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>새 전표 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             {/* Header fields */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="grid gap-1.5">
                 <Label>전표일 *</Label>
-                <Input
-                  type="date"
-                  value={entryDate}
-                  onChange={(e) => setEntryDate(e.target.value)}
-                />
+                <DatePicker value={entryDate} onChange={setEntryDate} />
               </div>
               <div className="grid gap-1.5">
                 <Label>유형 *</Label>

@@ -151,6 +151,23 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
     })
   }
 
+  const handleBulkDeactivate = (customers: Customer[], clear: () => void) => {
+    const active = customers.filter((c) => c.isActive)
+    if (active.length === 0) {
+      toast.info('비활성화할 활성 고객이 없습니다')
+      return
+    }
+    startTransition(async () => {
+      try {
+        await Promise.all(active.map((c) => deactivateCustomer(c.id)))
+        toast.success(`${active.length}개 고객을 비활성화했습니다`)
+        clear()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '비활성화 중 오류가 발생했습니다')
+      }
+    })
+  }
+
   const columns: Column<Customer>[] = [
     {
       key: 'code',
@@ -324,6 +341,21 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
           data={data.content}
           columns={columns}
           getRowId={(c) => c.id}
+          selectable={canWrite}
+          renderBulkActions={
+            canWrite
+              ? (selected, clear) => (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkDeactivate(selected, clear)}
+                    disabled={isPending}
+                  >
+                    선택 비활성화
+                  </Button>
+                )
+              : undefined
+          }
           empty={
             <EmptyState
               title="등록된 고객이 없습니다"

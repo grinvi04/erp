@@ -407,7 +407,7 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>새 리드 등록</DialogTitle>
           </DialogHeader>
@@ -427,7 +427,7 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               리드 수정

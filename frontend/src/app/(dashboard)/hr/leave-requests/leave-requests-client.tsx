@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { PlusIcon, CheckIcon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -280,15 +281,11 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
                 <Label>시작일 *</Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
+                <DatePicker value={startDate} onChange={setStartDate} />
               </div>
               <div className="grid gap-1.5">
                 <Label>종료일 *</Label>
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <DatePicker value={endDate} onChange={setEndDate} />
               </div>
             </div>
             <div className="grid gap-1.5">

@@ -6,6 +6,7 @@ import { PERM } from '@/lib/permissions'
 import { PlusIcon, PencilIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import {
   Dialog,
@@ -323,11 +324,7 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
                 <Label>발효일 *</Label>
-                <Input
-                  type="date"
-                  value={effectiveDate}
-                  onChange={(e) => setEffectiveDate(e.target.value)}
-                />
+                <DatePicker value={effectiveDate} onChange={setEffectiveDate} />
               </div>
               <div className="grid gap-1.5">
                 <Label>환율 *</Label>

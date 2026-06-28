@@ -45,6 +45,7 @@ import type {
   Opportunity,
 } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
+import { formatDateTime } from '@/lib/utils'
 
 const TYPE_LABEL: Record<ActivityType, string> = {
   CALL: '전화',
@@ -329,7 +330,11 @@ export default function ActivitiesClient({ data, accounts }: Props) {
       header: '마감일',
       sortable: true,
       sortValue: (act) => act.dueDate,
-      cell: (act) => <span className="text-sm text-muted-foreground">{act.dueDate ?? '—'}</span>,
+      cell: (act) => (
+        <span className="whitespace-nowrap text-sm text-muted-foreground">
+          {formatDateTime(act.dueDate)}
+        </span>
+      ),
     },
     {
       key: 'status',
@@ -418,7 +423,7 @@ export default function ActivitiesClient({ data, accounts }: Props) {
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>새 활동 등록</DialogTitle>
           </DialogHeader>

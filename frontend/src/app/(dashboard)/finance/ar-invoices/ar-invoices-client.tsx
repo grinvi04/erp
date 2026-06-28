@@ -6,6 +6,7 @@ import { PERM } from '@/lib/permissions'
 import { PlusIcon, SendIcon, CheckIcon, BanIcon, Trash2Icon, BookOpenIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -420,7 +421,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>새 계산서 등록</DialogTitle>
           </DialogHeader>
@@ -455,18 +456,14 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
                 <Label>계산서일 *</Label>
-                <Input
-                  type="date"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
-                />
+                <DatePicker value={invoiceDate} onChange={setInvoiceDate} />
               </div>
               <div className="grid gap-1.5">
                 <Label>만기일 *</Label>
-                <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                <DatePicker value={dueDate} onChange={setDueDate} />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="grid gap-1.5 col-span-2">
                 <Label>총금액 *</Label>
                 <Input
@@ -677,11 +674,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
               </div>
               <div className="grid gap-1.5">
                 <Label>수금일</Label>
-                <Input
-                  type="date"
-                  value={collectDate}
-                  onChange={(e) => setCollectDate(e.target.value)}
-                />
+                <DatePicker value={collectDate} onChange={setCollectDate} />
               </div>
               <p className="text-xs text-muted-foreground">
                 계정 선택 시 지급/수금 분개가 자동 생성됩니다.

@@ -81,7 +81,7 @@ export function CommandPalette({
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="max-w-lg gap-0 overflow-hidden p-0" showCloseButton={false}>
+      <DialogContent className="sm:max-w-lg gap-0 overflow-hidden p-0" showCloseButton={false}>
         <DialogTitle className="sr-only">페이지 검색</DialogTitle>
         <div className="flex items-center gap-2 border-b border-border px-3">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />

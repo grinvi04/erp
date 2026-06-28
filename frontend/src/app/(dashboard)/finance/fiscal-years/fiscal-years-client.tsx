@@ -6,6 +6,7 @@ import { PERM } from '@/lib/permissions'
 import { PlusIcon, LockIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -317,15 +318,11 @@ export default function FiscalYearsClient({ years, periods }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
                 <Label>시작일 *</Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
+                <DatePicker value={startDate} onChange={setStartDate} />
               </div>
               <div className="grid gap-1.5">
                 <Label>종료일 *</Label>
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <DatePicker value={endDate} onChange={setEndDate} />
               </div>
             </div>
             <p className="text-sm text-muted-foreground">

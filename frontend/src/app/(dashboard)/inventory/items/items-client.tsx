@@ -452,7 +452,7 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>새 품목 등록</DialogTitle>
           </DialogHeader>
@@ -472,7 +472,7 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
           if (!o) close()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>품목 수정{dialog.type === 'edit' && ` — ${dialog.item.sku}`}</DialogTitle>
           </DialogHeader>

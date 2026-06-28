@@ -6,6 +6,7 @@ import { DownloadIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -84,7 +85,7 @@ function ChangeBlock({ label, value }: { label: string; value: string | null }) 
     <div>
       <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
       {value ? (
-        <pre className="overflow-x-auto rounded-md border border-border bg-muted/40 p-2 text-xs text-foreground">
+        <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-md border border-border bg-muted/40 p-2 text-xs text-foreground">
           {prettyJson(value)}
         </pre>
       ) : (
@@ -231,21 +232,19 @@ export default function AuditClient({
 
         <div className="grid gap-1.5">
           <Label className="text-xs text-muted-foreground">시작일</Label>
-          <Input
-            type="date"
+          <DatePicker
             value={filters.from}
             max={filters.to || undefined}
-            onChange={(e) => applyFilters({ from: e.target.value })}
+            onChange={(v) => applyFilters({ from: v })}
           />
         </div>
 
         <div className="grid gap-1.5">
           <Label className="text-xs text-muted-foreground">종료일</Label>
-          <Input
-            type="date"
+          <DatePicker
             value={filters.to}
             min={filters.from || undefined}
-            onChange={(e) => applyFilters({ to: e.target.value })}
+            onChange={(v) => applyFilters({ to: v })}
           />
         </div>
       </div>
