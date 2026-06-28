@@ -15,14 +15,14 @@ export default async function ArInvoicesPage(props: {
 
   const [data, customers, accounts] = await Promise.all([
     apiGetPage<ArInvoice>(`/api/finance/ar-invoices?page=${page}&size=${size}${statusFilter}`),
-    apiGet<Customer[]>('/api/finance/customers?size=1000'),
+    apiGetPage<Customer>('/api/finance/customers?size=1000'),
     apiGet<Account[]>('/api/finance/accounts'),
   ])
 
   return (
     <ArInvoicesClient
       data={data as PageResponse<ArInvoice>}
-      customers={customers}
+      customers={customers.content}
       accounts={accounts}
     />
   )
