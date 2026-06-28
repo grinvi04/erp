@@ -14,6 +14,7 @@ test.describe('인증 게이트', () => {
     '/iam',
     '/hr/employees',
     '/hr/departments',
+    '/finance/fiscal-years',
     '/finance/accounts',
     '/finance/invoices',
     '/finance/journal-entries',
