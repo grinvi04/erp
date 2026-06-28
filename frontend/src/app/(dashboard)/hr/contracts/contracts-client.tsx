@@ -8,13 +8,21 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { fetchContracts, createContract } from './actions'
 import type { Contract, ContractType, Employee, Position, JobGrade } from '@/types/hr'
@@ -22,9 +30,9 @@ import type { Contract, ContractType, Employee, Position, JobGrade } from '@/typ
 const CONTRACT_TYPE_LABEL: Record<ContractType, string> = {
   REGULAR: '정규직',
   CONTRACT: '계약직',
-  PART_TIME: '파트타임',
+  PART_TIME: '시간제',
   INTERN: '인턴',
-  DISPATCH: '파견',
+  DISPATCH: '파견직',
 }
 const CONTRACT_TYPES = Object.keys(CONTRACT_TYPE_LABEL) as ContractType[]
 
@@ -34,8 +42,7 @@ interface Props {
   jobGrades: JobGrade[]
 }
 
-const fmt = (v: number | null) =>
-  v == null ? '—' : v.toLocaleString('ko-KR')
+const fmt = (v: number | null) => (v == null ? '—' : v.toLocaleString('ko-KR'))
 
 export default function ContractsClient({ employees, positions, jobGrades }: Props) {
   const [empId, setEmpId] = useState<string>('')
@@ -75,8 +82,13 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
   }
 
   const openCreate = () => {
-    setContractType(''); setStartDate(''); setEndDate(''); setBaseSalary('')
-    setPositionId(''); setJobGradeId(''); setNote('')
+    setContractType('')
+    setStartDate('')
+    setEndDate('')
+    setBaseSalary('')
+    setPositionId('')
+    setJobGradeId('')
+    setNote('')
     setCreateOpen(true)
   }
 
@@ -109,18 +121,62 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
     })
   }
 
+  const columns: Column<Contract>[] = [
+    {
+      key: 'contractType',
+      header: '유형',
+      cell: (c) => <Badge variant="secondary">{CONTRACT_TYPE_LABEL[c.contractType]}</Badge>,
+    },
+    {
+      key: 'startDate',
+      header: '시작일',
+      sortable: true,
+      sortValue: (c) => c.startDate,
+      cell: (c) => <span className="text-sm">{c.startDate}</span>,
+    },
+    {
+      key: 'endDate',
+      header: '종료일',
+      sortable: true,
+      sortValue: (c) => c.endDate,
+      cell: (c) => <span className="text-sm text-muted-foreground">{c.endDate ?? '—'}</span>,
+    },
+    {
+      key: 'positionName',
+      header: '직위',
+      cell: (c) => <span className="text-sm">{c.positionName}</span>,
+    },
+    {
+      key: 'jobGradeName',
+      header: '직급',
+      cell: (c) => <span className="text-sm">{c.jobGradeName ?? '—'}</span>,
+    },
+    {
+      key: 'baseSalary',
+      header: '기본급',
+      align: 'right',
+      sortable: true,
+      sortValue: (c) => c.baseSalary,
+      cell: (c) => <span className="text-sm text-muted-foreground">{fmt(c.baseSalary)}</span>,
+    },
+    {
+      key: 'note',
+      header: '비고',
+      cell: (c) => <span className="text-sm text-muted-foreground">{c.note ?? '—'}</span>,
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">근로 계약</h1>
-          <p className="text-sm text-gray-500 mt-1">직원별 근로 계약 이력을 조회·등록합니다</p>
-        </div>
+      <PageHeader
+        title="근로 계약"
+        description="직원별 근로 계약 이력을 조회·등록합니다"
+        className="mb-6"
+      >
         <Button onClick={openCreate} disabled={!empId}>
-          <PlusIcon />
-          새 계약
+          <PlusIcon />새 계약
         </Button>
-      </div>
+      </PageHeader>
 
       <div className="mb-4 max-w-sm">
         <Label className="mb-1.5 block">직원 선택</Label>
@@ -138,62 +194,25 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
         </Select>
       </div>
 
-      <div className="bg-white rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>유형</TableHead>
-              <TableHead>시작일</TableHead>
-              <TableHead>종료일</TableHead>
-              <TableHead>직위</TableHead>
-              <TableHead>직급</TableHead>
-              <TableHead className="text-right">기본급</TableHead>
-              <TableHead>비고</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {!empId && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-400 py-10">
-                  직원을 선택하면 계약 이력이 표시됩니다
-                </TableCell>
-              </TableRow>
-            )}
-            {empId && loading && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-400 py-10">
-                  불러오는 중...
-                </TableCell>
-              </TableRow>
-            )}
-            {empId && !loading && contracts.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-400 py-10">
-                  등록된 계약이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {empId && !loading && contracts.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell>
-                  <Badge variant="secondary">{CONTRACT_TYPE_LABEL[c.contractType]}</Badge>
-                </TableCell>
-                <TableCell className="text-sm">{c.startDate}</TableCell>
-                <TableCell className="text-sm text-gray-500">{c.endDate ?? '—'}</TableCell>
-                <TableCell className="text-sm">{c.positionName}</TableCell>
-                <TableCell className="text-sm">{c.jobGradeName ?? '—'}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">
-                  {fmt(c.baseSalary)}
-                </TableCell>
-                <TableCell className="text-sm text-gray-500">{c.note ?? '—'}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={empId ? contracts : []}
+        columns={columns}
+        getRowId={(c) => c.id}
+        loading={!!empId && loading}
+        empty={
+          <EmptyState
+            title={empId ? '등록된 계약이 없습니다' : '직원을 선택하면 계약 이력이 표시됩니다'}
+          />
+        }
+      />
 
       {/* Create Dialog */}
-      <Dialog open={createOpen} onOpenChange={(o) => { if (!o) setCreateOpen(false) }}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(o) => {
+          if (!o) setCreateOpen(false)
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>새 근로 계약</DialogTitle>
@@ -202,10 +221,14 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
             <div className="grid gap-1.5">
               <Label>계약 유형 *</Label>
               <Select value={contractType} onValueChange={(v) => setContractType(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {CONTRACT_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{CONTRACT_TYPE_LABEL[t]}</SelectItem>
+                    <SelectItem key={t} value={t}>
+                      {CONTRACT_TYPE_LABEL[t]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -213,7 +236,11 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
                 <Label>시작일 *</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label>종료일</Label>
@@ -223,10 +250,14 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
             <div className="grid gap-1.5">
               <Label>직위 *</Label>
               <Select value={positionId} onValueChange={(v) => setPositionId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="직위 선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="직위 선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {positions.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -234,11 +265,15 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
             <div className="grid gap-1.5">
               <Label>직급</Label>
               <Select value={jobGradeId} onValueChange={(v) => setJobGradeId(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="직급 선택 (선택)" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="직급 선택 (선택)" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">선택 안 함</SelectItem>
                   {jobGrades.map((g) => (
-                    <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
+                    <SelectItem key={g.id} value={String(g.id)}>
+                      {g.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -259,7 +294,9 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

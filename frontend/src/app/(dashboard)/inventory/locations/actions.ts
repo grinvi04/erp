@@ -15,12 +15,15 @@ export async function createLocation(data: {
 }
 
 // LocationUpdateRequest는 version(@NotNull)을 요구한다.
-export async function updateLocation(id: number, data: {
-  version: number
-  name: string
-  parentId: number | null
-  locationType: LocationType
-}): Promise<void> {
+export async function updateLocation(
+  id: number,
+  data: {
+    version: number
+    name: string
+    parentId: number | null
+    locationType: LocationType
+  },
+): Promise<void> {
   await apiPut(`/api/inventory/locations/${id}`, data)
   revalidatePath('/inventory/locations')
 }

@@ -16,15 +16,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CrmAnalyticsController {
 
-    private final CrmAnalyticsService crmAnalyticsService;
+  private final CrmAnalyticsService crmAnalyticsService;
 
-    @GetMapping("/pipeline")
-    public ResponseEntity<ApiResponse<PipelineAnalyticsResponse>> getPipelineDistribution() {
-        return ResponseEntity.ok(ApiResponse.ok(crmAnalyticsService.getPipelineDistribution()));
-    }
+  @GetMapping("/pipeline")
+  public ResponseEntity<ApiResponse<PipelineAnalyticsResponse>> getPipelineDistribution() {
+    return ResponseEntity.ok(ApiResponse.ok(crmAnalyticsService.getPipelineDistribution()));
+  }
 
-    @GetMapping("/leads-by-status")
-    public ResponseEntity<ApiResponse<List<LeadStatusCountResponse>>> getLeadsByStatus() {
-        return ResponseEntity.ok(ApiResponse.ok(crmAnalyticsService.getLeadsByStatus()));
-    }
+  @GetMapping("/leads-by-status")
+  public ResponseEntity<ApiResponse<List<LeadStatusCountResponse>>> getLeadsByStatus() {
+    return ResponseEntity.ok(ApiResponse.ok(crmAnalyticsService.getLeadsByStatus()));
+  }
 }

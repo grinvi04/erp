@@ -20,7 +20,7 @@ export async function createContract(
     positionId: number
     jobGradeId: number | null
     note: string | null
-  }
+  },
 ): Promise<void> {
   await apiPost<Contract>(`/api/hr/employees/${employeeId}/contracts`, data)
   revalidatePath(PATH)

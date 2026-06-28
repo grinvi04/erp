@@ -10,18 +10,16 @@ public record LeavePolicyResponse(
     int annualDays,
     int carryOverDays,
     boolean requiresApproval,
-    int minNoticeDays
-) {
-    public static LeavePolicyResponse from(LeavePolicy policy) {
-        return new LeavePolicyResponse(
-            policy.getId(),
-            policy.getCode(),
-            policy.getName(),
-            policy.getLeaveType(),
-            policy.getAnnualDays(),
-            policy.getCarryOverDays(),
-            policy.isRequiresApproval(),
-            policy.getMinNoticeDays()
-        );
-    }
+    int minNoticeDays) {
+  public static LeavePolicyResponse from(LeavePolicy policy) {
+    return new LeavePolicyResponse(
+        policy.getId(),
+        policy.getCode(),
+        policy.getName(),
+        policy.getLeaveType(),
+        policy.getAnnualDays(),
+        policy.getCarryOverDays(),
+        policy.isRequiresApproval(),
+        policy.getMinNoticeDays());
+  }
 }

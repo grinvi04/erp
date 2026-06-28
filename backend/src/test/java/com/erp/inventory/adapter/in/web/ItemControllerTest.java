@@ -1,5 +1,13 @@
 package com.erp.inventory.adapter.in.web;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.erp.common.config.TestSecurityConfig;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
@@ -20,66 +28,103 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 @WebMvcTest(ItemController.class)
 @ActiveProfiles("test")
 @Import(TestSecurityConfig.class)
 class ItemControllerTest {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
-    @MockBean private ItemService itemService;
+  @Autowired private MockMvc mockMvc;
+  @Autowired private ObjectMapper objectMapper;
+  @MockBean private ItemService itemService;
 
-    private ItemResponse buildItemResponse() {
-        return new ItemResponse(1L, "SKU-001", "테스트품목", null, null, null,
-                1L, "EA", "개", CostMethod.WEIGHTED_AVG,
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, BigDecimal.ZERO, false, false, true, 0L);
-    }
+  private ItemResponse buildItemResponse() {
+    return new ItemResponse(
+        1L,
+        "SKU-001",
+        "테스트품목",
+        null,
+        null,
+        null,
+        1L,
+        "EA",
+        "개",
+        CostMethod.WEIGHTED_AVG,
+        BigDecimal.ZERO,
+        BigDecimal.ZERO,
+        BigDecimal.ZERO,
+        BigDecimal.ZERO,
+        BigDecimal.ZERO,
+        false,
+        false,
+        true,
+        0L);
+  }
 
-    @Test
-    void findAll_returnsOkWithPage() throws Exception {
-        given(itemService.findAll(isNull(), isNull(), any())).willReturn(
-                new PageResponse<>(List.of(buildItemResponse()), 0, 10, 1, 1, true, true));
+  @Test
+  void findAll_returnsOkWithPage() throws Exception {
+    given(itemService.findAll(isNull(), isNull(), any()))
+        .willReturn(new PageResponse<>(List.of(buildItemResponse()), 0, 10, 1, 1, true, true));
 
-        mockMvc.perform(get("/api/inventory/items"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].sku").value("SKU-001"));
-    }
+    mockMvc
+        .perform(get("/api/inventory/items"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.content[0].sku").value("SKU-001"));
+  }
 
-    @Test
-    void create_validRequest_returns201() throws Exception {
-        given(itemService.create(any())).willReturn(buildItemResponse());
+  @Test
+  void create_validRequest_returns201() throws Exception {
+    given(itemService.create(any())).willReturn(buildItemResponse());
 
-        ItemCreateRequest req = new ItemCreateRequest("SKU-001", "테스트품목", null, null, 1L,
-                CostMethod.WEIGHTED_AVG, BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false, false);
+    ItemCreateRequest req =
+        new ItemCreateRequest(
+            "SKU-001",
+            "테스트품목",
+            null,
+            null,
+            1L,
+            CostMethod.WEIGHTED_AVG,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            false,
+            false);
 
-        mockMvc.perform(post("/api/inventory/items")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.sku").value("SKU-001"));
-    }
+    mockMvc
+        .perform(
+            post("/api/inventory/items")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.sku").value("SKU-001"));
+  }
 
-    @Test
-    void create_duplicateSku_returns409() throws Exception {
-        given(itemService.create(any())).willThrow(new ErpException(ErrorCode.ITEM_SKU_DUPLICATE));
+  @Test
+  void create_duplicateSku_returns409() throws Exception {
+    given(itemService.create(any())).willThrow(new ErpException(ErrorCode.ITEM_SKU_DUPLICATE));
 
-        ItemCreateRequest req = new ItemCreateRequest("SKU-001", "테스트품목", null, null, 1L,
-                CostMethod.WEIGHTED_AVG, BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false, false);
+    ItemCreateRequest req =
+        new ItemCreateRequest(
+            "SKU-001",
+            "테스트품목",
+            null,
+            null,
+            1L,
+            CostMethod.WEIGHTED_AVG,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            false,
+            false);
 
-        mockMvc.perform(post("/api/inventory/items")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isConflict());
-    }
+    mockMvc
+        .perform(
+            post("/api/inventory/items")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+        .andExpect(status().isConflict());
+  }
 }

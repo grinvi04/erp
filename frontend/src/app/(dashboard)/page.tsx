@@ -1,130 +1,231 @@
-import Link from 'next/link'
-import { safeGet } from '@/lib/api'
+import { safeGet, safeGetArray } from '@/lib/api'
 import { formatMoneyList, formatMoneyOne } from '@/lib/money'
-import { Card } from '@/components/ui/card'
-import {
-  Users, BarChart3, Package, TrendingUp, ChevronRight, AlertTriangle,
-} from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { StatCard } from '@/components/ui/stat-card'
+import { ChartCard } from '@/components/ui/chart-card'
+import { EmptyState } from '@/components/ui/empty-state'
+import { MonthlyBarChart } from '@/components/charts/monthly-bar-chart'
+import { DonutChart } from '@/components/charts/donut-chart'
+import { Users, TrendingUp, TriangleAlert, Wallet, PackageX } from 'lucide-react'
+import type { HrSummary, FinanceSummary, InventorySummary, CrmSummary } from '@/types/dashboard'
 import type {
-  HrSummary, FinanceSummary, InventorySummary, CrmSummary,
-} from '@/types/dashboard'
+  MonthlyInvoiceAnalyticsResponse,
+  PipelineAnalyticsResponse,
+  MonthlyHiresTerminationsResponse,
+  LowStockItemResponse,
+} from '@/types/analytics'
 
 export const metadata = { title: '대시보드 | ERP' }
+
+const MONTH_LABELS = [
+  '1월',
+  '2월',
+  '3월',
+  '4월',
+  '5월',
+  '6월',
+  '7월',
+  '8월',
+  '9월',
+  '10월',
+  '11월',
+  '12월',
+]
 
 function fmtNum(n: number) {
   return n.toLocaleString('ko-KR')
 }
-
-interface Metric {
-  label: string
-  value: string
-  // 기준통화 환산 합계 한 줄(예: "≈ ₩13,000,000"). 통화별 분리(value) 아래에 표시.
-  sub?: string
-  alert?: boolean
-}
-
-// 기준통화 환산 합계 한 줄 문자열. 산정분 없으면(null) 표시하지 않는다.
-function baseTotalLabel(baseTotal: number | null | undefined, baseCurrency: string | undefined): string | undefined {
-  if (baseTotal == null || !baseCurrency) return undefined
-  return `≈ ${formatMoneyOne(baseTotal, baseCurrency)}`
-}
-
-function ModuleCard({
-  title, href, icon: Icon, metrics, failed,
-}: {
-  title: string
-  href: string
-  icon: React.ElementType
-  metrics: Metric[]
-  failed: boolean
-}) {
-  return (
-    <Card className="p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Icon className="h-5 w-5 text-gray-700" />
-          <h2 className="font-semibold text-gray-900">{title}</h2>
-        </div>
-        <Link href={href} className="text-sm text-blue-600 hover:underline flex items-center">
-          바로가기<ChevronRight className="h-3 w-3" />
-        </Link>
-      </div>
-      {failed ? (
-        <p className="text-sm text-gray-400 py-4">요약 정보를 불러오지 못했습니다</p>
-      ) : (
-        <div className="grid grid-cols-3 gap-3">
-          {metrics.map((m) => (
-            <div key={m.label}>
-              <div className={`text-2xl font-semibold tabular-nums ${m.alert ? 'text-amber-600' : 'text-gray-900'}`}>
-                {m.alert && <AlertTriangle className="inline h-4 w-4 mr-1 -mt-1" />}
-                {m.value}
-              </div>
-              {m.sub && <div className="text-xs text-gray-600 mt-0.5 tabular-nums">{m.sub}</div>}
-              <div className="text-xs text-gray-500 mt-1">{m.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  )
+// 금액 KPI — 기준통화 환산 합계를 헤드라인으로(균일한 한 줄), 통화가 여럿이면 내역을 sub로.
+// partial=true면 환율 미산정으로 합계에서 빠진 외화가 있다는 뜻 → 통화별 내역을 항상 노출하고
+// "일부 미환산"을 명시해 과소 표시를 조용히 숨기지 않는다.
+function moneyKpi(
+  amounts: Parameters<typeof formatMoneyList>[0] | undefined,
+  baseTotal: number | null | undefined,
+  baseCurrency: string | undefined,
+  hasAny: boolean,
+  partial: boolean,
+): { value: string; sub?: string } {
+  const list = amounts ?? []
+  if (!hasAny || list.length === 0) return { value: '₩0' }
+  if (baseTotal != null && baseCurrency) {
+    const breakdown = list.length > 1 || partial ? formatMoneyList(list) : undefined
+    const sub = partial
+      ? `${breakdown ? `${breakdown} · ` : ''}일부 미환산(환율 미설정)`
+      : breakdown
+    return { value: formatMoneyOne(baseTotal, baseCurrency), sub }
+  }
+  return { value: formatMoneyList(list) }
 }
 
 export default async function DashboardPage() {
-  const [hr, finance, inventory, crm] = await Promise.all([
-    safeGet<HrSummary>('/api/hr/summary'),
-    safeGet<FinanceSummary>('/api/finance/summary'),
-    safeGet<InventorySummary>('/api/inventory/summary'),
-    safeGet<CrmSummary>('/api/crm/summary'),
-  ])
+  const year = new Date().getFullYear()
+  const [hr, finance, inventory, crm, monthlyInv, pipeline, hiresTerms, lowStock] =
+    await Promise.all([
+      safeGet<HrSummary>('/api/hr/summary'),
+      safeGet<FinanceSummary>('/api/finance/summary'),
+      safeGet<InventorySummary>('/api/inventory/summary'),
+      safeGet<CrmSummary>('/api/crm/summary'),
+      safeGet<MonthlyInvoiceAnalyticsResponse>(
+        `/api/finance/analytics/monthly-invoices?year=${year}`,
+      ),
+      safeGet<PipelineAnalyticsResponse>('/api/crm/analytics/pipeline'),
+      safeGetArray<MonthlyHiresTerminationsResponse>(
+        `/api/hr/analytics/hires-terminations?year=${year}`,
+      ),
+      safeGetArray<LowStockItemResponse>('/api/inventory/analytics/low-stock'),
+    ])
+
+  const lowStockCount = inventory?.lowStockItems ?? 0
+  const invBase = monthlyInv?.baseMonthlyTotals ?? []
+  const invBaseCurrency = monthlyInv?.baseCurrency ?? 'KRW'
+  const stages = pipeline?.stages ?? []
+  const unpaidKpi = moneyKpi(
+    finance?.unpaidAmounts,
+    finance?.unpaidBaseTotal,
+    finance?.baseCurrency,
+    !!finance?.unpaidInvoices,
+    !!finance?.unpaidBaseTotalPartial,
+  )
+  const pipelineKpi = moneyKpi(
+    crm?.openOpportunityAmounts,
+    crm?.openOpportunityBaseTotal,
+    crm?.baseCurrency,
+    !!crm?.openOpportunities,
+    !!crm?.openOpportunityBaseTotalPartial,
+  )
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">대시보드</h1>
-        <p className="text-sm text-gray-500 mt-1">모듈별 핵심 지표 요약</p>
+    <div className="space-y-6 p-6">
+      <PageHeader title="대시보드" description={`${year}년 핵심 지표 · 모듈별 요약`} />
+
+      {/* 핵심 KPI */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="재직 직원"
+          value={fmtNum(hr?.activeEmployees ?? 0)}
+          icon={Users}
+          tone="primary"
+          href="/hr/employees"
+        />
+        <StatCard
+          label="미지급 금액"
+          value={unpaidKpi.value}
+          sub={unpaidKpi.sub}
+          icon={Wallet}
+          tone="default"
+          href="/finance/invoices"
+        />
+        <StatCard
+          label="파이프라인 금액"
+          value={pipelineKpi.value}
+          sub={pipelineKpi.sub}
+          icon={TrendingUp}
+          tone="success"
+          href="/crm/opportunities"
+        />
+        <StatCard
+          label="재고 부족"
+          value={fmtNum(lowStockCount)}
+          icon={TriangleAlert}
+          tone={lowStockCount > 0 ? 'warning' : 'default'}
+          href="/inventory/stocks"
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ModuleCard
-          title="인사(HR)" href="/hr/employees" icon={Users} failed={hr === null}
-          metrics={[
-            { label: '재직 직원', value: fmtNum(hr?.activeEmployees ?? 0) },
-            { label: '휴직', value: fmtNum(hr?.onLeaveEmployees ?? 0) },
-            { label: '대기 휴가 신청', value: fmtNum(hr?.pendingLeaveRequests ?? 0), alert: (hr?.pendingLeaveRequests ?? 0) > 0 },
-          ]}
-        />
-        <ModuleCard
-          title="재무(Finance)" href="/finance/invoices" icon={BarChart3} failed={finance === null}
-          metrics={[
-            { label: '미지급 인보이스', value: fmtNum(finance?.unpaidInvoices ?? 0) },
-            {
-              label: '미지급 금액',
-              value: formatMoneyList(finance?.unpaidAmounts ?? []),
-              sub: baseTotalLabel(finance?.unpaidBaseTotal, finance?.baseCurrency),
-            },
-            { label: '임시 전표', value: fmtNum(finance?.draftJournalEntries ?? 0) },
-          ]}
-        />
-        <ModuleCard
-          title="재고(Inventory)" href="/inventory/items" icon={Package} failed={inventory === null}
-          metrics={[
-            { label: '활성 품목', value: fmtNum(inventory?.activeItems ?? 0) },
-            { label: '재고 부족', value: fmtNum(inventory?.lowStockItems ?? 0), alert: (inventory?.lowStockItems ?? 0) > 0 },
-            { label: '임시 이동', value: fmtNum(inventory?.draftMovements ?? 0) },
-          ]}
-        />
-        <ModuleCard
-          title="CRM" href="/crm/opportunities" icon={TrendingUp} failed={crm === null}
-          metrics={[
-            { label: '진행중 기회', value: fmtNum(crm?.openOpportunities ?? 0) },
-            {
-              label: '파이프라인 금액',
-              value: formatMoneyList(crm?.openOpportunityAmounts ?? []),
-              sub: baseTotalLabel(crm?.openOpportunityBaseTotal, crm?.baseCurrency),
-            },
-            { label: '미완료 활동', value: fmtNum(crm?.openActivities ?? 0) },
-          ]}
-        />
+      {/* 차트 행 1 — 매입 추이 + 파이프라인 분포 */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <ChartCard
+          title="월별 매입계산서 추이"
+          description={`${year}년 · 기준통화(${invBaseCurrency}) 환산 합계`}
+          href="/finance/invoices"
+          className="lg:col-span-2"
+        >
+          {invBase.length === 0 ? (
+            <EmptyState title="데이터가 없습니다" className="py-10" />
+          ) : (
+            <MonthlyBarChart
+              data={invBase.map((r, i) => ({
+                month: MONTH_LABELS[r.month - 1] ?? MONTH_LABELS[i],
+                amount: r.totalAmount,
+              }))}
+              series={[{ key: 'amount', label: '매입액', color: 'var(--chart-1)' }]}
+              valueFormat={{ kind: 'money', currency: invBaseCurrency }}
+              height={260}
+            />
+          )}
+        </ChartCard>
+        <ChartCard
+          title="영업 파이프라인"
+          description="단계별 진행중 기회"
+          href="/crm/opportunities"
+        >
+          {stages.length === 0 ? (
+            <EmptyState title="데이터가 없습니다" className="py-10" />
+          ) : (
+            <DonutChart
+              data={stages.map((s) => ({ label: s.stageName, value: s.count }))}
+              valueFormat={{ kind: 'suffix', suffix: '건' }}
+              centerLabel="진행중"
+            />
+          )}
+        </ChartCard>
+      </div>
+
+      {/* 차트 행 2 — 입사/퇴사 + 저재고 */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ChartCard title="월별 입사/퇴사" description={`${year}년 인력 변동`} href="/hr/employees">
+          {hiresTerms.length === 0 ? (
+            <EmptyState title="데이터가 없습니다" className="py-10" />
+          ) : (
+            <MonthlyBarChart
+              data={hiresTerms.map((r, i) => ({
+                month: MONTH_LABELS[r.month - 1] ?? MONTH_LABELS[i],
+                hires: r.hires,
+                terminations: r.terminations,
+              }))}
+              series={[
+                { key: 'hires', label: '입사', color: 'var(--chart-2)' },
+                { key: 'terminations', label: '퇴사', color: 'var(--chart-4)' },
+              ]}
+              valueFormat={{ kind: 'suffix', suffix: '명' }}
+              height={240}
+            />
+          )}
+        </ChartCard>
+        <ChartCard
+          title="저재고 품목"
+          description={
+            lowStock.length > 0 ? `재주문점 이하 · ${lowStock.length}건` : '재주문점 이하'
+          }
+          href="/inventory/stocks"
+        >
+          {lowStock.length === 0 ? (
+            <EmptyState icon={PackageX} title="저재고 품목이 없습니다" className="py-10" />
+          ) : (
+            <ul className="divide-y divide-border">
+              {lowStock.slice(0, 6).map((it) => (
+                <li key={it.sku} className="flex items-center justify-between gap-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{it.name}</p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {it.sku}
+                      {it.categoryName ? ` · ${it.categoryName}` : ''}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right tabular-nums">
+                    <span className="text-sm font-semibold text-destructive">
+                      {fmtNum(it.currentQty)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {' '}
+                      / {fmtNum(it.reorderPoint)}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </ChartCard>
       </div>
     </div>
   )

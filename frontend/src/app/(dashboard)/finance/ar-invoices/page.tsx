@@ -3,7 +3,7 @@ import type { Account, ArInvoice, Customer } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
 import ArInvoicesClient from './ar-invoices-client'
 
-export const metadata = { title: '매출 인보이스 | ERP' }
+export const metadata = { title: '매출계산서 | ERP' }
 
 export default async function ArInvoicesPage(props: {
   searchParams: Promise<{ page?: string; size?: string; status?: string }>
@@ -15,9 +15,15 @@ export default async function ArInvoicesPage(props: {
 
   const [data, customers, accounts] = await Promise.all([
     apiGetPage<ArInvoice>(`/api/finance/ar-invoices?page=${page}&size=${size}${statusFilter}`),
-    apiGet<Customer[]>('/api/finance/customers?size=1000'),
+    apiGetPage<Customer>('/api/finance/customers?size=1000'),
     apiGet<Account[]>('/api/finance/accounts'),
   ])
 
-  return <ArInvoicesClient data={data as PageResponse<ArInvoice>} customers={customers} accounts={accounts} />
+  return (
+    <ArInvoicesClient
+      data={data as PageResponse<ArInvoice>}
+      customers={customers.content}
+      accounts={accounts}
+    />
+  )
 }

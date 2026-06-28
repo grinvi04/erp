@@ -7,9 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SalesTeamRepository extends JpaRepository<SalesTeam, Long> {
 
-    List<SalesTeam> findAllByOrderByCodeAsc();
+  List<SalesTeam> findAllByOrderByCodeAsc();
 
-    Optional<SalesTeam> findByCode(String code);
+  Optional<SalesTeam> findByCode(String code);
 
-    boolean existsByCode(String code);
+  boolean existsByCode(String code);
 }

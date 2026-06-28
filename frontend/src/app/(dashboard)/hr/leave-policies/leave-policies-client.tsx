@@ -7,13 +7,21 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { createLeavePolicy, deleteLeavePolicy } from './actions'
 import type { LeavePolicy, LeaveType } from '@/types/hr'
@@ -24,14 +32,11 @@ const LEAVE_TYPE_LABEL: Record<LeaveType, string> = {
   PARENTAL: '육아휴직',
   BEREAVEMENT: '경조사',
   UNPAID: '무급',
-  COMPENSATORY: '보상 휴가',
+  COMPENSATORY: '보상휴가',
 }
 const LEAVE_TYPES = Object.keys(LEAVE_TYPE_LABEL) as LeaveType[]
 
-type DialogMode =
-  | { type: 'none' }
-  | { type: 'create' }
-  | { type: 'delete'; policy: LeavePolicy }
+type DialogMode = { type: 'none' } | { type: 'create' } | { type: 'delete'; policy: LeavePolicy }
 
 interface Props {
   policies: LeavePolicy[]
@@ -51,8 +56,13 @@ export default function LeavePoliciesClient({ policies }: Props) {
   const [minNoticeDays, setMinNoticeDays] = useState('0')
 
   const openCreate = () => {
-    setCode(''); setName(''); setLeaveType(''); setAnnualDays('0')
-    setCarryOverDays('0'); setRequiresApproval('true'); setMinNoticeDays('0')
+    setCode('')
+    setName('')
+    setLeaveType('')
+    setAnnualDays('0')
+    setCarryOverDays('0')
+    setRequiresApproval('true')
+    setMinNoticeDays('0')
     setDialog({ type: 'create' })
   }
 
@@ -92,76 +102,107 @@ export default function LeavePoliciesClient({ policies }: Props) {
     })
   }
 
+  const columns: Column<LeavePolicy>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (p) => p.code,
+      cell: (p) => <span className="font-mono text-sm">{p.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '정책명',
+      sortable: true,
+      sortValue: (p) => p.name,
+      cell: (p) => <span className="font-medium">{p.name}</span>,
+    },
+    {
+      key: 'leaveType',
+      header: '휴가 종류',
+      cell: (p) => <span className="text-sm">{LEAVE_TYPE_LABEL[p.leaveType] ?? p.leaveType}</span>,
+    },
+    {
+      key: 'annualDays',
+      header: '연간 일수',
+      align: 'right',
+      sortable: true,
+      sortValue: (p) => p.annualDays,
+      cell: (p) => <span className="text-sm text-muted-foreground">{p.annualDays}</span>,
+    },
+    {
+      key: 'carryOverDays',
+      header: '이월 일수',
+      align: 'right',
+      sortable: true,
+      sortValue: (p) => p.carryOverDays,
+      cell: (p) => <span className="text-sm text-muted-foreground">{p.carryOverDays}</span>,
+    },
+    {
+      key: 'minNoticeDays',
+      header: '최소 통보일',
+      align: 'right',
+      sortable: true,
+      sortValue: (p) => p.minNoticeDays,
+      cell: (p) => <span className="text-sm text-muted-foreground">{p.minNoticeDays}</span>,
+    },
+    {
+      key: 'requiresApproval',
+      header: '승인 필요',
+      sortable: true,
+      sortValue: (p) => (p.requiresApproval ? 0 : 1),
+      cell: (p) => (
+        <Badge variant={p.requiresApproval ? 'default' : 'secondary'}>
+          {p.requiresApproval ? '필요' : '불필요'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-16',
+      cell: (p) => (
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setDialog({ type: 'delete', policy: p })}
+          >
+            <Trash2Icon className="text-destructive" />
+            <span className="sr-only">삭제</span>
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">휴가 정책</h1>
-          <p className="text-sm text-gray-500 mt-1">휴가 종류별 부여 일수·승인 규칙을 관리합니다</p>
-        </div>
+      <PageHeader
+        title="휴가 정책"
+        description="휴가 종류별 부여 일수·승인 규칙을 관리합니다"
+        className="mb-6"
+      >
         <Button onClick={openCreate}>
-          <PlusIcon />
-          새 정책
+          <PlusIcon />새 정책
         </Button>
-      </div>
+      </PageHeader>
 
-      <div className="bg-white rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>정책명</TableHead>
-              <TableHead>휴가 종류</TableHead>
-              <TableHead className="text-right">연간 일수</TableHead>
-              <TableHead className="text-right">이월 일수</TableHead>
-              <TableHead className="text-right">최소 통보일</TableHead>
-              <TableHead>승인 필요</TableHead>
-              <TableHead className="w-16" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {policies.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-gray-400 py-10">
-                  등록된 휴가 정책이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {policies.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className="font-mono text-sm">{p.code}</TableCell>
-                <TableCell className="font-medium">{p.name}</TableCell>
-                <TableCell className="text-sm">
-                  {LEAVE_TYPE_LABEL[p.leaveType] ?? p.leaveType}
-                </TableCell>
-                <TableCell className="text-right text-sm text-gray-600">{p.annualDays}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">{p.carryOverDays}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">{p.minNoticeDays}</TableCell>
-                <TableCell>
-                  <Badge variant={p.requiresApproval ? 'default' : 'secondary'}>
-                    {p.requiresApproval ? '필요' : '불필요'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end">
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => setDialog({ type: 'delete', policy: p })}
-                    >
-                      <Trash2Icon className="text-destructive" />
-                      <span className="sr-only">삭제</span>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={policies}
+        columns={columns}
+        getRowId={(p) => p.id}
+        empty={<EmptyState title="등록된 휴가 정책이 없습니다" />}
+      />
 
       {/* Create Dialog */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>새 휴가 정책</DialogTitle>
@@ -192,10 +233,14 @@ export default function LeavePoliciesClient({ policies }: Props) {
             <div className="grid gap-1.5">
               <Label>휴가 종류 *</Label>
               <Select value={leaveType} onValueChange={(v) => setLeaveType(v ?? '')}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="선택" />
+                </SelectTrigger>
                 <SelectContent>
                   {LEAVE_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{LEAVE_TYPE_LABEL[t]}</SelectItem>
+                    <SelectItem key={t} value={t}>
+                      {LEAVE_TYPE_LABEL[t]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -234,8 +279,13 @@ export default function LeavePoliciesClient({ policies }: Props) {
             </div>
             <div className="grid gap-1.5">
               <Label>승인 필요 여부</Label>
-              <Select value={requiresApproval} onValueChange={(v) => setRequiresApproval(v ?? 'true')}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <Select
+                value={requiresApproval}
+                onValueChange={(v) => setRequiresApproval(v ?? 'true')}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="true">승인 필요</SelectItem>
                   <SelectItem value="false">승인 불필요</SelectItem>
@@ -244,18 +294,25 @@ export default function LeavePoliciesClient({ policies }: Props) {
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirm Dialog */}
-      <Dialog open={dialog.type === 'delete'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'delete'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>휴가 정책 삭제</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600 py-2">
+          <p className="text-sm text-muted-foreground py-2">
             {dialog.type === 'delete' && (
               <>
                 <strong>{dialog.policy.name}</strong> 정책을 삭제하시겠습니까?

@@ -19,15 +19,25 @@ export async function createLead(data: Omit<LeadPayload, 'ownerId'>): Promise<vo
   revalidatePath('/crm/leads')
 }
 
-export async function updateLead(id: number, data: LeadPayload & { version: number }): Promise<void> {
+export async function updateLead(
+  id: number,
+  data: LeadPayload & { version: number },
+): Promise<void> {
   await apiPut(`/api/crm/leads/${id}`, data)
   revalidatePath('/crm/leads')
 }
 
-export async function convertLead(
-  id: number,
-  data: { accountId: number; opportunityId: number | null },
-): Promise<void> {
+export interface ConvertPayload {
+  accountId: number | null
+  createOpportunity: boolean
+  opportunityName: string | null
+  stageId: number | null
+  opportunityAmount: number | null
+  opportunityCurrency: string | null
+  opportunityCloseDate: string | null
+}
+
+export async function convertLead(id: number, data: ConvertPayload): Promise<void> {
   await apiPost(`/api/crm/leads/${id}/convert`, data)
   revalidatePath('/crm/leads')
 }

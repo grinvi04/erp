@@ -24,7 +24,7 @@ export async function updateJobGrade(
     minSalary: number | null
     maxSalary: number | null
     version: number
-  }
+  },
 ): Promise<void> {
   await apiPut<JobGrade>(`/api/hr/job-grades/${id}`, data)
   revalidatePath(PATH)

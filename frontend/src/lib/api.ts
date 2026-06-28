@@ -3,7 +3,8 @@ import { auth } from '@/lib/auth'
 import type { ApiResponse, PageResponse } from '@/types/api'
 
 // BACKEND_URL: server-only (Docker container-to-container). NEXT_PUBLIC_API_URL: browser-facing.
-const API_BASE = process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
+const API_BASE =
+  process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
 
 async function getHeaders(): Promise<HeadersInit> {
   const session = await auth()
@@ -16,7 +17,7 @@ async function getHeaders(): Promise<HeadersInit> {
 
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<ApiResponse<T>> {
   const headers = await getHeaders()
   const res = await fetch(`${API_BASE}${path}`, {
@@ -35,14 +36,18 @@ export async function apiFetch<T>(
   return body
 }
 
+/** 토큰을 주입해 백엔드 응답을 가공 없이 그대로 반환한다(CSV 등 비-JSON 다운로드 프록시용). */
+export async function apiGetRaw(path: string): Promise<Response> {
+  const headers = await getHeaders()
+  return fetch(`${API_BASE}${path}`, { headers, cache: 'no-store' })
+}
+
 /** 현재 로그인 사용자의 Keycloak subject(고유 ID)를 access token에서 추출한다. */
 export async function getCurrentUserId(): Promise<string> {
   const session = await auth()
   if (!session?.accessToken) return ''
   try {
-    const payload = JSON.parse(
-      Buffer.from(session.accessToken.split('.')[1], 'base64').toString()
-    )
+    const payload = JSON.parse(Buffer.from(session.accessToken.split('.')[1], 'base64').toString())
     return payload.sub ?? ''
   } catch {
     return ''

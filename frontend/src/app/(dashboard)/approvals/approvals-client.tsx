@@ -8,37 +8,84 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
+import { DetailSheet, DetailRow, DetailSection } from '@/components/ui/detail-sheet'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState, ErrorState } from '@/components/ui/empty-state'
 import { approveInboxItem, rejectInboxItem } from './actions'
+import { formatUserName, formatDate } from '@/lib/utils'
 import type { ApprovalSummary, ApprovalStatus } from '@/types/approval'
 
 const STATUS_LABEL: Record<ApprovalStatus, string> = {
-  PENDING: '대기', APPROVED: '승인', REJECTED: '반려', CANCELLED: '취소', RETURNED: '반송',
+  PENDING: '결재중',
+  APPROVED: '승인',
+  REJECTED: '반려',
+  CANCELLED: '취소',
+  RETURNED: '반송',
 }
 const STATUS_VARIANT: Record<ApprovalStatus, 'default' | 'secondary' | 'destructive'> = {
-  PENDING: 'secondary', APPROVED: 'default', REJECTED: 'destructive',
-  CANCELLED: 'secondary', RETURNED: 'destructive',
+  PENDING: 'secondary',
+  APPROVED: 'default',
+  REJECTED: 'destructive',
+  CANCELLED: 'secondary',
+  RETURNED: 'destructive',
 }
 
 // 결재 대상 도메인(entityType) → 처리 화면 라우트 + 인박스 인라인 처리 지원 여부.
 // inlineApprove=true: 결재함에서 직접 승인. inlineReject=true: 결재함에서 직접 반려.
-// GL 전표·재고 조정은 승인이 전결한도·전기 판단을 동반해 링크 이동하되, 반려는 인라인 지원한다.
+// 일반전표·재고 조정은 승인이 전결한도·전기 판단을 동반해 링크 이동하되, 반려는 인라인 지원한다.
 const ENTITY_ROUTE: Record<
-  string, { label: string; href: string; inlineApprove: boolean; inlineReject: boolean }
+  string,
+  { label: string; href: string; inlineApprove: boolean; inlineReject: boolean }
 > = {
-  LEAVE_REQUEST: { label: '휴가 신청', href: '/hr/leave-requests', inlineApprove: true, inlineReject: true },
-  AP_INVOICE: { label: 'AP 전표', href: '/finance/invoices', inlineApprove: false, inlineReject: false },
-  GL_ENTRY: { label: 'GL 전표', href: '/finance/journal-entries', inlineApprove: false, inlineReject: true },
-  STOCK_MOVEMENT: { label: '재고 조정', href: '/inventory/movements', inlineApprove: false, inlineReject: true },
+  LEAVE_REQUEST: {
+    label: '휴가 신청',
+    href: '/hr/leave-requests',
+    inlineApprove: true,
+    inlineReject: true,
+  },
+  AP_INVOICE: {
+    label: '매입전표',
+    href: '/finance/invoices',
+    inlineApprove: false,
+    inlineReject: false,
+  },
+  GL_ENTRY: {
+    label: '일반전표',
+    href: '/finance/journal-entries',
+    inlineApprove: false,
+    inlineReject: true,
+  },
+  STOCK_MOVEMENT: {
+    label: '재고 조정',
+    href: '/inventory/movements',
+    inlineApprove: false,
+    inlineReject: true,
+  },
 }
 
 function entityInfo(entityType: string) {
-  return ENTITY_ROUTE[entityType]
-    ?? { label: entityType, href: '#', inlineApprove: false, inlineReject: false }
+  return (
+    ENTITY_ROUTE[entityType] ?? {
+      label: entityType,
+      href: '#',
+      inlineApprove: false,
+      inlineReject: false,
+    }
+  )
 }
 
 type ActionDialog =
@@ -51,16 +98,33 @@ interface Props {
   pendingFailed: boolean
   mine: ApprovalSummary[]
   mineFailed: boolean
+  names: Record<string, string>
 }
 
-export default function ApprovalsClient({ pending, pendingFailed, mine, mineFailed }: Props) {
+export default function ApprovalsClient({
+  pending,
+  pendingFailed,
+  mine,
+  mineFailed,
+  names,
+}: Props) {
   const [dialog, setDialog] = useState<ActionDialog>({ type: 'none' })
   const [comment, setComment] = useState('')
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
 
-  const openApprove = (item: ApprovalSummary) => { setComment(''); setDialog({ type: 'approve', item }) }
-  const openReject = (item: ApprovalSummary) => { setComment(''); setDialog({ type: 'reject', item }) }
+  // 결재 상세(drill-in) — 행 클릭 시 결재 건 정보(대상·상신자·현재단계 등)를 읽기전용으로 연다.
+  // 전체 결재선(단계별 이력)을 주는 백엔드 엔드포인트는 아직 없어, 요약에 담긴 현재 단계까지 표시한다.
+  const [detail, setDetail] = useState<ApprovalSummary | null>(null)
+
+  const openApprove = (item: ApprovalSummary) => {
+    setComment('')
+    setDialog({ type: 'approve', item })
+  }
+  const openReject = (item: ApprovalSummary) => {
+    setComment('')
+    setDialog({ type: 'reject', item })
+  }
 
   const submit = (kind: 'approve' | 'reject', item: ApprovalSummary) => {
     if (kind === 'reject' && !comment.trim()) {
@@ -87,7 +151,7 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
     const info = entityInfo(a.entityType)
     const showApprove = actionable && info.inlineApprove
     const showReject = actionable && info.inlineReject
-    // 승인을 인라인 지원하지 않으면(예: GL 전표·재고 조정) 처리 화면으로의 링크를 함께 노출한다.
+    // 승인을 인라인 지원하지 않으면(예: 일반전표·재고 조정) 처리 화면으로의 링크를 함께 노출한다.
     const showLink = !showApprove && info.href !== '#'
     if (!showApprove && !showReject && !showLink) {
       return null
@@ -95,20 +159,34 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
     return (
       <div className="flex justify-end items-center gap-1">
         {showApprove && (
-          <Button variant="ghost" size="sm" title="승인" onClick={() => openApprove(a)} disabled={isPending}>
-            <CheckIcon className="text-emerald-600" />승인
+          <Button
+            variant="ghost"
+            size="sm"
+            title="승인"
+            onClick={() => openApprove(a)}
+            disabled={isPending}
+          >
+            <CheckIcon className="text-success" />
+            승인
           </Button>
         )}
         {showReject && (
-          <Button variant="ghost" size="sm" title="반려" onClick={() => openReject(a)}
-            disabled={isPending} className="text-destructive">
-            <XIcon />반려
+          <Button
+            variant="ghost"
+            size="sm"
+            title="반려"
+            onClick={() => openReject(a)}
+            disabled={isPending}
+            className="text-destructive"
+          >
+            <XIcon />
+            반려
           </Button>
         )}
         {showLink && (
-          <Link href={info.href}
-            className="text-sm text-blue-600 hover:underline flex items-center">
-            처리하러 가기<ChevronRight className="h-3 w-3" />
+          <Link href={info.href} className="text-sm text-primary hover:underline flex items-center">
+            처리하러 가기
+            <ChevronRight className="h-3 w-3" />
           </Link>
         )}
       </div>
@@ -116,10 +194,13 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
   }
 
   const renderTable = (
-    rows: ApprovalSummary[], emptyText: string, showRequester: boolean,
-    failed: boolean, actionable: boolean,
+    rows: ApprovalSummary[],
+    emptyText: string,
+    showRequester: boolean,
+    failed: boolean,
+    actionable: boolean,
   ) => (
-    <div className="bg-white rounded-lg border overflow-hidden">
+    <div className="bg-card rounded-lg border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -135,25 +216,42 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
         <TableBody>
           {rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={showRequester ? 7 : 6}
-                className={`text-center py-10 ${failed ? 'text-destructive' : 'text-gray-400'}`}>
-                {failed ? '결재 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.' : emptyText}
+              <TableCell colSpan={showRequester ? 7 : 6} className="p-0">
+                {failed ? (
+                  <ErrorState
+                    title="결재 정보를 불러오지 못했습니다"
+                    description="잠시 후 다시 시도해주세요."
+                  />
+                ) : (
+                  <EmptyState title={emptyText} />
+                )}
               </TableCell>
             </TableRow>
           )}
           {rows.map((a) => (
-            <TableRow key={a.id}>
-              <TableCell><Badge variant="secondary">{entityInfo(a.entityType).label}</Badge></TableCell>
+            <TableRow key={a.id} className="cursor-pointer" onClick={() => setDetail(a)}>
+              <TableCell>
+                <Badge variant="secondary">{entityInfo(a.entityType).label}</Badge>
+              </TableCell>
               <TableCell className="font-medium max-w-xs truncate">{a.title}</TableCell>
-              <TableCell className="text-sm text-gray-600">
-                {a.currentStep}/{a.totalSteps}{a.currentStepName ? ` · ${a.currentStepName}` : ''}
+              <TableCell className="text-sm text-muted-foreground">
+                {a.currentStep}/{a.totalSteps}
+                {a.currentStepName ? ` · ${a.currentStepName}` : ''}
               </TableCell>
               {showRequester && (
-                <TableCell className="text-sm text-gray-500 font-mono">{a.requesterId}</TableCell>
+                <TableCell className="text-sm text-muted-foreground" title={a.requesterId}>
+                  {formatUserName(a.requesterId, names)}
+                </TableCell>
               )}
-              <TableCell><Badge variant={STATUS_VARIANT[a.status]}>{STATUS_LABEL[a.status]}</Badge></TableCell>
-              <TableCell className="text-sm text-gray-600">{a.requestedAt.slice(0, 10)}</TableCell>
-              <TableCell>{renderActionCell(a, actionable)}</TableCell>
+              <TableCell>
+                <Badge variant={STATUS_VARIANT[a.status]}>{STATUS_LABEL[a.status]}</Badge>
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {formatDate(a.requestedAt)}
+              </TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                {renderActionCell(a, actionable)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -165,50 +263,120 @@ export default function ApprovalsClient({ pending, pendingFailed, mine, mineFail
 
   return (
     <div className="p-6 space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">결재함</h1>
-        <p className="text-sm text-gray-500 mt-1">내가 처리할 결재와 내가 상신한 결재를 한 곳에서 확인합니다</p>
-      </div>
+      <PageHeader
+        title="결재함"
+        description="내가 처리할 결재와 내가 상신한 결재를 한 곳에서 확인합니다"
+      />
 
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          처리 대기 <span className="text-blue-600">{pending.length}</span>
+        <h2 className="text-lg font-semibold text-foreground mb-3">
+          처리 대기 <span className="text-primary">{pending.length}</span>
         </h2>
         {renderTable(pending, '처리할 결재가 없습니다', true, pendingFailed, true)}
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">내가 상신한 결재</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-3">내가 상신한 결재</h2>
         {renderTable(mine, '상신한 결재가 없습니다', false, mineFailed, false)}
       </section>
 
+      {/* 결재 상세 (drill-in) */}
+      <DetailSheet
+        open={detail !== null}
+        onOpenChange={(o) => {
+          if (!o) setDetail(null)
+        }}
+        title="결재 상세"
+        description={detail?.title}
+      >
+        {detail && (
+          <DetailSection title="결재 정보">
+            <dl>
+              <DetailRow label="유형">
+                <Badge variant="secondary">{entityInfo(detail.entityType).label}</Badge>
+              </DetailRow>
+              <DetailRow label="제목">{detail.title}</DetailRow>
+              <DetailRow label="상태">
+                <Badge variant={STATUS_VARIANT[detail.status]}>{STATUS_LABEL[detail.status]}</Badge>
+              </DetailRow>
+              <DetailRow label="상신자">
+                <span title={detail.requesterId}>{formatUserName(detail.requesterId, names)}</span>
+              </DetailRow>
+              <DetailRow label="현재 단계">
+                {detail.currentStep}/{detail.totalSteps}
+                {detail.currentStepName ? ` · ${detail.currentStepName}` : ''}
+              </DetailRow>
+              {detail.currentApproverId && (
+                <DetailRow label="현재 결재자">
+                  <span title={detail.currentApproverId}>
+                    {formatUserName(detail.currentApproverId, names)}
+                  </span>
+                </DetailRow>
+              )}
+              <DetailRow label="요청일">{formatDate(detail.requestedAt)}</DetailRow>
+              {detail.completedAt && (
+                <DetailRow label="완료일">{formatDate(detail.completedAt)}</DetailRow>
+              )}
+              {entityInfo(detail.entityType).href !== '#' && (
+                <DetailRow label="대상">
+                  <Link
+                    href={entityInfo(detail.entityType).href}
+                    className="inline-flex items-center text-primary hover:underline"
+                  >
+                    처리 화면으로 이동
+                    <ChevronRight className="h-3 w-3" />
+                  </Link>
+                </DetailRow>
+              )}
+            </dl>
+          </DetailSection>
+        )}
+      </DetailSheet>
+
       {/* 승인/반려 다이얼로그 */}
-      <Dialog open={dialog.type !== 'none'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type !== 'none'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{dialog.type === 'reject' ? '결재 반려' : '결재 승인'}</DialogTitle>
           </DialogHeader>
           {dialogItem && (
             <div className="space-y-3 py-2">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 <strong>{dialogItem.title}</strong>
               </p>
               <div className="grid gap-1.5">
                 <Label>{dialog.type === 'reject' ? '반려 사유 *' : '의견 (선택)'}</Label>
-                <Textarea rows={3} value={comment} onChange={(e) => setComment(e.target.value)}
-                  placeholder={dialog.type === 'reject' ? '반려 사유를 입력하세요' : '승인 의견(선택)'} />
+                <Textarea
+                  rows={3}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder={
+                    dialog.type === 'reject' ? '반려 사유를 입력하세요' : '승인 의견(선택)'
+                  }
+                />
               </div>
             </div>
           )}
           <DialogFooter showCloseButton>
             {dialog.type === 'approve' && (
-              <Button onClick={() => dialogItem && submit('approve', dialogItem)} disabled={isPending}>
+              <Button
+                onClick={() => dialogItem && submit('approve', dialogItem)}
+                disabled={isPending}
+              >
                 승인
               </Button>
             )}
             {dialog.type === 'reject' && (
-              <Button variant="destructive"
-                onClick={() => dialogItem && submit('reject', dialogItem)} disabled={isPending}>
+              <Button
+                variant="destructive"
+                onClick={() => dialogItem && submit('reject', dialogItem)}
+                disabled={isPending}
+              >
                 반려
               </Button>
             )}

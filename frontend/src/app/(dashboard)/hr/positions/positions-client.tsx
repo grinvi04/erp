@@ -6,11 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import { createPosition, updatePosition, deletePosition } from './actions'
 import type { Position } from '@/types/hr'
 
@@ -33,7 +37,9 @@ export default function PositionsClient({ positions }: Props) {
   const [levelOrder, setLevelOrder] = useState('0')
 
   const openCreate = () => {
-    setCode(''); setName(''); setLevelOrder('0')
+    setCode('')
+    setName('')
+    setLevelOrder('0')
     setDialog({ type: 'create' })
   }
 
@@ -97,70 +103,74 @@ export default function PositionsClient({ positions }: Props) {
     })
   }
 
+  const columns: Column<Position>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (p) => p.code,
+      cell: (p) => <span className="font-mono text-sm">{p.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '직위명',
+      sortable: true,
+      sortValue: (p) => p.name,
+      cell: (p) => <span className="font-medium">{p.name}</span>,
+    },
+    {
+      key: 'levelOrder',
+      header: '레벨',
+      align: 'right',
+      sortable: true,
+      sortValue: (p) => p.levelOrder,
+      cell: (p) => <span className="text-sm text-muted-foreground">{p.levelOrder}</span>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-24',
+      cell: (position) => (
+        <div className="flex justify-end gap-1">
+          <Button variant="ghost" size="icon-xs" onClick={() => openEdit(position)}>
+            <PencilIcon />
+            <span className="sr-only">수정</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setDialog({ type: 'delete', position })}
+          >
+            <Trash2Icon className="text-destructive" />
+            <span className="sr-only">삭제</span>
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">직위 관리</h1>
-          <p className="text-sm text-gray-500 mt-1">직위(직책) 체계를 관리합니다</p>
-        </div>
+      <PageHeader title="직위 관리" description="직위(직책) 체계를 관리합니다" className="mb-6">
         <Button onClick={openCreate}>
-          <PlusIcon />
-          새 직위
+          <PlusIcon />새 직위
         </Button>
-      </div>
+      </PageHeader>
 
-      <div className="bg-white rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>직위명</TableHead>
-              <TableHead className="text-right">레벨</TableHead>
-              <TableHead className="w-24" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {positions.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-gray-400 py-10">
-                  등록된 직위가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {positions.map((position) => (
-              <TableRow key={position.id}>
-                <TableCell className="font-mono text-sm">{position.code}</TableCell>
-                <TableCell className="font-medium">{position.name}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">
-                  {position.levelOrder}
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon-xs" onClick={() => openEdit(position)}>
-                      <PencilIcon />
-                      <span className="sr-only">수정</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => setDialog({ type: 'delete', position })}
-                    >
-                      <Trash2Icon className="text-destructive" />
-                      <span className="sr-only">삭제</span>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={positions}
+        columns={columns}
+        getRowId={(p) => p.id}
+        empty={<EmptyState title="등록된 직위가 없습니다" />}
+      />
 
       {/* Create / Edit Dialog */}
       <Dialog
         open={dialog.type === 'create' || dialog.type === 'edit'}
-        onOpenChange={(open) => { if (!open) close() }}
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
       >
         <DialogContent>
           <DialogHeader>
@@ -219,13 +229,15 @@ export default function PositionsClient({ positions }: Props) {
       {/* Delete Confirm Dialog */}
       <Dialog
         open={dialog.type === 'delete'}
-        onOpenChange={(open) => { if (!open) close() }}
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
       >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>직위 삭제</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600 py-2">
+          <p className="text-sm text-muted-foreground py-2">
             {dialog.type === 'delete' && (
               <>
                 <strong>{dialog.position.name}</strong> 직위를 삭제하시겠습니까?

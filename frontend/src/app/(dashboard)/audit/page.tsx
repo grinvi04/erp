@@ -1,23 +1,44 @@
 import { apiGetPage, getMyPermissions } from '@/lib/api'
+import { auditBackendQuery } from '@/lib/audit-query'
+import { resolveUserNames } from '@/lib/users'
 import { PERM } from '@/lib/permissions'
 import type { PageResponse } from '@/types/api'
-import type { AuditLog } from '@/types/audit'
+import type { AuditAction, AuditFilters, AuditLog } from '@/types/audit'
+import { AUDIT_ACTIONS } from '@/types/audit'
 import AuditClient from './audit-client'
 
 export const metadata = { title: '감사 로그 | ERP' }
 
-const ENTITY_TYPES = ['LEAVE_REQUEST', 'AP_INVOICE', 'EMPLOYEE', 'ROLE', 'USER_ROLE', 'ACCESS_PROFILE'] as const
+const ENTITY_TYPES = [
+  'LEAVE_REQUEST',
+  'AP_INVOICE',
+  'EMPLOYEE',
+  'ROLE',
+  'USER_ROLE',
+  'ACCESS_PROFILE',
+] as const
+
+// 잘못된 날짜 입력이 백엔드 400을 유발하지 않도록 yyyy-MM-dd만 통과시킨다.
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 export default async function AuditPage(props: {
-  searchParams: Promise<{ page?: string; size?: string; entityType?: string }>
+  searchParams: Promise<{
+    page?: string
+    size?: string
+    entityType?: string
+    action?: string
+    performedBy?: string
+    from?: string
+    to?: string
+  }>
 }) {
   // 서버 측 권한 선검사 — audit:read 없이는 백엔드가 403을 내므로 깔끔한 안내로 대체한다.
   const perms = await getMyPermissions()
   if (!perms.includes(PERM.AUDIT_READ)) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-semibold text-gray-900">감사 로그</h1>
-        <p className="mt-4 text-sm text-gray-500">
+        <h1 className="text-2xl font-semibold text-foreground">감사 로그</h1>
+        <p className="mt-4 text-sm text-muted-foreground">
           접근 권한이 없습니다. 감사 로그 조회에는 <code>audit:read</code> 권한이 필요합니다.
         </p>
       </div>
@@ -27,12 +48,22 @@ export default async function AuditPage(props: {
   const sp = await props.searchParams
   const page = Number(sp.page ?? 0)
   const size = Number(sp.size ?? 20)
-  const entityType = sp.entityType && ENTITY_TYPES.includes(sp.entityType as (typeof ENTITY_TYPES)[number])
-    ? sp.entityType
-    : ''
-  const typeFilter = entityType ? `&entityType=${encodeURIComponent(entityType)}` : ''
 
-  const data = await apiGetPage<AuditLog>(`/api/audit/logs?page=${page}&size=${size}${typeFilter}`)
+  // 알 수 없는 값은 무시(서버 400 방지) — 유효한 필터만 백엔드로 전달한다.
+  const filters: AuditFilters = {
+    entityType:
+      sp.entityType && ENTITY_TYPES.includes(sp.entityType as (typeof ENTITY_TYPES)[number])
+        ? sp.entityType
+        : '',
+    action: sp.action && AUDIT_ACTIONS.includes(sp.action as AuditAction) ? sp.action : '',
+    performedBy: sp.performedBy?.trim() ?? '',
+    from: sp.from && DATE_RE.test(sp.from) ? sp.from : '',
+    to: sp.to && DATE_RE.test(sp.to) ? sp.to : '',
+  }
 
-  return <AuditClient data={data as PageResponse<AuditLog>} entityType={entityType} />
+  const query = auditBackendQuery({ page, size, ...filters })
+  const data = await apiGetPage<AuditLog>(`/api/audit/logs?${query}`)
+  const names = await resolveUserNames(data.content.map((log) => log.performedBy))
+
+  return <AuditClient data={data as PageResponse<AuditLog>} filters={filters} names={names} />
 }

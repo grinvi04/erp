@@ -21,12 +21,7 @@
       <property name="ignoreNumbers" value="-1, 0, 1, 2"/>
       <property name="ignoreAnnotation" value="true"/>
     </module>
-    <module name="WhitespaceAround">
-      <property name="allowEmptyConstructors" value="true"/>
-      <property name="allowEmptyMethods" value="true"/>
-      <property name="allowEmptyTypes" value="true"/>
-      <property name="allowEmptyLambdas" value="true"/>
-    </module>
-    <module name="NoWhitespaceBefore"/>
+    <!-- 공백·들여쓰기는 google-java-format(Spotless)이 소유 — 충돌 방지 위해 checkstyle에서 공백 규칙 제거.
+         checkstyle은 포매터가 다루지 않는 의미 규칙만 유지(UnusedImports·NeedBraces·EmptyBlock·MagicNumber). -->
   </module>
 </module>

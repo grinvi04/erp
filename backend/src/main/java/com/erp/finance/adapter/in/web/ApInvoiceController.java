@@ -27,52 +27,52 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ApInvoiceController {
 
-    private final ApInvoiceService apInvoiceService;
+  private final ApInvoiceService apInvoiceService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<ApInvoiceResponse>>> findAll(
-        @RequestParam(required = false) ApInvoiceStatus status,
-        @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.findAll(status, pageable)));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<PageResponse<ApInvoiceResponse>>> findAll(
+      @RequestParam(required = false) ApInvoiceStatus status,
+      @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+    return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.findAll(status, pageable)));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ApInvoiceResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<ApInvoiceResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.findById(id)));
+  }
 
-    @GetMapping("/vendor/{vendorId}")
-    public ResponseEntity<ApiResponse<PageResponse<ApInvoiceResponse>>> findByVendor(
-        @PathVariable Long vendorId,
-        @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.findByVendor(vendorId, pageable)));
-    }
+  @GetMapping("/vendor/{vendorId}")
+  public ResponseEntity<ApiResponse<PageResponse<ApInvoiceResponse>>> findByVendor(
+      @PathVariable Long vendorId,
+      @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+    return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.findByVendor(vendorId, pageable)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<ApInvoiceResponse>> create(
-        @Valid @RequestBody ApInvoiceCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(apInvoiceService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<ApInvoiceResponse>> create(
+      @Valid @RequestBody ApInvoiceCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(apInvoiceService.create(request)));
+  }
 
-    @PostMapping("/{id}/submit")
-    public ResponseEntity<ApiResponse<ApInvoiceResponse>> submit(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.submit(id)));
-    }
+  @PostMapping("/{id}/submit")
+  public ResponseEntity<ApiResponse<ApInvoiceResponse>> submit(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.submit(id)));
+  }
 
-    @PostMapping("/{id}/approve")
-    public ResponseEntity<ApiResponse<ApInvoiceResponse>> approve(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.approve(id)));
-    }
+  @PostMapping("/{id}/approve")
+  public ResponseEntity<ApiResponse<ApInvoiceResponse>> approve(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.approve(id)));
+  }
 
-    @PostMapping("/{id}/pay")
-    public ResponseEntity<ApiResponse<ApInvoiceResponse>> pay(
-        @PathVariable Long id,
-        @Valid @RequestBody ApInvoicePayRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.pay(id, request)));
-    }
+  @PostMapping("/{id}/pay")
+  public ResponseEntity<ApiResponse<ApInvoiceResponse>> pay(
+      @PathVariable Long id, @Valid @RequestBody ApInvoicePayRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.pay(id, request)));
+  }
 
-    @PostMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<ApInvoiceResponse>> cancel(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.cancel(id)));
-    }
+  @PostMapping("/{id}/cancel")
+  public ResponseEntity<ApiResponse<ApInvoiceResponse>> cancel(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.cancel(id)));
+  }
 }

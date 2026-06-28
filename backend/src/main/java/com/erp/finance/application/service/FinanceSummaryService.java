@@ -17,19 +17,20 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class FinanceSummaryService {
 
-    private final ApInvoiceRepository apInvoiceRepository;
-    private final JournalEntryRepository journalEntryRepository;
-    private final BaseCurrencyService baseCurrencyService;
-    private final PermissionChecker permissionChecker;
+  private final ApInvoiceRepository apInvoiceRepository;
+  private final JournalEntryRepository journalEntryRepository;
+  private final BaseCurrencyService baseCurrencyService;
+  private final PermissionChecker permissionChecker;
 
-    public FinanceSummaryResponse getSummary() {
-        permissionChecker.require(Permission.FINANCE_READ);
-        List<CurrencyAmount> unpaidAmounts = apInvoiceRepository.sumUnpaidAmountByCurrency();
-        return new FinanceSummaryResponse(
-                apInvoiceRepository.countUnpaid(),
-                unpaidAmounts,
-                journalEntryRepository.countByStatus(JournalEntryStatus.DRAFT),
-                baseCurrencyService.currentBaseCurrencyCode(),
-                apInvoiceRepository.sumUnpaidBaseTotal());
-    }
+  public FinanceSummaryResponse getSummary() {
+    permissionChecker.require(Permission.FINANCE_READ);
+    List<CurrencyAmount> unpaidAmounts = apInvoiceRepository.sumUnpaidAmountByCurrency();
+    return new FinanceSummaryResponse(
+        apInvoiceRepository.countUnpaid(),
+        unpaidAmounts,
+        journalEntryRepository.countByStatus(JournalEntryStatus.DRAFT),
+        baseCurrencyService.currentBaseCurrencyCode(),
+        apInvoiceRepository.sumUnpaidBaseTotal(),
+        apInvoiceRepository.countUnpaidUnconverted() > 0);
+  }
 }

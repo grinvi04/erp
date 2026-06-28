@@ -5,7 +5,7 @@ export type JournalEntryStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'POSTED' | 'REVE
 export type ApInvoiceStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'
 export type ArInvoiceStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'
 export type FiscalYearStatus = 'OPEN' | 'CLOSED'
-export type FiscalPeriodStatus = 'OPEN' | 'CLOSED'
+export type FiscalPeriodStatus = 'OPEN' | 'CLOSED' | 'LOCKED'
 
 export interface Account {
   id: number

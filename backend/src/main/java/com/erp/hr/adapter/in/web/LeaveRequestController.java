@@ -26,36 +26,35 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class LeaveRequestController {
 
-    private final LeaveRequestService leaveRequestService;
+  private final LeaveRequestService leaveRequestService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<LeaveRequestResponse>>> find(
-        @RequestParam(required = false) Long employeeId,
-        @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        PageResponse<LeaveRequestResponse> result = employeeId != null
+  @GetMapping
+  public ResponseEntity<ApiResponse<PageResponse<LeaveRequestResponse>>> find(
+      @RequestParam(required = false) Long employeeId,
+      @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+    PageResponse<LeaveRequestResponse> result =
+        employeeId != null
             ? PageResponse.from(leaveRequestService.findByEmployee(employeeId, pageable))
             : PageResponse.from(leaveRequestService.findAll(pageable));
-        return ResponseEntity.ok(ApiResponse.ok(result));
-    }
+    return ResponseEntity.ok(ApiResponse.ok(result));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<LeaveRequestResponse>> create(
-        @Valid @RequestBody LeaveRequestCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(leaveRequestService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<LeaveRequestResponse>> create(
+      @Valid @RequestBody LeaveRequestCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(leaveRequestService.create(request)));
+  }
 
-    @PostMapping("/{id}/approve")
-    public ResponseEntity<ApiResponse<LeaveRequestResponse>> approve(
-        @PathVariable Long id,
-        @Valid @RequestBody ApprovalActionRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(leaveRequestService.approve(id, request)));
-    }
+  @PostMapping("/{id}/approve")
+  public ResponseEntity<ApiResponse<LeaveRequestResponse>> approve(
+      @PathVariable Long id, @Valid @RequestBody ApprovalActionRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(leaveRequestService.approve(id, request)));
+  }
 
-    @PostMapping("/{id}/reject")
-    public ResponseEntity<ApiResponse<LeaveRequestResponse>> reject(
-        @PathVariable Long id,
-        @Valid @RequestBody ApprovalActionRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(leaveRequestService.reject(id, request)));
-    }
+  @PostMapping("/{id}/reject")
+  public ResponseEntity<ApiResponse<LeaveRequestResponse>> reject(
+      @PathVariable Long id, @Valid @RequestBody ApprovalActionRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(leaveRequestService.reject(id, request)));
+  }
 }

@@ -14,5 +14,4 @@ public record CustomerUpdateRequest(
     @Size(max = 30) String contactPhone,
     @Min(0) int paymentTerms,
     Long receivablesAccountId,
-    @NotNull Long version
-) {}
+    @NotNull Long version) {}

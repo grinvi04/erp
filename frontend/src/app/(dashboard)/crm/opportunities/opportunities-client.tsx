@@ -10,20 +10,32 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import {
-  createOpportunity, updateOpportunity, deleteOpportunity, type OpportunityPayload,
+  createOpportunity,
+  updateOpportunity,
+  deleteOpportunity,
+  type OpportunityPayload,
 } from './actions'
 import type { Opportunity, CrmAccount, PipelineStage } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
+import { formatUserName } from '@/lib/utils'
 
 function formatAmount(amount: number | null, currency: string) {
   if (amount === null) return '—'
@@ -40,9 +52,10 @@ interface Props {
   data: PageResponse<Opportunity>
   accounts: CrmAccount[]
   stages: PipelineStage[]
+  names: Record<string, string>
 }
 
-export default function OpportunitiesClient({ data, accounts, stages }: Props) {
+export default function OpportunitiesClient({ data, accounts, stages, names }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.CRM_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -61,15 +74,29 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
   const [description, setDescription] = useState('')
 
   const openCreate = () => {
-    setAccountId(''); setName(''); setAmount(''); setCurrency('KRW')
-    setCloseDate(''); setProbability('0')
-    setSource(''); setDescription('')
-    setStageId(stages.length > 0 ? String(stages[0].id) : '')
+    setAccountId('')
+    setName('')
+    setAmount('')
+    setCurrency('KRW')
+    setCloseDate('')
+    setSource('')
+    setDescription('')
+    const first = stages.length > 0 ? stages[0] : null
+    setStageId(first ? String(first.id) : '')
+    setProbability(first ? String(first.probability) : '0')
     setDialog({ type: 'create' })
   }
 
+  // 단계 선택 시 해당 단계의 기본확률을 확률 입력에 자동 채운다(사용자가 덮어쓸 수 있음).
+  const selectStage = (value: string) => {
+    setStageId(value)
+    const stage = stages.find((s) => String(s.id) === value)
+    if (stage) setProbability(String(stage.probability))
+  }
+
   const openEdit = (opp: Opportunity) => {
-    setName(opp.name); setStageId(String(opp.stageId))
+    setName(opp.name)
+    setStageId(String(opp.stageId))
     setAmount(opp.amount != null ? String(opp.amount) : '')
     setCurrency(opp.currency ?? '')
     setCloseDate(opp.closeDate ?? '')
@@ -92,41 +119,64 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
   })
 
   const validate = (): boolean => {
-    if (!name.trim()) { toast.error('기회명은 필수입니다'); return false }
-    if (!stageId) { toast.error('단계를 선택하세요'); return false }
+    if (!name.trim()) {
+      toast.error('기회명은 필수입니다')
+      return false
+    }
+    if (!stageId) {
+      toast.error('단계를 선택하세요')
+      return false
+    }
     if (currency.trim() && currency.trim().length !== 3) {
-      toast.error('통화 코드는 3자리여야 합니다'); return false
+      toast.error('통화 코드는 3자리여야 합니다')
+      return false
     }
     if (isNaN(Number(probability)) || Number(probability) < 0 || Number(probability) > 100) {
-      toast.error('확률은 0~100 사이여야 합니다'); return false
+      toast.error('확률은 0~100 사이여야 합니다')
+      return false
     }
     if (amount && (isNaN(Number(amount)) || Number(amount) < 0)) {
-      toast.error('금액이 올바르지 않습니다'); return false
+      toast.error('금액이 올바르지 않습니다')
+      return false
     }
     return true
   }
 
   const handleCreate = () => {
-    if (!accountId) { toast.error('고객사를 선택하세요'); return }
+    if (!accountId) {
+      toast.error('고객사를 선택하세요')
+      return
+    }
     if (!validate()) return
     startTransition(async () => {
       try {
         await createOpportunity({ accountId: Number(accountId), ...buildPayload() })
         toast.success('영업 기회가 등록되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
+      }
     })
   }
 
   const handleUpdate = (opp: Opportunity) => {
     if (!validate()) return
-    if (!ownerId.trim()) { toast.error('담당자는 필수입니다'); return }
+    if (!ownerId.trim()) {
+      toast.error('담당자는 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
-        await updateOpportunity(opp.id, { ...buildPayload(), ownerId: ownerId.trim(), version: opp.version })
+        await updateOpportunity(opp.id, {
+          ...buildPayload(),
+          ownerId: ownerId.trim(),
+          version: opp.version,
+        })
         toast.success('영업 기회가 수정되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -136,7 +186,9 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
         await deleteOpportunity(opp.id)
         toast.success('영업 기회가 삭제되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -147,10 +199,14 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
           <div className="grid gap-1.5">
             <Label>고객사 *</Label>
             <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
-              <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="선택" />
+              </SelectTrigger>
               <SelectContent>
                 {accounts.map((acc) => (
-                  <SelectItem key={acc.id} value={String(acc.id)}>{acc.code} {acc.name}</SelectItem>
+                  <SelectItem key={acc.id} value={String(acc.id)}>
+                    {acc.code} {acc.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -164,31 +220,49 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-1.5">
           <Label>단계 *</Label>
-          <Select value={stageId} onValueChange={(v) => setStageId(v ?? '')}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+          <Select value={stageId} onValueChange={(v) => selectStage(v ?? '')}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="선택" />
+            </SelectTrigger>
             <SelectContent>
               {stages.map((s) => (
-                <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                <SelectItem key={s.id} value={String(s.id)}>
+                  {s.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="grid gap-1.5">
           <Label>확률(%) *</Label>
-          <Input type="number" min={0} max={100} value={probability}
-            onChange={(e) => setProbability(e.target.value)} />
+          <Input
+            type="number"
+            min={0}
+            max={100}
+            value={probability}
+            onChange={(e) => setProbability(e.target.value)}
+          />
         </div>
       </div>
       <div className="grid grid-cols-3 gap-4">
         <div className="grid gap-1.5">
           <Label>금액</Label>
-          <Input type="number" min={0} step={0.01} value={amount}
-            onChange={(e) => setAmount(e.target.value)} />
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
         </div>
         <div className="grid gap-1.5">
           <Label>통화</Label>
-          <Input maxLength={3} value={currency}
-            onChange={(e) => setCurrency(e.target.value.toUpperCase())} placeholder="KRW" />
+          <Input
+            maxLength={3}
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+            placeholder="KRW"
+          />
         </div>
         <div className="grid gap-1.5">
           <Label>예상 종결일</Label>
@@ -214,120 +288,200 @@ export default function OpportunitiesClient({ data, accounts, stages }: Props) {
     </div>
   )
 
+  const columns: Column<Opportunity>[] = [
+    {
+      key: 'name',
+      header: '기회명',
+      sortable: true,
+      sortValue: (opp) => opp.name,
+      cell: (opp) => <span className="font-medium">{opp.name}</span>,
+    },
+    {
+      key: 'accountName',
+      header: '고객사',
+      sortable: true,
+      sortValue: (opp) => opp.accountName,
+      cell: (opp) => <span className="text-sm text-foreground">{opp.accountName}</span>,
+    },
+    {
+      key: 'stage',
+      header: '단계',
+      sortable: true,
+      sortValue: (opp) => opp.stageName,
+      cell: (opp) => <Badge variant="secondary">{opp.stageName}</Badge>,
+    },
+    {
+      key: 'amount',
+      header: '금액',
+      align: 'right',
+      sortable: true,
+      sortValue: (opp) => opp.amount,
+      cell: (opp) => (
+        <span className="font-mono text-sm">{formatAmount(opp.amount, opp.currency)}</span>
+      ),
+    },
+    {
+      key: 'probability',
+      header: '확률(%)',
+      align: 'right',
+      sortable: true,
+      sortValue: (opp) => opp.probability,
+      cell: (opp) => <span className="text-sm">{opp.probability}%</span>,
+    },
+    {
+      key: 'closeDate',
+      header: '예상 종결일',
+      sortable: true,
+      sortValue: (opp) => opp.closeDate,
+      cell: (opp) => <span className="text-sm text-muted-foreground">{opp.closeDate ?? '—'}</span>,
+    },
+    {
+      key: 'owner',
+      header: '담당자',
+      sortable: true,
+      sortValue: (opp) => formatUserName(opp.ownerId, names),
+      cell: (opp) => (
+        <span className="text-sm" title={opp.ownerId}>
+          {formatUserName(opp.ownerId, names)}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (opp) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <>
+              <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(opp)}>
+                <PencilIcon />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                title="삭제"
+                onClick={() => setDialog({ type: 'delete', opp })}
+              >
+                <Trash2Icon className="text-destructive" />
+              </Button>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">영업 기회</h1>
-          <p className="text-sm text-gray-500 mt-1">영업 파이프라인을 관리합니다</p>
-        </div>
+      <PageHeader title="영업 기회" description="영업 파이프라인을 관리합니다" className="mb-6">
         {canWrite && (
           <Button onClick={openCreate} disabled={stages.length === 0}>
             <PlusIcon />새 영업기회
           </Button>
         )}
-      </div>
+      </PageHeader>
       {stages.length === 0 && (
-        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+        <div className="mb-4 rounded-md border border-warning/20 bg-warning/10 px-4 py-2 text-sm text-warning">
           영업 기회를 등록하려면 먼저 파이프라인 단계를 1개 이상 정의해야 합니다.
         </div>
       )}
 
-      <div className="bg-white rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>기회명</TableHead>
-              <TableHead>고객사</TableHead>
-              <TableHead>단계</TableHead>
-              <TableHead className="text-right">금액</TableHead>
-              <TableHead className="text-right">확률(%)</TableHead>
-              <TableHead>예상 종결일</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-400 py-10">
-                  등록된 영업 기회가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((opp) => (
-              <TableRow key={opp.id}>
-                <TableCell className="font-medium">{opp.name}</TableCell>
-                <TableCell className="text-sm text-gray-700">{opp.accountName}</TableCell>
-                <TableCell><Badge variant="secondary">{opp.stageName}</Badge></TableCell>
-                <TableCell className="text-right font-mono text-sm">
-                  {formatAmount(opp.amount, opp.currency)}
-                </TableCell>
-                <TableCell className="text-right text-sm">{opp.probability}%</TableCell>
-                <TableCell className="text-sm text-gray-600">{opp.closeDate ?? '—'}</TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <>
-                        <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(opp)}>
-                          <PencilIcon />
-                        </Button>
-                        <Button variant="ghost" size="icon-xs" title="삭제"
-                          onClick={() => setDialog({ type: 'delete', opp })}>
-                          <Trash2Icon className="text-destructive" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(opp) => opp.id}
+          empty={
+            <EmptyState
+              title="등록된 영업 기회가 없습니다"
+              description={
+                canWrite && stages.length > 0
+                  ? '우측 상단에서 새 영업 기회를 등록하세요.'
+                  : undefined
+              }
+            />
+          }
+        />
         <PaginationBar
-          page={data.page} totalPages={data.totalPages}
-          totalElements={data.totalElements} size={data.size}
+          page={data.page}
+          totalPages={data.totalPages}
+          totalElements={data.totalElements}
+          size={data.size}
           basePath="/crm/opportunities"
         />
       </div>
 
       {/* Create */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>새 영업 기회 등록</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>새 영업 기회 등록</DialogTitle>
+          </DialogHeader>
           {oppForm}
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit */}
-      <Dialog open={dialog.type === 'edit'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'edit'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>영업 기회 수정{dialog.type === 'edit' && ` — ${dialog.opp.name}`}</DialogTitle>
+            <DialogTitle>
+              영업 기회 수정{dialog.type === 'edit' && ` — ${dialog.opp.name}`}
+            </DialogTitle>
           </DialogHeader>
           {oppForm}
           <DialogFooter showCloseButton>
-            <Button onClick={() => dialog.type === 'edit' && handleUpdate(dialog.opp)}
-              disabled={isPending}>저장</Button>
+            <Button
+              onClick={() => dialog.type === 'edit' && handleUpdate(dialog.opp)}
+              disabled={isPending}
+            >
+              저장
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete */}
-      <Dialog open={dialog.type === 'delete'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'delete'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>영업 기회 삭제</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>영업 기회 삭제</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'delete' && (
-            <p className="text-sm text-gray-600 py-2">
+            <p className="text-sm text-muted-foreground py-2">
               <strong>{dialog.opp.name}</strong>을(를) 삭제하시겠습니까?
             </p>
           )}
           <DialogFooter showCloseButton>
-            <Button variant="destructive"
+            <Button
+              variant="destructive"
               onClick={() => dialog.type === 'delete' && handleDelete(dialog.opp)}
-              disabled={isPending}>삭제</Button>
+              disabled={isPending}
+            >
+              삭제
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

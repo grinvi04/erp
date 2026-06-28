@@ -1,7 +1,6 @@
 package com.erp.hr.application.dto;
 
 import com.erp.hr.domain.model.JobGrade;
-
 import java.math.BigDecimal;
 
 public record JobGradeResponse(
@@ -11,17 +10,15 @@ public record JobGradeResponse(
     int gradeOrder,
     BigDecimal minSalary,
     BigDecimal maxSalary,
-    Long version
-) {
-    public static JobGradeResponse from(JobGrade grade) {
-        return new JobGradeResponse(
-            grade.getId(),
-            grade.getCode(),
-            grade.getName(),
-            grade.getGradeOrder(),
-            grade.getMinSalary(),
-            grade.getMaxSalary(),
-            grade.getVersion()
-        );
-    }
+    Long version) {
+  public static JobGradeResponse from(JobGrade grade) {
+    return new JobGradeResponse(
+        grade.getId(),
+        grade.getCode(),
+        grade.getName(),
+        grade.getGradeOrder(),
+        grade.getMinSalary(),
+        grade.getMaxSalary(),
+        grade.getVersion());
+  }
 }

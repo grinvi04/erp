@@ -7,11 +7,7 @@ export const metadata = { title: '휴가 잔여 | ERP' }
 
 export default async function LeaveBalancesPage() {
   const employeePage = await apiGetPage<Employee>(
-    '/api/hr/employees?status=ACTIVE&page=0&size=1000'
+    '/api/hr/employees?status=ACTIVE&page=0&size=1000',
   )
-  return (
-    <LeaveBalancesClient
-      employees={(employeePage as PageResponse<Employee>).content}
-    />
-  )
+  return <LeaveBalancesClient employees={(employeePage as PageResponse<Employee>).content} />
 }

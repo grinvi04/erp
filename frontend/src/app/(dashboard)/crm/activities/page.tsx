@@ -17,10 +17,5 @@ export default async function ActivitiesPage(props: {
     apiGet<PageResponse<CrmAccount>>('/api/crm/accounts?isActive=true&size=1000'),
   ])
 
-  return (
-    <ActivitiesClient
-      data={data as PageResponse<Activity>}
-      accounts={accountsPage.content}
-    />
-  )
+  return <ActivitiesClient data={data as PageResponse<Activity>} accounts={accountsPage.content} />
 }

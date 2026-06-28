@@ -4,6 +4,7 @@ import com.erp.common.response.ApiResponse;
 import com.erp.common.security.dto.AccessProfileRequest;
 import com.erp.common.security.dto.AccessProfileResponse;
 import com.erp.common.security.dto.RoleResponse;
+import com.erp.common.security.dto.UserLookupResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,33 +24,40 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class IamUserAccessController {
 
-    private final IamService iamService;
+  private final IamService iamService;
 
-    @GetMapping("/roles")
-    public ResponseEntity<ApiResponse<List<RoleResponse>>> userRoles(@PathVariable String userId) {
-        return ResponseEntity.ok(ApiResponse.ok(iamService.getUserRoles(userId)));
-    }
+  /** sub 존재 검증 — 화면이 유령 sub에 역할/프로파일을 무단 배정하지 않도록 사전 확인한다. */
+  @GetMapping
+  public ResponseEntity<ApiResponse<UserLookupResponse>> lookup(@PathVariable String userId) {
+    return ResponseEntity.ok(ApiResponse.ok(iamService.lookupUser(userId)));
+  }
 
-    @PostMapping("/roles/{roleId}")
-    public ResponseEntity<Void> assignRole(@PathVariable String userId, @PathVariable Long roleId) {
-        iamService.assignRole(userId, roleId);
-        return ResponseEntity.noContent().build();
-    }
+  @GetMapping("/roles")
+  public ResponseEntity<ApiResponse<List<RoleResponse>>> userRoles(@PathVariable String userId) {
+    return ResponseEntity.ok(ApiResponse.ok(iamService.getUserRoles(userId)));
+  }
 
-    @DeleteMapping("/roles/{roleId}")
-    public ResponseEntity<Void> unassignRole(@PathVariable String userId, @PathVariable Long roleId) {
-        iamService.unassignRole(userId, roleId);
-        return ResponseEntity.noContent().build();
-    }
+  @PostMapping("/roles/{roleId}")
+  public ResponseEntity<Void> assignRole(@PathVariable String userId, @PathVariable Long roleId) {
+    iamService.assignRole(userId, roleId);
+    return ResponseEntity.noContent().build();
+  }
 
-    @GetMapping("/access-profile")
-    public ResponseEntity<ApiResponse<AccessProfileResponse>> accessProfile(@PathVariable String userId) {
-        return ResponseEntity.ok(ApiResponse.ok(iamService.getAccessProfile(userId)));
-    }
+  @DeleteMapping("/roles/{roleId}")
+  public ResponseEntity<Void> unassignRole(@PathVariable String userId, @PathVariable Long roleId) {
+    iamService.unassignRole(userId, roleId);
+    return ResponseEntity.noContent().build();
+  }
 
-    @PutMapping("/access-profile")
-    public ResponseEntity<ApiResponse<AccessProfileResponse>> setAccessProfile(
-        @PathVariable String userId, @Valid @RequestBody AccessProfileRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(iamService.setAccessProfile(userId, request)));
-    }
+  @GetMapping("/access-profile")
+  public ResponseEntity<ApiResponse<AccessProfileResponse>> accessProfile(
+      @PathVariable String userId) {
+    return ResponseEntity.ok(ApiResponse.ok(iamService.getAccessProfile(userId)));
+  }
+
+  @PutMapping("/access-profile")
+  public ResponseEntity<ApiResponse<AccessProfileResponse>> setAccessProfile(
+      @PathVariable String userId, @Valid @RequestBody AccessProfileRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(iamService.setAccessProfile(userId, request)));
+  }
 }

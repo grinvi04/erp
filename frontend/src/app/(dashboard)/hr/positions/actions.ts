@@ -16,7 +16,7 @@ export async function createPosition(data: {
 
 export async function updatePosition(
   id: number,
-  data: { name: string; levelOrder: number; version: number }
+  data: { name: string; levelOrder: number; version: number },
 ): Promise<void> {
   await apiPut<Position>(`/api/hr/positions/${id}`, data)
   revalidatePath(PATH)

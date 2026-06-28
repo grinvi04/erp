@@ -11,12 +11,11 @@ import org.springframework.security.web.SecurityFilterChain;
 @Profile("test")
 public class TestSecurityConfig {
 
-    @Bean
-    public SecurityFilterChain testFilterChain(HttpSecurity http) throws Exception {
-        http
-            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-        return http.build();
-    }
+  @Bean
+  public SecurityFilterChain testFilterChain(HttpSecurity http) throws Exception {
+    http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .csrf(csrf -> csrf.disable())
+        .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+    return http.build();
+  }
 }

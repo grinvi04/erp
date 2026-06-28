@@ -5,6 +5,7 @@ import com.erp.hr.application.dto.LeavePolicyCreateRequest;
 import com.erp.hr.application.dto.LeavePolicyResponse;
 import com.erp.hr.application.service.LeavePolicyService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,35 +17,33 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/hr/leave-policies")
 @RequiredArgsConstructor
 public class LeavePolicyController {
 
-    private final LeavePolicyService leavePolicyService;
+  private final LeavePolicyService leavePolicyService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<LeavePolicyResponse>>> findAll() {
-        return ResponseEntity.ok(ApiResponse.ok(leavePolicyService.findAll()));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<List<LeavePolicyResponse>>> findAll() {
+    return ResponseEntity.ok(ApiResponse.ok(leavePolicyService.findAll()));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<LeavePolicyResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(leavePolicyService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<LeavePolicyResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(leavePolicyService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<LeavePolicyResponse>> create(
-        @Valid @RequestBody LeavePolicyCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(leavePolicyService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<LeavePolicyResponse>> create(
+      @Valid @RequestBody LeavePolicyCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(leavePolicyService.create(request)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        leavePolicyService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> delete(@PathVariable Long id) {
+    leavePolicyService.delete(id);
+    return ResponseEntity.noContent().build();
+  }
 }

@@ -1,7 +1,7 @@
 'use server'
 import { apiPost, apiPut, apiDelete, apiGet } from '@/lib/api'
 import { revalidatePath } from 'next/cache'
-import type { AccessProfile, DataScope, Role } from '@/types/iam'
+import type { AccessProfile, DataScope, Role, UserLookup } from '@/types/iam'
 
 const PATH = '/iam'
 
@@ -15,11 +15,14 @@ export async function createRole(data: {
   revalidatePath(PATH)
 }
 
-export async function updateRole(id: number, data: {
-  name: string
-  description: string | null
-  permissions: string[]
-}): Promise<void> {
+export async function updateRole(
+  id: number,
+  data: {
+    name: string
+    description: string | null
+    permissions: string[]
+  },
+): Promise<void> {
   await apiPut<Role>(`/api/iam/roles/${id}`, data)
   revalidatePath(PATH)
 }
@@ -31,13 +34,20 @@ export async function deleteRole(id: number): Promise<void> {
 
 // --- 사용자 접근 관리 (동적 조회는 서버 액션이 데이터를 반환) ---
 
+/** sub 존재 검증 — 화면이 유령 sub에 역할/프로파일을 무단 배정하지 않도록 사전 확인한다. */
+export async function lookupUser(userId: string): Promise<UserLookup> {
+  return apiGet<UserLookup>(`/api/iam/users/${encodeURIComponent(userId)}`)
+}
+
 export async function getUserRoles(userId: string): Promise<Role[]> {
   return apiGet<Role[]>(`/api/iam/users/${encodeURIComponent(userId)}/roles`)
 }
 
 export async function getAccessProfile(userId: string): Promise<AccessProfile | null> {
   try {
-    return await apiGet<AccessProfile>(`/api/iam/users/${encodeURIComponent(userId)}/access-profile`)
+    return await apiGet<AccessProfile>(
+      `/api/iam/users/${encodeURIComponent(userId)}/access-profile`,
+    )
   } catch {
     return null // 미설정
   }
@@ -51,10 +61,13 @@ export async function unassignRole(userId: string, roleId: number): Promise<void
   await apiDelete(`/api/iam/users/${encodeURIComponent(userId)}/roles/${roleId}`)
 }
 
-export async function setAccessProfile(userId: string, data: {
-  dataScope: DataScope
-  departmentId: number | null
-  approvalLimit: number | null
-}): Promise<void> {
+export async function setAccessProfile(
+  userId: string,
+  data: {
+    dataScope: DataScope
+    departmentId: number | null
+    approvalLimit: number | null
+  },
+): Promise<void> {
   await apiPut<AccessProfile>(`/api/iam/users/${encodeURIComponent(userId)}/access-profile`, data)
 }

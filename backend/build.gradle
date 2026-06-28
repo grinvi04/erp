@@ -3,10 +3,11 @@ plugins {
     id 'org.springframework.boot' version '3.4.1'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'checkstyle'
+    id 'com.diffplug.spotless' version '6.25.0'
 }
 
 group = 'com.erp'
-version = '0.4.1'
+version = '0.5.0'
 
 java {
     toolchain {
@@ -74,4 +75,15 @@ test {
 
 tasks.named('check') {
     dependsOn test
+}
+
+// Google Java Style — spotlessApply 자동수정, spotlessCheck는 check에 연결돼 CI가 강제.
+spotless {
+    java {
+        target 'src/**/*.java'
+        googleJavaFormat('1.22.0')
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
 }

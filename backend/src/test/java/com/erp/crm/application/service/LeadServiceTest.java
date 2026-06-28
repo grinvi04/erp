@@ -1,7 +1,13 @@
 package com.erp.crm.application.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.crm.application.dto.ContactResponse;
 import com.erp.crm.application.dto.LeadConvertRequest;
 import com.erp.crm.application.dto.LeadCreateRequest;
 import com.erp.crm.application.dto.LeadResponse;
@@ -19,91 +25,154 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-
 @ExtendWith(MockitoExtension.class)
 class LeadServiceTest {
 
-    @Mock private LeadRepository leadRepository;
-    @Mock private CrmAccountService accountService;
-    @Mock private OpportunityService opportunityService;
-    @Mock private com.erp.common.security.PermissionChecker permissionChecker;
-    @Mock private com.erp.common.security.CurrentUserProvider currentUserProvider;
-    @InjectMocks private LeadService leadService;
+  @Mock private LeadRepository leadRepository;
+  @Mock private CrmAccountService accountService;
+  @Mock private ContactService contactService;
+  @Mock private OpportunityService opportunityService;
+  @Mock private PipelineStageService stageService;
+  @Mock private com.erp.common.security.PermissionChecker permissionChecker;
+  @Mock private com.erp.common.security.CurrentUserProvider currentUserProvider;
+  @InjectMocks private LeadService leadService;
 
-    private Lead buildLead() {
-        return Lead.of("김", "철수", "ABC주식회사", "팀장", "kim@abc.com",
-                "010-0000-0000", "WEB", "sales-001", null);
-    }
+  private Lead buildLead() {
+    return Lead.of(
+        "김", "철수", "ABC주식회사", "팀장", "kim@abc.com", "010-0000-0000", "WEB", "sales-001", null);
+  }
 
-    @Test
-    void create_validRequest_savesWithNewStatusAndCurrentUserAsOwner() {
-        given(currentUserProvider.getCurrentUserId()).willReturn("auth-user-sub");
-        given(leadRepository.save(any(Lead.class))).willAnswer(inv -> inv.getArgument(0));
+  @Test
+  void create_validRequest_savesWithNewStatusAndCurrentUserAsOwner() {
+    given(currentUserProvider.getCurrentUserId()).willReturn("auth-user-sub");
+    given(leadRepository.save(any(Lead.class))).willAnswer(inv -> inv.getArgument(0));
 
-        LeadCreateRequest req = new LeadCreateRequest("김", "철수", "ABC주식회사", "팀장",
-                "kim@abc.com", "010-0000-0000", "WEB", null);
+    LeadCreateRequest req =
+        new LeadCreateRequest(
+            "김", "철수", "ABC주식회사", "팀장", "kim@abc.com", "010-0000-0000", "WEB", null);
 
-        LeadResponse result = leadService.create(req);
+    LeadResponse result = leadService.create(req);
 
-        assertThat(result.status()).isEqualTo(LeadStatus.NEW);
-        assertThat(result.lastName()).isEqualTo("김");
-        assertThat(result.ownerId()).isEqualTo("auth-user-sub");
-    }
+    assertThat(result.status()).isEqualTo(LeadStatus.NEW);
+    assertThat(result.lastName()).isEqualTo("김");
+    assertThat(result.ownerId()).isEqualTo("auth-user-sub");
+  }
 
-    @Test
-    void convert_notConverted_setsConvertedStatus() {
-        Lead lead = buildLead();
-        Account account = Account.of("ACC-001", "ABC주식회사", null, null, null, null, null,
-                null, null, AccountType.CUSTOMER, "sales-001");
+  @Test
+  void convert_notConverted_setsConvertedStatus() {
+    Lead lead = buildLead();
+    Account account =
+        Account.of(
+            "ACC-001",
+            "ABC주식회사",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            AccountType.CUSTOMER,
+            "sales-001");
 
-        given(leadRepository.findById(1L)).willReturn(Optional.of(lead));
-        given(accountService.getOrThrow(10L)).willReturn(account);
+    given(leadRepository.findById(1L)).willReturn(Optional.of(lead));
+    given(accountService.getOrThrow(10L)).willReturn(account);
+    given(contactService.create(any()))
+        .willReturn(
+            new ContactResponse(
+                50L,
+                10L,
+                "ABC주식회사",
+                "김",
+                "철수",
+                "팀장",
+                null,
+                "kim@abc.com",
+                "010-0000-0000",
+                null,
+                false,
+                null,
+                0L));
 
-        LeadResponse result = leadService.convert(1L, new LeadConvertRequest(10L, null));
+    LeadResponse result =
+        leadService.convert(1L, new LeadConvertRequest(10L, false, null, null, null, null, null));
 
-        assertThat(result.status()).isEqualTo(LeadStatus.CONVERTED);
-        assertThat(result.convertedAccountId()).isEqualTo(account.getId());
-    }
+    assertThat(result.status()).isEqualTo(LeadStatus.CONVERTED);
+    assertThat(result.convertedAccountId()).isEqualTo(account.getId());
+    assertThat(result.convertedContactId()).isEqualTo(50L);
+  }
 
-    @Test
-    void convert_alreadyConverted_throwsLeadAlreadyConverted() {
-        Lead lead = buildLead();
-        Account account = Account.of("ACC-001", "ABC주식회사", null, null, null, null, null,
-                null, null, AccountType.CUSTOMER, "sales-001");
-        lead.convert(account, null);
+  @Test
+  void convert_alreadyConverted_throwsLeadAlreadyConverted() {
+    Lead lead = buildLead();
+    Account account =
+        Account.of(
+            "ACC-001",
+            "ABC주식회사",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            AccountType.CUSTOMER,
+            "sales-001");
+    lead.convert(account, null, null);
 
-        given(leadRepository.findById(1L)).willReturn(Optional.of(lead));
+    given(leadRepository.findById(1L)).willReturn(Optional.of(lead));
 
-        ErpException ex = assertThrows(ErpException.class,
-                () -> leadService.convert(1L, new LeadConvertRequest(10L, null)));
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LEAD_ALREADY_CONVERTED);
-    }
+    ErpException ex =
+        assertThrows(
+            ErpException.class,
+            () ->
+                leadService.convert(
+                    1L, new LeadConvertRequest(10L, false, null, null, null, null, null)));
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LEAD_ALREADY_CONVERTED);
+  }
 
-    @Test
-    void findById_notFound_throwsLeadNotFound() {
-        given(leadRepository.findById(99L)).willReturn(Optional.empty());
+  @Test
+  void findById_notFound_throwsLeadNotFound() {
+    given(leadRepository.findById(99L)).willReturn(Optional.empty());
 
-        ErpException ex = assertThrows(ErpException.class, () -> leadService.findById(99L));
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LEAD_NOT_FOUND);
-    }
+    ErpException ex = assertThrows(ErpException.class, () -> leadService.findById(99L));
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LEAD_NOT_FOUND);
+  }
 
-    @Test
-    void update_convertedLead_throwsLeadAlreadyConvertedUpdate() {
-        Lead lead = buildLead();
-        Account account = Account.of("ACC-001", "ABC주식회사", null, null, null, null, null,
-                null, null, AccountType.CUSTOMER, "sales-001");
-        lead.convert(account, null);
-        ReflectionTestUtils.setField(lead, "version", 0L);
-        given(leadRepository.findById(1L)).willReturn(Optional.of(lead));
+  @Test
+  void update_convertedLead_throwsLeadAlreadyConvertedUpdate() {
+    Lead lead = buildLead();
+    Account account =
+        Account.of(
+            "ACC-001",
+            "ABC주식회사",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            AccountType.CUSTOMER,
+            "sales-001");
+    lead.convert(account, null, null);
+    ReflectionTestUtils.setField(lead, "version", 0L);
+    given(leadRepository.findById(1L)).willReturn(Optional.of(lead));
 
-        LeadUpdateRequest req = new LeadUpdateRequest("김", "철수", "ABC주식회사", "팀장",
-                "kim@abc.com", "010-0000-0000", "WEB", "sales-001", null, 0L);
+    LeadUpdateRequest req =
+        new LeadUpdateRequest(
+            "김",
+            "철수",
+            "ABC주식회사",
+            "팀장",
+            "kim@abc.com",
+            "010-0000-0000",
+            "WEB",
+            "sales-001",
+            null,
+            0L);
 
-        ErpException ex = assertThrows(ErpException.class, () -> leadService.update(1L, req));
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LEAD_ALREADY_CONVERTED_UPDATE);
-    }
+    ErpException ex = assertThrows(ErpException.class, () -> leadService.update(1L, req));
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.LEAD_ALREADY_CONVERTED_UPDATE);
+  }
 }

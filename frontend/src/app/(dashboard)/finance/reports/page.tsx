@@ -10,15 +10,19 @@ import YearSelect from './year-select'
 
 export const metadata = { title: '재무제표 | ERP' }
 
-function SectionCard({ title, action, children }: {
+function SectionCard({
+  title,
+  action,
+  children,
+}: {
   title: string
   action?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
+    <div className="bg-card rounded-lg border border-border p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
         {action}
       </div>
       {children}
@@ -49,25 +53,33 @@ function StatementGroup({
 }) {
   return (
     <>
-      <tr className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
-        <td className="py-2 pr-4" colSpan={3}>{title}</td>
+      <tr className="bg-muted/40 text-foreground font-medium border-b border-border">
+        <td className="py-2 pr-4" colSpan={3}>
+          {title}
+        </td>
       </tr>
       {rows.length === 0 ? (
-        <tr className="border-b border-gray-100">
-          <td className="py-2 pr-4 text-gray-400" colSpan={3}>데이터 없음</td>
+        <tr className="border-b border-border">
+          <td className="py-2 pr-4 text-muted-foreground" colSpan={3}>
+            데이터 없음
+          </td>
         </tr>
       ) : (
         rows.map((r) => (
-          <tr key={`${keyPrefix}-${r.accountCode}`} className="border-b border-gray-100">
-            <td className="py-2 pr-4 pl-4 font-mono text-gray-600">{r.accountCode}</td>
-            <td className="py-2 pr-4 text-gray-700">{r.accountName}</td>
-            <td className="py-2 text-right text-gray-700">{formatMoneyOne(r.amount, currency)}</td>
+          <tr key={`${keyPrefix}-${r.accountCode}`} className="border-b border-border">
+            <td className="py-2 pr-4 pl-4 font-mono text-muted-foreground">{r.accountCode}</td>
+            <td className="py-2 pr-4 text-foreground">{r.accountName}</td>
+            <td className="py-2 text-right text-foreground">
+              {formatMoneyOne(r.amount, currency)}
+            </td>
           </tr>
         ))
       )}
       {children}
-      <tr className="border-b border-gray-200 font-medium text-gray-900">
-        <td className="py-2 pr-4" colSpan={2}>{totalLabel ?? `${title} 합계`}</td>
+      <tr className="border-b border-border font-medium text-foreground">
+        <td className="py-2 pr-4" colSpan={2}>
+          {totalLabel ?? `${title} 합계`}
+        </td>
         <td className="py-2 text-right">{formatMoneyOne(total, currency)}</td>
       </tr>
     </>
@@ -77,13 +89,11 @@ function StatementGroup({
 function ExcludedNotice({ count }: { count: number }) {
   if (count <= 0) return null
   return (
-    <p className="text-xs text-amber-600 mb-3">
-      환율 미산정 {count.toLocaleString('ko-KR')}건 제외
-    </p>
+    <p className="text-xs text-warning mb-3">환율 미산정 {count.toLocaleString('ko-KR')}건 제외</p>
   )
 }
 
-const EMPTY = <p className="text-sm text-gray-400">데이터 없음</p>
+const EMPTY = <p className="text-sm text-muted-foreground">데이터 없음</p>
 
 export default async function FinancialReportsPage(props: {
   searchParams: Promise<{ year?: string }>
@@ -111,11 +121,13 @@ export default async function FinancialReportsPage(props: {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">재무제표</h1>
-          <p className="text-sm text-gray-500 mt-1">시산표 · 손익계산서 · 재무상태표 ({year}년)</p>
+          <h1 className="text-2xl font-semibold text-foreground">재무제표</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            시산표 · 손익계산서 · 재무상태표 ({year}년)
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">회계연도</span>
+          <span className="text-sm text-muted-foreground">회계연도</span>
           <YearSelect year={year} years={yearOptions} />
         </div>
       </div>
@@ -134,7 +146,7 @@ export default async function FinancialReportsPage(props: {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-gray-500 border-b border-gray-200">
+                      <tr className="text-left text-muted-foreground border-b border-border">
                         <th className="py-2 pr-4 font-medium">계정코드</th>
                         <th className="py-2 pr-4 font-medium">계정명</th>
                         <th className="py-2 pr-4 font-medium text-right">차변</th>
@@ -144,20 +156,32 @@ export default async function FinancialReportsPage(props: {
                     </thead>
                     <tbody>
                       {trialBalance.rows.map((r) => (
-                        <tr key={r.accountCode} className="border-b border-gray-100">
-                          <td className="py-2 pr-4 font-mono text-gray-700">{r.accountCode}</td>
-                          <td className="py-2 pr-4 text-gray-700">{r.accountName}</td>
-                          <td className="py-2 pr-4 text-right text-gray-700">{formatMoneyOne(r.debit, trialCcy)}</td>
-                          <td className="py-2 pr-4 text-right text-gray-700">{formatMoneyOne(r.credit, trialCcy)}</td>
-                          <td className="py-2 text-right text-gray-700">{formatMoneyOne(r.balance, trialCcy)}</td>
+                        <tr key={r.accountCode} className="border-b border-border">
+                          <td className="py-2 pr-4 font-mono text-foreground">{r.accountCode}</td>
+                          <td className="py-2 pr-4 text-foreground">{r.accountName}</td>
+                          <td className="py-2 pr-4 text-right text-foreground">
+                            {formatMoneyOne(r.debit, trialCcy)}
+                          </td>
+                          <td className="py-2 pr-4 text-right text-foreground">
+                            {formatMoneyOne(r.credit, trialCcy)}
+                          </td>
+                          <td className="py-2 text-right text-foreground">
+                            {formatMoneyOne(r.balance, trialCcy)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t-2 border-gray-300 font-semibold text-gray-900">
-                        <td className="py-2 pr-4" colSpan={2}>합계</td>
-                        <td className="py-2 pr-4 text-right">{formatMoneyOne(trialBalance.totalDebit, trialCcy)}</td>
-                        <td className="py-2 pr-4 text-right">{formatMoneyOne(trialBalance.totalCredit, trialCcy)}</td>
+                      <tr className="border-t-2 border-border font-semibold text-foreground">
+                        <td className="py-2 pr-4" colSpan={2}>
+                          합계
+                        </td>
+                        <td className="py-2 pr-4 text-right">
+                          {formatMoneyOne(trialBalance.totalDebit, trialCcy)}
+                        </td>
+                        <td className="py-2 pr-4 text-right">
+                          {formatMoneyOne(trialBalance.totalCredit, trialCcy)}
+                        </td>
                         <td className="py-2" />
                       </tr>
                     </tfoot>
@@ -194,9 +218,13 @@ export default async function FinancialReportsPage(props: {
                     />
 
                     {/* 당기순이익 */}
-                    <tr className="border-t-2 border-gray-300 font-semibold text-gray-900">
-                      <td className="py-2 pr-4" colSpan={2}>당기순이익</td>
-                      <td className={`py-2 text-right ${incomeStatement.netIncome < 0 ? 'text-rose-600' : 'text-gray-900'}`}>
+                    <tr className="border-t-2 border-border font-semibold text-foreground">
+                      <td className="py-2 pr-4" colSpan={2}>
+                        당기순이익
+                      </td>
+                      <td
+                        className={`py-2 text-right ${incomeStatement.netIncome < 0 ? 'text-destructive' : 'text-foreground'}`}
+                      >
                         {formatMoneyOne(incomeStatement.netIncome, incomeCcy)}
                       </td>
                     </tr>
@@ -250,20 +278,28 @@ export default async function FinancialReportsPage(props: {
                       currency={balanceCcy}
                       totalLabel="자본 합계(당기순이익 포함)"
                     >
-                      <tr className="border-b border-gray-100 text-gray-700">
-                        <td className="py-2 pr-4 pl-4" colSpan={2}>당기순이익(이익잉여금 가산)</td>
-                        <td className={`py-2 text-right ${balanceSheet.netIncome < 0 ? 'text-rose-600' : 'text-gray-700'}`}>
+                      <tr className="border-b border-border text-foreground">
+                        <td className="py-2 pr-4 pl-4" colSpan={2}>
+                          당기순이익(이익잉여금 가산)
+                        </td>
+                        <td
+                          className={`py-2 text-right ${balanceSheet.netIncome < 0 ? 'text-destructive' : 'text-foreground'}`}
+                        >
                           {formatMoneyOne(balanceSheet.netIncome, balanceCcy)}
                         </td>
                       </tr>
                     </StatementGroup>
 
                     {/* 부채+자본 */}
-                    <tr className="border-t-2 border-gray-300 font-semibold text-gray-900">
-                      <td className="py-2 pr-4" colSpan={2}>부채 + 자본 합계</td>
+                    <tr className="border-t-2 border-border font-semibold text-foreground">
+                      <td className="py-2 pr-4" colSpan={2}>
+                        부채 + 자본 합계
+                      </td>
                       <td className="py-2 text-right">
                         {formatMoneyOne(
-                          balanceSheet.totalLiabilities + balanceSheet.totalEquity + balanceSheet.netIncome,
+                          balanceSheet.totalLiabilities +
+                            balanceSheet.totalEquity +
+                            balanceSheet.netIncome,
                           balanceCcy,
                         )}
                       </td>

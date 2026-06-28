@@ -22,6 +22,7 @@ export async function createEmployee(data: {
   workEmail: string
   baseSalary: number | null
   managerId: number | null
+  userId: string | null
 }): Promise<void> {
   await apiPost<Employee>('/api/hr/employees', data)
   revalidatePath(PATH)
@@ -39,7 +40,7 @@ export async function updateEmployee(
     managerId: number | null
     userId: string | null
     version: number
-  }
+  },
 ): Promise<void> {
   await apiPut<Employee>(`/api/hr/employees/${id}`, data)
   revalidatePath(PATH)
@@ -47,7 +48,7 @@ export async function updateEmployee(
 
 export async function transferEmployee(
   id: number,
-  data: { departmentId: number; positionId: number }
+  data: { departmentId: number; positionId: number },
 ): Promise<void> {
   await apiPost<Employee>(`/api/hr/employees/${id}/transfer`, data)
   revalidatePath(PATH)
@@ -55,7 +56,7 @@ export async function transferEmployee(
 
 export async function promoteEmployee(
   id: number,
-  data: { positionId: number; jobGradeId: number | null; baseSalary: number | null }
+  data: { positionId: number; jobGradeId: number | null; baseSalary: number | null },
 ): Promise<void> {
   await apiPost<Employee>(`/api/hr/employees/${id}/promote`, data)
   revalidatePath(PATH)
@@ -63,7 +64,7 @@ export async function promoteEmployee(
 
 export async function terminateEmployee(
   id: number,
-  data: { terminationDate: string }
+  data: { terminationDate: string },
 ): Promise<void> {
   await apiPost<Employee>(`/api/hr/employees/${id}/terminate`, data)
   revalidatePath(PATH)

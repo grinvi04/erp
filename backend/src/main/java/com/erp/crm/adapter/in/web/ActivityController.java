@@ -27,44 +27,45 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ActivityController {
 
-    private final ActivityService activityService;
+  private final ActivityService activityService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<ActivityResponse>>> search(
-            @RequestParam(required = false) Long opportunityId,
-            @RequestParam(required = false) Long accountId,
-            @RequestParam(required = false) ActivityType activityType,
-            @RequestParam(required = false) ActivityStatus status,
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(
-                activityService.search(opportunityId, accountId, activityType, status, pageable)));
-    }
+  @GetMapping
+  public ResponseEntity<ApiResponse<PageResponse<ActivityResponse>>> search(
+      @RequestParam(required = false) Long opportunityId,
+      @RequestParam(required = false) Long accountId,
+      @RequestParam(required = false) ActivityType activityType,
+      @RequestParam(required = false) ActivityStatus status,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(
+        ApiResponse.ok(
+            activityService.search(opportunityId, accountId, activityType, status, pageable)));
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ActivityResponse>> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(activityService.findById(id)));
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<ApiResponse<ActivityResponse>> findById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(activityService.findById(id)));
+  }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<ActivityResponse>> create(
-            @Valid @RequestBody ActivityCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(activityService.create(request)));
-    }
+  @PostMapping
+  public ResponseEntity<ApiResponse<ActivityResponse>> create(
+      @Valid @RequestBody ActivityCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.ok(activityService.create(request)));
+  }
 
-    @PostMapping("/{id}/complete")
-    public ResponseEntity<ApiResponse<ActivityResponse>> complete(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(activityService.complete(id)));
-    }
+  @PostMapping("/{id}/complete")
+  public ResponseEntity<ApiResponse<ActivityResponse>> complete(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(activityService.complete(id)));
+  }
 
-    @PostMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<ActivityResponse>> cancel(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(activityService.cancel(id)));
-    }
+  @PostMapping("/{id}/cancel")
+  public ResponseEntity<ApiResponse<ActivityResponse>> cancel(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(activityService.cancel(id)));
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        activityService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> delete(@PathVariable Long id) {
+    activityService.delete(id);
+    return ResponseEntity.noContent().build();
+  }
 }

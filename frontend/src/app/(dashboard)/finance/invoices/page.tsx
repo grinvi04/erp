@@ -3,7 +3,7 @@ import type { Account, ApInvoice, Vendor } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
 import InvoicesClient from './invoices-client'
 
-export const metadata = { title: '매입 인보이스 | ERP' }
+export const metadata = { title: '매입계산서 | ERP' }
 
 export default async function InvoicesPage(props: {
   searchParams: Promise<{ page?: string; size?: string; status?: string }>
@@ -15,9 +15,15 @@ export default async function InvoicesPage(props: {
 
   const [data, vendors, accounts] = await Promise.all([
     apiGetPage<ApInvoice>(`/api/finance/invoices?page=${page}&size=${size}${statusFilter}`),
-    apiGet<Vendor[]>('/api/finance/vendors?size=1000'),
+    apiGetPage<Vendor>('/api/finance/vendors?size=1000'),
     apiGet<Account[]>('/api/finance/accounts'),
   ])
 
-  return <InvoicesClient data={data as PageResponse<ApInvoice>} vendors={vendors} accounts={accounts} />
+  return (
+    <InvoicesClient
+      data={data as PageResponse<ApInvoice>}
+      vendors={vendors.content}
+      accounts={accounts}
+    />
+  )
 }

@@ -14,13 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class HrSummaryService {
 
-    private final EmployeeRepository employeeRepository;
-    private final LeaveRequestRepository leaveRequestRepository;
+  private final EmployeeRepository employeeRepository;
+  private final LeaveRequestRepository leaveRequestRepository;
 
-    public HrSummaryResponse getSummary() {
-        return new HrSummaryResponse(
-                employeeRepository.countByStatus(EmployeeStatus.ACTIVE),
-                employeeRepository.countByStatus(EmployeeStatus.ON_LEAVE),
-                leaveRequestRepository.countByApprovalStatus(ApprovalStatus.PENDING));
-    }
+  public HrSummaryResponse getSummary() {
+    return new HrSummaryResponse(
+        employeeRepository.countByStatus(EmployeeStatus.ACTIVE),
+        employeeRepository.countByStatus(EmployeeStatus.ON_LEAVE),
+        leaveRequestRepository.countByApprovalStatus(ApprovalStatus.PENDING));
+  }
 }

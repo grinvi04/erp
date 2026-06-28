@@ -1,35 +1,51 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  Users, Building2, Package, TrendingUp, LayoutDashboard,
-  ChevronRight, Briefcase, FileText, Warehouse, BarChart3,
-  UserSquare, Target, Activity, GitBranch, Inbox, PieChart,
-  ScrollText, ShieldCheck, Boxes, MapPin, Tags, Ruler, CalendarDays, Coins,
+  Users,
+  Building2,
+  Package,
+  TrendingUp,
+  LayoutDashboard,
+  ChevronRight,
+  Briefcase,
+  FileText,
+  Warehouse,
+  BarChart3,
+  UserSquare,
+  Target,
+  Activity,
+  GitBranch,
+  Inbox,
+  PieChart,
+  ScrollText,
+  ShieldCheck,
+  Boxes,
+  MapPin,
+  Tags,
+  Ruler,
+  CalendarDays,
+  Coins,
 } from 'lucide-react'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
 
-const NAV = [
+type NavChild = { label: string; href: string; icon: React.ElementType }
+type NavItem = { label: string; href?: string; icon: React.ElementType; children?: NavChild[] }
+
+const TOP: NavItem[] = [
+  { label: '대시보드', href: '/', icon: LayoutDashboard },
+  { label: '결재함', href: '/approvals', icon: Inbox },
+  { label: '분석', href: '/analytics', icon: PieChart },
+]
+
+const MODULES: (NavItem & { children: NavChild[] })[] = [
   {
-    label: '대시보드',
-    href: '/',
-    icon: LayoutDashboard,
-  },
-  {
-    label: '결재함',
-    href: '/approvals',
-    icon: Inbox,
-  },
-  {
-    label: '분석',
-    href: '/analytics',
-    icon: PieChart,
-  },
-  {
-    label: '인사(HR)',
+    label: '인사',
     icon: Users,
     children: [
       { label: '직원', href: '/hr/employees', icon: Users },
@@ -43,21 +59,22 @@ const NAV = [
     ],
   },
   {
-    label: '재무(Finance)',
+    label: '재무',
     icon: BarChart3,
     children: [
+      { label: '회계기간', href: '/finance/fiscal-years', icon: CalendarDays },
       { label: '계정과목', href: '/finance/accounts', icon: Briefcase },
       { label: '전표', href: '/finance/journal-entries', icon: FileText },
-      { label: '매입 인보이스', href: '/finance/invoices', icon: FileText },
+      { label: '매입계산서', href: '/finance/invoices', icon: FileText },
       { label: '공급업체', href: '/finance/vendors', icon: Building2 },
       { label: '고객', href: '/finance/customers', icon: Building2 },
-      { label: '매출 인보이스', href: '/finance/ar-invoices', icon: FileText },
+      { label: '매출계산서', href: '/finance/ar-invoices', icon: FileText },
       { label: '재무제표', href: '/finance/reports', icon: BarChart3 },
       { label: 'FX 설정', href: '/finance/fx', icon: Coins },
     ],
   },
   {
-    label: '재고(Inventory)',
+    label: '재고',
     icon: Package,
     children: [
       { label: '품목', href: '/inventory/items', icon: Package },
@@ -85,32 +102,86 @@ const NAV = [
 ]
 
 export function Sidebar() {
+  return (
+    <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-sidebar-border">
+      <SidebarNav />
+    </aside>
+  )
+}
+
+export function SidebarNav() {
   const pathname = usePathname()
   const { can } = usePermissions()
 
   return (
-    <aside className="w-60 min-h-screen bg-gray-900 text-gray-100 flex flex-col shrink-0">
-      <div className="px-4 py-5 border-b border-gray-700">
-        <span className="font-bold text-lg tracking-tight">ERP System</span>
-      </div>
-      <nav className="flex-1 overflow-y-auto py-4 space-y-1">
-        {NAV.map((item) =>
-          item.children ? (
-            <NavGroup key={item.label} item={item} pathname={pathname} />
-          ) : (
-            <NavLink key={item.href} href={item.href!} label={item.label} icon={item.icon} pathname={pathname} />
-          )
-        )}
-        {/* 역할·권한 관리 — iam:read 관리자에게만 노출 */}
-        {can(PERM.IAM_READ) && (
-          <NavLink href="/iam" label="역할·권한" icon={ShieldCheck} pathname={pathname} />
-        )}
-        {/* 감사 로그 — audit:read 권한자(운영·감사자)에게만 노출 */}
-        {can(PERM.AUDIT_READ) && (
-          <NavLink href="/audit" label="감사 로그" icon={ScrollText} pathname={pathname} />
-        )}
-      </nav>
-    </aside>
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+      <Brand />
+      <ScrollArea className="flex-1">
+        <nav className="px-3 py-4">
+          <div className="space-y-0.5">
+            {TOP.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href!}
+                label={item.label}
+                icon={item.icon}
+                pathname={pathname}
+              />
+            ))}
+          </div>
+
+          <SectionLabel>모듈</SectionLabel>
+          <div className="space-y-0.5">
+            {MODULES.map((item) => (
+              <NavGroup key={item.label} item={item} pathname={pathname} />
+            ))}
+          </div>
+
+          {(can(PERM.IAM_READ) || can(PERM.AUDIT_READ)) && (
+            <>
+              <SectionLabel>관리</SectionLabel>
+              <div className="space-y-0.5">
+                {can(PERM.IAM_READ) && (
+                  <NavLink href="/iam" label="역할·권한" icon={ShieldCheck} pathname={pathname} />
+                )}
+                {can(PERM.AUDIT_READ) && (
+                  <NavLink href="/audit" label="감사 로그" icon={ScrollText} pathname={pathname} />
+                )}
+              </div>
+            </>
+          )}
+        </nav>
+      </ScrollArea>
+    </div>
+  )
+}
+
+function Brand() {
+  return (
+    <Link
+      href="/"
+      className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-4 transition-colors hover:bg-sidebar-accent/40"
+    >
+      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-5 shadow-sm">
+        <Boxes className="h-5 w-5 text-white" />
+      </span>
+      <span className="flex flex-col leading-none">
+        <span className="text-[15px] font-semibold tracking-tight text-sidebar-accent-foreground">
+          ERP System
+        </span>
+        <span className="mt-1 text-[11px] font-medium text-sidebar-foreground/55">
+          멀티테넌트 SaaS
+        </span>
+      </span>
+    </Link>
+  )
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-3 pb-1.5 pt-5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+      {children}
+    </p>
   )
 }
 
@@ -132,15 +203,25 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        'flex items-center gap-2 px-4 py-2 text-sm rounded-md mx-2 transition-colors',
-        indent && 'pl-8',
+        'group relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+        indent && 'pl-9',
         active
-          ? 'bg-blue-600 text-white'
-          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+          ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+          : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" />
-      {label}
+      {active && (
+        <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
+      )}
+      <Icon
+        className={cn(
+          'h-4 w-4 shrink-0',
+          active
+            ? 'text-sidebar-primary'
+            : 'text-sidebar-foreground/55 group-hover:text-sidebar-foreground/80',
+        )}
+      />
+      <span className="truncate">{label}</span>
     </Link>
   )
 }
@@ -149,34 +230,51 @@ function NavGroup({
   item,
   pathname,
 }: {
-  item: (typeof NAV)[number] & { children: NonNullable<(typeof NAV)[number]['children']> }
+  item: NavItem & { children: NavChild[] }
   pathname: string
 }) {
   const Icon = item.icon
-  const open = item.children.some((c) => pathname.startsWith(c.href))
+  const hasActive = item.children.some((c) => pathname.startsWith(c.href))
+  const [open, setOpen] = useState(hasActive)
 
   return (
     <div>
-      <div
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
         className={cn(
-          'flex items-center gap-2 px-4 py-2 mx-2 text-sm rounded-md text-gray-400 select-none',
-          open && 'text-gray-200'
+          'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+          'text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
         )}
       >
-        <Icon className="h-4 w-4 shrink-0" />
-        <span className="flex-1 font-medium">{item.label}</span>
-        <ChevronRight className={cn('h-3 w-3 transition-transform', open && 'rotate-90')} />
-      </div>
-      {item.children.map((child) => (
-        <NavLink
-          key={child.href}
-          href={child.href}
-          label={child.label}
-          icon={child.icon}
-          pathname={pathname}
-          indent
+        <Icon
+          className={cn(
+            'h-4 w-4 shrink-0',
+            hasActive ? 'text-sidebar-primary' : 'text-sidebar-foreground/55',
+          )}
         />
-      ))}
+        <span className="flex-1 text-left font-medium">{item.label}</span>
+        <ChevronRight
+          className={cn(
+            'h-3.5 w-3.5 text-sidebar-foreground/45 transition-transform duration-200',
+            open && 'rotate-90',
+          )}
+        />
+      </button>
+      {open && (
+        <div className="mt-0.5 space-y-0.5">
+          {item.children.map((child) => (
+            <NavLink
+              key={child.href}
+              href={child.href}
+              label={child.label}
+              icon={child.icon}
+              pathname={pathname}
+              indent
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

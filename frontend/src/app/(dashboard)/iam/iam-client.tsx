@@ -1,24 +1,46 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { PlusIcon, PencilIcon, Trash2Icon, SearchIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, SearchIcon, TriangleAlertIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
-  createRole, updateRole, deleteRole,
-  getUserRoles, getAccessProfile, assignRole, unassignRole, setAccessProfile,
+  createRole,
+  updateRole,
+  deleteRole,
+  lookupUser,
+  getUserRoles,
+  getAccessProfile,
+  assignRole,
+  unassignRole,
+  setAccessProfile,
 } from './actions'
 import type { AccessProfile, DataScope, Role } from '@/types/iam'
 
@@ -32,13 +54,12 @@ function groupByModule(catalog: string[]): Record<string, string[]> {
   return groups
 }
 
-type RoleDialog =
-  | { mode: 'none' }
-  | { mode: 'create' }
-  | { mode: 'edit'; role: Role }
+type RoleDialog = { mode: 'none' } | { mode: 'create' } | { mode: 'edit'; role: Role }
 
 export default function IamClient({
-  roles, catalog, canWrite,
+  roles,
+  catalog,
+  canWrite,
 }: {
   roles: Role[]
   catalog: string[]
@@ -46,8 +67,12 @@ export default function IamClient({
 }) {
   const [isPending, startTransition] = useTransition()
   const [dialog, setDialog] = useState<RoleDialog>({ mode: 'none' })
+  const [deleteTarget, setDeleteTarget] = useState<Role | null>(null)
   const [form, setForm] = useState({
-    code: '', name: '', description: '', permissions: new Set<string>(),
+    code: '',
+    name: '',
+    description: '',
+    permissions: new Set<string>(),
   })
   const grouped = groupByModule(catalog)
 
@@ -57,12 +82,16 @@ export default function IamClient({
   }
   function openEdit(role: Role) {
     setForm({
-      code: role.code, name: role.name, description: role.description ?? '',
+      code: role.code,
+      name: role.name,
+      description: role.description ?? '',
       permissions: new Set(role.permissions),
     })
     setDialog({ mode: 'edit', role })
   }
-  function close() { setDialog({ mode: 'none' }) }
+  function close() {
+    setDialog({ mode: 'none' })
+  }
 
   function togglePerm(p: string) {
     setForm((f) => {
@@ -78,10 +107,19 @@ export default function IamClient({
     startTransition(async () => {
       try {
         if (dialog.mode === 'create') {
-          await createRole({ code: form.code, name: form.name, description: form.description || null, permissions })
+          await createRole({
+            code: form.code,
+            name: form.name,
+            description: form.description || null,
+            permissions,
+          })
           toast.success('역할이 생성되었습니다')
         } else if (dialog.mode === 'edit') {
-          await updateRole(dialog.role.id, { name: form.name, description: form.description || null, permissions })
+          await updateRole(dialog.role.id, {
+            name: form.name,
+            description: form.description || null,
+            permissions,
+          })
           toast.success('역할이 수정되었습니다')
         }
         close()
@@ -91,12 +129,14 @@ export default function IamClient({
     })
   }
 
-  function removeRole(role: Role) {
-    if (!window.confirm(`역할 '${role.name}'을(를) 삭제할까요?`)) return
+  function confirmDelete() {
+    const role = deleteTarget
+    if (!role) return
     startTransition(async () => {
       try {
         await deleteRole(role.id)
         toast.success('역할이 삭제되었습니다')
+        setDeleteTarget(null)
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다')
       }
@@ -105,12 +145,16 @@ export default function IamClient({
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-900">역할·권한 관리</h1>
+      <PageHeader title="역할·권한 관리" />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>역할</CardTitle>
-          {canWrite && <Button onClick={openCreate} size="sm"><PlusIcon />새 역할</Button>}
+          {canWrite && (
+            <Button onClick={openCreate} size="sm">
+              <PlusIcon />새 역할
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           <Table>
@@ -125,27 +169,45 @@ export default function IamClient({
             <TableBody>
               {roles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-gray-400 py-8">역할이 없습니다.</TableCell>
-                </TableRow>
-              ) : roles.map((role) => (
-                <TableRow key={role.id}>
-                  <TableCell className="font-mono text-xs">{role.code}</TableCell>
-                  <TableCell>{role.name}</TableCell>
-                  <TableCell><Badge variant="secondary">{role.permissions.length}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    {canWrite && (
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon-xs" title="수정"
-                          onClick={() => openEdit(role)} disabled={isPending}><PencilIcon /></Button>
-                        <Button variant="ghost" size="icon-xs" title="삭제"
-                          onClick={() => removeRole(role)} disabled={isPending}>
-                          <Trash2Icon className="text-destructive" />
-                        </Button>
-                      </div>
-                    )}
+                  <TableCell colSpan={4} className="p-0">
+                    <EmptyState title="역할이 없습니다" />
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                roles.map((role) => (
+                  <TableRow key={role.id}>
+                    <TableCell className="font-mono text-xs">{role.code}</TableCell>
+                    <TableCell>{role.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{role.permissions.length}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {canWrite && (
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            title="수정"
+                            onClick={() => openEdit(role)}
+                            disabled={isPending}
+                          >
+                            <PencilIcon />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            title="삭제"
+                            onClick={() => setDeleteTarget(role)}
+                            disabled={isPending}
+                          >
+                            <Trash2Icon className="text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -153,7 +215,12 @@ export default function IamClient({
 
       <UserAccessPanel roles={roles} canWrite={canWrite} />
 
-      <Dialog open={dialog.mode !== 'none'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.mode !== 'none'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{dialog.mode === 'create' ? '새 역할' : '역할 수정'}</DialogTitle>
@@ -162,30 +229,45 @@ export default function IamClient({
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
                 <Label>코드</Label>
-                <Input value={form.code} disabled={dialog.mode === 'edit'}
-                  onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} placeholder="HR_MANAGER" />
+                <Input
+                  value={form.code}
+                  disabled={dialog.mode === 'edit'}
+                  onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+                  placeholder="HR_MANAGER"
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label>이름</Label>
-                <Input value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="인사 관리자" />
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="인사 관리자"
+                />
               </div>
             </div>
             <div className="grid gap-1.5">
               <Label>설명</Label>
-              <Input value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+              <Input
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              />
             </div>
             <div className="grid gap-2">
               <Label>권한</Label>
               <div className="max-h-64 overflow-y-auto space-y-3 border rounded-md p-3">
                 {Object.entries(grouped).map(([mod, perms]) => (
                   <div key={mod}>
-                    <div className="text-xs font-semibold text-gray-500 uppercase mb-1">{mod}</div>
+                    <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                      {mod}
+                    </div>
                     <div className="grid grid-cols-2 gap-1">
                       {perms.map((p) => (
                         <label key={p} className="flex items-center gap-2 text-sm">
-                          <input type="checkbox" checked={form.permissions.has(p)} onChange={() => togglePerm(p)} />
+                          <input
+                            type="checkbox"
+                            checked={form.permissions.has(p)}
+                            onChange={() => togglePerm(p)}
+                          />
                           <span className="font-mono text-xs">{p}</span>
                         </label>
                       ))}
@@ -196,9 +278,40 @@ export default function IamClient({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={close}>취소</Button>
-            <Button onClick={saveRole}
-              disabled={isPending || !form.name || (dialog.mode === 'create' && !form.code)}>저장</Button>
+            <Button variant="outline" onClick={close}>
+              취소
+            </Button>
+            <Button
+              onClick={saveRole}
+              disabled={isPending || !form.name || (dialog.mode === 'create' && !form.code)}
+            >
+              저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 역할 삭제 확인 */}
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => {
+          if (!o) setDeleteTarget(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>역할 삭제</DialogTitle>
+          </DialogHeader>
+          {deleteTarget && (
+            <p className="text-sm text-muted-foreground py-2">
+              <strong>{deleteTarget.name}</strong> 역할을 삭제하시겠습니까? 이 역할이 배정된
+              사용자가 있으면 삭제할 수 없습니다.
+            </p>
+          )}
+          <DialogFooter showCloseButton>
+            <Button variant="destructive" onClick={confirmDelete} disabled={isPending}>
+              삭제
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -209,18 +322,38 @@ export default function IamClient({
 function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean }) {
   const [isPending, startTransition] = useTransition()
   const [sub, setSub] = useState('')
-  const [loaded, setLoaded] = useState<{ sub: string; roleIds: Set<number>; profile: AccessProfile | null } | null>(null)
+  const [loaded, setLoaded] = useState<{
+    sub: string
+    known: boolean
+    roleIds: Set<number>
+    profile: AccessProfile | null
+  } | null>(null)
+  // 알 수 없는 sub일 때 관리자가 "유효한 사용자"임을 명시 확인해야 편집이 열린다(유령 sub 무단 배정 방지).
+  const [confirmedUnknown, setConfirmedUnknown] = useState(false)
   const [scope, setScope] = useState<DataScope>('ALL')
   const [deptId, setDeptId] = useState('')
   const [limit, setLimit] = useState('')
+
+  // 알 수 없는 사용자이고 아직 확인하지 않았으면 모든 배정·저장을 잠근다.
+  const locked = loaded ? !loaded.known && !confirmedUnknown : true
 
   function load() {
     const target = sub.trim()
     if (!target) return
     startTransition(async () => {
       try {
-        const [userRoles, profile] = await Promise.all([getUserRoles(target), getAccessProfile(target)])
-        setLoaded({ sub: target, roleIds: new Set(userRoles.map((r) => r.id)), profile })
+        const [lookup, userRoles, profile] = await Promise.all([
+          lookupUser(target),
+          getUserRoles(target),
+          getAccessProfile(target),
+        ])
+        setConfirmedUnknown(false)
+        setLoaded({
+          sub: target,
+          known: lookup.known,
+          roleIds: new Set(userRoles.map((r) => r.id)),
+          profile,
+        })
         setScope(profile?.dataScope ?? 'ALL')
         setDeptId(profile?.departmentId != null ? String(profile.departmentId) : '')
         setLimit(profile?.approvalLimit != null ? String(profile.approvalLimit) : '')
@@ -265,18 +398,52 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
 
   return (
     <Card>
-      <CardHeader><CardTitle>사용자 접근 관리</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle>사용자 접근 관리</CardTitle>
+      </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2 items-end">
           <div className="grid gap-1.5 flex-1 max-w-md">
             <Label>사용자 ID (Keycloak sub)</Label>
-            <Input value={sub} onChange={(e) => setSub(e.target.value)} placeholder="예: 3f2a8c..." />
+            <Input
+              value={sub}
+              onChange={(e) => setSub(e.target.value)}
+              placeholder="예: 3f2a8c..."
+            />
           </div>
-          <Button variant="outline" onClick={load} disabled={isPending || !sub.trim()}><SearchIcon />조회</Button>
+          <Button variant="outline" onClick={load} disabled={isPending || !sub.trim()}>
+            <SearchIcon />
+            조회
+          </Button>
         </div>
 
         {loaded && (
           <div className="space-y-5 border-t pt-4">
+            {!loaded.known && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                <div className="flex items-start gap-2 text-destructive">
+                  <TriangleAlertIcon className="size-4 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="font-medium">알 수 없는 사용자</div>
+                    <p className="mt-0.5 text-muted-foreground">
+                      이 ID로 된 감사 기록·역할·접근 프로파일이 없습니다. Keycloak sub가 정확한지
+                      확인하세요. 유령 ID에 권한을 잘못 배정하지 않도록 아래를 확인해야 편집이
+                      열립니다.
+                    </p>
+                    {canWrite && (
+                      <label className="mt-2 flex items-center gap-2 text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={confirmedUnknown}
+                          onChange={(e) => setConfirmedUnknown(e.target.checked)}
+                        />
+                        <span>유효한 사용자임을 확인했습니다</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             <div>
               <div className="text-sm font-medium mb-2">
                 역할 배정 — <span className="font-mono text-xs">{loaded.sub}</span>
@@ -286,9 +453,18 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
                   const has = loaded.roleIds.has(role.id)
                   return (
                     <label key={role.id} className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={has} disabled={!canWrite || isPending}
-                        onChange={() => toggleRole(role.id, has)} />
-                      <span>{role.name} <span className="text-gray-400 font-mono text-xs">({role.code})</span></span>
+                      <input
+                        type="checkbox"
+                        checked={has}
+                        disabled={!canWrite || isPending || locked}
+                        onChange={() => toggleRole(role.id, has)}
+                      />
+                      <span>
+                        {role.name}{' '}
+                        <span className="text-muted-foreground font-mono text-xs">
+                          ({role.code})
+                        </span>
+                      </span>
                     </label>
                   )
                 })}
@@ -296,12 +472,16 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
             </div>
 
             <div>
-              <div className="text-sm font-medium mb-2">접근 프로파일 (데이터 스코프·전결 한도)</div>
+              <div className="text-sm font-medium mb-2">
+                접근 프로파일 (데이터 스코프·전결 한도)
+              </div>
               <div className="grid grid-cols-3 gap-3 max-w-2xl">
                 <div className="grid gap-1.5">
                   <Label>데이터 스코프</Label>
                   <Select value={scope} onValueChange={(v) => setScope((v as DataScope) ?? 'ALL')}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">전사(ALL)</SelectItem>
                       <SelectItem value="DEPARTMENT">부서+하위(DEPARTMENT)</SelectItem>
@@ -311,15 +491,30 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
                 </div>
                 <div className="grid gap-1.5">
                   <Label>부서 ID</Label>
-                  <Input value={deptId} onChange={(e) => setDeptId(e.target.value)} placeholder="(선택)" />
+                  <Input
+                    value={deptId}
+                    onChange={(e) => setDeptId(e.target.value)}
+                    placeholder="(선택)"
+                  />
                 </div>
                 <div className="grid gap-1.5">
                   <Label>전결 한도(원)</Label>
-                  <Input value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="(선택)" />
+                  <Input
+                    value={limit}
+                    onChange={(e) => setLimit(e.target.value)}
+                    placeholder="(선택)"
+                  />
                 </div>
               </div>
               {canWrite && (
-                <Button className="mt-3" size="sm" onClick={saveProfile} disabled={isPending}>프로파일 저장</Button>
+                <Button
+                  className="mt-3"
+                  size="sm"
+                  onClick={saveProfile}
+                  disabled={isPending || locked}
+                >
+                  프로파일 저장
+                </Button>
               )}
             </div>
           </div>

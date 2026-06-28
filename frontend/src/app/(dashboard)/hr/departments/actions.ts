@@ -15,7 +15,13 @@ export async function createDepartment(data: {
 
 export async function updateDepartment(
   id: number,
-  data: { name: string; sortOrder: number; version: number }
+  data: {
+    name: string
+    sortOrder: number
+    parentId: number | null
+    active: boolean
+    version: number
+  },
 ): Promise<void> {
   await apiPut<Department>(`/api/hr/departments/${id}`, data)
   revalidatePath('/hr/departments')

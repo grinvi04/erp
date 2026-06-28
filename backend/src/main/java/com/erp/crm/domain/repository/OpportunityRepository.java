@@ -11,42 +11,62 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface OpportunityRepository extends JpaRepository<Opportunity, Long> {
-    @Query(value = "SELECT o FROM Opportunity o JOIN FETCH o.account a JOIN FETCH o.stage s WHERE "
-            + "(:accountId IS NULL OR a.id = :accountId) AND "
-            + "(:stageId IS NULL OR s.id = :stageId) AND "
-            + "(:scoped = false OR o.ownerId IN :ownerIds)",
-           countQuery = "SELECT COUNT(o) FROM Opportunity o WHERE "
-            + "(:accountId IS NULL OR o.account.id = :accountId) AND "
-            + "(:stageId IS NULL OR o.stage.id = :stageId) AND "
-            + "(:scoped = false OR o.ownerId IN :ownerIds)")
-    Page<Opportunity> search(@Param("accountId") Long accountId,
-                             @Param("stageId") Long stageId,
-                             @Param("scoped") boolean scoped,
-                             @Param("ownerIds") java.util.Collection<String> ownerIds,
-                             Pageable pageable);
+  boolean existsByStage_Id(Long stageId);
 
-    @Query("SELECT COUNT(o) FROM Opportunity o "
-            + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
-            + "(:scoped = false OR o.ownerId IN :ownerIds)")
-    long countOpen(@Param("scoped") boolean scoped,
-                   @Param("ownerIds") java.util.Collection<String> ownerIds);
+  @Query(
+      value =
+          "SELECT o FROM Opportunity o JOIN FETCH o.account a JOIN FETCH o.stage s WHERE "
+              + "(:accountId IS NULL OR a.id = :accountId) AND "
+              + "(:stageId IS NULL OR s.id = :stageId) AND "
+              + "(:scoped = false OR o.ownerId IN :ownerIds)",
+      countQuery =
+          "SELECT COUNT(o) FROM Opportunity o WHERE "
+              + "(:accountId IS NULL OR o.account.id = :accountId) AND "
+              + "(:stageId IS NULL OR o.stage.id = :stageId) AND "
+              + "(:scoped = false OR o.ownerId IN :ownerIds)")
+  Page<Opportunity> search(
+      @Param("accountId") Long accountId,
+      @Param("stageId") Long stageId,
+      @Param("scoped") boolean scoped,
+      @Param("ownerIds") java.util.Collection<String> ownerIds,
+      Pageable pageable);
 
-    @Query("SELECT new com.erp.common.response.CurrencyAmount("
-            + "o.currency, COALESCE(SUM(o.amount), 0)) FROM Opportunity o "
-            + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
-            + "(:scoped = false OR o.ownerId IN :ownerIds) "
-            + "GROUP BY o.currency ORDER BY o.currency")
-    List<CurrencyAmount> sumOpenAmountByCurrency(@Param("scoped") boolean scoped,
-                                                 @Param("ownerIds") java.util.Collection<String> ownerIds);
+  @Query(
+      "SELECT COUNT(o) FROM Opportunity o "
+          + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
+          + "(:scoped = false OR o.ownerId IN :ownerIds)")
+  long countOpen(
+      @Param("scoped") boolean scoped, @Param("ownerIds") java.util.Collection<String> ownerIds);
 
-    /**
-     * 진행중 기회의 기준통화 환산액(base_amount) 합계 — 통화별 분리합과 별개의 단일 기준통화 합계.
-     * 스코프 조건은 {@link #sumOpenAmountByCurrency}와 동일. base_amount 미산정(null) 행은 제외(부분 합계)이며,
-     * 산정된 진행중 기회가 없으면 null(0과 미산정을 구분).
-     */
-    @Query("SELECT SUM(o.baseAmount) FROM Opportunity o "
-            + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
-            + "(:scoped = false OR o.ownerId IN :ownerIds) AND o.baseAmount IS NOT NULL")
-    BigDecimal sumOpenBaseTotal(@Param("scoped") boolean scoped,
-                                @Param("ownerIds") java.util.Collection<String> ownerIds);
+  @Query(
+      "SELECT new com.erp.common.response.CurrencyAmount("
+          + "o.currency, COALESCE(SUM(o.amount), 0)) FROM Opportunity o "
+          + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
+          + "(:scoped = false OR o.ownerId IN :ownerIds) "
+          + "GROUP BY o.currency ORDER BY o.currency")
+  List<CurrencyAmount> sumOpenAmountByCurrency(
+      @Param("scoped") boolean scoped, @Param("ownerIds") java.util.Collection<String> ownerIds);
+
+  /**
+   * 진행중 기회의 기준통화 환산액(base_amount) 합계 — 통화별 분리합과 별개의 단일 기준통화 합계. 스코프 조건은 {@link
+   * #sumOpenAmountByCurrency}와 동일. base_amount 미산정(null) 행은 제외(부분 합계)이며, 산정된 진행중 기회가 없으면 null(0과
+   * 미산정을 구분).
+   */
+  @Query(
+      "SELECT SUM(o.baseAmount) FROM Opportunity o "
+          + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
+          + "(:scoped = false OR o.ownerId IN :ownerIds) AND o.baseAmount IS NOT NULL")
+  BigDecimal sumOpenBaseTotal(
+      @Param("scoped") boolean scoped, @Param("ownerIds") java.util.Collection<String> ownerIds);
+
+  /**
+   * 진행중인데 기준통화 환산이 안 된(base_amount NULL=환율 미산정) 기회 수. {@link #sumOpenBaseTotal}에서 제외된 행이 있는지 판정해
+   * 파이프라인 환산 합계가 "일부 미환산"임을 정직하게 표기하기 위함(스코프 조건은 동일).
+   */
+  @Query(
+      "SELECT COUNT(o) FROM Opportunity o "
+          + "WHERE o.stage.isClosedWon = false AND o.stage.isClosedLost = false AND "
+          + "(:scoped = false OR o.ownerId IN :ownerIds) AND o.baseAmount IS NULL")
+  long countOpenUnconverted(
+      @Param("scoped") boolean scoped, @Param("ownerIds") java.util.Collection<String> ownerIds);
 }

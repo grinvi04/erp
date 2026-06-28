@@ -10,11 +10,15 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import { createWarehouse, updateWarehouse, deactivateWarehouse } from './actions'
 import type { Warehouse } from '@/types/inventory'
 
@@ -24,7 +28,9 @@ type DialogMode =
   | { type: 'edit'; wh: Warehouse }
   | { type: 'deactivate'; wh: Warehouse }
 
-interface Props { warehouses: Warehouse[] }
+interface Props {
+  warehouses: Warehouse[]
+}
 
 export default function WarehousesClient({ warehouses }: Props) {
   const { can } = usePermissions()
@@ -38,36 +44,55 @@ export default function WarehousesClient({ warehouses }: Props) {
   const [address, setAddress] = useState('')
 
   const openCreate = () => {
-    setCode(''); setName(''); setAddress('')
+    setCode('')
+    setName('')
+    setAddress('')
     setDialog({ type: 'create' })
   }
 
   const openEdit = (wh: Warehouse) => {
-    setName(wh.name); setAddress(wh.address ?? '')
+    setName(wh.name)
+    setAddress(wh.address ?? '')
     setDialog({ type: 'edit', wh })
   }
 
   const handleCreate = () => {
-    if (!code.trim() || !name.trim()) { toast.error('코드와 창고명은 필수입니다'); return }
+    if (!code.trim() || !name.trim()) {
+      toast.error('코드와 창고명은 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
         await createWarehouse({
-          code: code.trim(), name: name.trim(), address: address.trim() || null,
+          code: code.trim(),
+          name: name.trim(),
+          address: address.trim() || null,
         })
         toast.success('창고가 등록되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
+      }
     })
   }
 
   const handleUpdate = (wh: Warehouse) => {
-    if (!name.trim()) { toast.error('창고명은 필수입니다'); return }
+    if (!name.trim()) {
+      toast.error('창고명은 필수입니다')
+      return
+    }
     startTransition(async () => {
       try {
-        await updateWarehouse(wh.id, { version: wh.version, name: name.trim(), address: address.trim() || null })
+        await updateWarehouse(wh.id, {
+          version: wh.version,
+          name: name.trim(),
+          address: address.trim() || null,
+        })
         toast.success('창고 정보가 수정되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -77,78 +102,105 @@ export default function WarehousesClient({ warehouses }: Props) {
         await deactivateWarehouse(wh.id)
         toast.success('창고가 비활성화되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '비활성화 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '비활성화 중 오류가 발생했습니다')
+      }
     })
   }
 
+  const columns: Column<Warehouse>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (w) => w.code,
+      cell: (w) => <span className="font-mono text-sm">{w.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '창고명',
+      sortable: true,
+      sortValue: (w) => w.name,
+      cell: (w) => <span className="font-medium">{w.name}</span>,
+    },
+    {
+      key: 'address',
+      header: '주소',
+      cell: (w) => (
+        <span className="block max-w-xs truncate text-sm text-muted-foreground">
+          {w.address ?? '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (w) => (w.active ? 0 : 1),
+      cell: (w) => (
+        <Badge variant={w.active ? 'default' : 'secondary'}>{w.active ? '활성' : '비활성'}</Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (wh) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(wh)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && wh.active && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="비활성화"
+              onClick={() => setDialog({ type: 'deactivate', wh })}
+            >
+              <BanIcon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">창고 관리</h1>
-          <p className="text-sm text-gray-500 mt-1">물류 창고 정보를 관리합니다</p>
-        </div>
-        {canWrite && <Button onClick={openCreate}><PlusIcon />새 창고</Button>}
-      </div>
+      <PageHeader title="창고 관리" description="물류 창고 정보를 관리합니다" className="mb-6">
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 창고
+          </Button>
+        )}
+      </PageHeader>
 
-      <div className="bg-white rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>창고명</TableHead>
-              <TableHead>주소</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {warehouses.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-400 py-10">
-                  등록된 창고가 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {warehouses.map((wh) => (
-              <TableRow key={wh.id}>
-                <TableCell className="font-mono text-sm">{wh.code}</TableCell>
-                <TableCell className="font-medium">{wh.name}</TableCell>
-                <TableCell className="text-sm text-gray-500 max-w-xs truncate">
-                  {wh.address ?? '—'}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={wh.active ? 'default' : 'secondary'}>
-                    {wh.active ? '활성' : '비활성'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(wh)}>
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && wh.active && (
-                      <Button
-                        variant="ghost" size="icon-xs" title="비활성화"
-                        onClick={() => setDialog({ type: 'deactivate', wh })}
-                      >
-                        <BanIcon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={warehouses}
+        columns={columns}
+        getRowId={(w) => w.id}
+        empty={
+          <EmptyState
+            title="등록된 창고가 없습니다"
+            description={canWrite ? '우측 상단에서 새 창고를 등록하세요.' : undefined}
+          />
+        }
+      />
 
       {/* Create Dialog */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>새 창고 등록</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>새 창고 등록</DialogTitle>
+          </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
               <Label>코드 *</Label>
@@ -156,27 +208,40 @@ export default function WarehousesClient({ warehouses }: Props) {
             </div>
             <div className="grid gap-1.5">
               <Label>창고명 *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="서울 물류센터" />
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="서울 물류센터"
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>주소</Label>
-              <Textarea rows={2} value={address} onChange={(e) => setAddress(e.target.value)}
-                placeholder="서울특별시 ..." />
+              <Textarea
+                rows={2}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="서울특별시 ..."
+              />
             </div>
           </div>
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={dialog.type === 'edit'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'edit'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              창고 수정{dialog.type === 'edit' && ` — ${dialog.wh.code}`}
-            </DialogTitle>
+            <DialogTitle>창고 수정{dialog.type === 'edit' && ` — ${dialog.wh.code}`}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-1.5">
@@ -200,12 +265,22 @@ export default function WarehousesClient({ warehouses }: Props) {
       </Dialog>
 
       {/* Deactivate Dialog */}
-      <Dialog open={dialog.type === 'deactivate'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'deactivate'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>창고 비활성화</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>창고 비활성화</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'deactivate' && (
-            <p className="text-sm text-gray-600 py-2">
-              <strong>{dialog.wh.code} {dialog.wh.name}</strong>을(를) 비활성화하시겠습니까?
+            <p className="text-sm text-muted-foreground py-2">
+              <strong>
+                {dialog.wh.code} {dialog.wh.name}
+              </strong>
+              을(를) 비활성화하시겠습니까?
             </p>
           )}
           <DialogFooter showCloseButton>

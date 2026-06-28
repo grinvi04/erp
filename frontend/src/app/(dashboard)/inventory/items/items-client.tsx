@@ -10,13 +10,21 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { SearchInput } from '@/components/ui/search-input'
@@ -25,8 +33,10 @@ import type { Item, ItemCategory, Uom, CostMethod } from '@/types/inventory'
 import type { PageResponse } from '@/types/api'
 
 const COST_METHOD_LABEL: Record<CostMethod, string> = {
-  FIFO: 'FIFO (선입선출)', LIFO: 'LIFO (후입선출)',
-  WEIGHTED_AVG: '총평균법', STANDARD: '표준원가',
+  FIFO: '선입선출(FIFO)',
+  LIFO: '후입선출(LIFO)',
+  WEIGHTED_AVG: '총평균법',
+  STANDARD: '표준원가',
 }
 
 type DialogMode =
@@ -42,7 +52,9 @@ interface Props {
   keyword: string
 }
 
-function fmtNum(n: number) { return n.toLocaleString('ko-KR') }
+function fmtNum(n: number) {
+  return n.toLocaleString('ko-KR')
+}
 
 export default function ItemsClient({ data, categories, uoms, keyword }: Props) {
   const { can } = usePermissions()
@@ -66,20 +78,34 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
   const [serialTracked, setSerialTracked] = useState(false)
 
   const openCreate = () => {
-    setSku(''); setName(''); setDescription(''); setCategoryId(''); setUomId('')
-    setCostMethod('STANDARD'); setStandardCost('0'); setReorderPoint('0')
-    setReorderQty('0'); setMinStock('0'); setMaxStock('0')
-    setLotTracked(false); setSerialTracked(false)
+    setSku('')
+    setName('')
+    setDescription('')
+    setCategoryId('')
+    setUomId('')
+    setCostMethod('STANDARD')
+    setStandardCost('0')
+    setReorderPoint('0')
+    setReorderQty('0')
+    setMinStock('0')
+    setMaxStock('0')
+    setLotTracked(false)
+    setSerialTracked(false)
     setDialog({ type: 'create' })
   }
 
   const openEdit = (item: Item) => {
-    setName(item.name); setDescription(item.description ?? '')
+    setName(item.name)
+    setDescription(item.description ?? '')
     setCategoryId(item.categoryId != null ? String(item.categoryId) : '')
-    setUomId(String(item.uomId)); setCostMethod(item.costMethod)
-    setStandardCost(String(item.standardCost)); setReorderPoint(String(item.reorderPoint))
-    setReorderQty(String(item.reorderQty)); setMinStock(String(item.minStock))
-    setMaxStock(String(item.maxStock)); setLotTracked(item.lotTracked)
+    setUomId(String(item.uomId))
+    setCostMethod(item.costMethod)
+    setStandardCost(String(item.standardCost))
+    setReorderPoint(String(item.reorderPoint))
+    setReorderQty(String(item.reorderQty))
+    setMinStock(String(item.minStock))
+    setMaxStock(String(item.maxStock))
+    setLotTracked(item.lotTracked)
     setSerialTracked(item.serialTracked)
     setDialog({ type: 'edit', item })
   }
@@ -100,20 +126,31 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
   })
 
   const validate = () => {
-    if (!name.trim()) { toast.error('품목명은 필수입니다'); return false }
-    if (!uomId) { toast.error('단위(UOM)를 선택해주세요'); return false }
+    if (!name.trim()) {
+      toast.error('품목명은 필수입니다')
+      return false
+    }
+    if (!uomId) {
+      toast.error('단위(UOM)를 선택해주세요')
+      return false
+    }
     return true
   }
 
   const handleCreate = () => {
-    if (!sku.trim()) { toast.error('SKU는 필수입니다'); return }
+    if (!sku.trim()) {
+      toast.error('SKU는 필수입니다')
+      return
+    }
     if (!validate()) return
     startTransition(async () => {
       try {
         await createItem({ sku: sku.trim(), ...buildPayload() })
         toast.success('품목이 등록되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '등록 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -124,7 +161,9 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
         await updateItem(item.id, { version: item.version, ...buildPayload() })
         toast.success('품목이 수정되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '수정 중 오류가 발생했습니다')
+      }
     })
   }
 
@@ -134,9 +173,97 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
         await deactivateItem(item.id)
         toast.success('품목이 비활성화되었습니다')
         close()
-      } catch (e) { toast.error(e instanceof Error ? e.message : '비활성화 중 오류가 발생했습니다') }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '비활성화 중 오류가 발생했습니다')
+      }
     })
   }
+
+  const columns: Column<Item>[] = [
+    {
+      key: 'sku',
+      header: 'SKU',
+      sortable: true,
+      sortValue: (i) => i.sku,
+      cell: (i) => <span className="font-mono text-sm">{i.sku}</span>,
+    },
+    {
+      key: 'name',
+      header: '품목명',
+      sortable: true,
+      sortValue: (i) => i.name,
+      cell: (i) => <span className="font-medium">{i.name}</span>,
+    },
+    {
+      key: 'category',
+      header: '분류',
+      cell: (i) => <span className="text-sm text-muted-foreground">{i.categoryName ?? '—'}</span>,
+    },
+    {
+      key: 'uom',
+      header: '단위',
+      cell: (i) => <span className="text-sm text-muted-foreground">{i.uomCode}</span>,
+    },
+    {
+      key: 'costMethod',
+      header: '원가법',
+      cell: (i) => <span className="text-sm text-muted-foreground">{i.costMethod}</span>,
+    },
+    {
+      key: 'standardCost',
+      header: '표준원가',
+      align: 'right',
+      sortable: true,
+      sortValue: (i) => i.standardCost,
+      cell: (i) => <span className="font-mono text-sm">{fmtNum(i.standardCost)}</span>,
+    },
+    {
+      key: 'lot',
+      header: 'LOT',
+      align: 'center',
+      cell: (i) => <span className="text-sm">{i.lotTracked ? '●' : '○'}</span>,
+    },
+    {
+      key: 'serial',
+      header: '시리얼',
+      align: 'center',
+      cell: (i) => <span className="text-sm">{i.serialTracked ? '●' : '○'}</span>,
+    },
+    {
+      key: 'status',
+      header: '상태',
+      sortable: true,
+      sortValue: (i) => (i.active ? 0 : 1),
+      cell: (i) => (
+        <Badge variant={i.active ? 'default' : 'secondary'}>{i.active ? '활성' : '비활성'}</Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-20',
+      cell: (item) => (
+        <div className="flex justify-end gap-1">
+          {canWrite && (
+            <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(item)}>
+              <PencilIcon />
+            </Button>
+          )}
+          {canWrite && item.active && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="비활성화"
+              onClick={() => setDialog({ type: 'deactivate', item })}
+            >
+              <BanIcon className="text-destructive" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
 
   const itemForm = (
     <div className="grid gap-4 py-2">
@@ -160,10 +287,14 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
         <div className="grid gap-1.5">
           <Label>분류</Label>
           <Select value={categoryId} onValueChange={(v) => setCategoryId(v ?? '')}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="없음" /></SelectTrigger>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="없음" />
+            </SelectTrigger>
             <SelectContent>
               {categories.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                <SelectItem key={c.id} value={String(c.id)}>
+                  {c.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -171,10 +302,14 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
         <div className="grid gap-1.5">
           <Label>단위(UOM) *</Label>
           <Select value={uomId} onValueChange={(v) => setUomId(v ?? '')}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="선택" /></SelectTrigger>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="선택" />
+            </SelectTrigger>
             <SelectContent>
               {uoms.map((u) => (
-                <SelectItem key={u.id} value={String(u.id)}>{u.code} — {u.name}</SelectItem>
+                <SelectItem key={u.id} value={String(u.id)}>
+                  {u.code} — {u.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -183,54 +318,94 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-1.5">
           <Label>원가 계산법 *</Label>
-          <Select value={costMethod} onValueChange={(v) => setCostMethod((v ?? 'STANDARD') as CostMethod)}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+          <Select
+            value={costMethod}
+            onValueChange={(v) => setCostMethod((v ?? 'STANDARD') as CostMethod)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {(Object.keys(COST_METHOD_LABEL) as CostMethod[]).map((k) => (
-                <SelectItem key={k} value={k}>{COST_METHOD_LABEL[k]}</SelectItem>
+                <SelectItem key={k} value={k}>
+                  {COST_METHOD_LABEL[k]}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="grid gap-1.5">
           <Label>표준원가</Label>
-          <Input type="number" min={0} step={0.01} value={standardCost}
-            onChange={(e) => setStandardCost(e.target.value)} />
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            value={standardCost}
+            onChange={(e) => setStandardCost(e.target.value)}
+          />
         </div>
       </div>
       <div className="grid grid-cols-3 gap-4">
         <div className="grid gap-1.5">
           <Label>재주문점</Label>
-          <Input type="number" min={0} step={0.01} value={reorderPoint}
-            onChange={(e) => setReorderPoint(e.target.value)} />
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            value={reorderPoint}
+            onChange={(e) => setReorderPoint(e.target.value)}
+          />
         </div>
         <div className="grid gap-1.5">
           <Label>재주문량</Label>
-          <Input type="number" min={0} step={0.01} value={reorderQty}
-            onChange={(e) => setReorderQty(e.target.value)} />
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            value={reorderQty}
+            onChange={(e) => setReorderQty(e.target.value)}
+          />
         </div>
         <div className="grid gap-1.5">
           <Label>최소재고</Label>
-          <Input type="number" min={0} step={0.01} value={minStock}
-            onChange={(e) => setMinStock(e.target.value)} />
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            value={minStock}
+            onChange={(e) => setMinStock(e.target.value)}
+          />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-1.5">
           <Label>최대재고</Label>
-          <Input type="number" min={0} step={0.01} value={maxStock}
-            onChange={(e) => setMaxStock(e.target.value)} />
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            value={maxStock}
+            onChange={(e) => setMaxStock(e.target.value)}
+          />
         </div>
       </div>
       <div className="flex gap-6">
         <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" checked={lotTracked} onChange={(e) => setLotTracked(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300" />
+          <input
+            type="checkbox"
+            checked={lotTracked}
+            onChange={(e) => setLotTracked(e.target.checked)}
+            className="h-4 w-4 rounded border-input"
+          />
           <span className="text-sm">LOT 추적</span>
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" checked={serialTracked} onChange={(e) => setSerialTracked(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300" />
+          <input
+            type="checkbox"
+            checked={serialTracked}
+            onChange={(e) => setSerialTracked(e.target.checked)}
+            className="h-4 w-4 rounded border-input"
+          />
           <span className="text-sm">시리얼 추적</span>
         </label>
       </div>
@@ -239,105 +414,67 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">품목 관리</h1>
-          <p className="text-sm text-gray-500 mt-1">재고 품목 마스터를 관리합니다</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <SearchInput placeholder="이름·코드 검색" className="w-64" />
-          {canWrite && <Button onClick={openCreate}><PlusIcon />새 품목</Button>}
-        </div>
-      </div>
+      <PageHeader title="품목 관리" description="재고 품목 마스터를 관리합니다" className="mb-6">
+        <SearchInput placeholder="이름·코드 검색" className="w-64" />
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <PlusIcon />새 품목
+          </Button>
+        )}
+      </PageHeader>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>SKU</TableHead>
-              <TableHead>품목명</TableHead>
-              <TableHead>분류</TableHead>
-              <TableHead>단위</TableHead>
-              <TableHead>원가법</TableHead>
-              <TableHead className="text-right">표준원가</TableHead>
-              <TableHead>LOT</TableHead>
-              <TableHead>시리얼</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center text-gray-400 py-10">
-                  등록된 품목이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {data.content.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-mono text-sm">{item.sku}</TableCell>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="text-sm text-gray-600">{item.categoryName ?? '—'}</TableCell>
-                <TableCell className="text-sm text-gray-600">{item.uomCode}</TableCell>
-                <TableCell className="text-sm text-gray-500">{item.costMethod}</TableCell>
-                <TableCell className="text-right font-mono text-sm">
-                  {fmtNum(item.standardCost)}
-                </TableCell>
-                <TableCell className="text-center text-sm">{item.lotTracked ? '●' : '○'}</TableCell>
-                <TableCell className="text-center text-sm">{item.serialTracked ? '●' : '○'}</TableCell>
-                <TableCell>
-                  <Badge variant={item.active ? 'default' : 'secondary'}>
-                    {item.active ? '활성' : '비활성'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canWrite && (
-                      <Button variant="ghost" size="icon-xs" title="수정" onClick={() => openEdit(item)}>
-                        <PencilIcon />
-                      </Button>
-                    )}
-                    {canWrite && item.active && (
-                      <Button
-                        variant="ghost" size="icon-xs" title="비활성화"
-                        onClick={() => setDialog({ type: 'deactivate', item })}
-                      >
-                        <BanIcon className="text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-3">
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(i) => i.id}
+          empty={
+            <EmptyState
+              title="등록된 품목이 없습니다"
+              description={canWrite ? '우측 상단에서 새 품목을 등록하세요.' : undefined}
+            />
+          }
+        />
         <PaginationBar
-          page={data.page} totalPages={data.totalPages}
-          totalElements={data.totalElements} size={data.size}
+          page={data.page}
+          totalPages={data.totalPages}
+          totalElements={data.totalElements}
+          size={data.size}
           basePath="/inventory/items"
           searchParams={keyword ? { keyword } : undefined}
         />
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={dialog.type === 'create'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'create'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>새 품목 등록</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>새 품목 등록</DialogTitle>
+          </DialogHeader>
           {itemForm}
           <DialogFooter showCloseButton>
-            <Button onClick={handleCreate} disabled={isPending}>등록</Button>
+            <Button onClick={handleCreate} disabled={isPending}>
+              등록
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={dialog.type === 'edit'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'edit'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>
-              품목 수정{dialog.type === 'edit' && ` — ${dialog.item.sku}`}
-            </DialogTitle>
+            <DialogTitle>품목 수정{dialog.type === 'edit' && ` — ${dialog.item.sku}`}</DialogTitle>
           </DialogHeader>
           {itemForm}
           <DialogFooter showCloseButton>
@@ -352,12 +489,22 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
       </Dialog>
 
       {/* Deactivate Dialog */}
-      <Dialog open={dialog.type === 'deactivate'} onOpenChange={(o) => { if (!o) close() }}>
+      <Dialog
+        open={dialog.type === 'deactivate'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
         <DialogContent>
-          <DialogHeader><DialogTitle>품목 비활성화</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>품목 비활성화</DialogTitle>
+          </DialogHeader>
           {dialog.type === 'deactivate' && (
-            <p className="text-sm text-gray-600 py-2">
-              <strong>{dialog.item.sku} {dialog.item.name}</strong>을(를) 비활성화하시겠습니까?
+            <p className="text-sm text-muted-foreground py-2">
+              <strong>
+                {dialog.item.sku} {dialog.item.name}
+              </strong>
+              을(를) 비활성화하시겠습니까?
             </p>
           )}
           <DialogFooter showCloseButton>

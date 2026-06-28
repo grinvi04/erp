@@ -28,7 +28,7 @@ const NavBtn = ({
   disabled ? (
     <span
       className={cn(
-        'inline-flex items-center justify-center size-8 rounded-lg text-sm text-gray-300 cursor-not-allowed'
+        'inline-flex items-center justify-center size-8 rounded-lg text-sm text-muted-foreground cursor-not-allowed',
       )}
     >
       {children}
@@ -36,7 +36,7 @@ const NavBtn = ({
   ) : (
     <Link
       href={href}
-      className="inline-flex items-center justify-center size-8 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors"
+      className="inline-flex items-center justify-center size-8 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
     >
       {children}
     </Link>
@@ -54,15 +54,10 @@ export function PaginationBar({
   const end = Math.min((page + 1) * size, totalElements)
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t text-sm text-gray-600">
-      <span>
-        {totalElements > 0 ? `${start}–${end} / 전체 ${totalElements}건` : '0건'}
-      </span>
+    <div className="flex items-center justify-between px-4 py-3 border-t text-sm text-muted-foreground">
+      <span>{totalElements > 0 ? `${start}–${end} / 전체 ${totalElements}건` : '0건'}</span>
       <div className="flex items-center gap-1">
-        <NavBtn
-          href={pageHref(basePath, page - 1, size, searchParams)}
-          disabled={page === 0}
-        >
+        <NavBtn href={pageHref(basePath, page - 1, size, searchParams)} disabled={page === 0}>
           <ChevronLeft className="h-4 w-4" />
         </NavBtn>
         <span className="px-2 text-sm">

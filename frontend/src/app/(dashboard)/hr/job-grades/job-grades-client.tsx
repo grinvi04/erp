@@ -6,11 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import { createJobGrade, updateJobGrade, deleteJobGrade } from './actions'
 import type { JobGrade } from '@/types/hr'
 
@@ -24,8 +28,7 @@ interface Props {
   jobGrades: JobGrade[]
 }
 
-const fmt = (v: number | null) =>
-  v == null ? '—' : v.toLocaleString('ko-KR')
+const fmt = (v: number | null) => (v == null ? '—' : v.toLocaleString('ko-KR'))
 
 export default function JobGradesClient({ jobGrades }: Props) {
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
@@ -38,7 +41,11 @@ export default function JobGradesClient({ jobGrades }: Props) {
   const [maxSalary, setMaxSalary] = useState('')
 
   const openCreate = () => {
-    setCode(''); setName(''); setGradeOrder('0'); setMinSalary(''); setMaxSalary('')
+    setCode('')
+    setName('')
+    setGradeOrder('0')
+    setMinSalary('')
+    setMaxSalary('')
     setDialog({ type: 'create' })
   }
 
@@ -108,78 +115,94 @@ export default function JobGradesClient({ jobGrades }: Props) {
     })
   }
 
+  const columns: Column<JobGrade>[] = [
+    {
+      key: 'code',
+      header: '코드',
+      sortable: true,
+      sortValue: (g) => g.code,
+      cell: (g) => <span className="font-mono text-sm">{g.code}</span>,
+    },
+    {
+      key: 'name',
+      header: '직급명',
+      sortable: true,
+      sortValue: (g) => g.name,
+      cell: (g) => <span className="font-medium">{g.name}</span>,
+    },
+    {
+      key: 'gradeOrder',
+      header: '순서',
+      align: 'right',
+      sortable: true,
+      sortValue: (g) => g.gradeOrder,
+      cell: (g) => <span className="text-sm text-muted-foreground">{g.gradeOrder}</span>,
+    },
+    {
+      key: 'minSalary',
+      header: '최소 급여',
+      align: 'right',
+      sortable: true,
+      sortValue: (g) => g.minSalary,
+      cell: (g) => <span className="text-sm text-muted-foreground">{fmt(g.minSalary)}</span>,
+    },
+    {
+      key: 'maxSalary',
+      header: '최대 급여',
+      align: 'right',
+      sortable: true,
+      sortValue: (g) => g.maxSalary,
+      cell: (g) => <span className="text-sm text-muted-foreground">{fmt(g.maxSalary)}</span>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      headerClassName: 'w-24',
+      cell: (grade) => (
+        <div className="flex justify-end gap-1">
+          <Button variant="ghost" size="icon-xs" onClick={() => openEdit(grade)}>
+            <PencilIcon />
+            <span className="sr-only">수정</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setDialog({ type: 'delete', grade })}
+          >
+            <Trash2Icon className="text-destructive" />
+            <span className="sr-only">삭제</span>
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">직급 관리</h1>
-          <p className="text-sm text-gray-500 mt-1">직급 체계와 급여 범위를 관리합니다</p>
-        </div>
+      <PageHeader
+        title="직급 관리"
+        description="직급 체계와 급여 범위를 관리합니다"
+        className="mb-6"
+      >
         <Button onClick={openCreate}>
-          <PlusIcon />
-          새 직급
+          <PlusIcon />새 직급
         </Button>
-      </div>
+      </PageHeader>
 
-      <div className="bg-white rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>코드</TableHead>
-              <TableHead>직급명</TableHead>
-              <TableHead className="text-right">순서</TableHead>
-              <TableHead className="text-right">최소 급여</TableHead>
-              <TableHead className="text-right">최대 급여</TableHead>
-              <TableHead className="w-24" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {jobGrades.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-gray-400 py-10">
-                  등록된 직급이 없습니다
-                </TableCell>
-              </TableRow>
-            )}
-            {jobGrades.map((grade) => (
-              <TableRow key={grade.id}>
-                <TableCell className="font-mono text-sm">{grade.code}</TableCell>
-                <TableCell className="font-medium">{grade.name}</TableCell>
-                <TableCell className="text-right text-sm text-gray-600">
-                  {grade.gradeOrder}
-                </TableCell>
-                <TableCell className="text-right text-sm text-gray-600">
-                  {fmt(grade.minSalary)}
-                </TableCell>
-                <TableCell className="text-right text-sm text-gray-600">
-                  {fmt(grade.maxSalary)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon-xs" onClick={() => openEdit(grade)}>
-                      <PencilIcon />
-                      <span className="sr-only">수정</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => setDialog({ type: 'delete', grade })}
-                    >
-                      <Trash2Icon className="text-destructive" />
-                      <span className="sr-only">삭제</span>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={jobGrades}
+        columns={columns}
+        getRowId={(g) => g.id}
+        empty={<EmptyState title="등록된 직급이 없습니다" />}
+      />
 
       {/* Create / Edit Dialog */}
       <Dialog
         open={dialog.type === 'create' || dialog.type === 'edit'}
-        onOpenChange={(open) => { if (!open) close() }}
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
       >
         <DialogContent>
           <DialogHeader>
@@ -262,13 +285,15 @@ export default function JobGradesClient({ jobGrades }: Props) {
       {/* Delete Confirm Dialog */}
       <Dialog
         open={dialog.type === 'delete'}
-        onOpenChange={(open) => { if (!open) close() }}
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
       >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>직급 삭제</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600 py-2">
+          <p className="text-sm text-muted-foreground py-2">
             {dialog.type === 'delete' && (
               <>
                 <strong>{dialog.grade.name}</strong> 직급을 삭제하시겠습니까?

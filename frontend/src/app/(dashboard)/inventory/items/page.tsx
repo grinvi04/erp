@@ -16,7 +16,9 @@ export default async function ItemsPage(props: {
   const keywordQuery = keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''
 
   const [data, categories, uoms] = await Promise.all([
-    apiGetPage<Item>(`/api/inventory/items?page=${page}&size=${size}${categoryFilter}${keywordQuery}`),
+    apiGetPage<Item>(
+      `/api/inventory/items?page=${page}&size=${size}${categoryFilter}${keywordQuery}`,
+    ),
     apiGet<ItemCategory[]>('/api/inventory/item-categories'),
     apiGet<Uom[]>('/api/inventory/uoms'),
   ])

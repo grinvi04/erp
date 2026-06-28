@@ -1,11 +1,17 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { PackageSearchIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Badge } from '@/components/ui/badge'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import type { Warehouse, StockBalance } from '@/types/inventory'
@@ -17,7 +23,18 @@ interface Props {
   data: PageResponse<StockBalance> | null
 }
 
-function fmtNum(n: number) { return n.toLocaleString('ko-KR') }
+function fmtNum(n: number) {
+  return n.toLocaleString('ko-KR')
+}
+
+// 보유 수량을 품목 안전재고(minStock)·재주문점(reorderPoint)과 대조해 경고 수준을 산출.
+// 임계값이 0(미설정)인 경우는 신호를 내지 않는다 — 동작 안 하는 표시 금지(정직성).
+type StockLevel = 'critical' | 'reorder' | null
+function stockLevel(s: StockBalance): StockLevel {
+  if (s.minStock > 0 && s.qtyOnHand < s.minStock) return 'critical'
+  if (s.reorderPoint > 0 && s.qtyOnHand <= s.reorderPoint) return 'reorder'
+  return null
+}
 
 export default function StocksClient({ warehouses, warehouseId, data }: Props) {
   const router = useRouter()
@@ -31,79 +48,127 @@ export default function StocksClient({ warehouses, warehouseId, data }: Props) {
     }
   }
 
+  const columns: Column<StockBalance>[] = [
+    {
+      key: 'sku',
+      header: 'SKU',
+      sortable: true,
+      sortValue: (s) => s.itemSku,
+      cell: (s) => <span className="font-mono text-sm">{s.itemSku}</span>,
+    },
+    {
+      key: 'name',
+      header: '품목명',
+      sortable: true,
+      sortValue: (s) => s.itemName,
+      cell: (s) => <span className="font-medium">{s.itemName}</span>,
+    },
+    {
+      key: 'location',
+      header: '위치',
+      cell: (s) => (
+        <span className="text-sm text-muted-foreground">
+          {s.locationCode}
+          {s.locationName ? (
+            <span className="text-muted-foreground"> — {s.locationName}</span>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      key: 'lotSerial',
+      header: 'Lot / Serial',
+      cell: (s) => (
+        <span className="text-sm text-muted-foreground">{s.lotNo ?? s.serialNo ?? '—'}</span>
+      ),
+    },
+    {
+      key: 'qtyOnHand',
+      header: '보유',
+      align: 'right',
+      sortable: true,
+      sortValue: (s) => s.qtyOnHand,
+      cell: (s) => {
+        const lv = stockLevel(s)
+        return (
+          <span
+            className={cn(
+              'font-mono text-sm',
+              lv === 'critical' && 'font-semibold text-destructive',
+              lv === 'reorder' && 'font-medium text-warning',
+            )}
+          >
+            {fmtNum(s.qtyOnHand)}
+          </span>
+        )
+      },
+    },
+    {
+      key: 'status',
+      header: '상태',
+      cell: (s) => {
+        const lv = stockLevel(s)
+        if (lv === 'critical') return <Badge variant="destructive">안전재고 미달</Badge>
+        if (lv === 'reorder') return <Badge variant="warning">재주문 필요</Badge>
+        return <span className="text-sm text-muted-foreground">—</span>
+      },
+    },
+    {
+      key: 'unitCost',
+      header: '단가',
+      align: 'right',
+      sortable: true,
+      sortValue: (s) => s.unitCost,
+      cell: (s) => <span className="font-mono text-sm">{fmtNum(s.unitCost)}</span>,
+    },
+  ]
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">재고 현황</h1>
-          <p className="text-sm text-gray-500 mt-1">창고별 품목 재고 보유·예약·가용 수량을 조회합니다</p>
-        </div>
+      <PageHeader
+        title="재고 현황"
+        description="창고별 품목 재고 보유 수량을 조회하고 안전재고 미달 품목을 식별합니다"
+        className="mb-6"
+      >
         <div className="w-64">
           <Select value={warehouseId} onValueChange={onWarehouseChange}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="창고 선택" /></SelectTrigger>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="창고 선택" />
+            </SelectTrigger>
             <SelectContent>
-              {warehouses.filter((w) => w.active).map((w) => (
-                <SelectItem key={w.id} value={String(w.id)}>{w.code} {w.name}</SelectItem>
-              ))}
+              {warehouses
+                .filter((w) => w.active)
+                .map((w) => (
+                  <SelectItem key={w.id} value={String(w.id)}>
+                    {w.code} {w.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </PageHeader>
 
       {!warehouseId || !data ? (
-        <div className="bg-white rounded-lg border flex flex-col items-center justify-center text-center py-20">
-          <PackageSearchIcon className="h-10 w-10 text-gray-300 mb-3" />
-          <p className="text-sm text-gray-500">조회할 창고를 선택해주세요</p>
+        <div className="rounded-xl border border-border bg-card">
+          <EmptyState
+            icon={PackageSearchIcon}
+            title="조회할 창고를 선택해주세요"
+            className="py-20"
+          />
         </div>
       ) : (
-        <div className="bg-white rounded-lg border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>SKU</TableHead>
-                <TableHead>품목명</TableHead>
-                <TableHead>위치</TableHead>
-                <TableHead>Lot / Serial</TableHead>
-                <TableHead className="text-right">보유</TableHead>
-                <TableHead className="text-right">예약</TableHead>
-                <TableHead className="text-right">가용</TableHead>
-                <TableHead className="text-right">단가</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.content.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-gray-400 py-10">
-                    재고 내역이 없습니다
-                  </TableCell>
-                </TableRow>
-              )}
-              {data.content.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell className="font-mono text-sm">{s.itemSku}</TableCell>
-                  <TableCell className="font-medium">{s.itemName}</TableCell>
-                  <TableCell className="text-sm text-gray-600">
-                    {s.locationCode}
-                    {s.locationName ? <span className="text-gray-400"> — {s.locationName}</span> : null}
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-500">
-                    {s.lotNo ?? s.serialNo ?? '—'}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">{fmtNum(s.qtyOnHand)}</TableCell>
-                  <TableCell className="text-right font-mono text-sm text-gray-500">
-                    {fmtNum(s.qtyReserved)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm font-medium">
-                    {fmtNum(s.qtyOnHand - s.qtyReserved)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">{fmtNum(s.unitCost)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="space-y-3">
+          <DataTable
+            data={data.content}
+            columns={columns}
+            getRowId={(s) => s.id}
+            empty={<EmptyState icon={PackageSearchIcon} title="재고 내역이 없습니다" />}
+          />
           <PaginationBar
-            page={data.page} totalPages={data.totalPages}
-            totalElements={data.totalElements} size={data.size}
+            page={data.page}
+            totalPages={data.totalPages}
+            totalElements={data.totalElements}
+            size={data.size}
             basePath="/inventory/stocks"
             searchParams={{ warehouseId }}
           />

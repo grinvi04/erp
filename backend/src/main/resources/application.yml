@@ -34,7 +34,11 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: false
-    out-of-order: false
+    # 모듈 접두사 번호 규약(0xxx common·1xxx hr·2xxx finance·3xxx inventory·4xxx crm)상
+    # 새 저접두사(예: common 0xxx) 마이그레이션은 이미 적용된 고접두사(4xxx)보다 버전이
+    # 낮아 구조적으로 out-of-order가 된다. 모듈별 마이그레이션은 독립(각자 스키마)이라
+    # 순서 무관 — out-of-order 허용이 이 규약의 전제다(forward-only는 유지: 적용분 미수정).
+    out-of-order: true
 
   security:
     oauth2:

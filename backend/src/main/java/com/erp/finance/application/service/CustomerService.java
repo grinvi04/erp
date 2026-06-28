@@ -22,66 +22,82 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class CustomerService {
 
-    private final CustomerRepository customerRepository;
-    private final AccountRepository accountRepository;
-    private final PermissionChecker permissionChecker;
+  private final CustomerRepository customerRepository;
+  private final AccountRepository accountRepository;
+  private final PermissionChecker permissionChecker;
 
-    public PageResponse<CustomerResponse> findAll(String keyword, Pageable pageable) {
-        permissionChecker.require(Permission.FINANCE_READ);
-        return PageResponse.from(
-            customerRepository.search(normalizeKeyword(keyword), pageable).map(CustomerResponse::from));
+  public PageResponse<CustomerResponse> findAll(String keyword, Pageable pageable) {
+    permissionChecker.require(Permission.FINANCE_READ);
+    return PageResponse.from(
+        customerRepository.search(normalizeKeyword(keyword), pageable).map(CustomerResponse::from));
+  }
+
+  private static String normalizeKeyword(String keyword) {
+    return (keyword == null || keyword.isBlank()) ? null : keyword.trim().toLowerCase();
+  }
+
+  public CustomerResponse findById(Long id) {
+    permissionChecker.require(Permission.FINANCE_READ);
+    return CustomerResponse.from(getOrThrow(id));
+  }
+
+  @Transactional
+  public CustomerResponse create(CustomerCreateRequest request) {
+    permissionChecker.require(Permission.FINANCE_WRITE);
+    if (customerRepository.existsByCode(request.code())) {
+      throw new ErpException(ErrorCode.CUSTOMER_CODE_DUPLICATE);
     }
+    Customer customer =
+        Customer.of(
+            request.code(),
+            request.name(),
+            request.businessNo(),
+            request.contactName(),
+            request.contactEmail(),
+            request.contactPhone(),
+            request.paymentTerms());
+    applyReceivablesAccount(customer, request.receivablesAccountId());
+    return CustomerResponse.from(customerRepository.save(customer));
+  }
 
-    private static String normalizeKeyword(String keyword) {
-        return (keyword == null || keyword.isBlank()) ? null : keyword.trim().toLowerCase();
+  @Transactional
+  public CustomerResponse update(Long id, CustomerUpdateRequest request) {
+    permissionChecker.require(Permission.FINANCE_WRITE);
+    Customer customer = getOrThrow(id);
+    customer.checkVersion(request.version());
+    customer.update(
+        request.name(),
+        request.businessNo(),
+        request.contactName(),
+        request.contactEmail(),
+        request.contactPhone(),
+        request.paymentTerms());
+    applyReceivablesAccount(customer, request.receivablesAccountId());
+    customerRepository.flush();
+    return CustomerResponse.from(customer);
+  }
+
+  private void applyReceivablesAccount(Customer customer, Long accountId) {
+    if (accountId == null) {
+      customer.assignReceivablesAccount(null);
+      return;
     }
-
-    public CustomerResponse findById(Long id) {
-        permissionChecker.require(Permission.FINANCE_READ);
-        return CustomerResponse.from(getOrThrow(id));
-    }
-
-    @Transactional
-    public CustomerResponse create(CustomerCreateRequest request) {
-        permissionChecker.require(Permission.FINANCE_WRITE);
-        if (customerRepository.existsByCode(request.code())) {
-            throw new ErpException(ErrorCode.CUSTOMER_CODE_DUPLICATE);
-        }
-        Customer customer = Customer.of(request.code(), request.name(), request.businessNo(),
-            request.contactName(), request.contactEmail(), request.contactPhone(), request.paymentTerms());
-        applyReceivablesAccount(customer, request.receivablesAccountId());
-        return CustomerResponse.from(customerRepository.save(customer));
-    }
-
-    @Transactional
-    public CustomerResponse update(Long id, CustomerUpdateRequest request) {
-        permissionChecker.require(Permission.FINANCE_WRITE);
-        Customer customer = getOrThrow(id);
-        customer.checkVersion(request.version());
-        customer.update(request.name(), request.businessNo(), request.contactName(),
-            request.contactEmail(), request.contactPhone(), request.paymentTerms());
-        applyReceivablesAccount(customer, request.receivablesAccountId());
-        return CustomerResponse.from(customer);
-    }
-
-    private void applyReceivablesAccount(Customer customer, Long accountId) {
-        if (accountId == null) {
-            customer.assignReceivablesAccount(null);
-            return;
-        }
-        Account account = accountRepository.findById(accountId)
+    Account account =
+        accountRepository
+            .findById(accountId)
             .orElseThrow(() -> new ErpException(ErrorCode.ACCOUNT_NOT_FOUND));
-        customer.assignReceivablesAccount(account);
-    }
+    customer.assignReceivablesAccount(account);
+  }
 
-    @Transactional
-    public void deactivate(Long id) {
-        permissionChecker.require(Permission.FINANCE_WRITE);
-        getOrThrow(id).deactivate();
-    }
+  @Transactional
+  public void deactivate(Long id) {
+    permissionChecker.require(Permission.FINANCE_WRITE);
+    getOrThrow(id).deactivate();
+  }
 
-    private Customer getOrThrow(Long id) {
-        return customerRepository.findById(id)
-            .orElseThrow(() -> new ErpException(ErrorCode.CUSTOMER_NOT_FOUND));
-    }
+  private Customer getOrThrow(Long id) {
+    return customerRepository
+        .findById(id)
+        .orElseThrow(() -> new ErpException(ErrorCode.CUSTOMER_NOT_FOUND));
+  }
 }

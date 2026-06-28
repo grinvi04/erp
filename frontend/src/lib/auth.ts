@@ -60,7 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, account }) {
       if (account) {
         const payload = JSON.parse(
-          Buffer.from(account.access_token!.split('.')[1], 'base64').toString()
+          Buffer.from(account.access_token!.split('.')[1], 'base64').toString(),
         )
         return {
           ...token,

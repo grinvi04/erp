@@ -4,7 +4,6 @@ import com.erp.hr.domain.model.Employee;
 import com.erp.hr.domain.model.EmployeeStatus;
 import com.erp.hr.domain.model.EmploymentType;
 import com.erp.hr.domain.model.PersonalInfo;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -32,34 +31,32 @@ public record EmployeeResponse(
     String workEmail,
     Long managerId,
     String userId,
-    Long version
-) {
-    public static EmployeeResponse from(Employee emp) {
-        return new EmployeeResponse(
-            emp.getId(),
-            emp.getEmployeeNo(),
-            emp.getPersonalInfo().getLastName(),
-            emp.getPersonalInfo().getFirstName(),
-            emp.getPersonalInfo().getFullName(),
-            emp.getPersonalInfo().getDateOfBirth(),
-            emp.getPersonalInfo().getGender(),
-            emp.getPersonalInfo().getPhone(),
-            emp.getPersonalInfo().getPersonalEmail(),
-            emp.getDepartment().getId(),
-            emp.getDepartment().getName(),
-            emp.getPosition().getId(),
-            emp.getPosition().getName(),
-            emp.getJobGrade() != null ? emp.getJobGrade().getId() : null,
-            emp.getJobGrade() != null ? emp.getJobGrade().getName() : null,
-            emp.getHireDate(),
-            emp.getTerminationDate(),
-            emp.getEmploymentType(),
-            emp.getStatus(),
-            emp.getBaseSalary(),
-            emp.getWorkEmail(),
-            emp.getManager() != null ? emp.getManager().getId() : null,
-            emp.getUserId(),
-            emp.getVersion()
-        );
-    }
+    Long version) {
+  public static EmployeeResponse from(Employee emp) {
+    return new EmployeeResponse(
+        emp.getId(),
+        emp.getEmployeeNo(),
+        emp.getPersonalInfo().getLastName(),
+        emp.getPersonalInfo().getFirstName(),
+        emp.getPersonalInfo().getFullName(),
+        emp.getPersonalInfo().getDateOfBirth(),
+        emp.getPersonalInfo().getGender(),
+        emp.getPersonalInfo().getPhone(),
+        emp.getPersonalInfo().getPersonalEmail(),
+        emp.getDepartment().getId(),
+        emp.getDepartment().getName(),
+        emp.getPosition().getId(),
+        emp.getPosition().getName(),
+        emp.getJobGrade() != null ? emp.getJobGrade().getId() : null,
+        emp.getJobGrade() != null ? emp.getJobGrade().getName() : null,
+        emp.getHireDate(),
+        emp.getTerminationDate(),
+        emp.getEmploymentType(),
+        emp.getStatus(),
+        emp.getBaseSalary(),
+        emp.getWorkEmail(),
+        emp.getManager() != null ? emp.getManager().getId() : null,
+        emp.getUserId(),
+        emp.getVersion());
+  }
 }

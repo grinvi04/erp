@@ -16,7 +16,7 @@ export default async function MovementsPage(props: {
 
   const [data, items, warehouses] = await Promise.all([
     apiGetPage<Movement>(
-      `/api/inventory/movements?page=${page}&size=${size}${typeFilter}${statusFilter}`
+      `/api/inventory/movements?page=${page}&size=${size}${typeFilter}${statusFilter}`,
     ),
     apiGetPage<Item>('/api/inventory/items?size=1000'),
     apiGet<Warehouse[]>('/api/inventory/warehouses'),
