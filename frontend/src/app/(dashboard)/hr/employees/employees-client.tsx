@@ -91,6 +91,7 @@ interface Props {
   departments: Department[]
   positions: Position[]
   jobGrades: JobGrade[]
+  employees: Employee[]
   keyword: string
 }
 
@@ -99,6 +100,7 @@ export default function EmployeesClient({
   departments,
   positions,
   jobGrades,
+  employees,
   keyword,
 }: Props) {
   const { can } = usePermissions()
@@ -106,6 +108,9 @@ export default function EmployeesClient({
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
+
+  // 결재자(매니저) 후보 — 자기 자신은 매니저가 될 수 없으므로 제외한다.
+  const managerOptions = (excludeId?: number) => employees.filter((e) => e.id !== excludeId)
 
   // Create form state
   const [empNo, setEmpNo] = useState('')
@@ -222,6 +227,7 @@ export default function EmployeesClient({
           workEmail,
           baseSalary: baseSalary ? Number(baseSalary) : null,
           managerId: managerId ? Number(managerId) : null,
+          userId: userId.trim() || null,
         })
         toast.success('직원이 등록되었습니다')
         close()
@@ -630,12 +636,27 @@ export default function EmployeesClient({
               <Input value={nationalId} onChange={(e) => setNationalId(e.target.value)} />
             </div>
             <div className="grid gap-1.5">
-              <Label>관리자 ID</Label>
+              <Label>관리자(결재자)</Label>
+              <Select value={managerId} onValueChange={(v) => setManagerId(v ?? '')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="없음" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">없음</SelectItem>
+                  {managerOptions().map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.fullName} ({m.employeeNo})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>로그인 계정 ID (Keycloak)</Label>
               <Input
-                type="number"
-                value={managerId}
-                onChange={(e) => setManagerId(e.target.value)}
-                placeholder="직원 ID"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                placeholder="결재자 식별용 sub"
               />
             </div>
           </div>
@@ -697,13 +718,20 @@ export default function EmployeesClient({
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>관리자 ID</Label>
-              <Input
-                type="number"
-                value={managerId}
-                onChange={(e) => setManagerId(e.target.value)}
-                placeholder="직원 ID"
-              />
+              <Label>관리자(결재자)</Label>
+              <Select value={managerId} onValueChange={(v) => setManagerId(v ?? '')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="없음" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">없음</SelectItem>
+                  {managerOptions(dialog.type === 'edit' ? dialog.emp.id : undefined).map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.fullName} ({m.employeeNo})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-1.5">
               <Label>로그인 계정 ID (Keycloak)</Label>

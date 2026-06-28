@@ -62,6 +62,7 @@ class EmployeeOptimisticLockIntegrationTest extends AbstractIntegrationTest {
             EmploymentType.REGULAR,
             "emp100@test.com",
             BigDecimal.valueOf(50000000),
+            null,
             null));
   }
 

@@ -132,7 +132,11 @@ class LeaveRequestServiceTest {
 
   @Test
   void create_valid_returnsLeaveRequestResponse() {
+    // 결재자 해소 가능(매니저 + 연결된 로그인 계정)해야 제출이 통과한다.
+    Employee manager = buildEmployee();
+    manager.linkUserAccount("manager-sub-123");
     Employee emp = buildEmployee();
+    emp.assignManager(manager);
     given(employeeRepository.findById(1L)).willReturn(Optional.of(emp));
 
     LeavePolicy policy =
@@ -226,5 +230,53 @@ class LeaveRequestServiceTest {
             null));
 
     assertThat(captor.getValue().getCurrentStepApproverId()).isEqualTo("manager-sub-123");
+  }
+
+  @Test
+  void create_managerWithoutLinkedUserAccount_throwsApproverNotResolved() {
+    // 차단 정책: 매니저는 있으나 로그인 계정(sub)이 없어 결재자를 해소하지 못하면 제출을 막는다
+    // — SYSTEM 같은 리터럴로 자동지정하지 않는다(조용한 데드엔드 금지).
+    Employee manager = buildEmployee(); // linkUserAccount 안 함
+    Employee emp = buildEmployee();
+    emp.assignManager(manager);
+    given(employeeRepository.findById(1L)).willReturn(Optional.of(emp));
+
+    LeavePolicy policy =
+        LeavePolicy.of("ANNUAL", "연차", LeavePolicy.LeaveType.ANNUAL, 15, 5, true, 1);
+    given(leavePolicyRepository.findById(1L)).willReturn(Optional.of(policy));
+
+    LeaveBalance balance = mock(LeaveBalance.class);
+    given(balance.hasSufficientBalance(any(BigDecimal.class))).willReturn(true);
+    given(leaveBalanceRepository.findByEmployeeIdAndLeavePolicyIdAndYear(1L, 1L, 2024))
+        .willReturn(Optional.of(balance));
+    given(
+            leaveRequestRepository.findOverlappingByStatuses(
+                eq(1L), any(LocalDate.class), any(LocalDate.class), any()))
+        .willReturn(List.of());
+    given(leaveRequestRepository.save(any()))
+        .willReturn(
+            LeaveRequest.create(
+                emp,
+                policy,
+                LocalDate.of(2024, 3, 1),
+                LocalDate.of(2024, 3, 5),
+                BigDecimal.valueOf(5),
+                null));
+    given(currentUserProvider.getCurrentUserId()).willReturn("user-001");
+
+    ErpException ex =
+        assertThrows(
+            ErpException.class,
+            () ->
+                leaveRequestService.create(
+                    new LeaveRequestCreateRequest(
+                        1L,
+                        1L,
+                        LocalDate.of(2024, 3, 1),
+                        LocalDate.of(2024, 3, 5),
+                        BigDecimal.valueOf(5),
+                        null)));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.APPROVER_NOT_RESOLVED);
   }
 }

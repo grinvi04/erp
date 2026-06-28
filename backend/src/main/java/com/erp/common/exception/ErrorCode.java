@@ -114,7 +114,9 @@ public enum ErrorCode {
   APPROVAL_NOT_FOUND(HttpStatus.NOT_FOUND, "W001", "결재 요청을 찾을 수 없습니다"),
   APPROVAL_ALREADY_PROCESSED(HttpStatus.CONFLICT, "W002", "이미 처리된 결재 요청입니다"),
   APPROVER_NOT_AUTHORIZED(HttpStatus.FORBIDDEN, "W003", "결재 권한이 없습니다"),
-  APPROVAL_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "W004", "전결 한도를 초과하는 금액입니다 — 상위 전결권자의 결재가 필요합니다");
+  APPROVAL_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "W004", "전결 한도를 초과하는 금액입니다 — 상위 전결권자의 결재가 필요합니다"),
+  APPROVER_NOT_RESOLVED(
+      HttpStatus.CONFLICT, "W005", "결재자(매니저)가 지정되지 않았습니다 — 신청자의 매니저와 매니저의 로그인 계정을 먼저 지정하세요");
 
   private final HttpStatus httpStatus;
   private final String code;

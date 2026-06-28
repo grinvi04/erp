@@ -13,11 +13,13 @@ export default async function EmployeesPage(props: {
   const keyword = sp.keyword?.trim() || ''
   const keywordQuery = keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''
 
-  const [data, departments, positions, jobGrades] = await Promise.all([
+  const [data, departments, positions, jobGrades, managerPool] = await Promise.all([
     apiGetPage<Employee>(`/api/hr/employees?page=${page}&size=${size}${keywordQuery}`),
     apiGet<Department[]>('/api/hr/departments'),
     apiGet<Position[]>('/api/hr/positions'),
     apiGet<JobGrade[]>('/api/hr/job-grades'),
+    // 결재자(매니저) 피커용 직원 전체 목록 — 현재 페이지/검색과 무관하게 채운다.
+    apiGetPage<Employee>('/api/hr/employees?page=0&size=200'),
   ])
 
   return (
@@ -26,6 +28,7 @@ export default async function EmployeesPage(props: {
       departments={departments}
       positions={positions}
       jobGrades={jobGrades}
+      employees={managerPool.content}
       keyword={keyword}
     />
   )

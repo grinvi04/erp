@@ -111,6 +111,7 @@ class EmployeeControllerTest {
             EmploymentType.REGULAR,
             "dev@test.com",
             null,
+            null,
             null);
 
     mockMvc
@@ -142,6 +143,7 @@ class EmployeeControllerTest {
             LocalDate.of(2020, 3, 1),
             EmploymentType.REGULAR,
             "dev@test.com",
+            null,
             null,
             null);
 
