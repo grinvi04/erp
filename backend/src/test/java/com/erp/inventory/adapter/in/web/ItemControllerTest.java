@@ -14,6 +14,7 @@ import com.erp.common.exception.ErrorCode;
 import com.erp.common.response.PageResponse;
 import com.erp.inventory.application.dto.ItemCreateRequest;
 import com.erp.inventory.application.dto.ItemResponse;
+import com.erp.inventory.application.service.ItemImportService;
 import com.erp.inventory.application.service.ItemService;
 import com.erp.inventory.domain.model.CostMethod;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,6 +37,7 @@ class ItemControllerTest {
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
   @MockBean private ItemService itemService;
+  @MockBean private ItemImportService itemImportService;
 
   private ItemResponse buildItemResponse() {
     return new ItemResponse(
