@@ -30,9 +30,16 @@ import {
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { FilterBar, FilterField } from '@/components/ui/filter-bar'
 import { FormGrid, FormRow } from '@/components/ui/form-grid'
-import { downloadCsv } from '@/lib/csv'
+import { runCsvExport } from '@/lib/csv-export'
 import { DownloadIcon } from 'lucide-react'
-import { createInvoice, submitInvoice, approveInvoice, payInvoice, cancelInvoice } from './actions'
+import {
+  createInvoice,
+  submitInvoice,
+  approveInvoice,
+  payInvoice,
+  cancelInvoice,
+  exportAllInvoices,
+} from './actions'
 import type { Account, ApInvoice, ApInvoiceStatus, TaxType, Vendor } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
 
@@ -385,28 +392,49 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
     setQTo('')
     setApplied({ vendor: '', status: '', from: '', to: '' })
   }
-  const filtered = data.content.filter((inv) => {
+  const matchesFilter = (inv: ApInvoice) => {
     if (applied.vendor && String(inv.vendorId) !== applied.vendor) return false
     if (applied.status && inv.status !== applied.status) return false
     if (applied.from && inv.invoiceDate < applied.from) return false
     if (applied.to && inv.invoiceDate > applied.to) return false
     return true
-  })
-  const exportExcel = () =>
-    downloadCsv(
-      `매입계산서_${new Date().toISOString().slice(0, 10)}`,
-      ['계산서번호', '공급업체', '계산서일', '만기일', '통화', '총금액', '미납금액', '상태'],
-      filtered.map((inv) => [
-        inv.invoiceNo,
-        inv.vendorName,
-        inv.invoiceDate,
-        inv.dueDate,
-        inv.currency,
-        inv.totalAmount,
-        inv.outstandingAmount,
-        STATUS_LABEL[inv.status],
-      ]),
-    )
+  }
+  const filtered = data.content.filter(matchesFilter)
+  const exportColumns = [
+    '계산서번호',
+    '공급업체',
+    '계산서일',
+    '만기일',
+    '통화',
+    '총금액',
+    '미납금액',
+    '상태',
+  ]
+  const exportRow = (inv: ApInvoice) => [
+    inv.invoiceNo,
+    inv.vendorName,
+    inv.invoiceDate,
+    inv.dueDate,
+    inv.currency,
+    inv.totalAmount,
+    inv.outstandingAmount,
+    STATUS_LABEL[inv.status],
+  ]
+  // 전체 엑셀 — 현재 페이지가 아닌 전체 데이터셋(전 페이지 순회) 내보내기. 화면 조회조건을 동일 적용.
+  const exportExcel = () => {
+    startTransition(async () => {
+      try {
+        await runCsvExport(exportAllInvoices, {
+          filename: `매입계산서_${new Date().toISOString().slice(0, 10)}`,
+          columns: exportColumns,
+          matches: matchesFilter,
+          row: exportRow,
+        })
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '엑셀 내보내기 중 오류가 발생했습니다')
+      }
+    })
+  }
 
   return (
     <div className="p-5">
@@ -415,7 +443,7 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
         description="공급업체 계산서 및 지급 현황을 관리합니다"
         className="mb-4"
       >
-        <Button variant="outline" onClick={exportExcel}>
+        <Button variant="outline" onClick={exportExcel} disabled={isPending}>
           <DownloadIcon />
           엑셀
         </Button>
