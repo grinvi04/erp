@@ -13,6 +13,10 @@ public record CustomerResponse(
     int paymentTerms,
     boolean isActive,
     Long receivablesAccountId,
+    String representativeName,
+    String address,
+    String businessType,
+    String businessItem,
     Long version) {
   public static CustomerResponse from(Customer c) {
     return new CustomerResponse(
@@ -26,6 +30,10 @@ public record CustomerResponse(
         c.getPaymentTerms(),
         c.isActive(),
         c.getReceivablesAccount() != null ? c.getReceivablesAccount().getId() : null,
+        c.getRepresentativeName(),
+        c.getAddress(),
+        c.getBusinessType(),
+        c.getBusinessItem(),
         c.getVersion());
   }
 }
