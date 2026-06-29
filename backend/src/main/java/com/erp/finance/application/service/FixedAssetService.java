@@ -13,6 +13,7 @@ import com.erp.finance.application.dto.FixedAssetResponse;
 import com.erp.finance.application.dto.JournalEntryCreateRequest;
 import com.erp.finance.application.dto.JournalLineRequest;
 import com.erp.finance.application.service.BaseCurrencyService.DepreciationAccounts;
+import com.erp.finance.application.service.BaseCurrencyService.ImpairmentAccounts;
 import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.FiscalPeriod;
 import com.erp.finance.domain.model.FixedAsset;
@@ -136,6 +137,20 @@ public class FixedAssetService {
               accumulated,
               BigDecimal.ZERO,
               "감가상각누계액 제거: " + asset.getCode(),
+              null));
+    }
+    // 차변: 손상차손누계액 제거(손상된 자산) — 자산을 취득원가로 제거하려면 손상누계 차감분도 함께 청산해야 정합.
+    BigDecimal accumulatedImpairment = asset.getAccumulatedImpairment();
+    if (accumulatedImpairment.signum() > 0) {
+      ImpairmentAccounts impairmentAccounts = baseCurrencyService.currentImpairmentAccounts();
+      requireAccount(
+          impairmentAccounts.accumulatedAccount(), ErrorCode.IMPAIRMENT_ACCOUNT_NOT_CONFIGURED);
+      lines.add(
+          new JournalLineRequest(
+              impairmentAccounts.accumulatedAccount().getId(),
+              accumulatedImpairment,
+              BigDecimal.ZERO,
+              "손상차손누계액 제거: " + asset.getCode(),
               null));
     }
     // 차변: 처분 대가(현금·미수금)
