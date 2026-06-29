@@ -83,6 +83,17 @@ class CustomerImportIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void importCsv_invalidEmail_rowError() {
+    // API의 @Valid와 동일하게 잘못된 이메일은 행 오류(검증 우회 방지).
+    authenticate("importer", "finance:write");
+    BulkImportResult result = importService.importCsv(csv("C1,(주)갑,,,,,,,notanemail,,\n"));
+
+    assertThat(result.importedCount()).isZero();
+    assertThat(result.errors()).hasSize(1);
+    assertThat(customerRepository.count()).isZero();
+  }
+
+  @Test
   void importCsv_headerMismatch_throwsInvalidInput() {
     authenticate("importer", "finance:write");
     InputStream bad = new ByteArrayInputStream("코드,틀린헤더\nC1,갑\n".getBytes(StandardCharsets.UTF_8));

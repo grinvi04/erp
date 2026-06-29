@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, BanIcon, DownloadIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, BanIcon, DownloadIcon, UploadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -30,7 +30,6 @@ import { FilterBar, FilterField } from '@/components/ui/filter-bar'
 import { FormGrid, FormRow } from '@/components/ui/form-grid'
 import { downloadCsv } from '@/lib/csv'
 import { BulkImportDialog } from '@/components/ui/bulk-import-dialog'
-import { UploadIcon } from 'lucide-react'
 import {
   createCustomer,
   updateCustomer,

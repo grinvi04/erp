@@ -105,6 +105,17 @@ class ItemImportIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void importCsv_invalidBoolean_rowError() {
+    authenticate("importer", "inventory:write");
+    BulkImportResult result =
+        importService.importCsv(csv("SKU001,품목A,,,EA,FIFO,1000,10,50,5,100,MAYBE,N\n"));
+
+    assertThat(result.importedCount()).isZero();
+    assertThat(result.errors().get(0).message()).contains("로트추적");
+    assertThat(itemRepository.count()).isZero();
+  }
+
+  @Test
   void importCsv_withoutPermission_throwsForbidden() {
     authenticate("nobody", "inventory:read");
     InputStream c = csv("SKU001,품목A,,,EA,FIFO,1000,10,50,5,100,N,N\n");

@@ -40,14 +40,20 @@ public final class CsvReader {
     if (lines.isEmpty()) {
       throw new ErpException(ErrorCode.INVALID_INPUT, "빈 파일입니다. 헤더와 데이터 행이 필요합니다.");
     }
-    List<String> headers = parseLine(lines.get(0));
+    List<String> headers = parseLine(lines.get(0), 1);
     List<CsvRow> rows = new ArrayList<>();
     for (int i = 1; i < lines.size(); i++) {
       String line = lines.get(i);
       if (line.isBlank()) {
         continue; // 끝의 빈 줄 무시
       }
-      List<String> fields = parseLine(line);
+      List<String> fields = parseLine(line, i + 1);
+      // 필드 수가 헤더보다 많으면 미이스케이프 콤마로 열이 밀린 것 — 조용한 오매핑 대신 거부(부족은 빈값 허용).
+      if (fields.size() > headers.size()) {
+        throw new ErpException(
+            ErrorCode.INVALID_INPUT,
+            (i + 1) + "번째 행의 열 수가 헤더(" + headers.size() + ")보다 많습니다. 값에 콤마가 있으면 따옴표로 감싸세요.");
+      }
       Map<String, String> map = new LinkedHashMap<>();
       for (int c = 0; c < headers.size(); c++) {
         map.put(headers.get(c), c < fields.size() ? fields.get(c) : "");
@@ -78,8 +84,11 @@ public final class CsvReader {
     return lines;
   }
 
-  /** 한 줄을 필드 목록으로 — 따옴표 필드 내 콤마·"" 이스케이프 처리. */
-  private static List<String> parseLine(String line) {
+  /**
+   * 한 줄을 필드 목록으로 — 따옴표는 <b>필드 시작에서만</b> 인용을 연다(필드 중간 따옴표는 리터럴). 인용 내 콤마는 보존, {@code ""}는 리터럴 따옴표. 줄
+   * 끝까지 인용이 닫히지 않으면(필드 내 줄바꿈=다중행 셀, 미지원) 오류로 거부한다.
+   */
+  private static List<String> parseLine(String line, int lineNumber) {
     List<String> fields = new ArrayList<>();
     StringBuilder field = new StringBuilder();
     boolean inQuotes = false;
@@ -96,14 +105,18 @@ public final class CsvReader {
         } else {
           field.append(ch);
         }
-      } else if (ch == '"') {
-        inQuotes = true;
+      } else if (ch == '"' && field.length() == 0) {
+        inQuotes = true; // 필드 시작에서만 인용 시작
       } else if (ch == ',') {
         fields.add(field.toString());
         field.setLength(0);
       } else {
-        field.append(ch);
+        field.append(ch); // 필드 중간 따옴표는 리터럴
       }
+    }
+    if (inQuotes) {
+      throw new ErpException(
+          ErrorCode.INVALID_INPUT, lineNumber + "번째 행: 따옴표가 닫히지 않았습니다(필드 내 줄바꿈은 지원하지 않습니다).");
     }
     fields.add(field.toString());
     return fields;

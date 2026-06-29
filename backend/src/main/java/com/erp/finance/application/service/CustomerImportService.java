@@ -10,8 +10,11 @@ import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.CustomerCreateRequest;
 import com.erp.finance.domain.model.BusinessNoValidator;
 import com.erp.finance.domain.repository.CustomerRepository;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import java.io.InputStream;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +35,7 @@ public class CustomerImportService {
   private final CustomerService customerService;
   private final CustomerRepository customerRepository;
   private final PermissionChecker permissionChecker;
+  private final Validator validator;
 
   @Transactional
   public BulkImportResult importCsv(InputStream csv) {
@@ -68,19 +72,34 @@ public class CustomerImportService {
     if (customerRepository.existsByCode(code)) {
       throw new ErpException(ErrorCode.CUSTOMER_CODE_DUPLICATE, "이미 존재하는 코드: " + code);
     }
-    return new CustomerCreateRequest(
-        code,
-        name,
-        businessNo,
-        blankToNull(row.get("담당자명")),
-        blankToNull(row.get("이메일")),
-        blankToNull(row.get("전화")),
-        parsePaymentTerms(row.get("결제기한")),
-        null,
-        blankToNull(row.get("대표자")),
-        blankToNull(row.get("주소")),
-        blankToNull(row.get("업태")),
-        blankToNull(row.get("종목")));
+    CustomerCreateRequest request =
+        new CustomerCreateRequest(
+            code,
+            name,
+            businessNo,
+            blankToNull(row.get("담당자명")),
+            blankToNull(row.get("이메일")),
+            blankToNull(row.get("전화")),
+            parsePaymentTerms(row.get("결제기한")),
+            null,
+            blankToNull(row.get("대표자")),
+            blankToNull(row.get("주소")),
+            blankToNull(row.get("업태")),
+            blankToNull(row.get("종목")));
+    validateBean(request);
+    return request;
+  }
+
+  /** API의 @Valid와 동일한 jakarta 제약(@Email·@Size·@Min 등)을 업로드 행에도 적용 — 검증 우회 방지. */
+  private void validateBean(CustomerCreateRequest request) {
+    var violations = validator.validate(request);
+    if (!violations.isEmpty()) {
+      throw new ErpException(
+          ErrorCode.INVALID_INPUT,
+          violations.stream()
+              .map(ConstraintViolation::getMessage)
+              .collect(Collectors.joining(", ")));
+    }
   }
 
   private static int parsePaymentTerms(String v) {

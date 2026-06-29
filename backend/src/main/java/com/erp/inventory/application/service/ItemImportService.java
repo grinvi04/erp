@@ -12,9 +12,12 @@ import com.erp.inventory.domain.model.CostMethod;
 import com.erp.inventory.domain.repository.ItemCategoryRepository;
 import com.erp.inventory.domain.repository.ItemRepository;
 import com.erp.inventory.domain.repository.UnitOfMeasureRepository;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +41,7 @@ public class ItemImportService {
   private final UnitOfMeasureRepository unitOfMeasureRepository;
   private final ItemCategoryRepository itemCategoryRepository;
   private final PermissionChecker permissionChecker;
+  private final Validator validator;
 
   @Transactional
   public BulkImportResult importCsv(InputStream csv) {
@@ -72,20 +76,30 @@ public class ItemImportService {
     }
     Long uomId = resolveUomId(row.get("단위코드"));
     Long categoryId = resolveCategoryId(row.get("분류코드"));
-    return new ItemCreateRequest(
-        sku,
-        name,
-        blankToNull(row.get("설명")),
-        categoryId,
-        uomId,
-        parseCostMethod(row.get("원가법")),
-        parseDecimal(row.get("표준원가"), "표준원가"),
-        parseDecimal(row.get("재주문점"), "재주문점"),
-        parseDecimal(row.get("재주문량"), "재주문량"),
-        parseDecimal(row.get("최소재고"), "최소재고"),
-        parseDecimal(row.get("최대재고"), "최대재고"),
-        parseBool(row.get("로트추적")),
-        parseBool(row.get("시리얼추적")));
+    ItemCreateRequest request =
+        new ItemCreateRequest(
+            sku,
+            name,
+            blankToNull(row.get("설명")),
+            categoryId,
+            uomId,
+            parseCostMethod(row.get("원가법")),
+            parseDecimal(row.get("표준원가"), "표준원가"),
+            parseDecimal(row.get("재주문점"), "재주문점"),
+            parseDecimal(row.get("재주문량"), "재주문량"),
+            parseDecimal(row.get("최소재고"), "최소재고"),
+            parseDecimal(row.get("최대재고"), "최대재고"),
+            parseBool(row.get("로트추적"), "로트추적"),
+            parseBool(row.get("시리얼추적"), "시리얼추적"));
+    var violations = validator.validate(request);
+    if (!violations.isEmpty()) {
+      throw new ErpException(
+          ErrorCode.INVALID_INPUT,
+          violations.stream()
+              .map(ConstraintViolation::getMessage)
+              .collect(Collectors.joining(", ")));
+    }
+    return request;
   }
 
   private Long resolveUomId(String code) {
@@ -129,9 +143,19 @@ public class ItemImportService {
     }
   }
 
-  private static boolean parseBool(String v) {
+  private static boolean parseBool(String v, String label) {
     String s = v.trim();
-    return s.equalsIgnoreCase("Y") || s.equalsIgnoreCase("true") || s.equals("1") || s.equals("예");
+    if (s.isEmpty()
+        || s.equalsIgnoreCase("N")
+        || s.equalsIgnoreCase("NO")
+        || s.equals("0")
+        || s.equals("아니오")) {
+      return false;
+    }
+    if (s.equalsIgnoreCase("Y") || s.equalsIgnoreCase("YES") || s.equals("1") || s.equals("예")) {
+      return true;
+    }
+    throw new ErpException(ErrorCode.INVALID_INPUT, label + "은(는) Y 또는 N이어야 합니다: " + v);
   }
 
   private static String blankToNull(String v) {
