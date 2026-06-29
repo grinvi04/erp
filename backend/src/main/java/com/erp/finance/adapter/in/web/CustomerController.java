@@ -1,17 +1,23 @@
 package com.erp.finance.adapter.in.web;
 
+import com.erp.common.bulkimport.BulkImportResult;
 import com.erp.common.response.ApiResponse;
 import com.erp.common.response.PageResponse;
 import com.erp.finance.application.dto.CustomerCreateRequest;
 import com.erp.finance.application.dto.CustomerResponse;
 import com.erp.finance.application.dto.CustomerUpdateRequest;
+import com.erp.finance.application.service.CustomerImportService;
 import com.erp.finance.application.service.CustomerService;
 import jakarta.validation.Valid;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/finance/customers")
@@ -29,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CustomerController {
 
   private final CustomerService customerService;
+  private final CustomerImportService customerImportService;
 
   @GetMapping
   public ResponseEntity<ApiResponse<PageResponse<CustomerResponse>>> findAll(
@@ -59,5 +67,26 @@ public class CustomerController {
   public ResponseEntity<Void> deactivate(@PathVariable Long id) {
     customerService.deactivate(id);
     return ResponseEntity.noContent().build();
+  }
+
+  /** CSV 대량 업로드 — 전부 유효할 때만 일괄 생성, 실패 시 행별 사유 리포트. */
+  @PostMapping("/import")
+  public ResponseEntity<ApiResponse<BulkImportResult>> importCsv(
+      @RequestParam("file") MultipartFile file) {
+    try {
+      return ResponseEntity.ok(
+          ApiResponse.ok(customerImportService.importCsv(file.getInputStream())));
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  /** 업로드 템플릿(CSV) 다운로드. */
+  @GetMapping("/import/template")
+  public ResponseEntity<String> importTemplate() {
+    return ResponseEntity.ok()
+        .contentType(new MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
+        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"customer-template.csv\"")
+        .body("﻿" + customerImportService.template());
   }
 }

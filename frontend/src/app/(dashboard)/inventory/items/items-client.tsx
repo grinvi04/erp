@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, BanIcon, DownloadIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, BanIcon, DownloadIcon, UploadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -30,7 +30,8 @@ import { SearchInput } from '@/components/ui/search-input'
 import { FilterBar, FilterField } from '@/components/ui/filter-bar'
 import { FormGrid, FormRow } from '@/components/ui/form-grid'
 import { downloadCsv } from '@/lib/csv'
-import { createItem, updateItem, deactivateItem } from './actions'
+import { BulkImportDialog } from '@/components/ui/bulk-import-dialog'
+import { createItem, updateItem, deactivateItem, importItemsCsv, getItemTemplate } from './actions'
 import type { Item, ItemCategory, Uom, CostMethod } from '@/types/inventory'
 import type { PageResponse } from '@/types/api'
 
@@ -62,6 +63,7 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
   const { can } = usePermissions()
   const canWrite = can(PERM.INVENTORY_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
+  const [importOpen, setImportOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
 
@@ -454,11 +456,26 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
           엑셀
         </Button>
         {canWrite && (
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <UploadIcon />
+            엑셀 업로드
+          </Button>
+        )}
+        {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 품목
           </Button>
         )}
       </PageHeader>
+
+      <BulkImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="품목 대량 업로드"
+        templateFilename="item-template.csv"
+        uploadAction={importItemsCsv}
+        templateAction={getItemTemplate}
+      />
 
       <div className="space-y-3">
         <FilterBar onSearch={onSearch} onReset={onReset}>

@@ -42,6 +42,30 @@ export async function apiGetRaw(path: string): Promise<Response> {
   return fetch(`${API_BASE}${path}`, { headers, cache: 'no-store' })
 }
 
+/** multipart 파일 업로드 — 인증 토큰만 주입하고 Content-Type은 fetch가 boundary와 함께 설정하게 둔다(CSV 대량 업로드용). */
+export async function apiPostForm<T>(path: string, form: FormData): Promise<T> {
+  const session = await auth()
+  const headers: HeadersInit = {}
+  if (session?.accessToken) {
+    headers['Authorization'] = `Bearer ${session.accessToken}`
+  }
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers,
+    body: form,
+    cache: 'no-store',
+  })
+  const contentType = res.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) {
+    throw new Error(`HTTP ${res.status} — 업로드 응답이 올바르지 않습니다`)
+  }
+  const body: ApiResponse<T> = await res.json()
+  if (!body.success || body.data === undefined) {
+    throw new Error(body.error?.message ?? '업로드에 실패했습니다')
+  }
+  return body.data
+}
+
 /** 현재 로그인 사용자의 Keycloak subject(고유 ID)를 access token에서 추출한다. */
 export async function getCurrentUserId(): Promise<string> {
   const session = await auth()
