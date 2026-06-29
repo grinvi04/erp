@@ -13,6 +13,8 @@ public final class ReferenceTypes {
   public static final String AP_PAYMENT = "AP_PAYMENT";
   public static final String AR_INVOICE = "AR_INVOICE";
   public static final String AR_PAYMENT = "AR_PAYMENT";
+  public static final String DEPRECIATION = "DEPRECIATION";
+  public static final String ASSET_DISPOSAL = "ASSET_DISPOSAL";
 
   private ReferenceTypes() {}
 }
