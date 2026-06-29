@@ -29,6 +29,7 @@ import {
   Ruler,
   CalendarDays,
   Coins,
+  Landmark,
 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { usePermissions } from '@/components/permissions-provider'
@@ -71,6 +72,7 @@ const MODULES: (NavItem & { children: NavChild[] })[] = [
       { label: '매출계산서', href: '/finance/ar-invoices', icon: FileText },
       { label: '세금계산서', href: '/finance/tax-invoices', icon: FileText },
       { label: '부가세신고', href: '/finance/vat-return', icon: BarChart3 },
+      { label: '고정자산', href: '/finance/fixed-assets', icon: Landmark },
       { label: '재무제표', href: '/finance/reports', icon: BarChart3 },
       { label: '회사정보', href: '/finance/company-profile', icon: Building2 },
       { label: 'FX 설정', href: '/finance/fx', icon: Coins },

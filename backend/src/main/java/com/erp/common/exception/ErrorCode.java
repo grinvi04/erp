@@ -78,6 +78,11 @@ public enum ErrorCode {
   TAX_INVOICE_NOT_FOUND(HttpStatus.NOT_FOUND, "F041", "세금계산서를 찾을 수 없습니다"),
   TAX_INVOICE_NOT_CANCELLABLE(HttpStatus.CONFLICT, "F042", "발행 상태의 세금계산서만 취소할 수 있습니다"),
   TAX_INVOICE_XML_REQUIRES_ISSUED(HttpStatus.CONFLICT, "F043", "발행 상태의 세금계산서만 XML을 생성할 수 있습니다"),
+  DEPRECIATION_ACCOUNT_NOT_CONFIGURED(
+      HttpStatus.CONFLICT, "F044", "감가상각비·감가상각누계액 계정이 설정되지 않아 상각을 처리할 수 없습니다"),
+  FIXED_ASSET_ALREADY_DISPOSED(HttpStatus.CONFLICT, "F045", "이미 처분된 고정자산입니다"),
+  DISPOSAL_ACCOUNT_NOT_CONFIGURED(
+      HttpStatus.CONFLICT, "F046", "처분손익(또는 감가상각누계액) 계정이 설정되지 않아 처분을 처리할 수 없습니다"),
 
   // Inventory
   ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "품목을 찾을 수 없습니다"),
