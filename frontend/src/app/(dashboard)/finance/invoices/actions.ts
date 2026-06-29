@@ -1,9 +1,19 @@
 'use server'
 import { apiPost } from '@/lib/api'
+import { fetchAllPages } from '@/lib/export'
 import { revalidatePath } from 'next/cache'
 import type { ApInvoice, TaxType } from '@/types/finance'
 
 const PATH = '/finance/invoices'
+
+// 전체 엑셀 내보내기 — 현재 페이지가 아닌 전체 매입계산서(전 페이지 순회). 화면이 조회조건을 재적용한다.
+export async function exportAllInvoices(): Promise<{
+  rows: ApInvoice[]
+  truncated: boolean
+  limit: number
+}> {
+  return fetchAllPages<ApInvoice>('/api/finance/invoices')
+}
 
 export async function createInvoice(data: {
   invoiceNo: string

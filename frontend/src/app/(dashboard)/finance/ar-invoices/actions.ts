@@ -1,9 +1,19 @@
 'use server'
 import { apiPost } from '@/lib/api'
+import { fetchAllPages } from '@/lib/export'
 import { revalidatePath } from 'next/cache'
 import type { ArInvoice, TaxType } from '@/types/finance'
 
 const PATH = '/finance/ar-invoices'
+
+// 전체 엑셀 내보내기 — 현재 페이지가 아닌 전체 매출계산서(전 페이지 순회). 화면이 조회조건을 재적용한다.
+export async function exportAllArInvoices(): Promise<{
+  rows: ArInvoice[]
+  truncated: boolean
+  limit: number
+}> {
+  return fetchAllPages<ArInvoice>('/api/finance/ar-invoices')
+}
 
 export async function createArInvoice(data: {
   invoiceNo: string
