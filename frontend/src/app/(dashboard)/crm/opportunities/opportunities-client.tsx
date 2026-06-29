@@ -30,11 +30,12 @@ import {
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { FilterBar, FilterField } from '@/components/ui/filter-bar'
 import { FormGrid, FormRow } from '@/components/ui/form-grid'
-import { downloadCsv } from '@/lib/csv'
+import { runCsvExport } from '@/lib/csv-export'
 import {
   createOpportunity,
   updateOpportunity,
   deleteOpportunity,
+  exportAllOpportunities,
   type OpportunityPayload,
 } from './actions'
 import type { Opportunity, CrmAccount, PipelineStage } from '@/types/crm'
@@ -389,33 +390,54 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
     setQTo('')
     setApplied({ account: '', stage: '', from: '', to: '' })
   }
-  const filtered = data.content.filter((opp) => {
+  const matchesFilter = (opp: Opportunity) => {
     if (applied.account && String(opp.accountId) !== applied.account) return false
     if (applied.stage && String(opp.stageId) !== applied.stage) return false
     if (applied.from && (!opp.closeDate || opp.closeDate < applied.from)) return false
     if (applied.to && (!opp.closeDate || opp.closeDate > applied.to)) return false
     return true
-  })
-  const exportExcel = () =>
-    downloadCsv(
-      `영업기회_${new Date().toISOString().slice(0, 10)}`,
-      ['기회명', '고객사', '단계', '금액', '통화', '확률(%)', '예상종결일', '담당자'],
-      filtered.map((opp) => [
-        opp.name,
-        opp.accountName,
-        opp.stageName,
-        opp.amount ?? '',
-        opp.currency ?? '',
-        opp.probability,
-        opp.closeDate ?? '',
-        formatUserName(opp.ownerId, names),
-      ]),
-    )
+  }
+  const filtered = data.content.filter(matchesFilter)
+  const exportColumns = [
+    '기회명',
+    '고객사',
+    '단계',
+    '금액',
+    '통화',
+    '확률(%)',
+    '예상종결일',
+    '담당자',
+  ]
+  const exportRow = (opp: Opportunity) => [
+    opp.name,
+    opp.accountName,
+    opp.stageName,
+    opp.amount ?? '',
+    opp.currency ?? '',
+    opp.probability,
+    opp.closeDate ?? '',
+    formatUserName(opp.ownerId, names),
+  ]
+  // 전체 엑셀 — 현재 페이지가 아닌 전체 데이터셋(전 페이지 순회) 내보내기. 화면 조회조건을 동일 적용.
+  const exportExcel = () => {
+    startTransition(async () => {
+      try {
+        await runCsvExport(exportAllOpportunities, {
+          filename: `영업기회_${new Date().toISOString().slice(0, 10)}`,
+          columns: exportColumns,
+          matches: matchesFilter,
+          row: exportRow,
+        })
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '엑셀 내보내기 중 오류가 발생했습니다')
+      }
+    })
+  }
 
   return (
     <div className="p-5">
       <PageHeader title="영업 기회" description="영업 파이프라인을 관리합니다" className="mb-4">
-        <Button variant="outline" onClick={exportExcel}>
+        <Button variant="outline" onClick={exportExcel} disabled={isPending}>
           <DownloadIcon />
           엑셀
         </Button>
