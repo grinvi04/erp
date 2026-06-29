@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.response.PageResponse;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.TaxInvoiceIssueRequest;
@@ -26,12 +27,15 @@ import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.TaxInvoiceRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,6 +44,7 @@ class TaxInvoiceServiceTest {
   @Mock private TaxInvoiceRepository taxInvoiceRepository;
   @Mock private ArInvoiceRepository arInvoiceRepository;
   @Mock private CompanyProfileService companyProfileService;
+  @Mock private NtsTaxInvoiceXmlGenerator xmlGenerator;
   @Mock private PermissionChecker permissionChecker;
 
   @InjectMocks private TaxInvoiceService service;
@@ -294,6 +299,65 @@ class TaxInvoiceServiceTest {
     ErpException ex = assertThrows(ErpException.class, () -> service.findById(404L));
 
     assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.TAX_INVOICE_NOT_FOUND);
+  }
+
+  @Test
+  void generateXml_issued_returnsGeneratedXml() {
+    // AC-6: 발행본 XML 생성.
+    TaxInvoice issued = issuedTaxInvoice();
+    given(taxInvoiceRepository.findById(50L)).willReturn(Optional.of(issued));
+    given(xmlGenerator.generate(issued)).willReturn("<TaxInvoice/>");
+
+    String xml = service.generateXml(50L);
+
+    assertThat(xml).isEqualTo("<TaxInvoice/>");
+  }
+
+  @Test
+  void generateXml_cancelled_throwsRequiresIssued() {
+    // AC-7: 취소본은 XML 생성 거부.
+    TaxInvoice cancelled = issuedTaxInvoice();
+    cancelled.cancel();
+    given(taxInvoiceRepository.findById(50L)).willReturn(Optional.of(cancelled));
+
+    ErpException ex = assertThrows(ErpException.class, () -> service.generateXml(50L));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.TAX_INVOICE_XML_REQUIRES_ISSUED);
+  }
+
+  @Test
+  void generateXml_notFound_throwsTaxInvoiceNotFound() {
+    given(taxInvoiceRepository.findById(404L)).willReturn(Optional.empty());
+
+    ErpException ex = assertThrows(ErpException.class, () -> service.generateXml(404L));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.TAX_INVOICE_NOT_FOUND);
+  }
+
+  @Test
+  void findAll_byStatus_returnsPage() {
+    TaxInvoice issued = issuedTaxInvoice();
+    ReflectionTestUtils.setField(issued, "id", 50L);
+    given(taxInvoiceRepository.findByStatus(TaxInvoiceStatus.ISSUED, Pageable.unpaged()))
+        .willReturn(new PageImpl<>(List.of(issued)));
+
+    PageResponse<TaxInvoiceResponse> result =
+        service.findAll(TaxInvoiceStatus.ISSUED, Pageable.unpaged());
+
+    assertThat(result.content()).hasSize(1);
+    assertThat(result.content().get(0).status()).isEqualTo(TaxInvoiceStatus.ISSUED);
+  }
+
+  @Test
+  void findAll_nullStatus_returnsAll() {
+    TaxInvoice issued = issuedTaxInvoice();
+    ReflectionTestUtils.setField(issued, "id", 50L);
+    given(taxInvoiceRepository.findAll(Pageable.unpaged()))
+        .willReturn(new PageImpl<>(List.of(issued)));
+
+    PageResponse<TaxInvoiceResponse> result = service.findAll(null, Pageable.unpaged());
+
+    assertThat(result.content()).hasSize(1);
   }
 
   private static TaxInvoice issuedTaxInvoice() {

@@ -2,6 +2,7 @@ package com.erp.finance.application.service;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.response.PageResponse;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.TaxInvoiceIssueRequest;
@@ -18,6 +19,7 @@ import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.TaxInvoiceRepository;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,11 +37,32 @@ public class TaxInvoiceService {
   private final TaxInvoiceRepository taxInvoiceRepository;
   private final ArInvoiceRepository arInvoiceRepository;
   private final CompanyProfileService companyProfileService;
+  private final NtsTaxInvoiceXmlGenerator xmlGenerator;
   private final PermissionChecker permissionChecker;
+
+  /** 세금계산서 목록 — 상태 필터(null이면 전체), 페이징. */
+  public PageResponse<TaxInvoiceResponse> findAll(TaxInvoiceStatus status, Pageable pageable) {
+    permissionChecker.require(Permission.FINANCE_READ);
+    var page =
+        status != null
+            ? taxInvoiceRepository.findByStatus(status, pageable)
+            : taxInvoiceRepository.findAll(pageable);
+    return PageResponse.from(page.map(TaxInvoiceResponse::from));
+  }
 
   public TaxInvoiceResponse findById(Long id) {
     permissionChecker.require(Permission.FINANCE_READ);
     return TaxInvoiceResponse.from(getOrThrow(id));
+  }
+
+  /** 발행본의 국세청 표준 XML 생성 — ISSUED만 가능(취소본 거부). */
+  public String generateXml(Long id) {
+    permissionChecker.require(Permission.FINANCE_READ);
+    TaxInvoice taxInvoice = getOrThrow(id);
+    if (!taxInvoice.isIssued()) {
+      throw new ErpException(ErrorCode.TAX_INVOICE_XML_REQUIRES_ISSUED);
+    }
+    return xmlGenerator.generate(taxInvoice);
   }
 
   /** AR 인보이스에서 세금계산서 발행 — 공급자/공급받는자/금액/품목 스냅샷 고정, ISSUED. */
