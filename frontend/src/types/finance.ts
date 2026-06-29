@@ -112,6 +112,35 @@ export interface CompanyProfile {
   businessItem: string | null
 }
 
+export type TaxInvoiceStatus = 'ISSUED' | 'CANCELLED'
+export type ChargeType = 'CHARGE' | 'RECEIPT'
+
+export interface TaxInvoiceParty {
+  companyName: string
+  businessNo: string | null
+  representative: string | null
+  address: string | null
+  businessType: string | null
+  businessItem: string | null
+}
+
+export interface TaxInvoice {
+  id: number
+  arInvoiceId: number
+  issueNo: string | null
+  taxType: TaxType
+  chargeType: ChargeType
+  writeDate: string
+  supplyAmount: number
+  vatAmount: number
+  totalAmount: number
+  itemName: string
+  status: TaxInvoiceStatus
+  note: string | null
+  supplier: TaxInvoiceParty
+  buyer: TaxInvoiceParty
+}
+
 export interface ArInvoice {
   id: number
   invoiceNo: string
