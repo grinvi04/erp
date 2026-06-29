@@ -13,12 +13,13 @@ import com.erp.finance.domain.model.FiscalPeriod;
 import com.erp.finance.domain.model.FixedAsset;
 import com.erp.finance.domain.model.ImpairmentEntry;
 import com.erp.finance.domain.model.JournalEntryType;
-import com.erp.finance.domain.repository.DepreciationEntryRepository;
 import com.erp.finance.domain.repository.FiscalPeriodRepository;
 import com.erp.finance.domain.repository.FixedAssetRepository;
 import com.erp.finance.domain.repository.ImpairmentEntryRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import java.math.BigDecimal;
+import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +43,6 @@ public class ImpairmentPostingService {
   private final JournalEntryService journalEntryService;
   private final FiscalPeriodRepository fiscalPeriodRepository;
   private final FixedAssetRepository fixedAssetRepository;
-  private final DepreciationEntryRepository depreciationEntryRepository;
   private final ImpairmentEntryRepository impairmentEntryRepository;
   private final JournalEntryRepository journalEntryRepository;
   private final BaseCurrencyService baseCurrencyService;
@@ -74,6 +74,9 @@ public class ImpairmentPostingService {
     if (!period.isOpen()) {
       throw new ErpException(ErrorCode.FISCAL_PERIOD_CLOSED);
     }
+    if (period.getEndDate().isBefore(asset.getAcquisitionDate())) {
+      throw new ErpException(ErrorCode.INVALID_INPUT, "취득일 이전 회계기간에는 손상을 인식할 수 없습니다");
+    }
     if (impairmentEntryRepository.existsByFixedAssetIdAndFiscalPeriodId(assetId, fiscalPeriodId)) {
       throw new ErpException(ErrorCode.IMPAIRMENT_ALREADY_RECOGNIZED);
     }
@@ -91,9 +94,14 @@ public class ImpairmentPostingService {
       throw new ErpException(ErrorCode.IMPAIRMENT_NOT_REQUIRED);
     }
 
-    int remainingMonths =
-        asset.getUsefulLifeMonths()
-            - (int) depreciationEntryRepository.countByFixedAssetId(assetId);
+    // 잔여내용연수 = 내용연수월 − 취득월부터 인식기간까지의 경과 개월수(취득월·인식월 포함, 달력 기준).
+    // 마감으로 건너뛴 미상각 기간이 있어도 캘린더 경과로 산정해 잔여를 정확히 반영한다.
+    int monthsElapsed =
+        (int)
+                ChronoUnit.MONTHS.between(
+                    YearMonth.from(asset.getAcquisitionDate()), YearMonth.from(period.getEndDate()))
+            + 1;
+    int remainingMonths = asset.getUsefulLifeMonths() - monthsElapsed;
     Long journalEntryId = postImpairment(asset, period, accounts, loss);
     asset.applyImpairment(loss, remainingMonths);
     ImpairmentEntry entry =

@@ -3,7 +3,14 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PlayIcon, BanIcon, HistoryIcon, TrendingDownIcon } from 'lucide-react'
+import {
+  PlusIcon,
+  PlayIcon,
+  BanIcon,
+  HistoryIcon,
+  TrendingDownIcon,
+  FileClockIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -504,7 +511,7 @@ export default function FixedAssetsClient({
             onClick={() => openImpairHistory(a)}
             disabled={isPending}
           >
-            <TrendingDownIcon className="text-muted-foreground" />
+            <FileClockIcon className="text-muted-foreground" />
           </Button>
           {canWrite && a.status === 'ACTIVE' && (
             <Button

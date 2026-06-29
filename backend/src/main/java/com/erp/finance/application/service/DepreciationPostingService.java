@@ -147,7 +147,7 @@ public class DepreciationPostingService {
             .addKeyValue("event", "DEPRECIATION_CATCHUP_SKIPPED_CLOSED")
             .addKeyValue("assetId", asset.getId())
             .addKeyValue("fiscalPeriodId", p.getId())
-            .log("처분 catch-up — 마감된 기간의 미상각분 전기 불가, 건너뜀");
+            .log("감가상각 catch-up — 마감된 기간의 미상각분 전기 불가, 건너뜀");
         continue;
       }
       BigDecimal amount = asset.monthlyDepreciation();

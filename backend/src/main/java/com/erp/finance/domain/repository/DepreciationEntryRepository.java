@@ -9,7 +9,4 @@ public interface DepreciationEntryRepository extends JpaRepository<DepreciationE
   boolean existsByFixedAssetIdAndFiscalPeriodId(Long fixedAssetId, Long fiscalPeriodId);
 
   List<DepreciationEntry> findByFixedAssetIdOrderByFiscalPeriodIdAsc(Long fixedAssetId);
-
-  // 상각한 개월 수 — 손상 후 정액 잔여내용연수(내용연수월 − 기상각월수) 산정용.
-  long countByFixedAssetId(Long fixedAssetId);
 }

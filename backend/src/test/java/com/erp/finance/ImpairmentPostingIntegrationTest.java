@@ -242,6 +242,35 @@ class ImpairmentPostingIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void recognize_periodBeforeAcquisition_isRejected() {
+    // AC-7 경계: 취득일(3월) 이전 기간(1월)에 손상 인식 → 거부(취득 전 기간 귀속 방지).
+    configureImpairmentAccounts();
+    authenticate("creator", "finance:write");
+    Long assetId =
+        fixedAssetService
+            .create(
+                new FixedAssetCreateRequest(
+                    "FA-IMP-PRE",
+                    "3월취득자산",
+                    LocalDate.of(2025, 3, 1),
+                    new BigDecimal("1200000"),
+                    BigDecimal.ZERO,
+                    12,
+                    DepreciationMethod.STRAIGHT_LINE,
+                    null,
+                    assetAccountId))
+            .id();
+
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.recognizeImpairment(
+                    assetId, period1Id, new BigDecimal("800000")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+  }
+
+  @Test
   void recognize_closedPeriod_isRejected() {
     // AC-10: 마감된 회계기간 → 손상 거부.
     configureImpairmentAccounts();
