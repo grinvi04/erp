@@ -154,11 +154,6 @@ export default function JobGradesClient({ jobGrades }: Props) {
       sortable: true,
       sortValue: (g) => g.minSalary,
       cell: (g) => <span className="text-sm text-muted-foreground">{fmt(g.minSalary)}</span>,
-      footer: (rows) => (
-        <span className="font-mono">
-          {rows.reduce((s, r) => s + (r.minSalary ?? 0), 0).toLocaleString('ko-KR')}
-        </span>
-      ),
     },
     {
       key: 'maxSalary',
@@ -167,11 +162,6 @@ export default function JobGradesClient({ jobGrades }: Props) {
       sortable: true,
       sortValue: (g) => g.maxSalary,
       cell: (g) => <span className="text-sm text-muted-foreground">{fmt(g.maxSalary)}</span>,
-      footer: (rows) => (
-        <span className="font-mono">
-          {rows.reduce((s, r) => s + (r.maxSalary ?? 0), 0).toLocaleString('ko-KR')}
-        </span>
-      ),
     },
     {
       key: 'actions',

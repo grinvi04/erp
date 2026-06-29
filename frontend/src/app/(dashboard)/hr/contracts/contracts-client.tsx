@@ -162,11 +162,6 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
       sortable: true,
       sortValue: (c) => c.baseSalary,
       cell: (c) => <span className="text-sm text-muted-foreground">{fmt(c.baseSalary)}</span>,
-      footer: (rows) => (
-        <span className="font-mono">
-          {rows.reduce((s, r) => s + (r.baseSalary ?? 0), 0).toLocaleString('ko-KR')}
-        </span>
-      ),
     },
     {
       key: 'note',

@@ -43,7 +43,12 @@ export function FormRow({
 }) {
   return (
     <>
-      <div className="flex items-center justify-end gap-0.5 border-t border-r border-border bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+      <div
+        className={cn(
+          'flex items-center justify-end gap-0.5 border-t border-r border-border bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground',
+          span && 'sm:col-start-1',
+        )}
+      >
         {label}
         {required && <span className="text-destructive">*</span>}
       </div>

@@ -218,9 +218,6 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
       sortable: true,
       sortValue: (i) => i.standardCost,
       cell: (i) => <span className="font-mono text-sm">{fmtNum(i.standardCost)}</span>,
-      footer: (rows) => (
-        <span className="font-mono">{rows.reduce((s, r) => s + r.standardCost, 0).toLocaleString('ko-KR')}</span>
-      ),
     },
     {
       key: 'lot',

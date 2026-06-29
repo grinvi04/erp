@@ -131,9 +131,6 @@ export default function LeavePoliciesClient({ policies }: Props) {
       sortable: true,
       sortValue: (p) => p.annualDays,
       cell: (p) => <span className="text-sm text-muted-foreground">{p.annualDays}</span>,
-      footer: (rows) => (
-        <span className="font-mono">{rows.reduce((s, r) => s + r.annualDays, 0).toLocaleString('ko-KR')}</span>
-      ),
     },
     {
       key: 'carryOverDays',
@@ -142,9 +139,6 @@ export default function LeavePoliciesClient({ policies }: Props) {
       sortable: true,
       sortValue: (p) => p.carryOverDays,
       cell: (p) => <span className="text-sm text-muted-foreground">{p.carryOverDays}</span>,
-      footer: (rows) => (
-        <span className="font-mono">{rows.reduce((s, r) => s + r.carryOverDays, 0).toLocaleString('ko-KR')}</span>
-      ),
     },
     {
       key: 'minNoticeDays',
@@ -153,9 +147,6 @@ export default function LeavePoliciesClient({ policies }: Props) {
       sortable: true,
       sortValue: (p) => p.minNoticeDays,
       cell: (p) => <span className="text-sm text-muted-foreground">{p.minNoticeDays}</span>,
-      footer: (rows) => (
-        <span className="font-mono">{rows.reduce((s, r) => s + r.minNoticeDays, 0).toLocaleString('ko-KR')}</span>
-      ),
     },
     {
       key: 'requiresApproval',
