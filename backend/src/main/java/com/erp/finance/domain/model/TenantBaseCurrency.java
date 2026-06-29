@@ -73,6 +73,15 @@ public class TenantBaseCurrency extends BaseEntity {
   @JoinColumn(name = "disposal_loss_account_id")
   private Account disposalLossAccount;
 
+  // 손상차손 계정 — 손상차손비(비용)·손상차손누계액(자산 차감). 둘 다 설정돼야 손상 분개를 적용한다(미설정 시 차단).
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "impairment_loss_account_id")
+  private Account impairmentLossAccount;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "accumulated_impairment_account_id")
+  private Account accumulatedImpairmentAccount;
+
   protected TenantBaseCurrency() {}
 
   public static TenantBaseCurrency of(String baseCurrency) {
@@ -147,5 +156,20 @@ public class TenantBaseCurrency extends BaseEntity {
 
   public Account getDisposalLossAccount() {
     return disposalLossAccount;
+  }
+
+  /** 손상차손 계정 설정(함께 지정·해제). 각 nullable — 미설정 시 손상 분개 차단. */
+  public void assignImpairmentAccounts(
+      Account impairmentLossAccount, Account accumulatedImpairmentAccount) {
+    this.impairmentLossAccount = impairmentLossAccount;
+    this.accumulatedImpairmentAccount = accumulatedImpairmentAccount;
+  }
+
+  public Account getImpairmentLossAccount() {
+    return impairmentLossAccount;
+  }
+
+  public Account getAccumulatedImpairmentAccount() {
+    return accumulatedImpairmentAccount;
   }
 }

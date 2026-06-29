@@ -10,6 +10,8 @@ import com.erp.finance.application.dto.DepreciationAccountResponse;
 import com.erp.finance.application.dto.DepreciationAccountUpdateRequest;
 import com.erp.finance.application.dto.FxGainLossAccountResponse;
 import com.erp.finance.application.dto.FxGainLossAccountUpdateRequest;
+import com.erp.finance.application.dto.ImpairmentAccountResponse;
+import com.erp.finance.application.dto.ImpairmentAccountUpdateRequest;
 import com.erp.finance.application.dto.VatAccountResponse;
 import com.erp.finance.application.dto.VatAccountUpdateRequest;
 import com.erp.finance.domain.model.Account;
@@ -221,6 +223,48 @@ public class BaseCurrencyService {
                     e.getDisposalGainAccount(),
                     e.getDisposalLossAccount()))
         .orElseGet(() -> new DepreciationAccounts(null, null, null, null));
+  }
+
+  /** 손상차손 분개용 계정 — 손상차손비·손상차손누계액(각 nullable). */
+  public record ImpairmentAccounts(Account lossAccount, Account accumulatedAccount) {}
+
+  /** 손상차손 계정 설정 조회(FINANCE_READ). 미설정 항목은 null. */
+  public ImpairmentAccountResponse getImpairmentAccounts() {
+    permissionChecker.require(Permission.FINANCE_READ);
+    return repository
+        .findFirstByOrderByIdAsc()
+        .map(
+            e ->
+                ImpairmentAccountResponse.of(
+                    accountId(e.getImpairmentLossAccount()),
+                    accountId(e.getAccumulatedImpairmentAccount())))
+        .orElseGet(() -> ImpairmentAccountResponse.of(null, null));
+  }
+
+  /** 손상차손 계정 설정 변경(FINANCE_SETTING_WRITE). 행이 없으면 현재 기준통화로 생성 후 계정만 채운다. */
+  @Transactional
+  public ImpairmentAccountResponse updateImpairmentAccounts(
+      ImpairmentAccountUpdateRequest request) {
+    permissionChecker.require(Permission.FINANCE_SETTING_WRITE);
+    Account loss = resolveAccount(request.impairmentLossAccountId());
+    Account accumulated = resolveAccount(request.accumulatedImpairmentAccountId());
+    TenantBaseCurrency entity =
+        repository
+            .findFirstByOrderByIdAsc()
+            .orElseGet(() -> repository.save(TenantBaseCurrency.of(currentBaseCurrencyCode())));
+    entity.assignImpairmentAccounts(loss, accumulated);
+    return ImpairmentAccountResponse.of(accountId(loss), accountId(accumulated));
+  }
+
+  /** 손상차손 분개용 계정(내부, 권한 검사 없음). 손상 자동분개에서 호출. */
+  public ImpairmentAccounts currentImpairmentAccounts() {
+    return repository
+        .findFirstByOrderByIdAsc()
+        .map(
+            e ->
+                new ImpairmentAccounts(
+                    e.getImpairmentLossAccount(), e.getAccumulatedImpairmentAccount()))
+        .orElseGet(() -> new ImpairmentAccounts(null, null));
   }
 
   private static Long accountId(Account a) {

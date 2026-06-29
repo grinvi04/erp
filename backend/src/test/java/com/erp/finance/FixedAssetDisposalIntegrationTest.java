@@ -10,9 +10,11 @@ import com.erp.finance.application.ReferenceTypes;
 import com.erp.finance.application.dto.DepreciationAccountUpdateRequest;
 import com.erp.finance.application.dto.FixedAssetCreateRequest;
 import com.erp.finance.application.dto.FixedAssetDisposeRequest;
+import com.erp.finance.application.dto.ImpairmentAccountUpdateRequest;
 import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.application.service.DepreciationPostingService;
 import com.erp.finance.application.service.FixedAssetService;
+import com.erp.finance.application.service.ImpairmentPostingService;
 import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.AccountType;
 import com.erp.finance.domain.model.DepreciationMethod;
@@ -40,6 +42,7 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private FixedAssetService fixedAssetService;
   @Autowired private DepreciationPostingService depreciationPostingService;
+  @Autowired private ImpairmentPostingService impairmentPostingService;
   @Autowired private BaseCurrencyService baseCurrencyService;
   @Autowired private AccountRepository accountRepository;
   @Autowired private FiscalYearRepository fiscalYearRepository;
@@ -170,6 +173,36 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
         .isInstanceOf(ErpException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.DISPOSAL_ACCOUNT_NOT_CONFIGURED);
+  }
+
+  @Test
+  void dispose_impairedAsset_clearsImpairmentAccumulatedAndBalances() {
+    // AC-9: 상각 100,000(장부 1,100,000) → 회수가능액 700,000 손상(400,000)·장부 700,000 → 750,000 매각.
+    // (차)감가상각누계액 100,000·손상차손누계액 400,000·현금 750,000 (대)자산 1,200,000·처분이익 50,000 = 1,250,000 균형.
+    configureAllAccounts();
+    authenticate("admin", "finance:setting:write");
+    Long impairmentLoss = accountId("81900", "유형자산손상차손", AccountType.EXPENSE, NormalBalance.DEBIT);
+    Long impairmentAccumulated =
+        accountId("21000", "손상차손누계액", AccountType.ASSET, NormalBalance.CREDIT);
+    baseCurrencyService.updateImpairmentAccounts(
+        new ImpairmentAccountUpdateRequest(impairmentLoss, impairmentAccumulated));
+
+    Long assetId = registerAndDepreciateOnce("FA-DIS-IMP");
+    authenticate("creator", "finance:write");
+    impairmentPostingService.recognizeImpairment(assetId, periodId, new BigDecimal("700000"));
+
+    fixedAssetService.dispose(
+        assetId,
+        new FixedAssetDisposeRequest(
+            LocalDate.of(2025, 1, 20), new BigDecimal("750000"), cashAccountId));
+
+    JournalEntry je =
+        journalEntryRepository
+            .findByReferenceTypeAndReferenceId(ReferenceTypes.ASSET_DISPOSAL, assetId)
+            .orElseThrow();
+    assertThat(je.isBalanced()).isTrue();
+    assertThat(je.getTotalDebit()).isEqualByComparingTo("1250000");
+    assertThat(je.getTotalCredit()).isEqualByComparingTo("1250000");
   }
 
   @Test

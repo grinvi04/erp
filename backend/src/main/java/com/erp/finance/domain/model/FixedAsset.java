@@ -74,6 +74,14 @@ public class FixedAsset extends BaseEntity {
   @Column(name = "accumulated_depreciation", nullable = false, precision = 20, scale = 2)
   private BigDecimal accumulatedDepreciation;
 
+  // 손상차손누계액 — 손상 인식으로 장부가액을 감액한 누계(손상차손누계액 계정 대변과 대응).
+  @Column(name = "accumulated_impairment", nullable = false, precision = 20, scale = 2)
+  private BigDecimal accumulatedImpairment;
+
+  // 손상 후 정액 월상각액(잔여내용연수 재배분 결과) — 손상 시점에 1회 산정해 고정. 정률·비손상이면 null(기존 상수 공식 사용).
+  @Column(name = "straight_line_monthly_override", precision = 20, scale = 2)
+  private BigDecimal straightLineMonthlyOverride;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false, length = 20)
   private FixedAssetStatus status;
@@ -116,13 +124,14 @@ public class FixedAsset extends BaseEntity {
     a.decliningAnnualRate = decliningAnnualRate;
     a.assetAccount = assetAccount;
     a.accumulatedDepreciation = BigDecimal.ZERO.setScale(MONEY_SCALE);
+    a.accumulatedImpairment = BigDecimal.ZERO.setScale(MONEY_SCALE);
     a.status = FixedAssetStatus.ACTIVE;
     return a;
   }
 
-  /** 장부가액 = 취득원가 − 누계상각액. */
+  /** 장부가액 = 취득원가 − 감가상각누계액 − 손상차손누계액. */
   public BigDecimal bookValue() {
-    return acquisitionCost.subtract(accumulatedDepreciation);
+    return acquisitionCost.subtract(accumulatedDepreciation).subtract(accumulatedImpairment);
   }
 
   /** 이번 달 상각액 — 방법별 산정 후 잔존가치 하한·과대상각 방지로 보정. 잔존가치에 도달했거나 처분 자산이면 0. */
@@ -136,10 +145,13 @@ public class FixedAsset extends BaseEntity {
     }
     BigDecimal raw;
     if (method == DepreciationMethod.STRAIGHT_LINE) {
+      // 손상 후에는 잔여내용연수로 재배분한 월상각액(override)을, 아니면 기존 상수 공식을 쓴다.
       raw =
-          acquisitionCost
-              .subtract(residualValue)
-              .divide(BigDecimal.valueOf(usefulLifeMonths), MONEY_SCALE, RoundingMode.DOWN);
+          straightLineMonthlyOverride != null
+              ? straightLineMonthlyOverride
+              : acquisitionCost
+                  .subtract(residualValue)
+                  .divide(BigDecimal.valueOf(usefulLifeMonths), MONEY_SCALE, RoundingMode.DOWN);
     } else {
       raw =
           bookValue()
@@ -153,6 +165,22 @@ public class FixedAsset extends BaseEntity {
   /** 상각액 반영 — 누계상각액 증가. */
   public void applyDepreciation(BigDecimal amount) {
     this.accumulatedDepreciation = this.accumulatedDepreciation.add(amount);
+  }
+
+  /**
+   * 손상차손 반영 — 손상차손누계액을 증가시켜 장부가액을 회수가능액까지 감액한다. 정액법이면 손상 후 (장부가액−잔존가치)를 잔여내용연수로 재배분한 월상각액을 1회 산정해
+   * 고정한다(이후 monthlyDepreciation이 이 값을 사용). 정률법은 월초 장부가액 기반이라 별도 설정 없이 자동 반영된다.
+   */
+  public void applyImpairment(BigDecimal loss, int remainingMonths) {
+    this.accumulatedImpairment = this.accumulatedImpairment.add(loss);
+    if (method == DepreciationMethod.STRAIGHT_LINE) {
+      int months = Math.max(remainingMonths, 1);
+      this.straightLineMonthlyOverride =
+          bookValue()
+              .subtract(residualValue)
+              .max(BigDecimal.ZERO)
+              .divide(BigDecimal.valueOf(months), MONEY_SCALE, RoundingMode.DOWN);
+    }
   }
 
   public void dispose() {
@@ -205,6 +233,14 @@ public class FixedAsset extends BaseEntity {
 
   public BigDecimal getAccumulatedDepreciation() {
     return accumulatedDepreciation;
+  }
+
+  public BigDecimal getAccumulatedImpairment() {
+    return accumulatedImpairment;
+  }
+
+  public BigDecimal getStraightLineMonthlyOverride() {
+    return straightLineMonthlyOverride;
   }
 
   public FixedAssetStatus getStatus() {
