@@ -28,10 +28,11 @@ describe('escapeCsvCell — 중화 후 RFC4180 인용 (회귀 없음)', () => {
     expect(escapeCsvCell(undefined)).toBe('')
   })
 
-  it('콤마·따옴표·줄바꿈은 기존대로 인용한다', () => {
+  it('콤마·따옴표·줄바꿈(LF·고립 CR)은 인용한다', () => {
     expect(escapeCsvCell('a,b')).toBe('"a,b"')
     expect(escapeCsvCell('a"b')).toBe('"a""b"')
     expect(escapeCsvCell('a\nb')).toBe('"a\nb"')
+    expect(escapeCsvCell('a\rb')).toBe('"a\rb"')
     expect(escapeCsvCell('plain')).toBe('plain')
   })
 

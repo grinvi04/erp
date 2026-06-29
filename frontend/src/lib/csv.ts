@@ -14,7 +14,8 @@ export function sanitizeCsvValue(s: string): string {
 export function escapeCsvCell(v: string | number | null | undefined): string {
   if (v == null) return ''
   const cell = typeof v === 'number' ? String(v) : sanitizeCsvValue(v)
-  return /[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell
+  // 콤마·따옴표·LF·CR 포함 시 인용(고립 CR도 일부 파서의 행 분리 오인 방지).
+  return /[",\n\r]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell
 }
 
 // 헤더+행을 CSV 본문(BOM 제외)으로 직렬화. CRLF 구분.
