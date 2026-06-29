@@ -30,8 +30,15 @@ import {
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { FilterBar, FilterField } from '@/components/ui/filter-bar'
 import { FormGrid, FormRow } from '@/components/ui/form-grid'
-import { downloadCsv } from '@/lib/csv'
-import { createLead, updateLead, convertLead, deleteLead, type LeadPayload } from './actions'
+import { runCsvExport } from '@/lib/csv-export'
+import {
+  createLead,
+  updateLead,
+  convertLead,
+  deleteLead,
+  exportAllLeads,
+  type LeadPayload,
+} from './actions'
 import type { CrmAccount, Lead, LeadStatus, PipelineStage } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
 import { formatUserName, formatDate } from '@/lib/utils'
@@ -375,7 +382,7 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
     setQKeyword('')
     setApplied({ status: '', owner: '', keyword: '' })
   }
-  const filtered = data.content.filter((lead) => {
+  const matchesFilter = (lead: Lead) => {
     if (applied.status && lead.status !== applied.status) return false
     if (applied.owner && lead.ownerId !== applied.owner) return false
     if (applied.keyword) {
@@ -385,27 +392,39 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
       if (!hay.includes(kw)) return false
     }
     return true
-  })
-  const exportExcel = () =>
-    downloadCsv(
-      `리드_${new Date().toISOString().slice(0, 10)}`,
-      ['이름', '회사', '직함', '이메일', '출처', '상태', '담당자', '생성일'],
-      filtered.map((lead) => [
-        `${lead.lastName}${lead.firstName}`,
-        lead.company ?? '',
-        lead.title ?? '',
-        lead.email ?? '',
-        lead.source ?? '',
-        STATUS_LABEL[lead.status],
-        formatUserName(lead.ownerId, names),
-        formatDate(lead.createdAt),
-      ]),
-    )
+  }
+  const filtered = data.content.filter(matchesFilter)
+  const exportColumns = ['이름', '회사', '직함', '이메일', '출처', '상태', '담당자', '생성일']
+  const exportRow = (lead: Lead) => [
+    `${lead.lastName}${lead.firstName}`,
+    lead.company ?? '',
+    lead.title ?? '',
+    lead.email ?? '',
+    lead.source ?? '',
+    STATUS_LABEL[lead.status],
+    formatUserName(lead.ownerId, names),
+    formatDate(lead.createdAt),
+  ]
+  // 전체 엑셀 — 현재 페이지가 아닌 전체 데이터셋(전 페이지 순회) 내보내기. 화면 조회조건을 동일 적용.
+  const exportExcel = () => {
+    startTransition(async () => {
+      try {
+        await runCsvExport(exportAllLeads, {
+          filename: `리드_${new Date().toISOString().slice(0, 10)}`,
+          columns: exportColumns,
+          matches: matchesFilter,
+          row: exportRow,
+        })
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '엑셀 내보내기 중 오류가 발생했습니다')
+      }
+    })
+  }
 
   return (
     <div className="p-5">
       <PageHeader title="리드" description="잠재 고객 리드를 관리합니다" className="mb-4">
-        <Button variant="outline" onClick={exportExcel}>
+        <Button variant="outline" onClick={exportExcel} disabled={isPending}>
           <DownloadIcon />
           엑셀
         </Button>
