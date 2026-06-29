@@ -13,19 +13,27 @@ export const MAX_EXPORT_ROWS = 5000
  */
 export async function fetchAllPages<T>(
   basePath: string,
-): Promise<{ rows: T[]; truncated: boolean }> {
+): Promise<{ rows: T[]; truncated: boolean; limit: number }> {
   const sep = basePath.includes('?') ? '&' : '?'
   const rows: T[] = []
   let page = 0
   let totalPages = 1
+  let totalElements = 0
   while (page < totalPages) {
     const res = await apiGetPage<T>(`${basePath}${sep}page=${page}&size=${EXPORT_PAGE_SIZE}`)
-    rows.push(...res.content)
+    const content = Array.isArray(res.content) ? res.content : []
+    rows.push(...content)
     totalPages = res.totalPages
+    totalElements = res.totalElements
     if (rows.length >= MAX_EXPORT_ROWS) {
-      return { rows: rows.slice(0, MAX_EXPORT_ROWS), truncated: true }
+      break
     }
     page += 1
   }
-  return { rows, truncated: false }
+  // truncated 는 전체 건수 기준 — 정확히 상한과 같으면(전량 수집) 거짓 경고하지 않는다.
+  return {
+    rows: rows.slice(0, MAX_EXPORT_ROWS),
+    truncated: totalElements > MAX_EXPORT_ROWS,
+    limit: MAX_EXPORT_ROWS,
+  }
 }

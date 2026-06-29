@@ -9,10 +9,12 @@ export function sanitizeCsvValue(s: string): string {
   return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
 }
 
-// 셀 직렬화: 수식 중화(sanitize) → RFC4180 인용(콤마·따옴표·줄바꿈). 숫자·null은 안전하게 문자열화.
+// 셀 직렬화: (문자열만) 수식 중화 → RFC4180 인용(콤마·따옴표·줄바꿈).
+// 숫자는 수식이 될 수 없으므로 중화 제외 — 음수(-1000)가 텍스트로 깨지지 않게 한다.
 export function escapeCsvCell(v: string | number | null | undefined): string {
-  const sanitized = sanitizeCsvValue(v == null ? '' : String(v))
-  return /[",\n]/.test(sanitized) ? `"${sanitized.replace(/"/g, '""')}"` : sanitized
+  if (v == null) return ''
+  const cell = typeof v === 'number' ? String(v) : sanitizeCsvValue(v)
+  return /[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell
 }
 
 // 헤더+행을 CSV 본문(BOM 제외)으로 직렬화. CRLF 구분.

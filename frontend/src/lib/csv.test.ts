@@ -21,8 +21,9 @@ describe('sanitizeCsvValue — 수식 인젝션 방어 (api-standards.md §CSV e
 })
 
 describe('escapeCsvCell — 중화 후 RFC4180 인용 (회귀 없음)', () => {
-  it('숫자·null·undefined를 안전하게 직렬화한다', () => {
+  it('숫자·null·undefined를 안전하게 직렬화한다 (음수는 텍스트로 깨지지 않음)', () => {
     expect(escapeCsvCell(123)).toBe('123')
+    expect(escapeCsvCell(-1000)).toBe('-1000')
     expect(escapeCsvCell(null)).toBe('')
     expect(escapeCsvCell(undefined)).toBe('')
   })

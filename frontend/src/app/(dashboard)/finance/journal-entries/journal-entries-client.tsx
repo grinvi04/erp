@@ -41,7 +41,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { FilterBar, FilterField } from '@/components/ui/filter-bar'
 import { FormGrid, FormRow } from '@/components/ui/form-grid'
-import { downloadCsv } from '@/lib/csv'
+import { runCsvExport } from '@/lib/csv-export'
 import { formatMoneyOne } from '@/lib/money'
 import {
   createJournalEntry,
@@ -491,15 +491,12 @@ export default function JournalEntriesClient({
     if (selectedPeriodId == null) return
     startTransition(async () => {
       try {
-        const { rows, truncated } = await exportAllJournalEntries(selectedPeriodId)
-        downloadCsv(
-          `전표_${new Date().toISOString().slice(0, 10)}`,
-          exportColumns,
-          rows.filter(matchesFilter).map(exportRow),
-        )
-        if (truncated) {
-          toast.warning('데이터가 많아 최대 5,000건까지만 내보냈습니다')
-        }
+        await runCsvExport(() => exportAllJournalEntries(selectedPeriodId), {
+          filename: `전표_${new Date().toISOString().slice(0, 10)}`,
+          columns: exportColumns,
+          matches: matchesFilter,
+          row: exportRow,
+        })
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '엑셀 내보내기 중 오류가 발생했습니다')
       }

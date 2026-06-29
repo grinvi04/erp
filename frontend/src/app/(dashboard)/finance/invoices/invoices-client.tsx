@@ -30,7 +30,7 @@ import {
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { FilterBar, FilterField } from '@/components/ui/filter-bar'
 import { FormGrid, FormRow } from '@/components/ui/form-grid'
-import { downloadCsv } from '@/lib/csv'
+import { runCsvExport } from '@/lib/csv-export'
 import { DownloadIcon } from 'lucide-react'
 import {
   createInvoice,
@@ -424,15 +424,12 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
   const exportExcel = () => {
     startTransition(async () => {
       try {
-        const { rows, truncated } = await exportAllInvoices()
-        downloadCsv(
-          `매입계산서_${new Date().toISOString().slice(0, 10)}`,
-          exportColumns,
-          rows.filter(matchesFilter).map(exportRow),
-        )
-        if (truncated) {
-          toast.warning('데이터가 많아 최대 5,000건까지만 내보냈습니다')
-        }
+        await runCsvExport(exportAllInvoices, {
+          filename: `매입계산서_${new Date().toISOString().slice(0, 10)}`,
+          columns: exportColumns,
+          matches: matchesFilter,
+          row: exportRow,
+        })
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '엑셀 내보내기 중 오류가 발생했습니다')
       }
