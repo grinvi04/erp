@@ -1,7 +1,7 @@
 'use server'
 import { apiPost } from '@/lib/api'
 import { revalidatePath } from 'next/cache'
-import type { ApInvoice } from '@/types/finance'
+import type { ApInvoice, TaxType } from '@/types/finance'
 
 const PATH = '/finance/invoices'
 
@@ -10,7 +10,8 @@ export async function createInvoice(data: {
   vendorId: number
   invoiceDate: string
   dueDate: string
-  totalAmount: number
+  supplyAmount: number
+  taxType: TaxType
   currency: string
   note: string | null
   lines: { accountId: number; amount: number; description: string | null }[] | null
