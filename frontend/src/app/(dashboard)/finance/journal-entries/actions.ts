@@ -1,9 +1,19 @@
 'use server'
 import { apiGet, apiPost } from '@/lib/api'
+import { fetchAllPages } from '@/lib/export'
 import { revalidatePath } from 'next/cache'
 import type { JournalEntry, JournalEntryType, JournalLine } from '@/types/finance'
 
 const PATH = '/finance/journal-entries'
+
+// 전체 엑셀 내보내기 — 선택 회계기간의 전체 전표(전 페이지 순회). 화면이 조회조건을 재적용한다.
+export async function exportAllJournalEntries(
+  fiscalPeriodId: number,
+): Promise<{ rows: JournalEntry[]; truncated: boolean }> {
+  return fetchAllPages<JournalEntry>(
+    `/api/finance/journal-entries?fiscalPeriodId=${fiscalPeriodId}`,
+  )
+}
 
 // 전표 상세(drill-in)용 차/대변 라인 명세 조회 — 읽기전용.
 export async function getJournalLines(id: number): Promise<JournalLine[]> {

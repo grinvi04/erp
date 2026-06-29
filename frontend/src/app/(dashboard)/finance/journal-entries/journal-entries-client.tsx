@@ -51,6 +51,7 @@ import {
   rejectJournalEntry,
   reverseJournalEntry,
   getJournalLines,
+  exportAllJournalEntries,
 } from './actions'
 import type {
   FiscalYear,
@@ -457,28 +458,53 @@ export default function JournalEntriesClient({
     setQTo('')
     setApplied({ type: '', status: '', from: '', to: '' })
   }
-  const filtered = (entries?.content ?? []).filter((e) => {
+  const matchesFilter = (e: JournalEntry) => {
     if (applied.type && e.entryType !== applied.type) return false
     if (applied.status && e.status !== applied.status) return false
     if (applied.from && e.entryDate < applied.from) return false
     if (applied.to && e.entryDate > applied.to) return false
     return true
-  })
-  const exportExcel = () =>
-    downloadCsv(
-      `전표_${new Date().toISOString().slice(0, 10)}`,
-      ['전표번호', '전표일', '유형', '설명', '통화', '차변합계', '대변합계', '상태'],
-      filtered.map((e) => [
-        e.entryNo,
-        e.entryDate,
-        ENTRY_TYPE_LABEL[e.entryType],
-        e.description,
-        e.currency,
-        e.totalDebit,
-        e.totalCredit,
-        STATUS_LABEL[e.status],
-      ]),
-    )
+  }
+  const filtered = (entries?.content ?? []).filter(matchesFilter)
+  const exportColumns = [
+    '전표번호',
+    '전표일',
+    '유형',
+    '설명',
+    '통화',
+    '차변합계',
+    '대변합계',
+    '상태',
+  ]
+  const exportRow = (e: JournalEntry) => [
+    e.entryNo,
+    e.entryDate,
+    ENTRY_TYPE_LABEL[e.entryType],
+    e.description,
+    e.currency,
+    e.totalDebit,
+    e.totalCredit,
+    STATUS_LABEL[e.status],
+  ]
+  // 전체 엑셀 — 선택 회계기간의 전체 전표(전 페이지 순회) 내보내기. 화면 조회조건을 동일 적용.
+  const exportExcel = () => {
+    if (selectedPeriodId == null) return
+    startTransition(async () => {
+      try {
+        const { rows, truncated } = await exportAllJournalEntries(selectedPeriodId)
+        downloadCsv(
+          `전표_${new Date().toISOString().slice(0, 10)}`,
+          exportColumns,
+          rows.filter(matchesFilter).map(exportRow),
+        )
+        if (truncated) {
+          toast.warning('데이터가 많아 최대 5,000건까지만 내보냈습니다')
+        }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '엑셀 내보내기 중 오류가 발생했습니다')
+      }
+    })
+  }
 
   return (
     <div className="p-5">
@@ -488,7 +514,7 @@ export default function JournalEntriesClient({
         className="mb-4"
       >
         {selectedPeriodId != null && (
-          <Button variant="outline" onClick={exportExcel}>
+          <Button variant="outline" onClick={exportExcel} disabled={isPending}>
             <DownloadIcon />
             엑셀
           </Button>
