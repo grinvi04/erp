@@ -87,6 +87,7 @@ public enum ErrorCode {
       HttpStatus.CONFLICT, "F047", "손상차손비·손상차손누계액 계정이 설정되지 않아 손상을 처리할 수 없습니다"),
   IMPAIRMENT_NOT_REQUIRED(
       HttpStatus.UNPROCESSABLE_ENTITY, "F048", "회수가능액이 장부가액 이상이어서 인식할 손상차손이 없습니다"),
+  IMPAIRMENT_ALREADY_RECOGNIZED(HttpStatus.CONFLICT, "F049", "해당 회계기간에 이미 손상차손이 인식되었습니다"),
 
   // Inventory
   ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "품목을 찾을 수 없습니다"),

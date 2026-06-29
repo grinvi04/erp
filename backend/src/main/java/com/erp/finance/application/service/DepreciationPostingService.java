@@ -114,11 +114,29 @@ public class DepreciationPostingService {
             .findByStartDateLessThanEqualAndEndDateGreaterThanEqual(disposalDate, disposalDate)
             .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_PERIOD_NOT_FOUND));
     // [취득일 이후 종료 ~ 처분월 시작 전 종료) 기간만 조회(전체 이력 스캔·미취득 기간 배제).
-    List<FiscalPeriod> priorPeriods =
+    catchUpPeriods(
+        asset,
         fiscalPeriodRepository.findByEndDateGreaterThanEqualAndEndDateLessThanOrderByStartDateAsc(
-            asset.getAcquisitionDate(), disposalPeriod.getStartDate());
+            asset.getAcquisitionDate(), disposalPeriod.getStartDate()));
+  }
+
+  /**
+   * 손상 인식 기간까지 catch-up 상각 — 취득월부터 인식기간(포함)까지 OPEN 기간 중 미처리분에 당월 상각을 순차 전기해 장부가액을 인식 시점까지 현행화한다(손상
+   * 측정 전 상각 반영, K-IFRS). 손상 인식에서 호출되며 권한은 호출처(FINANCE_WRITE)가 소유한다. 마감 기간은 전기 불가로 건너뛴다.
+   */
+  @Transactional
+  public void catchUpThroughPeriod(FixedAsset asset, FiscalPeriod throughPeriod) {
+    catchUpPeriods(
+        asset,
+        fiscalPeriodRepository
+            .findByEndDateGreaterThanEqualAndEndDateLessThanEqualOrderByStartDateAsc(
+                asset.getAcquisitionDate(), throughPeriod.getEndDate()));
+  }
+
+  /** 주어진 기간들에 미처리분 당월 상각을 순차 전기(공통 루프). 마감 기간·상각액 0은 건너뛴다. 전기할 기간이 있으면 상각 계정 설정이 필요하다. */
+  private void catchUpPeriods(FixedAsset asset, List<FiscalPeriod> periods) {
     DepreciationAccounts accounts = null;
-    for (FiscalPeriod p : priorPeriods) {
+    for (FiscalPeriod p : periods) {
       if (depreciationEntryRepository.existsByFixedAssetIdAndFiscalPeriodId(
           asset.getId(), p.getId())) {
         continue; // 이미 처리
