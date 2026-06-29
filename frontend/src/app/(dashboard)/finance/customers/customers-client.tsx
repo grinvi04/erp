@@ -29,7 +29,15 @@ import { SearchInput } from '@/components/ui/search-input'
 import { FilterBar, FilterField } from '@/components/ui/filter-bar'
 import { FormGrid, FormRow } from '@/components/ui/form-grid'
 import { downloadCsv } from '@/lib/csv'
-import { createCustomer, updateCustomer, deactivateCustomer } from './actions'
+import { BulkImportDialog } from '@/components/ui/bulk-import-dialog'
+import { UploadIcon } from 'lucide-react'
+import {
+  createCustomer,
+  updateCustomer,
+  deactivateCustomer,
+  importCustomersCsv,
+  getCustomerTemplate,
+} from './actions'
 import type { Account, Customer } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
 
@@ -54,6 +62,7 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.FINANCE_WRITE)
   const [dialog, setDialog] = useState<DialogMode>({ type: 'none' })
+  const [importOpen, setImportOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
 
@@ -415,11 +424,26 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
           엑셀
         </Button>
         {canWrite && (
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <UploadIcon />
+            엑셀 업로드
+          </Button>
+        )}
+        {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 고객
           </Button>
         )}
       </PageHeader>
+
+      <BulkImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="고객 대량 업로드"
+        templateFilename="customer-template.csv"
+        uploadAction={importCustomersCsv}
+        templateAction={getCustomerTemplate}
+      />
 
       <div className="space-y-3">
         <FilterBar onSearch={onSearch} onReset={onReset}>
