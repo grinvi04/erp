@@ -6,6 +6,12 @@ spring:
   application:
     name: erp-backend
 
+  # 대량 업로드(CSV) 크기 상한 — 1,000행 CSV에 충분하며 남용 방지.
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/erp}
     username: ${SPRING_DATASOURCE_USERNAME:erp}

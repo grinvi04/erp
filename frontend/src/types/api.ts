@@ -14,3 +14,9 @@ export interface PageResponse<T> {
   totalElements: number
   totalPages: number
 }
+
+export interface BulkImportResult {
+  totalRows: number
+  importedCount: number
+  errors: { rowNumber: number; message: string }[]
+}

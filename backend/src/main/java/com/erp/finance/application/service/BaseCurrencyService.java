@@ -6,6 +6,8 @@ import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.BaseCurrencyResponse;
 import com.erp.finance.application.dto.BaseCurrencyUpdateRequest;
+import com.erp.finance.application.dto.DepreciationAccountResponse;
+import com.erp.finance.application.dto.DepreciationAccountUpdateRequest;
 import com.erp.finance.application.dto.FxGainLossAccountResponse;
 import com.erp.finance.application.dto.FxGainLossAccountUpdateRequest;
 import com.erp.finance.application.dto.VatAccountResponse;
@@ -165,6 +167,64 @@ public class BaseCurrencyService {
         .findFirstByOrderByIdAsc()
         .map(e -> new VatAccounts(e.getVatReceivableAccount(), e.getVatPayableAccount()))
         .orElseGet(() -> new VatAccounts(null, null));
+  }
+
+  /** 감가상각·처분 분개용 계정 — 감가상각비·감가상각누계액·처분이익·처분손실(각 nullable). */
+  public record DepreciationAccounts(
+      Account expenseAccount,
+      Account accumulatedAccount,
+      Account disposalGainAccount,
+      Account disposalLossAccount) {}
+
+  /** 감가상각·처분 계정 설정 조회(FINANCE_READ). 미설정 항목은 null. */
+  public DepreciationAccountResponse getDepreciationAccounts() {
+    permissionChecker.require(Permission.FINANCE_READ);
+    return repository
+        .findFirstByOrderByIdAsc()
+        .map(
+            e ->
+                DepreciationAccountResponse.of(
+                    accountId(e.getDepreciationExpenseAccount()),
+                    accountId(e.getAccumulatedDepreciationAccount()),
+                    accountId(e.getDisposalGainAccount()),
+                    accountId(e.getDisposalLossAccount())))
+        .orElseGet(() -> DepreciationAccountResponse.of(null, null, null, null));
+  }
+
+  /** 감가상각·처분 계정 설정 변경(FINANCE_SETTING_WRITE). 행이 없으면 현재 기준통화로 생성 후 계정만 채운다. */
+  @Transactional
+  public DepreciationAccountResponse updateDepreciationAccounts(
+      DepreciationAccountUpdateRequest request) {
+    permissionChecker.require(Permission.FINANCE_SETTING_WRITE);
+    Account expense = resolveAccount(request.depreciationExpenseAccountId());
+    Account accumulated = resolveAccount(request.accumulatedDepreciationAccountId());
+    Account gain = resolveAccount(request.disposalGainAccountId());
+    Account loss = resolveAccount(request.disposalLossAccountId());
+    TenantBaseCurrency entity =
+        repository
+            .findFirstByOrderByIdAsc()
+            .orElseGet(() -> repository.save(TenantBaseCurrency.of(currentBaseCurrencyCode())));
+    entity.assignDepreciationAccounts(expense, accumulated, gain, loss);
+    return DepreciationAccountResponse.of(
+        accountId(expense), accountId(accumulated), accountId(gain), accountId(loss));
+  }
+
+  /** 감가상각·처분 분개용 계정(내부, 권한 검사 없음). 상각/처분 자동분개에서 호출. */
+  public DepreciationAccounts currentDepreciationAccounts() {
+    return repository
+        .findFirstByOrderByIdAsc()
+        .map(
+            e ->
+                new DepreciationAccounts(
+                    e.getDepreciationExpenseAccount(),
+                    e.getAccumulatedDepreciationAccount(),
+                    e.getDisposalGainAccount(),
+                    e.getDisposalLossAccount()))
+        .orElseGet(() -> new DepreciationAccounts(null, null, null, null));
+  }
+
+  private static Long accountId(Account a) {
+    return a != null ? a.getId() : null;
   }
 
   private Account resolveAccount(Long accountId) {

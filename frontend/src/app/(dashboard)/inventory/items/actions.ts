@@ -1,7 +1,22 @@
 'use server'
-import { apiPost, apiPut, apiDelete } from '@/lib/api'
+import { apiPost, apiPut, apiDelete, apiPostForm, apiGetRaw } from '@/lib/api'
 import { revalidatePath } from 'next/cache'
 import type { CostMethod } from '@/types/inventory'
+import type { BulkImportResult } from '@/types/api'
+
+const ITEMS_PATH = '/inventory/items'
+
+export async function importItemsCsv(form: FormData): Promise<BulkImportResult> {
+  const result = await apiPostForm<BulkImportResult>('/api/inventory/items/import', form)
+  revalidatePath(ITEMS_PATH)
+  return result
+}
+
+export async function getItemTemplate(): Promise<string> {
+  const res = await apiGetRaw('/api/inventory/items/import/template')
+  if (!res.ok) throw new Error('템플릿을 받을 수 없습니다')
+  return res.text()
+}
 
 export async function createItem(data: {
   sku: string

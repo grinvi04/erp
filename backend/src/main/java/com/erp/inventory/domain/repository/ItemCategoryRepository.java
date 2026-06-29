@@ -2,11 +2,14 @@ package com.erp.inventory.domain.repository;
 
 import com.erp.inventory.domain.model.ItemCategory;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 public interface ItemCategoryRepository extends JpaRepository<ItemCategory, Long> {
   boolean existsByCode(String code);
+
+  Optional<ItemCategory> findByCode(String code);
 
   List<ItemCategory> findByParentIsNull();
 
