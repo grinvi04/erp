@@ -18,6 +18,7 @@ import com.erp.finance.domain.model.FiscalPeriod;
 import com.erp.finance.domain.model.FiscalYear;
 import com.erp.finance.domain.model.JournalEntry;
 import com.erp.finance.domain.model.NormalBalance;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.CustomerRepository;
@@ -101,6 +102,7 @@ class ArInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
                 LocalDate.of(2025, 1, 10),
                 LocalDate.of(2025, 2, 10),
                 new BigDecimal("100000"),
+                TaxType.EXEMPT,
                 "KRW",
                 null,
                 List.of(
@@ -144,6 +146,7 @@ class ArInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
                 LocalDate.of(2025, 1, 10),
                 LocalDate.of(2025, 2, 10),
                 new BigDecimal("50000"),
+                TaxType.EXEMPT,
                 "KRW",
                 null,
                 null));
@@ -169,6 +172,7 @@ class ArInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
                 LocalDate.of(2025, 1, 10),
                 LocalDate.of(2025, 2, 10),
                 new BigDecimal("100000"),
+                TaxType.EXEMPT,
                 "KRW",
                 null,
                 List.of(

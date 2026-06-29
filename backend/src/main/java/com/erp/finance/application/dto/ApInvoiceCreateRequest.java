@@ -1,5 +1,6 @@
 package com.erp.finance.application.dto;
 
+import com.erp.finance.domain.model.TaxType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -14,8 +15,9 @@ public record ApInvoiceCreateRequest(
     @NotNull Long vendorId,
     @NotNull LocalDate invoiceDate,
     @NotNull LocalDate dueDate,
-    @NotNull @DecimalMin("0.01") BigDecimal totalAmount,
+    // 공급가액(부가세 제외). 총액 = 공급가액 + 자동계산 세액. 라인 제공 시 합계가 공급가액과 일치해야 한다.
+    @NotNull @DecimalMin("0.01") BigDecimal supplyAmount,
+    @NotNull TaxType taxType,
     @Size(max = 3) String currency,
     String note,
-    // 차변 라인(선택) — 제공 시 합계가 totalAmount와 일치해야 하며, 승인 시 GL 자동 분개의 차변이 된다.
     @Valid List<ApInvoiceLineRequest> lines) {}

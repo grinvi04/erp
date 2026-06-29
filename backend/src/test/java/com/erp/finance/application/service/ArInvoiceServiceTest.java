@@ -19,6 +19,7 @@ import com.erp.finance.application.dto.ArInvoicePayRequest;
 import com.erp.finance.application.dto.ArInvoiceResponse;
 import com.erp.finance.domain.model.ArInvoice;
 import com.erp.finance.domain.model.Customer;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.CustomerRepository;
 import java.math.BigDecimal;
@@ -59,6 +60,7 @@ class ArInvoiceServiceTest {
         LocalDate.of(2025, 1, 1),
         LocalDate.of(2025, 1, 31),
         new BigDecimal("100000"),
+        TaxType.EXEMPT,
         "KRW",
         null);
   }
@@ -79,6 +81,7 @@ class ArInvoiceServiceTest {
                 LocalDate.of(2025, 1, 1),
                 LocalDate.of(2025, 1, 31),
                 new BigDecimal("100000"),
+                TaxType.EXEMPT,
                 "KRW",
                 null,
                 null));
@@ -106,6 +109,7 @@ class ArInvoiceServiceTest {
             LocalDate.of(2025, 1, 1),
             LocalDate.of(2025, 1, 31),
             new BigDecimal("200"),
+            TaxType.EXEMPT,
             "USD",
             null,
             null));
@@ -131,6 +135,7 @@ class ArInvoiceServiceTest {
             LocalDate.of(2025, 1, 1),
             LocalDate.of(2025, 1, 31),
             new BigDecimal("5000"),
+            TaxType.EXEMPT,
             "JPY",
             null,
             null));
@@ -155,6 +160,7 @@ class ArInvoiceServiceTest {
                         LocalDate.of(2025, 1, 1),
                         LocalDate.of(2025, 1, 31),
                         new BigDecimal("100000"),
+                        TaxType.EXEMPT,
                         "KRW",
                         null,
                         null)));

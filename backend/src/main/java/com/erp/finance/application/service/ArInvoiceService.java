@@ -88,7 +88,8 @@ public class ArInvoiceService {
             customer,
             request.invoiceDate(),
             request.dueDate(),
-            request.totalAmount(),
+            request.supplyAmount(),
+            request.taxType(),
             request.currency(),
             request.note());
     addLines(invoice, request);
@@ -114,7 +115,7 @@ public class ArInvoiceService {
       invoice.addLine(account, lineReq.amount(), lineReq.description());
       sum = sum.add(lineReq.amount());
     }
-    if (sum.compareTo(request.totalAmount()) != 0) {
+    if (sum.compareTo(request.supplyAmount()) != 0) {
       throw new ErpException(ErrorCode.INVALID_INPUT);
     }
   }

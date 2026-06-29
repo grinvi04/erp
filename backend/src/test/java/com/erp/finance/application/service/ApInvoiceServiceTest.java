@@ -18,6 +18,7 @@ import com.erp.finance.application.dto.ApInvoiceCreateRequest;
 import com.erp.finance.application.dto.ApInvoicePayRequest;
 import com.erp.finance.application.dto.ApInvoiceResponse;
 import com.erp.finance.domain.model.ApInvoice;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.VendorRepository;
@@ -59,8 +60,28 @@ class ApInvoiceServiceTest {
         LocalDate.of(2025, 1, 1),
         LocalDate.of(2025, 1, 31),
         new BigDecimal("100000"),
+        TaxType.EXEMPT,
         "KRW",
         null);
+  }
+
+  @Test
+  void create_taxable_computesVatAndTotal() {
+    // AC-3: 과세 공급가액 100,000 → 세액 10,000 · 총액 110,000.
+    ApInvoice inv =
+        ApInvoice.create(
+            "INV-VAT",
+            buildVendor(),
+            LocalDate.of(2025, 1, 1),
+            LocalDate.of(2025, 1, 31),
+            new BigDecimal("100000"),
+            TaxType.TAXABLE,
+            "KRW",
+            null);
+
+    assertThat(inv.getSupplyAmount()).isEqualByComparingTo("100000");
+    assertThat(inv.getVatAmount()).isEqualByComparingTo("10000");
+    assertThat(inv.getTotalAmount()).isEqualByComparingTo("110000");
   }
 
   @Test
@@ -79,6 +100,7 @@ class ApInvoiceServiceTest {
                 LocalDate.of(2025, 1, 1),
                 LocalDate.of(2025, 1, 31),
                 new BigDecimal("100000"),
+                TaxType.EXEMPT,
                 "KRW",
                 null,
                 null));
@@ -106,6 +128,7 @@ class ApInvoiceServiceTest {
             LocalDate.of(2025, 1, 1),
             LocalDate.of(2025, 1, 31),
             new BigDecimal("100"),
+            TaxType.EXEMPT,
             "USD",
             null,
             null));
@@ -131,6 +154,7 @@ class ApInvoiceServiceTest {
             LocalDate.of(2025, 1, 1),
             LocalDate.of(2025, 1, 31),
             new BigDecimal("5000"),
+            TaxType.EXEMPT,
             "JPY",
             null,
             null));
@@ -155,6 +179,7 @@ class ApInvoiceServiceTest {
                         LocalDate.of(2025, 1, 1),
                         LocalDate.of(2025, 1, 31),
                         new BigDecimal("100000"),
+                        TaxType.EXEMPT,
                         "KRW",
                         null,
                         null)));

@@ -2,6 +2,7 @@ package com.erp.finance.application.dto;
 
 import com.erp.finance.domain.model.ApInvoice;
 import com.erp.finance.domain.model.ApInvoiceStatus;
+import com.erp.finance.domain.model.TaxType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -12,6 +13,9 @@ public record ApInvoiceResponse(
     String vendorName,
     LocalDate invoiceDate,
     LocalDate dueDate,
+    BigDecimal supplyAmount,
+    BigDecimal vatAmount,
+    TaxType taxType,
     BigDecimal totalAmount,
     BigDecimal paidAmount,
     BigDecimal outstandingAmount,
@@ -28,6 +32,9 @@ public record ApInvoiceResponse(
         inv.getVendor().getName(),
         inv.getInvoiceDate(),
         inv.getDueDate(),
+        inv.getSupplyAmount(),
+        inv.getVatAmount(),
+        inv.getTaxType(),
         inv.getTotalAmount(),
         inv.getPaidAmount(),
         inv.getOutstandingAmount(),
