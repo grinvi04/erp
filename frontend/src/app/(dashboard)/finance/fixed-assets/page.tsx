@@ -5,6 +5,7 @@ import type {
   FiscalPeriod,
   FiscalYear,
   FixedAsset,
+  ImpairmentAccounts,
 } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
 import FixedAssetsClient from './fixed-assets-client'
@@ -18,12 +19,15 @@ export default async function FixedAssetsPage(props: {
   const page = Number(sp.page ?? 0)
   const size = Number(sp.size ?? 20)
 
-  const [data, accounts, depreciationAccounts, fiscalYears] = await Promise.all([
-    apiGetPage<FixedAsset>(`/api/finance/fixed-assets?page=${page}&size=${size}`),
-    apiGet<Account[]>('/api/finance/accounts'),
-    apiGet<DepreciationAccounts>('/api/finance/fixed-assets/depreciation-accounts'),
-    apiGet<FiscalYear[]>('/api/finance/fiscal-years'),
-  ])
+  const [data, accounts, depreciationAccounts, impairmentAccounts, fiscalYears] = await Promise.all(
+    [
+      apiGetPage<FixedAsset>(`/api/finance/fixed-assets?page=${page}&size=${size}`),
+      apiGet<Account[]>('/api/finance/accounts'),
+      apiGet<DepreciationAccounts>('/api/finance/fixed-assets/depreciation-accounts'),
+      apiGet<ImpairmentAccounts>('/api/finance/fixed-assets/impairment-accounts'),
+      apiGet<FiscalYear[]>('/api/finance/fiscal-years'),
+    ],
+  )
 
   // 상각 실행 대상 회계기간 — 연도별 기간을 모아 OPEN만 선택지로 제공.
   const periodLists = await Promise.all(
@@ -36,6 +40,7 @@ export default async function FixedAssetsPage(props: {
       data={data as PageResponse<FixedAsset>}
       accounts={accounts}
       depreciationAccounts={depreciationAccounts}
+      impairmentAccounts={impairmentAccounts}
       periods={periods}
     />
   )

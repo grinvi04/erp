@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PlayIcon, BanIcon, HistoryIcon } from 'lucide-react'
+import { PlusIcon, PlayIcon, BanIcon, HistoryIcon, TrendingDownIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -42,6 +42,9 @@ import {
   runDepreciation,
   updateDepreciationAccounts,
   getDepreciationHistory,
+  recognizeImpairment,
+  updateImpairmentAccounts,
+  getImpairmentHistory,
 } from './actions'
 import type {
   Account,
@@ -51,6 +54,8 @@ import type {
   FiscalPeriod,
   FixedAsset,
   FixedAssetStatus,
+  ImpairmentAccounts,
+  ImpairmentEntry,
 } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
 
@@ -78,11 +83,14 @@ type DialogState =
   | { type: 'dispose'; asset: FixedAsset }
   | { type: 'run' }
   | { type: 'history'; asset: FixedAsset }
+  | { type: 'impair'; asset: FixedAsset }
+  | { type: 'impairHistory'; asset: FixedAsset }
 
 interface Props {
   data: PageResponse<FixedAsset>
   accounts: Account[]
   depreciationAccounts: DepreciationAccounts
+  impairmentAccounts: ImpairmentAccounts
   periods: FiscalPeriod[]
 }
 
@@ -90,6 +98,7 @@ export default function FixedAssetsClient({
   data,
   accounts,
   depreciationAccounts,
+  impairmentAccounts,
   periods,
 }: Props) {
   const { can } = usePermissions()
@@ -199,6 +208,57 @@ export default function FixedAssetsClient({
     })
   }
 
+  // 손상차손 인식 폼
+  const [impairPeriodId, setImpairPeriodId] = useState('')
+  const [recoverableAmount, setRecoverableAmount] = useState('')
+  const openImpair = (asset: FixedAsset) => {
+    setImpairPeriodId(openPeriods.length > 0 ? String(openPeriods[0].id) : '')
+    setRecoverableAmount('')
+    setDialog({ type: 'impair', asset })
+  }
+  const handleImpair = (asset: FixedAsset) => {
+    if (!impairPeriodId) {
+      toast.error('회계기간을 선택해주세요')
+      return
+    }
+    if (recoverableAmount === '' || Number(recoverableAmount) < 0) {
+      toast.error('회수가능액을 0 이상으로 입력해주세요')
+      return
+    }
+    startTransition(async () => {
+      try {
+        const result = await recognizeImpairment(asset.id, {
+          fiscalPeriodId: Number(impairPeriodId),
+          recoverableAmount: Number(recoverableAmount),
+        })
+        toast.success(
+          `손상차손 ${won(result.impairmentLoss)}원 인식 — 장부가액 ${won(result.bookValueAfter)}원`,
+        )
+        close()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '손상 인식 중 오류가 발생했습니다')
+      }
+    })
+  }
+
+  // 손상 이력
+  const [impairHistory, setImpairHistory] = useState<ImpairmentEntry[]>([])
+  const [impairHistoryLoading, setImpairHistoryLoading] = useState(false)
+  const openImpairHistory = (asset: FixedAsset) => {
+    setImpairHistory([])
+    setImpairHistoryLoading(true)
+    setDialog({ type: 'impairHistory', asset })
+    startTransition(async () => {
+      try {
+        setImpairHistory(await getImpairmentHistory(asset.id))
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '이력 조회 중 오류가 발생했습니다')
+      } finally {
+        setImpairHistoryLoading(false)
+      }
+    })
+  }
+
   // 월 상각 실행
   const [runPeriodId, setRunPeriodId] = useState('')
   const openRun = () => {
@@ -272,6 +332,33 @@ export default function FixedAssetsClient({
           disposalLossAccountId: lossAcc ? Number(lossAcc) : null,
         })
         toast.success('감가상각·처분 계정이 저장되었습니다')
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '저장 중 오류가 발생했습니다')
+      }
+    })
+  }
+
+  // 손상차손 계정 설정
+  const [impairLossAcc, setImpairLossAcc] = useState(
+    impairmentAccounts.impairmentLossAccountId != null
+      ? String(impairmentAccounts.impairmentLossAccountId)
+      : '',
+  )
+  const [impairAccumulatedAcc, setImpairAccumulatedAcc] = useState(
+    impairmentAccounts.accumulatedImpairmentAccountId != null
+      ? String(impairmentAccounts.accumulatedImpairmentAccountId)
+      : '',
+  )
+  const handleSaveImpairmentAccounts = () => {
+    startTransition(async () => {
+      try {
+        await updateImpairmentAccounts({
+          impairmentLossAccountId: impairLossAcc ? Number(impairLossAcc) : null,
+          accumulatedImpairmentAccountId: impairAccumulatedAcc
+            ? Number(impairAccumulatedAcc)
+            : null,
+        })
+        toast.success('손상차손 계정이 저장되었습니다')
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '저장 중 오류가 발생했습니다')
       }
@@ -357,6 +444,19 @@ export default function FixedAssetsClient({
       ),
     },
     {
+      key: 'accumulatedImpairment',
+      header: '손상누계',
+      align: 'right',
+      sortable: true,
+      sortValue: (a) => a.accumulatedImpairment,
+      cell: (a) =>
+        a.accumulatedImpairment > 0 ? (
+          <span className="font-mono text-sm text-destructive">{won(a.accumulatedImpairment)}</span>
+        ) : (
+          <span className="font-mono text-sm text-muted-foreground">-</span>
+        ),
+    },
+    {
       key: 'bookValue',
       header: '장부가액',
       align: 'right',
@@ -397,6 +497,26 @@ export default function FixedAssetsClient({
           >
             <HistoryIcon className="text-muted-foreground" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            title="손상이력"
+            onClick={() => openImpairHistory(a)}
+            disabled={isPending}
+          >
+            <TrendingDownIcon className="text-muted-foreground" />
+          </Button>
+          {canWrite && a.status === 'ACTIVE' && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="손상차손 인식"
+              onClick={() => openImpair(a)}
+              disabled={isPending}
+            >
+              <TrendingDownIcon className="text-destructive" />
+            </Button>
+          )}
           {canWrite && a.status === 'ACTIVE' && (
             <Button
               variant="ghost"
@@ -450,6 +570,30 @@ export default function FixedAssetsClient({
         {canSetting && (
           <div className="mt-4 flex justify-end">
             <Button onClick={handleSaveAccounts} disabled={isPending}>
+              저장
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* 손상차손 계정 설정 */}
+      <div className="bg-card rounded-lg border p-5 mb-4">
+        <div className="mb-1 text-sm font-medium text-foreground">손상차손 계정</div>
+        <p className="text-xs text-muted-foreground mb-4">
+          손상 인식 시 (차)손상차손비·(대)손상차손누계액으로 자동 분개할 계정입니다. 미설정이면 손상
+          처리가 차단됩니다.
+        </p>
+        <FormGrid>
+          <FormRow label="유형자산손상차손 (비용)">
+            {accountSelect(impairLossAcc, setImpairLossAcc)}
+          </FormRow>
+          <FormRow label="손상차손누계액 (자산차감)">
+            {accountSelect(impairAccumulatedAcc, setImpairAccumulatedAcc)}
+          </FormRow>
+        </FormGrid>
+        {canSetting && (
+          <div className="mt-4 flex justify-end">
+            <Button onClick={handleSaveImpairmentAccounts} disabled={isPending}>
               저장
             </Button>
           </div>
@@ -771,6 +915,134 @@ export default function FixedAssetsClient({
                   <TableRow key={h.id}>
                     <TableCell className="font-mono text-sm">{h.fiscalPeriodId}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{won(h.amount)}</TableCell>
+                    <TableCell className="text-right font-mono text-sm text-muted-foreground">
+                      {h.journalEntryId ? `#${h.journalEntryId}` : '-'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter showCloseButton />
+        </DialogContent>
+      </Dialog>
+
+      {/* 손상차손 인식 Dialog */}
+      <Dialog
+        open={dialog.type === 'impair'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>손상차손 인식</DialogTitle>
+          </DialogHeader>
+          {dialog.type === 'impair' && (
+            <div className="grid gap-4 py-2">
+              <div className="text-sm text-muted-foreground">
+                <strong>{dialog.asset.name}</strong> — {dialog.asset.code}
+                <br />
+                현재 장부가액: <strong>{won(dialog.asset.bookValue)}원</strong>
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-sm">인식 회계기간 *</label>
+                <Select value={impairPeriodId} onValueChange={(v) => setImpairPeriodId(v ?? '')}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="OPEN 회계기간 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {openPeriods.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.startDate} ~ {p.endDate}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {openPeriods.length === 0 && (
+                  <p className="text-xs text-destructive">OPEN 상태인 회계기간이 없습니다.</p>
+                )}
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-sm">회수가능액 *</label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={recoverableAmount}
+                  onChange={(e) => setRecoverableAmount(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                인식기간까지 감가상각을 반영한 뒤 장부가액과 회수가능액의 차액을 손상차손으로
+                인식합니다. 회수가능액이 장부가액 이상이면 인식할 손상이 없습니다.
+              </p>
+            </div>
+          )}
+          <DialogFooter showCloseButton>
+            <Button
+              variant="destructive"
+              onClick={() => dialog.type === 'impair' && handleImpair(dialog.asset)}
+              disabled={isPending || openPeriods.length === 0}
+            >
+              손상 인식
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 손상 이력 Dialog */}
+      <Dialog
+        open={dialog.type === 'impairHistory'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              손상차손 이력{dialog.type === 'impairHistory' ? ` — ${dialog.asset.name}` : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>회계기간 ID</TableHead>
+                  <TableHead className="text-right">인식전 장부가액</TableHead>
+                  <TableHead className="text-right">회수가능액</TableHead>
+                  <TableHead className="text-right">손상차손</TableHead>
+                  <TableHead className="text-right">분개</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {impairHistoryLoading && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      불러오는 중…
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!impairHistoryLoading && impairHistory.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      손상 이력이 없습니다
+                    </TableCell>
+                  </TableRow>
+                )}
+                {impairHistory.map((h) => (
+                  <TableRow key={h.id}>
+                    <TableCell className="font-mono text-sm">{h.fiscalPeriodId}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {won(h.bookValueBefore)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {won(h.recoverableAmount)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm text-destructive">
+                      {won(h.impairmentLoss)}
+                    </TableCell>
                     <TableCell className="text-right font-mono text-sm text-muted-foreground">
                       {h.journalEntryId ? `#${h.journalEntryId}` : '-'}
                     </TableCell>

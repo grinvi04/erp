@@ -66,6 +66,7 @@ class FixedAssetControllerTest {
         null,
         7L,
         BigDecimal.ZERO,
+        BigDecimal.ZERO,
         new BigDecimal("1200000"),
         FixedAssetStatus.ACTIVE);
   }
@@ -155,6 +156,7 @@ class FixedAssetControllerTest {
             null,
             7L,
             new BigDecimal("100000"),
+            BigDecimal.ZERO,
             new BigDecimal("1100000"),
             FixedAssetStatus.DISPOSED);
     given(fixedAssetService.dispose(eq(1L), any())).willReturn(disposed);

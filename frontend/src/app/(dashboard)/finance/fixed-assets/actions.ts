@@ -7,6 +7,9 @@ import type {
   DepreciationMethod,
   DepreciationRunResult,
   FixedAsset,
+  ImpairmentAccounts,
+  ImpairmentEntry,
+  ImpairmentRecognizeResult,
 } from '@/types/finance'
 
 const PATH = '/finance/fixed-assets'
@@ -52,4 +55,25 @@ export async function updateDepreciationAccounts(data: DepreciationAccounts): Pr
 
 export async function getDepreciationHistory(id: number): Promise<DepreciationEntry[]> {
   return apiGet<DepreciationEntry[]>(`/api/finance/fixed-assets/${id}/depreciation`)
+}
+
+export async function recognizeImpairment(
+  id: number,
+  data: { fiscalPeriodId: number; recoverableAmount: number },
+): Promise<ImpairmentRecognizeResult> {
+  const result = await apiPost<ImpairmentRecognizeResult>(
+    `/api/finance/fixed-assets/${id}/impairment`,
+    data,
+  )
+  revalidatePath(PATH)
+  return result
+}
+
+export async function updateImpairmentAccounts(data: ImpairmentAccounts): Promise<void> {
+  await apiPut<ImpairmentAccounts>('/api/finance/fixed-assets/impairment-accounts', data)
+  revalidatePath(PATH)
+}
+
+export async function getImpairmentHistory(id: number): Promise<ImpairmentEntry[]> {
+  return apiGet<ImpairmentEntry[]>(`/api/finance/fixed-assets/${id}/impairment`)
 }

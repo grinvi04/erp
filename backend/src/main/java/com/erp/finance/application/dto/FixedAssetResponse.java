@@ -18,6 +18,7 @@ public record FixedAssetResponse(
     BigDecimal decliningAnnualRate,
     Long assetAccountId,
     BigDecimal accumulatedDepreciation,
+    BigDecimal accumulatedImpairment,
     BigDecimal bookValue,
     FixedAssetStatus status) {
 
@@ -34,6 +35,7 @@ public record FixedAssetResponse(
         a.getDecliningAnnualRate(),
         a.getAssetAccount() != null ? a.getAssetAccount().getId() : null,
         a.getAccumulatedDepreciation(),
+        a.getAccumulatedImpairment(),
         a.bookValue(),
         a.getStatus());
   }
