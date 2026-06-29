@@ -38,26 +38,26 @@ export function StatCard({
   const body = (
     <div
       className={cn(
-        'group relative flex h-full flex-col rounded-xl border border-border bg-card p-5 shadow-xs transition-all',
-        href && 'hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md',
+        'group relative flex h-full flex-col rounded-lg border border-border bg-card p-4 shadow-sm transition-all',
+        href && 'hover:border-primary/30 hover:shadow-md',
         className,
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
         {Icon && (
           <span
             className={cn(
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+              'flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
               CHIP[tone],
             )}
           >
-            <Icon className="h-[18px] w-[18px]" />
+            <Icon className="h-4 w-4" />
           </span>
         )}
       </div>
-      <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="text-xl font-semibold tracking-tight text-foreground tabular-nums">
           {value}
         </span>
         {trend && <TrendBadge {...trend} />}

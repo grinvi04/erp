@@ -58,13 +58,12 @@ function DetailRow({
 }) {
   return (
     <div
-      className={cn(
-        'grid grid-cols-[8rem_1fr] items-start gap-3 border-b border-border/50 py-2 last:border-0',
-        className,
-      )}
+      className={cn('grid grid-cols-[8rem_1fr] border-b border-border last:border-b-0', className)}
     >
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-sm text-foreground">{children}</dd>
+      <dt className="flex items-center border-r border-border bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="flex items-center px-3 py-1.5 text-[13px] text-foreground">{children}</dd>
     </div>
   )
 }
