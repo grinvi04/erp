@@ -278,3 +278,44 @@ export interface BalanceSheetResponse {
   balanced: boolean
   excludedEntryCount: number
 }
+
+// 고정자산·감가상각 — 백엔드 FixedAssetResponse / DepreciationEntryResponse 등과 1:1
+export type DepreciationMethod = 'STRAIGHT_LINE' | 'DECLINING_BALANCE'
+export type FixedAssetStatus = 'ACTIVE' | 'DISPOSED'
+
+export interface FixedAsset {
+  id: number
+  code: string
+  name: string
+  acquisitionDate: string
+  acquisitionCost: number
+  residualValue: number
+  usefulLifeMonths: number
+  method: DepreciationMethod
+  decliningAnnualRate: number | null
+  assetAccountId: number | null
+  accumulatedDepreciation: number
+  bookValue: number
+  status: FixedAssetStatus
+}
+
+export interface DepreciationEntry {
+  id: number
+  fiscalPeriodId: number
+  amount: number
+  journalEntryId: number | null
+}
+
+export interface DepreciationAccounts {
+  depreciationExpenseAccountId: number | null
+  accumulatedDepreciationAccountId: number | null
+  disposalGainAccountId: number | null
+  disposalLossAccountId: number | null
+}
+
+export interface DepreciationRunResult {
+  fiscalPeriodId: number
+  processedCount: number
+  skippedCount: number
+  totalAmount: number
+}
