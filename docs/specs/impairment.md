@@ -36,7 +36,7 @@
 - **AC-1 (손상 인식, 정상):** WHEN 가동 자산에 회계기간·회수가능액(< 장부가액)으로 손상 인식(FINANCE_WRITE), the system SHALL 인식기간까지 감가상각을 catch-up한 뒤 손상차손액 = 장부가액 − 회수가능액으로 (차)손상차손비 (대)손상차손누계액 균형 DRAFT 분개를 만들고 자산 손상누계액을 갱신하며 손상 이력(ImpairmentEntry)을 남긴다.
 - **AC-2 (장부가액 정의, 경계):** the system SHALL `bookValue() = 취득원가 − 감가상각누계액 − 손상누계액`로 산정한다(손상 후 장부가액이 회수가능액과 일치).
 - **AC-3 (정률 손상후 상각, 정상):** WHILE 상각방법=정률 AND 손상 인식됨, the system SHALL 차기 월상각액 = 월초 장부가액(손상 반영) × (연상각률/12)로 자동 재계산한다.
-- **AC-4 (정액 손상후 상각, 정상):** WHILE 상각방법=정액 AND 손상 인식됨, the system SHALL 차기 월상각액 = (장부가액 − 잔존가치)/잔여내용연수(= 내용연수월 − 기상각월수)로 재배분한다. **(비손상 자산은 기존 (취득원가−잔존)/내용연수월과 동일값 — 회귀 없음.)**
+- **AC-4 (정액 손상후 상각, 정상):** WHILE 상각방법=정액 AND 손상 인식됨, the system SHALL 손상 시점에 1회 산정한 잔여내용연수 재배분 월상각액(= (손상후 장부가액 − 잔존가치)/잔여내용연수)을 차기부터 적용한다. **(비손상 자산은 재배분값을 두지 않고 기존 (취득원가−잔존)/내용연수월 상수 공식을 그대로 사용 — 회귀 없음.)**
 - **AC-5 (멱등, 경계):** IF 같은 (자산,기간)을 다시 손상 인식하면, THEN the system SHALL 거부(중복 인식·중복 분개 금지). 서비스 사전조회 + DB UNIQUE(자산,기간) 이중.
 - **AC-6 (손상 불요, 예외):** IF 회수가능액 ≥ 장부가액이면, THEN the system SHALL 차단하고 명확한 오류(4xx) 반환(손상차손 0/음수 분개 금지).
 - **AC-7 (회수가능액 유효성, 예외):** IF 회수가능액 < 0이면, THEN the system SHALL 400.
@@ -74,11 +74,11 @@
 - 처분: `FixedAssetService.dispose()` / `postDisposal()` (100–127행) 확장.
 
 **엔티티/도메인 변경 (`FixedAsset.java`):**
-- 신규 컬럼: `accumulatedImpairment NUMERIC(20,2) NOT NULL DEFAULT 0`, `depreciatedMonths INT NOT NULL DEFAULT 0`(잔여내용연수 산정용).
+- 신규 컬럼: `accumulatedImpairment NUMERIC(20,2) NOT NULL DEFAULT 0`, `straightLineMonthlyOverride NUMERIC(20,2)`(nullable — 손상 후 정액 재배분 월상각액. 정률·비손상은 null).
 - `bookValue()` = `acquisitionCost − accumulatedDepreciation − accumulatedImpairment` (AC-2).
-- `applyImpairment(loss)`: 손상누계액 += loss.
-- `applyDepreciation(amount)`: 기존 누계 갱신 + `depreciatedMonths++`.
-- `monthlyDepreciation()` 정액 분기: `(bookValue − residual) / max(usefulLifeMonths − depreciatedMonths, 1)` 후 `min(계산액, bookValue − residual)` 가드. 정률 분기는 무변경(`bookValue`가 손상 반영). **비손상 자산: (cost−res−elapsed×월상각)/(life−elapsed) = (cost−res)/life로 기존과 동일값(증명됨) → 회귀 안전.**
+- `applyImpairment(loss, remainingMonths)`: 손상누계액 += loss; 정액이면 `straightLineMonthlyOverride = (bookValue − residual)/max(remainingMonths,1)`(DOWN, scale 2) 산정. 정률은 override 미설정.
+- `applyDepreciation(amount)`: **무변경**(기존 누계 갱신만).
+- `monthlyDepreciation()` 정액 분기: `raw = straightLineMonthlyOverride != null ? straightLineMonthlyOverride : (취득원가−잔존)/내용연수월` 후 `min(raw, bookValue − residual)` 가드. 정률 분기 무변경(`bookValue`가 손상 반영). **비손상 자산은 override=null → 기존 상수 공식 그대로 → 기존 도메인/통합 테스트 전부 무변경(완전 회귀 안전).** 잔여내용연수 = `내용연수월 − DepreciationEntry 개수`(손상 catch-up 후 산정, Task 2).
 
 **신규 엔티티 `ImpairmentEntry`** (DepreciationEntry 동형): fixedAssetId·fiscalPeriodId·recoverableAmount·bookValueBefore·impairmentLoss·journalEntryId. UNIQUE(tenant,asset,period).
 
@@ -91,9 +91,9 @@
 
 **처분 분개 확장 (`FixedAssetService.postDisposal`):** `accumulatedImpairment > 0`이면 (차)손상차손누계액 라인 추가(자산 취득원가 제거 정합). `gainLoss = proceeds − bookValue()`는 이미 손상 반영(AC-9).
 
-**계정 설정 확장:** `TenantBaseCurrency`에 `impairment_loss_account_id`·`accumulated_impairment_account_id` FK 2개. `BaseCurrencyService`에 손상 계정 get/update/current(기존 DepreciationAccount DTO/엔드포인트 확장 — 고정자산 계정설정 단일 화면 유지). `ReferenceTypes.IMPAIRMENT` 추가. ErrorCode `F047 IMPAIRMENT_ACCOUNT_NOT_CONFIGURED`, `F048 IMPAIRMENT_NOT_REQUIRED`(회수가능액≥장부가액).
+**계정 설정 확장:** `TenantBaseCurrency`에 `impairment_loss_account_id`(손상차손비, EXPENSE)·`accumulated_impairment_account_id`(손상차손누계액, ASSET 차감) FK 2개 + `assignImpairmentAccounts`·getters. `BaseCurrencyService`에 **별도 `ImpairmentAccounts` record + getImpairmentAccounts/updateImpairmentAccounts/currentImpairmentAccounts**(기존 Fx·Vat·Depreciation 계정군이 각각 독립 record/DTO/엔드포인트인 패턴과 동일 — DepreciationAccount 확장보다 일관적). DTO `ImpairmentAccountResponse`·`ImpairmentAccountUpdateRequest`. `ReferenceTypes.IMPAIRMENT` 추가. ErrorCode `F047 IMPAIRMENT_ACCOUNT_NOT_CONFIGURED`, `F048 IMPAIRMENT_NOT_REQUIRED`(회수가능액≥장부가액).
 
-**마이그레이션 V2015__impairment.sql:** impairment_entry 테이블·SEQUENCE·UNIQUE 인덱스; fixed_asset에 accumulated_impairment·depreciated_months 컬럼 추가(+ 기존 행 depreciated_months 백필 = `(SELECT count(*) FROM depreciation_entry de WHERE de.fixed_asset_id = fixed_asset.id AND de.deleted_at IS NULL)`); tenant_base_currency에 손상 계정 FK 2개.
+**마이그레이션 V2015__impairment.sql:** impairment_entry 테이블·SEQUENCE·UNIQUE 인덱스(tenant,asset,period); fixed_asset에 `accumulated_impairment NUMERIC(20,2) NOT NULL DEFAULT 0`·`straight_line_monthly_override NUMERIC(20,2)`(nullable) 컬럼 추가; tenant_base_currency에 손상 계정 FK 2개. (백필 불필요 — override는 손상 시에만 채워짐.)
 
 **컨트롤러/DTO:** `POST /api/finance/fixed-assets/{id}/impairment` (ImpairmentRecognizeRequest: fiscalPeriodId, recoverableAmount), 손상 이력 GET, 계정설정 GET/PUT 확장. ImpairmentEntryResponse.
 
@@ -108,7 +108,7 @@
 | # | 태스크 | AC | 대상 파일 | 검증(exit 0) | 의존 | [P] |
 |---|---|---|---|---|---|---|
 | 0 | `docs/specs/impairment.md`로 이 스펙 커밋(repo 단일출처) | — | docs/specs/impairment.md | 파일 존재 | — | |
-| 1 | FixedAsset 도메인 변경(accumulatedImpairment·depreciatedMonths·bookValue·applyImpairment·정액 잔여내용연수 재배분) + ImpairmentEntry + V2015(테이블·컬럼·백필·계정FK) + 손상 계정설정(TenantBaseCurrency·BaseCurrencyService 확장) | AC-2,3,4,8(전제),12 | FixedAsset, ImpairmentEntry, V2015, TenantBaseCurrency, BaseCurrencyService, ReferenceTypes, ErrorCode | `cd backend && ./gradlew check` (정액 회귀 포함) | #0 | |
+| 1 | FixedAsset 도메인(accumulatedImpairment·straightLineMonthlyOverride·bookValue·applyImpairment·정액 override 분기) + ImpairmentEntry + V2015(테이블·컬럼·계정FK) + 손상 계정설정(TenantBaseCurrency·BaseCurrencyService 별도 ImpairmentAccounts) | AC-2,3,4,8(전제),12 | FixedAsset, ImpairmentEntry, V2015, TenantBaseCurrency, BaseCurrencyService, Impairment DTO, ReferenceTypes, ErrorCode | `cd backend && ./gradlew check` (정액 회귀 포함) | #0 | |
 | 2 | ImpairmentPostingService(catch-up→손상액 계산→GL분개→누계갱신→이력·멱등·계정필수·회계기간·회수가능액검증) | AC-1,5,6,7,8,10,13 | ImpairmentPostingService, ImpairmentEntryRepository, DepreciationPostingService(catch-up 일반화) | `./gradlew check` | #1 | |
 | 3 | 처분 분개 손상차손누계액 청산 확장 | AC-9,13 | FixedAssetService(postDisposal) | `./gradlew check` (처분 회귀 포함) | #1 | |
 | 4 | 컨트롤러(손상 인식·이력·계정설정 확장)+DTO+권한 | AC-1,11,14 | FixedAssetController, Impairment DTO | `./gradlew check` | #2,#3 | |
