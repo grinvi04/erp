@@ -3,7 +3,7 @@ import { useState, useTransition, useRef } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,6 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import {
   getContactsByAccount,
   createContact,
@@ -186,40 +189,46 @@ export default function ContactsClient({ accounts }: Props) {
 
   const contactForm = (
     <div className="grid gap-4 py-2">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>성 *</Label>
-          <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>이름 *</Label>
-          <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>직함</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>부서</Label>
-          <Input value={department} onChange={(e) => setDepartment(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid gap-1.5">
-        <Label>이메일</Label>
-        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>전화</Label>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>휴대폰</Label>
-          <Input value={mobile} onChange={(e) => setMobile(e.target.value)} />
-        </div>
-      </div>
+      <FormGrid>
+        <FormRow label="성" required>
+          <Input
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="이름" required>
+          <Input
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="직함">
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-8" />
+        </FormRow>
+        <FormRow label="부서">
+          <Input
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="이메일" span>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="전화">
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-8" />
+        </FormRow>
+        <FormRow label="휴대폰">
+          <Input value={mobile} onChange={(e) => setMobile(e.target.value)} className="h-8" />
+        </FormRow>
+      </FormGrid>
       <label className="flex items-center gap-2 cursor-pointer">
         <input
           type="checkbox"
@@ -302,9 +311,55 @@ export default function ContactsClient({ accounts }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 로드된 담당자 목록 기준 클라이언트 필터.
+  const [qKeyword, setQKeyword] = useState('')
+  const [qDept, setQDept] = useState('')
+  const [qPrimary, setQPrimary] = useState('')
+  const [applied, setApplied] = useState({ keyword: '', dept: '', primary: '' })
+  const onSearch = () => setApplied({ keyword: qKeyword, dept: qDept, primary: qPrimary })
+  const onReset = () => {
+    setQKeyword('')
+    setQDept('')
+    setQPrimary('')
+    setApplied({ keyword: '', dept: '', primary: '' })
+  }
+  const departments = Array.from(
+    new Set(contacts.map((ct) => ct.department).filter((d): d is string => !!d)),
+  )
+  const filtered = contacts.filter((ct) => {
+    if (applied.dept && (ct.department ?? '') !== applied.dept) return false
+    if (applied.primary === 'Y' && !ct.isPrimary) return false
+    if (applied.primary === 'N' && ct.isPrimary) return false
+    if (applied.keyword) {
+      const kw = applied.keyword.toLowerCase()
+      const hay =
+        `${ct.lastName}${ct.firstName} ${ct.title ?? ''} ${ct.email ?? ''} ${ct.phone ?? ''} ${ct.mobile ?? ''}`.toLowerCase()
+      if (!hay.includes(kw)) return false
+    }
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `담당자_${new Date().toISOString().slice(0, 10)}`,
+      ['이름', '직함', '부서', '이메일', '전화', '휴대폰', '주담당자'],
+      filtered.map((ct) => [
+        `${ct.lastName}${ct.firstName}`,
+        ct.title ?? '',
+        ct.department ?? '',
+        ct.email ?? '',
+        ct.phone ?? '',
+        ct.mobile ?? '',
+        ct.isPrimary ? 'Y' : 'N',
+      ]),
+    )
+
   return (
-    <div className="p-6">
-      <PageHeader title="담당자" description="고객사 담당자 정보를 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="담당자" description="고객사 담당자 정보를 관리합니다" className="mb-4">
+        <Button variant="outline" onClick={exportExcel} disabled={!selectedAccountId}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate} disabled={!selectedAccountId}>
             <PlusIcon />새 담당자
@@ -312,7 +367,7 @@ export default function ContactsClient({ accounts }: Props) {
         )}
       </PageHeader>
 
-      <div className="mb-4 mt-6 max-w-md">
+      <div className="mb-4 max-w-md">
         <Label className="mb-1.5 block">고객사</Label>
         <Select
           value={selectedAccountId}
@@ -332,21 +387,63 @@ export default function ContactsClient({ accounts }: Props) {
         </Select>
       </div>
 
-      <DataTable
-        data={selectedAccountId ? contacts : []}
-        columns={columns}
-        getRowId={(ct) => ct.id}
-        loading={!!selectedAccountId && isLoadingContacts}
-        empty={
-          <EmptyState
-            title={
-              selectedAccountId
-                ? '등록된 담당자가 없습니다'
-                : '고객사를 선택하면 담당자 목록이 표시됩니다'
-            }
-          />
-        }
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="검색어">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="이름·이메일·연락처"
+              className="h-8 w-44"
+            />
+          </FilterField>
+          <FilterField label="부서">
+            <Select value={qDept || 'ALL'} onValueChange={(v) => setQDept(v === 'ALL' ? '' : (v ?? ''))}>
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="주담당자">
+            <Select value={qPrimary || 'ALL'} onValueChange={(v) => setQPrimary(v === 'ALL' ? '' : (v ?? ''))}>
+              <SelectTrigger className="h-8 w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="Y">주담당자</SelectItem>
+                <SelectItem value="N">일반</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={selectedAccountId ? filtered : []}
+          columns={columns}
+          getRowId={(ct) => ct.id}
+          loading={!!selectedAccountId && isLoadingContacts}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={
+            <EmptyState
+              title={
+                selectedAccountId
+                  ? '등록된 담당자가 없습니다'
+                  : '고객사를 선택하면 담당자 목록이 표시됩니다'
+              }
+            />
+          }
+        />
+      </div>
 
       {/* Create */}
       <Dialog

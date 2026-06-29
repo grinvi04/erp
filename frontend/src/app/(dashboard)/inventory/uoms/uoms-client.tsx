@@ -3,10 +3,9 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -17,6 +16,9 @@ import {
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createUom, updateUom, deleteUom } from './actions'
 import type { Uom } from '@/types/inventory'
 
@@ -135,13 +137,40 @@ export default function UomsClient({ uoms }: Props) {
     },
   ]
 
+  // 조회 조건 — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 로드된 데이터 기준 클라이언트 필터.
+  const [qKeyword, setQKeyword] = useState('')
+  const [applied, setApplied] = useState({ keyword: '' })
+  const onSearch = () => setApplied({ keyword: qKeyword })
+  const onReset = () => {
+    setQKeyword('')
+    setApplied({ keyword: '' })
+  }
+  const filtered = uoms.filter((u) => {
+    if (applied.keyword) {
+      const kw = applied.keyword.toLowerCase()
+      if (!u.code.toLowerCase().includes(kw) && !u.name.toLowerCase().includes(kw)) return false
+    }
+    return true
+  })
+
+  const exportExcel = () =>
+    downloadCsv(
+      `단위_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '단위명'],
+      filtered.map((u) => [u.code, u.name]),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="단위 관리"
         description="측정 단위(UOM) 마스터를 관리합니다"
-        className="mb-6"
+        className="mb-4"
       >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 단위
@@ -149,17 +178,32 @@ export default function UomsClient({ uoms }: Props) {
         )}
       </PageHeader>
 
-      <DataTable
-        data={uoms}
-        columns={columns}
-        getRowId={(u) => u.id}
-        empty={
-          <EmptyState
-            title="등록된 단위가 없습니다"
-            description={canWrite ? '우측 상단에서 새 단위를 등록하세요.' : undefined}
-          />
-        }
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="검색어">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="코드 또는 단위명"
+              className="h-8 w-48"
+            />
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={filtered}
+          columns={columns}
+          getRowId={(u) => u.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={
+            <EmptyState
+              title="등록된 단위가 없습니다"
+              description={canWrite ? '우측 상단에서 새 단위를 등록하세요.' : undefined}
+            />
+          }
+        />
+      </div>
 
       {/* Create Dialog */}
       <Dialog
@@ -173,14 +217,24 @@ export default function UomsClient({ uoms }: Props) {
             <DialogTitle>새 단위 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>코드 *</Label>
-              <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="EA" />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>단위명 *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="개" />
-            </div>
+            <FormGrid>
+              <FormRow label="코드" required>
+                <Input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="EA"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="단위명" required>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="개"
+                  className="h-8"
+                />
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button onClick={handleCreate} disabled={isPending}>
@@ -202,14 +256,18 @@ export default function UomsClient({ uoms }: Props) {
             <DialogTitle>단위 수정{dialog.type === 'edit' && ` — ${dialog.uom.code}`}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>코드</Label>
-              <Input value={code} disabled />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>단위명 *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
+            <FormGrid>
+              <FormRow label="코드">
+                <Input value={code} disabled className="h-8" />
+              </FormRow>
+              <FormRow label="단위명" required>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-8"
+                />
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { PlusIcon, CheckIcon, XIcon } from 'lucide-react'
+import { PlusIcon, CheckIcon, XIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -26,6 +26,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createLeaveRequest, approveLeaveRequest, rejectLeaveRequest } from './actions'
 import type { LeaveRequest, Employee, LeavePolicy, ApprovalStatus } from '@/types/hr'
 import type { PageResponse } from '@/types/api'
@@ -163,6 +166,11 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
       sortable: true,
       sortValue: (lr) => lr.requestedDays,
       cell: (lr) => <span className="text-sm">{lr.requestedDays}일</span>,
+      footer: (rows) => (
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + r.requestedDays, 0).toLocaleString('ko-KR')}일
+        </span>
+      ),
     },
     {
       key: 'status',
@@ -208,23 +216,118 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qPolicy, setQPolicy] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [qFrom, setQFrom] = useState('')
+  const [qTo, setQTo] = useState('')
+  const [applied, setApplied] = useState({ policy: '', status: '', from: '', to: '' })
+  const onSearch = () => setApplied({ policy: qPolicy, status: qStatus, from: qFrom, to: qTo })
+  const onReset = () => {
+    setQPolicy('')
+    setQStatus('')
+    setQFrom('')
+    setQTo('')
+    setApplied({ policy: '', status: '', from: '', to: '' })
+  }
+  const filtered = requests.filter((lr) => {
+    if (applied.policy && String(lr.leavePolicyId) !== applied.policy) return false
+    if (applied.status && lr.approvalStatus !== applied.status) return false
+    if (applied.from && lr.startDate < applied.from) return false
+    if (applied.to && lr.startDate > applied.to) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `휴가신청_${new Date().toISOString().slice(0, 10)}`,
+      ['직원', '휴가 종류', '시작일', '종료일', '일수', '상태'],
+      filtered.map((lr) => [
+        lr.employeeName,
+        lr.leavePolicyName,
+        lr.startDate,
+        lr.endDate,
+        lr.requestedDays,
+        STATUS_LABEL[lr.approvalStatus],
+      ]),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="휴가 신청"
         description="직원 휴가 신청 현황을 조회하고 결재합니다"
-        className="mb-6"
+        className="mb-4"
       >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         <Button onClick={openCreate}>
           <PlusIcon />새 휴가 신청
         </Button>
       </PageHeader>
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="시작일">
+            <Input
+              type="date"
+              value={qFrom}
+              onChange={(e) => setQFrom(e.target.value)}
+              className="h-8 w-36"
+            />
+            <span className="text-muted-foreground">~</span>
+            <Input
+              type="date"
+              value={qTo}
+              onChange={(e) => setQTo(e.target.value)}
+              className="h-8 w-36"
+            />
+          </FilterField>
+          <FilterField label="휴가 종류">
+            <Select
+              value={qPolicy || 'ALL'}
+              onValueChange={(v) => setQPolicy(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {policies.map((p) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(STATUS_LABEL) as ApprovalStatus[]).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={requests}
+          data={filtered}
           columns={columns}
           getRowId={(lr) => lr.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           empty={<EmptyState title="휴가 신청 내역이 없습니다" />}
         />
         <PaginationBar
@@ -248,57 +351,53 @@ export default function LeaveRequestsClient({ data, employees, policies }: Props
             <DialogTitle>새 휴가 신청</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>직원 *</Label>
-              <Select value={empId} onValueChange={(v) => setEmpId(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="직원 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((e) => (
-                    <SelectItem key={e.id} value={String(e.id)}>
-                      {e.fullName} ({e.employeeNo})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>휴가 종류 *</Label>
-              <Select value={policyId} onValueChange={(v) => setPolicyId(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {policies.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label>시작일 *</Label>
+            <FormGrid>
+              <FormRow label="직원" required>
+                <Select value={empId} onValueChange={(v) => setEmpId(v ?? '')}>
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="직원 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((e) => (
+                      <SelectItem key={e.id} value={String(e.id)}>
+                        {e.fullName} ({e.employeeNo})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="휴가 종류" required>
+                <Select value={policyId} onValueChange={(v) => setPolicyId(v ?? '')}>
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {policies.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="시작일" required>
                 <DatePicker value={startDate} onChange={setStartDate} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>종료일 *</Label>
+              </FormRow>
+              <FormRow label="종료일" required>
                 <DatePicker value={endDate} onChange={setEndDate} />
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>신청 일수 *</Label>
-              <Input
-                type="number"
-                value={reqDays}
-                onChange={(e) => setReqDays(e.target.value)}
-                min={0.5}
-                step={0.5}
-                placeholder="1"
-              />
-            </div>
+              </FormRow>
+              <FormRow label="신청 일수" required span>
+                <Input
+                  type="number"
+                  value={reqDays}
+                  onChange={(e) => setReqDays(e.target.value)}
+                  min={0.5}
+                  step={0.5}
+                  placeholder="1"
+                  className="h-8"
+                />
+              </FormRow>
+            </FormGrid>
             <div className="grid gap-1.5">
               <Label>사유</Label>
               <Textarea

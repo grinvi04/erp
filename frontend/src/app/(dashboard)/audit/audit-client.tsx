@@ -7,16 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import {
   Select,
   SelectContent,
@@ -25,6 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DetailSheet, DetailRow, DetailSection } from '@/components/ui/detail-sheet'
+import { DataTable, type Column } from '@/components/ui/data-table'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PaginationBar } from '@/components/ui/pagination-bar'
@@ -107,7 +100,12 @@ export default function AuditClient({
   names: Record<string, string>
 }) {
   const router = useRouter()
-  const [performedBy, setPerformedBy] = useState(filters.performedBy)
+  // 조회 조건(한국 ERP) — 입력값(draft)은 로컬, 적용값은 URL(filters prop)이 단일 출처. [조회]에 applyFilters로 반영.
+  const [qEntity, setQEntity] = useState(filters.entityType)
+  const [qAction, setQAction] = useState(filters.action)
+  const [qPerformedBy, setQPerformedBy] = useState(filters.performedBy)
+  const [qFrom, setQFrom] = useState(filters.from)
+  const [qTo, setQTo] = useState(filters.to)
 
   // 감사 상세(drill-in) — 행 클릭 시 변경 내역(before/after)을 읽기전용으로 연다.
   const [detailOpen, setDetailOpen] = useState(false)
@@ -140,6 +138,67 @@ export default function AuditClient({
     router.push(qs ? `/audit?${qs}` : '/audit')
   }
 
+  const onSearch = () =>
+    applyFilters({
+      entityType: qEntity,
+      action: qAction,
+      performedBy: qPerformedBy.trim(),
+      from: qFrom,
+      to: qTo,
+    })
+  const onReset = () => {
+    setQEntity('')
+    setQAction('')
+    setQPerformedBy('')
+    setQFrom('')
+    setQTo('')
+    router.push('/audit')
+  }
+
+  const columns: Column<AuditLog>[] = [
+    {
+      key: 'performedAt',
+      header: '일시',
+      sortable: true,
+      sortValue: (log) => log.performedAt,
+      cell: (log) => <span className="whitespace-nowrap">{formatDateTime(log.performedAt)}</span>,
+    },
+    {
+      key: 'entityType',
+      header: '대상',
+      sortable: true,
+      sortValue: (log) => ENTITY_LABEL[log.entityType] ?? log.entityType,
+      cell: (log) => ENTITY_LABEL[log.entityType] ?? log.entityType,
+    },
+    {
+      key: 'entityId',
+      header: '대상 ID',
+      sortable: true,
+      sortValue: (log) => log.entityId,
+      cell: (log) => log.entityId,
+    },
+    {
+      key: 'action',
+      header: '액션',
+      sortable: true,
+      sortValue: (log) => ACTION_LABEL[log.action] ?? log.action,
+      cell: (log) => (
+        <Badge variant={ACTION_VARIANT[log.action]}>{ACTION_LABEL[log.action] ?? log.action}</Badge>
+      ),
+    },
+    {
+      key: 'performedBy',
+      header: '수행자',
+      sortable: true,
+      sortValue: (log) => formatUserName(log.performedBy, names),
+      cell: (log) => (
+        <span className="text-sm" title={log.performedBy}>
+          {formatUserName(log.performedBy, names)}
+        </span>
+      ),
+    },
+  ]
+
   const exportQs = new URLSearchParams()
   if (filters.entityType) exportQs.set('entityType', filters.entityType)
   if (filters.action) exportQs.set('action', filters.action)
@@ -157,9 +216,9 @@ export default function AuditClient({
   if (filters.to) activeParams.to = filters.to
 
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
-        className="mb-6"
+        className="mb-4"
         title="감사 로그"
         description="누가 무엇을 언제 결재·변경했는지 추적합니다."
       >
@@ -173,124 +232,67 @@ export default function AuditClient({
         </a>
       </PageHeader>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="grid gap-1.5">
-          <Label className="text-xs text-muted-foreground">대상</Label>
-          <Select
-            value={filters.entityType || ALL}
-            onValueChange={(v) => applyFilters({ entityType: !v || v === ALL ? '' : v })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>전체 대상</SelectItem>
-              {ENTITY_OPTIONS.map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="대상">
+            <Select value={qEntity || ALL} onValueChange={(v) => setQEntity(!v || v === ALL ? '' : v)}>
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>전체 대상</SelectItem>
+                {ENTITY_OPTIONS.map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="액션">
+            <Select value={qAction || ALL} onValueChange={(v) => setQAction(!v || v === ALL ? '' : v)}>
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>전체 액션</SelectItem>
+                {AUDIT_ACTIONS.map((a) => (
+                  <SelectItem key={a} value={a}>
+                    {ACTION_LABEL[a]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="수행자">
+            <Input
+              value={qPerformedBy}
+              placeholder="사용자 ID"
+              onChange={(e) => setQPerformedBy(e.target.value)}
+              className="h-8 w-40"
+            />
+          </FilterField>
+          <FilterField label="기간">
+            <DatePicker value={qFrom} max={qTo || undefined} onChange={setQFrom} />
+            <span className="text-muted-foreground">~</span>
+            <DatePicker value={qTo} min={qFrom || undefined} onChange={setQTo} />
+          </FilterField>
+        </FilterBar>
 
-        <div className="grid gap-1.5">
-          <Label className="text-xs text-muted-foreground">액션</Label>
-          <Select
-            value={filters.action || ALL}
-            onValueChange={(v) => applyFilters({ action: !v || v === ALL ? '' : v })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>전체 액션</SelectItem>
-              {AUDIT_ACTIONS.map((a) => (
-                <SelectItem key={a} value={a}>
-                  {ACTION_LABEL[a]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid gap-1.5">
-          <Label className="text-xs text-muted-foreground">수행자</Label>
-          <Input
-            value={performedBy}
-            placeholder="사용자 ID"
-            onChange={(e) => setPerformedBy(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') applyFilters({ performedBy: performedBy.trim() })
-            }}
-            onBlur={() => {
-              if (performedBy.trim() !== filters.performedBy)
-                applyFilters({ performedBy: performedBy.trim() })
-            }}
-          />
-        </div>
-
-        <div className="grid gap-1.5">
-          <Label className="text-xs text-muted-foreground">시작일</Label>
-          <DatePicker
-            value={filters.from}
-            max={filters.to || undefined}
-            onChange={(v) => applyFilters({ from: v })}
-          />
-        </div>
-
-        <div className="grid gap-1.5">
-          <Label className="text-xs text-muted-foreground">종료일</Label>
-          <DatePicker
-            value={filters.to}
-            min={filters.from || undefined}
-            onChange={(v) => applyFilters({ to: v })}
-          />
-        </div>
-      </div>
-
-      <div className="bg-card rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>일시</TableHead>
-              <TableHead>대상</TableHead>
-              <TableHead>대상 ID</TableHead>
-              <TableHead>액션</TableHead>
-              <TableHead>수행자</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.content.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="p-0">
-                  <EmptyState
-                    title="감사 로그가 없습니다"
-                    description="선택한 조건에 해당하는 감사 기록이 없습니다."
-                  />
-                </TableCell>
-              </TableRow>
-            ) : (
-              data.content.map((log) => (
-                <TableRow key={log.id} className="cursor-pointer" onClick={() => openDetail(log)}>
-                  <TableCell className="whitespace-nowrap">
-                    {formatDateTime(log.performedAt)}
-                  </TableCell>
-                  <TableCell>{ENTITY_LABEL[log.entityType] ?? log.entityType}</TableCell>
-                  <TableCell>{log.entityId}</TableCell>
-                  <TableCell>
-                    <Badge variant={ACTION_VARIANT[log.action]}>
-                      {ACTION_LABEL[log.action] ?? log.action}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm" title={log.performedBy}>
-                    {formatUserName(log.performedBy, names)}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTable
+          data={data.content}
+          columns={columns}
+          getRowId={(log) => log.id}
+          onRowClick={openDetail}
+          showTotals
+          totalLabel={`총 ${data.content.length}건`}
+          empty={
+            <EmptyState
+              title="감사 로그가 없습니다"
+              description="선택한 조건에 해당하는 감사 기록이 없습니다."
+            />
+          }
+        />
         <PaginationBar
           page={data.page}
           totalPages={data.totalPages}

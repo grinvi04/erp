@@ -2,11 +2,21 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ChevronRight, CheckIcon, XIcon } from 'lucide-react'
+import { ChevronRight, CheckIcon, XIcon, DownloadIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { downloadCsv } from '@/lib/csv'
 import {
   Dialog,
   DialogContent,
@@ -261,23 +271,128 @@ export default function ApprovalsClient({
 
   const dialogItem = dialog.type !== 'none' ? dialog.item : null
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 양쪽 박스에 동일 적용.
+  const [qType, setQType] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [qKeyword, setQKeyword] = useState('')
+  const [applied, setApplied] = useState({ type: '', status: '', keyword: '' })
+  const onSearch = () => setApplied({ type: qType, status: qStatus, keyword: qKeyword })
+  const onReset = () => {
+    setQType('')
+    setQStatus('')
+    setQKeyword('')
+    setApplied({ type: '', status: '', keyword: '' })
+  }
+  const applyFilter = (rows: ApprovalSummary[]) =>
+    rows.filter((a) => {
+      if (applied.type && a.entityType !== applied.type) return false
+      if (applied.status && a.status !== applied.status) return false
+      if (applied.keyword && !a.title.toLowerCase().includes(applied.keyword.toLowerCase()))
+        return false
+      return true
+    })
+  const filteredPending = applyFilter(pending)
+  const filteredMine = applyFilter(mine)
+
+  const exportExcel = () =>
+    downloadCsv(
+      `결재함_${new Date().toISOString().slice(0, 10)}`,
+      ['구분', '유형', '제목', '단계', '상신자', '상태', '요청일'],
+      [
+        ...filteredPending.map((a) => [
+          '처리대기',
+          entityInfo(a.entityType).label,
+          a.title,
+          `${a.currentStep}/${a.totalSteps}`,
+          formatUserName(a.requesterId, names),
+          STATUS_LABEL[a.status],
+          formatDate(a.requestedAt),
+        ]),
+        ...filteredMine.map((a) => [
+          '상신',
+          entityInfo(a.entityType).label,
+          a.title,
+          `${a.currentStep}/${a.totalSteps}`,
+          formatUserName(a.requesterId, names),
+          STATUS_LABEL[a.status],
+          formatDate(a.requestedAt),
+        ]),
+      ],
+    )
+
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-5 space-y-4">
       <PageHeader
         title="결재함"
         description="내가 처리할 결재와 내가 상신한 결재를 한 곳에서 확인합니다"
-      />
+        className="mb-0"
+      >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
+      </PageHeader>
+
+      <FilterBar onSearch={onSearch} onReset={onReset}>
+        <FilterField label="유형">
+          <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+            <SelectTrigger className="h-8 w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">전체</SelectItem>
+              {Object.keys(ENTITY_ROUTE).map((t) => (
+                <SelectItem key={t} value={t}>
+                  {ENTITY_ROUTE[t].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FilterField>
+        <FilterField label="상태">
+          <Select
+            value={qStatus || 'ALL'}
+            onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+          >
+            <SelectTrigger className="h-8 w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">전체</SelectItem>
+              {(Object.keys(STATUS_LABEL) as ApprovalStatus[]).map((s) => (
+                <SelectItem key={s} value={s}>
+                  {STATUS_LABEL[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FilterField>
+        <FilterField label="제목">
+          <Input
+            value={qKeyword}
+            onChange={(e) => setQKeyword(e.target.value)}
+            placeholder="제목 검색"
+            className="h-8 w-44"
+          />
+        </FilterField>
+      </FilterBar>
 
       <section>
-        <h2 className="text-lg font-semibold text-foreground mb-3">
-          처리 대기 <span className="text-primary">{pending.length}</span>
+        <h2 className="text-lg font-semibold text-foreground mb-2">
+          처리 대기 <span className="text-primary">{filteredPending.length}</span>
+          <span className="ml-1 text-sm font-normal text-muted-foreground">건</span>
         </h2>
-        {renderTable(pending, '처리할 결재가 없습니다', true, pendingFailed, true)}
+        {renderTable(filteredPending, '처리할 결재가 없습니다', true, pendingFailed, true)}
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-foreground mb-3">내가 상신한 결재</h2>
-        {renderTable(mine, '상신한 결재가 없습니다', false, mineFailed, false)}
+        <h2 className="text-lg font-semibold text-foreground mb-2">
+          내가 상신한 결재{' '}
+          <span className="text-sm font-normal text-muted-foreground">
+            총 {filteredMine.length}건
+          </span>
+        </h2>
+        {renderTable(filteredMine, '상신한 결재가 없습니다', false, mineFailed, false)}
       </section>
 
       {/* 결재 상세 (drill-in) */}

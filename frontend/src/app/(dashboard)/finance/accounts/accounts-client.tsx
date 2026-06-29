@@ -3,7 +3,7 @@ import { useState, useTransition, useMemo } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, BanIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, BanIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,6 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createAccount, updateAccount, deactivateAccount } from './actions'
 import type { Account, AccountType, NormalBalance } from '@/types/finance'
 
@@ -216,9 +219,49 @@ export default function AccountsClient({ accounts }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 데이터 기준 필터.
+  const [qType, setQType] = useState('')
+  const [qNormal, setQNormal] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [applied, setApplied] = useState({ type: '', normal: '', status: '' })
+  const onSearch = () => setApplied({ type: qType, normal: qNormal, status: qStatus })
+  const onReset = () => {
+    setQType('')
+    setQNormal('')
+    setQStatus('')
+    setApplied({ type: '', normal: '', status: '' })
+  }
+  const filtered = accounts.filter((acc) => {
+    if (applied.type && acc.accountType !== applied.type) return false
+    if (applied.normal && acc.normalBalance !== applied.normal) return false
+    if (applied.status && String(acc.isActive ? 'ACTIVE' : 'INACTIVE') !== applied.status) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `계정과목_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '계정과목명', '유형', '대차구분', '상위', '집계', '상태'],
+      filtered.map((acc) => {
+        const parent = acc.parentId != null ? accountById.get(acc.parentId) : undefined
+        return [
+          acc.code,
+          acc.name,
+          TYPE_LABEL[acc.accountType],
+          NORMAL_LABEL[acc.normalBalance],
+          parent ? `${parent.code} ${parent.name}` : '',
+          acc.isSummary ? 'Y' : 'N',
+          acc.isActive ? '활성' : '비활성',
+        ]
+      }),
+    )
+
   return (
-    <div className="p-6">
-      <PageHeader title="계정과목" description="회계 계정과목 체계를 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="계정과목" description="회계 계정과목 체계를 관리합니다" className="mb-4">
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 계정과목
@@ -226,17 +269,72 @@ export default function AccountsClient({ accounts }: Props) {
         )}
       </PageHeader>
 
-      <DataTable
-        data={accounts}
-        columns={columns}
-        getRowId={(acc) => acc.id}
-        empty={
-          <EmptyState
-            title="등록된 계정과목이 없습니다"
-            description={canWrite ? '우측 상단에서 새 계정과목을 등록하세요.' : undefined}
-          />
-        }
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="유형">
+            <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(TYPE_LABEL) as AccountType[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {TYPE_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="대차구분">
+            <Select
+              value={qNormal || 'ALL'}
+              onValueChange={(v) => setQNormal(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(NORMAL_LABEL) as NormalBalance[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {NORMAL_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="ACTIVE">활성</SelectItem>
+                <SelectItem value="INACTIVE">비활성</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={filtered}
+          columns={columns}
+          getRowId={(acc) => acc.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={
+            <EmptyState
+              title="등록된 계정과목이 없습니다"
+              description={canWrite ? '우측 상단에서 새 계정과목을 등록하세요.' : undefined}
+            />
+          }
+        />
+      </div>
 
       {/* Create Dialog */}
       <Dialog
@@ -250,15 +348,18 @@ export default function AccountsClient({ accounts }: Props) {
             <DialogTitle>새 계정과목 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label>코드 *</Label>
-                <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="1101" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>유형 *</Label>
+            <FormGrid>
+              <FormRow label="코드" required>
+                <Input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="1101"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="유형" required>
                 <Select value={accountType} onValueChange={(v) => setAccountType(v ?? '')}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-8 w-full">
                     <SelectValue placeholder="선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -269,21 +370,18 @@ export default function AccountsClient({ accounts }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>계정과목명 *</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="현금및현금성자산"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label>대차구분 *</Label>
+              </FormRow>
+              <FormRow label="계정과목명" required span>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="현금및현금성자산"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="대차구분" required>
                 <Select value={normalBalance} onValueChange={(v) => setNormalBalance(v ?? '')}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-8 w-full">
                     <SelectValue placeholder="선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -291,11 +389,10 @@ export default function AccountsClient({ accounts }: Props) {
                     <SelectItem value="CREDIT">대변</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>상위 계정과목</Label>
+              </FormRow>
+              <FormRow label="상위 계정과목">
                 <Select value={parentId} onValueChange={(v) => setParentId(v ?? '')}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-8 w-full">
                     <SelectValue placeholder="없음" />
                   </SelectTrigger>
                   <SelectContent>
@@ -308,8 +405,8 @@ export default function AccountsClient({ accounts }: Props) {
                       ))}
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
+              </FormRow>
+            </FormGrid>
             <div className="flex items-center gap-2">
               <input
                 id="isSummary"
@@ -343,10 +440,15 @@ export default function AccountsClient({ accounts }: Props) {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>계정과목명 *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
+            <FormGrid>
+              <FormRow label="계정과목명" required span>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-8"
+                />
+              </FormRow>
+            </FormGrid>
             <div className="flex items-center gap-2">
               <input
                 id="isSummaryEdit"

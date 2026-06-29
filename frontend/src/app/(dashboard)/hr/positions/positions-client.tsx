@@ -1,10 +1,9 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +14,16 @@ import {
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createPosition, updatePosition, deletePosition } from './actions'
 import type { Position } from '@/types/hr'
 
@@ -150,20 +159,80 @@ export default function PositionsClient({ positions }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 데이터 기준 클라이언트 필터.
+  const levels = [...new Set(positions.map((p) => p.levelOrder))].sort((a, b) => a - b)
+  const [qKeyword, setQKeyword] = useState('')
+  const [qLevel, setQLevel] = useState('')
+  const [applied, setApplied] = useState({ keyword: '', level: '' })
+  const onSearch = () => setApplied({ keyword: qKeyword, level: qLevel })
+  const onReset = () => {
+    setQKeyword('')
+    setQLevel('')
+    setApplied({ keyword: '', level: '' })
+  }
+  const filtered = positions.filter((p) => {
+    if (applied.keyword) {
+      const kw = applied.keyword.trim().toLowerCase()
+      if (!p.code.toLowerCase().includes(kw) && !p.name.toLowerCase().includes(kw)) return false
+    }
+    if (applied.level && String(p.levelOrder) !== applied.level) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `직위_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '직위명', '레벨'],
+      filtered.map((p) => [p.code, p.name, p.levelOrder]),
+    )
+
   return (
-    <div className="p-6">
-      <PageHeader title="직위 관리" description="직위(직책) 체계를 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="직위 관리" description="직위(직책) 체계를 관리합니다" className="mb-4">
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         <Button onClick={openCreate}>
           <PlusIcon />새 직위
         </Button>
       </PageHeader>
 
-      <DataTable
-        data={positions}
-        columns={columns}
-        getRowId={(p) => p.id}
-        empty={<EmptyState title="등록된 직위가 없습니다" />}
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="키워드">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="코드·직위명"
+              className="h-8 w-48"
+            />
+          </FilterField>
+          <FilterField label="레벨">
+            <Select value={qLevel || 'ALL'} onValueChange={(v) => setQLevel(v === 'ALL' ? '' : (v ?? ''))}>
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {levels.map((lv) => (
+                  <SelectItem key={lv} value={String(lv)}>
+                    {lv}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={filtered}
+          columns={columns}
+          getRowId={(p) => p.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={<EmptyState title="등록된 직위가 없습니다" />}
+        />
+      </div>
 
       {/* Create / Edit Dialog */}
       <Dialog
@@ -179,38 +248,37 @@ export default function PositionsClient({ positions }: Props) {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            {dialog.type === 'create' && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="pos-code">코드 *</Label>
+            <FormGrid>
+              {dialog.type === 'create' && (
+                <FormRow label="코드" required>
+                  <Input
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="예: MANAGER"
+                    maxLength={30}
+                    className="h-8"
+                  />
+                </FormRow>
+              )}
+              <FormRow label="직위명" required span={dialog.type !== 'create'}>
                 <Input
-                  id="pos-code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="예: MANAGER"
-                  maxLength={30}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="예: 부장"
+                  maxLength={100}
+                  className="h-8"
                 />
-              </div>
-            )}
-            <div className="grid gap-1.5">
-              <Label htmlFor="pos-name">직위명 *</Label>
-              <Input
-                id="pos-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="예: 부장"
-                maxLength={100}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="pos-level">레벨 순서</Label>
-              <Input
-                id="pos-level"
-                type="number"
-                value={levelOrder}
-                onChange={(e) => setLevelOrder(e.target.value)}
-                min={0}
-              />
-            </div>
+              </FormRow>
+              <FormRow label="레벨 순서" span>
+                <Input
+                  type="number"
+                  value={levelOrder}
+                  onChange={(e) => setLevelOrder(e.target.value)}
+                  min={0}
+                  className="h-8"
+                />
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button

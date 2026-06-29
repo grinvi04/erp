@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, Trash2Icon, UsersIcon, XIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, UsersIcon, XIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,6 +18,16 @@ import {
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import {
   createSalesTeam,
   updateSalesTeam,
@@ -170,6 +180,11 @@ export default function SalesTeamsClient({ teams }: Props) {
       sortable: true,
       sortValue: (team) => team.memberUserIds.length,
       cell: (team) => <Badge variant="secondary">{team.memberUserIds.length}명</Badge>,
+      footer: (rows) => (
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + r.memberUserIds.length, 0).toLocaleString('ko-KR')}명
+        </span>
+      ),
     },
     {
       key: 'actions',
@@ -206,13 +221,44 @@ export default function SalesTeamsClient({ teams }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 로드된 데이터 기준 필터.
+  const [qKeyword, setQKeyword] = useState('')
+  const [qMembers, setQMembers] = useState('')
+  const [applied, setApplied] = useState({ keyword: '', members: '' })
+  const onSearch = () => setApplied({ keyword: qKeyword, members: qMembers })
+  const onReset = () => {
+    setQKeyword('')
+    setQMembers('')
+    setApplied({ keyword: '', members: '' })
+  }
+  const filtered = teams.filter((team) => {
+    if (applied.keyword) {
+      const kw = applied.keyword.toLowerCase()
+      if (!team.code.toLowerCase().includes(kw) && !team.name.toLowerCase().includes(kw))
+        return false
+    }
+    if (applied.members === 'HAS' && team.memberUserIds.length === 0) return false
+    if (applied.members === 'NONE' && team.memberUserIds.length > 0) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `영업팀_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '팀명', '멤버수'],
+      filtered.map((team) => [team.code, team.name, team.memberUserIds.length]),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="영업팀"
         description="영업팀과 팀 멤버(데이터 스코프)를 관리합니다"
-        className="mb-6"
+        className="mb-4"
       >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 영업팀
@@ -220,17 +266,47 @@ export default function SalesTeamsClient({ teams }: Props) {
         )}
       </PageHeader>
 
-      <DataTable
-        data={teams}
-        columns={columns}
-        getRowId={(team) => team.id}
-        empty={
-          <EmptyState
-            title="등록된 영업팀이 없습니다"
-            description={canWrite ? '우측 상단에서 새 영업팀을 등록하세요.' : undefined}
-          />
-        }
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="검색어">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="코드 · 팀명"
+              className="h-8 w-44"
+            />
+          </FilterField>
+          <FilterField label="멤버">
+            <Select
+              value={qMembers || 'ALL'}
+              onValueChange={(v) => setQMembers(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="HAS">멤버 있음</SelectItem>
+                <SelectItem value="NONE">멤버 없음</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={filtered}
+          columns={columns}
+          getRowId={(team) => team.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={
+            <EmptyState
+              title="등록된 영업팀이 없습니다"
+              description={canWrite ? '우측 상단에서 새 영업팀을 등록하세요.' : undefined}
+            />
+          }
+        />
+      </div>
 
       {/* Create */}
       <Dialog
@@ -244,18 +320,24 @@ export default function SalesTeamsClient({ teams }: Props) {
             <DialogTitle>새 영업팀 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>코드 *</Label>
-              <Input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="TEAM-001"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>팀명 *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="영업1팀" />
-            </div>
+            <FormGrid>
+              <FormRow label="코드" required>
+                <Input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="TEAM-001"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="팀명" required>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="영업1팀"
+                  className="h-8"
+                />
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button onClick={handleCreate} disabled={isPending}>
@@ -279,10 +361,15 @@ export default function SalesTeamsClient({ teams }: Props) {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>팀명 *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
+            <FormGrid>
+              <FormRow label="팀명" required span>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-8"
+                />
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button

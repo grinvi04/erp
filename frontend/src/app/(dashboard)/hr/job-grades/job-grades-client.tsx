@@ -1,10 +1,9 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -12,9 +11,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createJobGrade, updateJobGrade, deleteJobGrade } from './actions'
 import type { JobGrade } from '@/types/hr'
 
@@ -145,6 +154,11 @@ export default function JobGradesClient({ jobGrades }: Props) {
       sortable: true,
       sortValue: (g) => g.minSalary,
       cell: (g) => <span className="text-sm text-muted-foreground">{fmt(g.minSalary)}</span>,
+      footer: (rows) => (
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + (r.minSalary ?? 0), 0).toLocaleString('ko-KR')}
+        </span>
+      ),
     },
     {
       key: 'maxSalary',
@@ -153,6 +167,11 @@ export default function JobGradesClient({ jobGrades }: Props) {
       sortable: true,
       sortValue: (g) => g.maxSalary,
       cell: (g) => <span className="text-sm text-muted-foreground">{fmt(g.maxSalary)}</span>,
+      footer: (rows) => (
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + (r.maxSalary ?? 0), 0).toLocaleString('ko-KR')}
+        </span>
+      ),
     },
     {
       key: 'actions',
@@ -178,24 +197,84 @@ export default function JobGradesClient({ jobGrades }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qKeyword, setQKeyword] = useState('')
+  const [qSalary, setQSalary] = useState('')
+  const [applied, setApplied] = useState({ keyword: '', salary: '' })
+  const onSearch = () => setApplied({ keyword: qKeyword, salary: qSalary })
+  const onReset = () => {
+    setQKeyword('')
+    setQSalary('')
+    setApplied({ keyword: '', salary: '' })
+  }
+  const filtered = jobGrades.filter((g) => {
+    if (applied.keyword) {
+      const kw = applied.keyword.toLowerCase()
+      if (!g.code.toLowerCase().includes(kw) && !g.name.toLowerCase().includes(kw)) return false
+    }
+    if (applied.salary === 'SET' && g.minSalary == null && g.maxSalary == null) return false
+    if (applied.salary === 'UNSET' && (g.minSalary != null || g.maxSalary != null)) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `직급_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '직급명', '순서', '최소 급여', '최대 급여'],
+      filtered.map((g) => [g.code, g.name, g.gradeOrder, g.minSalary ?? '', g.maxSalary ?? '']),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="직급 관리"
         description="직급 체계와 급여 범위를 관리합니다"
-        className="mb-6"
+        className="mb-4"
       >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         <Button onClick={openCreate}>
           <PlusIcon />새 직급
         </Button>
       </PageHeader>
 
-      <DataTable
-        data={jobGrades}
-        columns={columns}
-        getRowId={(g) => g.id}
-        empty={<EmptyState title="등록된 직급이 없습니다" />}
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="키워드">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="코드·직급명"
+              className="h-8 w-44"
+            />
+          </FilterField>
+          <FilterField label="급여범위">
+            <Select
+              value={qSalary || 'ALL'}
+              onValueChange={(v) => setQSalary(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="SET">설정</SelectItem>
+                <SelectItem value="UNSET">미설정</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={filtered}
+          columns={columns}
+          getRowId={(g) => g.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={<EmptyState title="등록된 직급이 없습니다" />}
+        />
+      </div>
 
       {/* Create / Edit Dialog */}
       <Dialog
@@ -211,41 +290,40 @@ export default function JobGradesClient({ jobGrades }: Props) {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            {dialog.type === 'create' && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="grade-code">코드 *</Label>
+            <FormGrid>
+              {dialog.type === 'create' && (
+                <FormRow label="코드" required>
+                  <Input
+                    id="grade-code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="예: G3"
+                    maxLength={30}
+                    className="h-8"
+                  />
+                </FormRow>
+              )}
+              <FormRow label="직급명" required span={dialog.type === 'edit'}>
                 <Input
-                  id="grade-code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="예: G3"
-                  maxLength={30}
+                  id="grade-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="예: 3급"
+                  maxLength={100}
+                  className="h-8"
                 />
-              </div>
-            )}
-            <div className="grid gap-1.5">
-              <Label htmlFor="grade-name">직급명 *</Label>
-              <Input
-                id="grade-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="예: 3급"
-                maxLength={100}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="grade-order">순서</Label>
-              <Input
-                id="grade-order"
-                type="number"
-                value={gradeOrder}
-                onChange={(e) => setGradeOrder(e.target.value)}
-                min={0}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label htmlFor="grade-min">최소 급여</Label>
+              </FormRow>
+              <FormRow label="순서">
+                <Input
+                  id="grade-order"
+                  type="number"
+                  value={gradeOrder}
+                  onChange={(e) => setGradeOrder(e.target.value)}
+                  min={0}
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="최소 급여">
                 <Input
                   id="grade-min"
                   type="number"
@@ -253,10 +331,10 @@ export default function JobGradesClient({ jobGrades }: Props) {
                   onChange={(e) => setMinSalary(e.target.value)}
                   min={0}
                   placeholder="0"
+                  className="h-8"
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="grade-max">최대 급여</Label>
+              </FormRow>
+              <FormRow label="최대 급여" span>
                 <Input
                   id="grade-max"
                   type="number"
@@ -264,9 +342,10 @@ export default function JobGradesClient({ jobGrades }: Props) {
                   onChange={(e) => setMaxSalary(e.target.value)}
                   min={0}
                   placeholder="0"
+                  className="h-8"
                 />
-              </div>
-            </div>
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button

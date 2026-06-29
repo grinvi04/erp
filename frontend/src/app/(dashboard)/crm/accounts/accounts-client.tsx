@@ -3,10 +3,9 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, BanIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, BanIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -28,6 +27,9 @@ import {
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { SearchInput } from '@/components/ui/search-input'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createAccount, updateAccount, deactivateAccount, type AccountPayload } from './actions'
 import type { CrmAccount, AccountType } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
@@ -179,26 +181,31 @@ export default function AccountsClient({ data, keyword, names }: Props) {
 
   const accountForm = (
     <div className="grid gap-4 py-2">
-      <div className="grid grid-cols-2 gap-4">
+      <FormGrid>
         {dialog.type === 'create' && (
-          <div className="grid gap-1.5">
-            <Label>코드 *</Label>
-            <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="ACC-001" />
-          </div>
+          <FormRow label="코드" required>
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="ACC-001"
+              className="h-8"
+            />
+          </FormRow>
         )}
-        <div className="grid gap-1.5">
-          <Label>고객사명 *</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="회사명" />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>유형 *</Label>
+        <FormRow label="고객사명" required>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="회사명"
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="유형" required>
           <Select
             value={accountType}
             onValueChange={(v) => setAccountType((v ?? 'PROSPECT') as AccountType)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-8 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -209,61 +216,69 @@ export default function AccountsClient({ data, keyword, names }: Props) {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="grid gap-1.5">
-          <Label>업종</Label>
-          <Input value={industry} onChange={(e) => setIndustry(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>사업자번호</Label>
-          <Input value={businessNo} onChange={(e) => setBusinessNo(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>전화</Label>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid gap-1.5">
-        <Label>웹사이트</Label>
-        <Input
-          value={website}
-          onChange={(e) => setWebsite(e.target.value)}
-          placeholder="https://"
-        />
-      </div>
-      <div className="grid gap-1.5">
-        <Label>주소</Label>
-        <Textarea rows={2} value={address} onChange={(e) => setAddress(e.target.value)} />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>직원 수</Label>
+        </FormRow>
+        <FormRow label="업종">
+          <Input
+            value={industry}
+            onChange={(e) => setIndustry(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="사업자번호">
+          <Input
+            value={businessNo}
+            onChange={(e) => setBusinessNo(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="전화">
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-8" />
+        </FormRow>
+        <FormRow label="웹사이트" span>
+          <Input
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="https://"
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="주소" span>
+          <Textarea
+            rows={2}
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="w-full"
+          />
+        </FormRow>
+        <FormRow label="직원 수">
           <Input
             type="number"
             min={0}
             value={employeeCount}
             onChange={(e) => setEmployeeCount(e.target.value)}
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>연 매출</Label>
+        </FormRow>
+        <FormRow label="연 매출">
           <Input
             type="number"
             min={0}
             step={0.01}
             value={annualRevenue}
             onChange={(e) => setAnnualRevenue(e.target.value)}
+            className="h-8"
           />
-        </div>
-      </div>
-      {dialog.type === 'edit' && (
-        <div className="grid gap-1.5">
-          <Label>담당자 ID *</Label>
-          <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} />
-        </div>
-      )}
+        </FormRow>
+        {dialog.type === 'edit' && (
+          <FormRow label="담당자 ID" required span>
+            <Input
+              value={ownerId}
+              onChange={(e) => setOwnerId(e.target.value)}
+              className="h-8"
+            />
+          </FormRow>
+        )}
+      </FormGrid>
     </div>
   )
 
@@ -348,14 +363,52 @@ export default function AccountsClient({ data, keyword, names }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const ownerOptions = Array.from(new Set(data.content.map((acc) => acc.ownerId)))
+  const [qType, setQType] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [qOwner, setQOwner] = useState('')
+  const [applied, setApplied] = useState({ type: '', status: '', owner: '' })
+  const onSearch = () => setApplied({ type: qType, status: qStatus, owner: qOwner })
+  const onReset = () => {
+    setQType('')
+    setQStatus('')
+    setQOwner('')
+    setApplied({ type: '', status: '', owner: '' })
+  }
+  const filtered = data.content.filter((acc) => {
+    if (applied.type && acc.accountType !== applied.type) return false
+    if (applied.status && (applied.status === 'ACTIVE') !== acc.isActive) return false
+    if (applied.owner && acc.ownerId !== applied.owner) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `고객사_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '고객사명', '유형', '업종', '전화', '담당자', '상태'],
+      filtered.map((acc) => [
+        acc.code,
+        acc.name,
+        TYPE_LABEL[acc.accountType],
+        acc.industry ?? '',
+        acc.phone ?? '',
+        formatUserName(acc.ownerId, names),
+        acc.isActive ? '활성' : '비활성',
+      ]),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="고객사"
         description="고객사 및 잠재 고객 정보를 관리합니다"
-        className="mb-6"
+        className="mb-4"
       >
         <SearchInput placeholder="이름·코드 검색" className="w-64" />
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 고객사
@@ -364,10 +417,57 @@ export default function AccountsClient({ data, keyword, names }: Props) {
       </PageHeader>
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="유형">
+            <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(TYPE_LABEL) as AccountType[]).map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {TYPE_LABEL[t]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="담당자">
+            <Select value={qOwner || 'ALL'} onValueChange={(v) => setQOwner(v === 'ALL' ? '' : (v ?? ''))}>
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {ownerOptions.map((id) => (
+                  <SelectItem key={id} value={id}>
+                    {formatUserName(id, names)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="상태">
+            <Select value={qStatus || 'ALL'} onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}>
+              <SelectTrigger className="h-8 w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="ACTIVE">활성</SelectItem>
+                <SelectItem value="INACTIVE">비활성</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={data.content}
+          data={filtered}
           columns={columns}
           getRowId={(acc) => acc.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           empty={
             <EmptyState
               title="등록된 고객사가 없습니다"

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useTransition, useMemo } from 'react'
 import { toast } from 'sonner'
-import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,6 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createDepartment, updateDepartment, deleteDepartment } from './actions'
 import type { Department } from '@/types/hr'
 
@@ -224,20 +227,107 @@ export default function DepartmentsClient({ departments }: Props) {
       ? departments.filter((d) => !collectSelfAndDescendants(dialog.dept.id).has(d.id))
       : departments
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 데이터 기준 필터.
+  const [qKeyword, setQKeyword] = useState('')
+  const [qParent, setQParent] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [applied, setApplied] = useState({ keyword: '', parent: '', status: '' })
+  const onSearch = () => setApplied({ keyword: qKeyword, parent: qParent, status: qStatus })
+  const onReset = () => {
+    setQKeyword('')
+    setQParent('')
+    setQStatus('')
+    setApplied({ keyword: '', parent: '', status: '' })
+  }
+  const filtered = departments.filter((dept) => {
+    if (applied.parent && String(dept.parentId ?? '') !== applied.parent) return false
+    if (applied.status && (dept.active ? 'ACTIVE' : 'INACTIVE') !== applied.status) return false
+    if (applied.keyword) {
+      const kw = applied.keyword.toLowerCase()
+      if (!dept.code.toLowerCase().includes(kw) && !dept.name.toLowerCase().includes(kw))
+        return false
+    }
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `부서_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '부서명', '상위 부서', '정렬순서', '상태'],
+      filtered.map((dept) => [
+        dept.code,
+        dept.name,
+        (dept.parentId != null ? deptById.get(dept.parentId)?.name : '') ?? '',
+        dept.sortOrder,
+        dept.active ? '활성' : '비활성',
+      ]),
+    )
+
   return (
-    <div className="p-6">
-      <PageHeader title="부서 관리" description="조직 부서 구조를 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="부서 관리" description="조직 부서 구조를 관리합니다" className="mb-4">
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         <Button onClick={openCreate}>
           <PlusIcon />새 부서
         </Button>
       </PageHeader>
 
-      <DataTable
-        data={departments}
-        columns={columns}
-        getRowId={(dept) => dept.id}
-        empty={<EmptyState title="등록된 부서가 없습니다" />}
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="부서명/코드">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="검색어"
+              className="h-8 w-44"
+            />
+          </FilterField>
+          <FilterField label="상위 부서">
+            <Select
+              value={qParent || 'ALL'}
+              onValueChange={(v) => setQParent(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={String(d.id)}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="ACTIVE">활성</SelectItem>
+                <SelectItem value="INACTIVE">비활성</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={filtered}
+          columns={columns}
+          getRowId={(dept) => dept.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={<EmptyState title="등록된 부서가 없습니다" />}
+        />
+      </div>
 
       {/* Create / Edit Dialog */}
       <Dialog
@@ -253,64 +343,69 @@ export default function DepartmentsClient({ departments }: Props) {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            {dialog.type === 'create' && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="dept-code">코드 *</Label>
+            <FormGrid>
+              {dialog.type === 'create' && (
+                <FormRow label="코드" required>
+                  <Input
+                    id="dept-code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="예: DEV_FRONTEND"
+                    maxLength={30}
+                    className="h-8"
+                  />
+                </FormRow>
+              )}
+              <FormRow label="부서명" required>
                 <Input
-                  id="dept-code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="예: DEV_FRONTEND"
-                  maxLength={30}
+                  id="dept-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="예: 프론트엔드 개발팀"
+                  maxLength={100}
+                  className="h-8"
                 />
-              </div>
-            )}
-            <div className="grid gap-1.5">
-              <Label htmlFor="dept-name">부서명 *</Label>
-              <Input
-                id="dept-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="예: 프론트엔드 개발팀"
-                maxLength={100}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>상위 부서</Label>
-              <Select value={parentId} onValueChange={(v) => setParentId(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="상위 부서 없음" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">상위 부서 없음</SelectItem>
-                  {parentOptions.map((d) => (
-                    <SelectItem key={d.id} value={String(d.id)}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="dept-sort">정렬 순서</Label>
-              <Input
-                id="dept-sort"
-                type="number"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                min={0}
-              />
-            </div>
-            {dialog.type === 'edit' && (
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="dept-active"
-                  checked={active}
-                  onCheckedChange={(checked) => setActive(checked === true)}
+              </FormRow>
+              <FormRow label="상위 부서">
+                <Select value={parentId} onValueChange={(v) => setParentId(v ?? '')}>
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="상위 부서 없음" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">상위 부서 없음</SelectItem>
+                    {parentOptions.map((d) => (
+                      <SelectItem key={d.id} value={String(d.id)}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="정렬 순서">
+                <Input
+                  id="dept-sort"
+                  type="number"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  min={0}
+                  className="h-8"
                 />
-                <Label htmlFor="dept-active">활성 (해제 시 비활성화)</Label>
-              </div>
-            )}
+              </FormRow>
+              {dialog.type === 'edit' && (
+                <FormRow label="활성" span>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="dept-active"
+                      checked={active}
+                      onCheckedChange={(checked) => setActive(checked === true)}
+                    />
+                    <Label htmlFor="dept-active" className="text-xs font-normal">
+                      해제 시 비활성화
+                    </Label>
+                  </div>
+                </FormRow>
+              )}
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button

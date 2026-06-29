@@ -3,7 +3,15 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, SendIcon, CheckIcon, BanIcon, Trash2Icon, BookOpenIcon } from 'lucide-react'
+import {
+  PlusIcon,
+  SendIcon,
+  CheckIcon,
+  BanIcon,
+  Trash2Icon,
+  BookOpenIcon,
+  DownloadIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -28,6 +36,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import {
   createArInvoice,
   submitArInvoice,
@@ -257,6 +268,11 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
       cell: (inv) => (
         <span className="font-mono text-sm">{fmt(inv.totalAmount, inv.currency)}</span>
       ),
+      footer: (rows) => (
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + r.totalAmount, 0).toLocaleString('ko-KR')}
+        </span>
+      ),
     },
     {
       key: 'outstandingAmount',
@@ -266,6 +282,11 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
       sortValue: (inv) => inv.outstandingAmount,
       cell: (inv) => (
         <span className="font-mono text-sm">{fmt(inv.outstandingAmount, inv.currency)}</span>
+      ),
+      footer: (rows) => (
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + r.outstandingAmount, 0).toLocaleString('ko-KR')}
+        </span>
       ),
     },
     {
@@ -363,13 +384,54 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qCustomer, setQCustomer] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [qFrom, setQFrom] = useState('')
+  const [qTo, setQTo] = useState('')
+  const [applied, setApplied] = useState({ customer: '', status: '', from: '', to: '' })
+  const onSearch = () => setApplied({ customer: qCustomer, status: qStatus, from: qFrom, to: qTo })
+  const onReset = () => {
+    setQCustomer('')
+    setQStatus('')
+    setQFrom('')
+    setQTo('')
+    setApplied({ customer: '', status: '', from: '', to: '' })
+  }
+  const filtered = data.content.filter((inv) => {
+    if (applied.customer && String(inv.customerId) !== applied.customer) return false
+    if (applied.status && inv.status !== applied.status) return false
+    if (applied.from && inv.invoiceDate < applied.from) return false
+    if (applied.to && inv.invoiceDate > applied.to) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `매출계산서_${new Date().toISOString().slice(0, 10)}`,
+      ['계산서번호', '고객', '계산서일', '만기일', '통화', '총금액', '미수금액', '상태'],
+      filtered.map((inv) => [
+        inv.invoiceNo,
+        inv.customerName,
+        inv.invoiceDate,
+        inv.dueDate,
+        inv.currency,
+        inv.totalAmount,
+        inv.outstandingAmount,
+        STATUS_LABEL[inv.status],
+      ]),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="매출계산서"
         description="고객 계산서 및 수금 현황을 관리합니다"
-        className="mb-6"
+        className="mb-4"
       >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 계산서
@@ -378,10 +440,66 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
       </PageHeader>
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="계산서일">
+            <Input
+              type="date"
+              value={qFrom}
+              onChange={(e) => setQFrom(e.target.value)}
+              className="h-8 w-36"
+            />
+            <span className="text-muted-foreground">~</span>
+            <Input
+              type="date"
+              value={qTo}
+              onChange={(e) => setQTo(e.target.value)}
+              className="h-8 w-36"
+            />
+          </FilterField>
+          <FilterField label="고객">
+            <Select
+              value={qCustomer || 'ALL'}
+              onValueChange={(v) => setQCustomer(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {customers.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(STATUS_LABEL) as ArInvoiceStatus[]).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={data.content}
+          data={filtered}
           columns={columns}
           getRowId={(inv) => inv.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           empty={
             <EmptyState
               title="등록된 계산서가 없습니다"
@@ -410,19 +528,18 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
             <DialogTitle>새 계산서 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label>계산서번호 *</Label>
+            <FormGrid>
+              <FormRow label="계산서번호" required>
                 <Input
                   value={invoiceNo}
                   onChange={(e) => setInvoiceNo(e.target.value)}
                   placeholder="AR-2024-001"
+                  className="h-8"
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>고객 *</Label>
+              </FormRow>
+              <FormRow label="고객" required>
                 <Select value={customerId} onValueChange={(v) => setCustomerId(v ?? '')}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-8 w-full">
                     <SelectValue placeholder="선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -435,21 +552,14 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                       ))}
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label>계산서일 *</Label>
+              </FormRow>
+              <FormRow label="계산서일" required>
                 <DatePicker value={invoiceDate} onChange={setInvoiceDate} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>만기일 *</Label>
+              </FormRow>
+              <FormRow label="만기일" required>
                 <DatePicker value={dueDate} onChange={setDueDate} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="grid gap-1.5">
-                <Label>공급가액 *</Label>
+              </FormRow>
+              <FormRow label="공급가액" required>
                 <Input
                   type="number"
                   min={0.01}
@@ -458,16 +568,15 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                   readOnly={lines.length > 0}
                   onChange={(e) => setSupplyAmount(e.target.value)}
                   placeholder="0"
-                  className={lines.length > 0 ? 'bg-muted/40 text-muted-foreground' : undefined}
+                  className={lines.length > 0 ? 'h-8 bg-muted/40 text-muted-foreground' : 'h-8'}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>과세구분 *</Label>
+              </FormRow>
+              <FormRow label="과세구분" required>
                 <Select
                   value={taxType}
                   onValueChange={(v) => setTaxType((v ?? 'TAXABLE') as TaxType)}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-8 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -478,11 +587,10 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>통화</Label>
+              </FormRow>
+              <FormRow label="통화" span>
                 <Select value={currency} onValueChange={(v) => setCurrency(v ?? 'KRW')}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-8 w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -491,8 +599,8 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                     <SelectItem value="EUR">EUR</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
+              </FormRow>
+            </FormGrid>
 
             {/* 분개 라인(대변) — 입력 시 승인 때 GL 자동 분개. 합계가 총금액이 된다. */}
             <div className="grid gap-2">

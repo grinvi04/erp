@@ -3,10 +3,9 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, BanIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, BanIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -28,6 +27,9 @@ import {
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { SearchInput } from '@/components/ui/search-input'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createItem, updateItem, deactivateItem } from './actions'
 import type { Item, ItemCategory, Uom, CostMethod } from '@/types/inventory'
 import type { PageResponse } from '@/types/api'
@@ -216,6 +218,9 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
       sortable: true,
       sortValue: (i) => i.standardCost,
       cell: (i) => <span className="font-mono text-sm">{fmtNum(i.standardCost)}</span>,
+      footer: (rows) => (
+        <span className="font-mono">{rows.reduce((s, r) => s + r.standardCost, 0).toLocaleString('ko-KR')}</span>
+      ),
     },
     {
       key: 'lot',
@@ -265,29 +270,72 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qCategory, setQCategory] = useState('')
+  const [qMethod, setQMethod] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [applied, setApplied] = useState({ category: '', method: '', status: '' })
+  const onSearch = () => setApplied({ category: qCategory, method: qMethod, status: qStatus })
+  const onReset = () => {
+    setQCategory('')
+    setQMethod('')
+    setQStatus('')
+    setApplied({ category: '', method: '', status: '' })
+  }
+  const filtered = data.content.filter((i) => {
+    if (applied.category && String(i.categoryId ?? '') !== applied.category) return false
+    if (applied.method && i.costMethod !== applied.method) return false
+    if (applied.status && (applied.status === 'ACTIVE') !== i.active) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `품목_${new Date().toISOString().slice(0, 10)}`,
+      ['SKU', '품목명', '분류', '단위', '원가법', '표준원가', 'LOT', '시리얼', '상태'],
+      filtered.map((i) => [
+        i.sku,
+        i.name,
+        i.categoryName ?? '',
+        i.uomCode,
+        i.costMethod,
+        i.standardCost,
+        i.lotTracked ? 'Y' : 'N',
+        i.serialTracked ? 'Y' : 'N',
+        i.active ? '활성' : '비활성',
+      ]),
+    )
+
   const itemForm = (
     <div className="grid gap-4 py-2">
-      <div className="grid grid-cols-2 gap-4">
+      <FormGrid>
         {dialog.type === 'create' && (
-          <div className="grid gap-1.5">
-            <Label>SKU *</Label>
-            <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="ITEM-001" />
-          </div>
+          <FormRow label="SKU" required>
+            <Input
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              placeholder="ITEM-001"
+              className="h-8"
+            />
+          </FormRow>
         )}
-        <div className="grid gap-1.5">
-          <Label>품목명 *</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="제품명" />
-        </div>
-      </div>
-      <div className="grid gap-1.5">
-        <Label>설명</Label>
-        <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>분류</Label>
+        <FormRow label="품목명" required>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="제품명"
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="설명" span>
+          <Textarea
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </FormRow>
+        <FormRow label="분류">
           <Select value={categoryId} onValueChange={(v) => setCategoryId(v ?? '')}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-8 w-full">
               <SelectValue placeholder="없음" />
             </SelectTrigger>
             <SelectContent>
@@ -298,11 +346,10 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="grid gap-1.5">
-          <Label>단위(UOM) *</Label>
+        </FormRow>
+        <FormRow label="단위(UOM)" required>
           <Select value={uomId} onValueChange={(v) => setUomId(v ?? '')}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-8 w-full">
               <SelectValue placeholder="선택" />
             </SelectTrigger>
             <SelectContent>
@@ -313,16 +360,13 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>원가 계산법 *</Label>
+        </FormRow>
+        <FormRow label="원가 계산법" required>
           <Select
             value={costMethod}
             onValueChange={(v) => setCostMethod((v ?? 'STANDARD') as CostMethod)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-8 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -333,62 +377,58 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="grid gap-1.5">
-          <Label>표준원가</Label>
+        </FormRow>
+        <FormRow label="표준원가">
           <Input
             type="number"
             min={0}
             step={0.01}
             value={standardCost}
             onChange={(e) => setStandardCost(e.target.value)}
+            className="h-8"
           />
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-4">
-        <div className="grid gap-1.5">
-          <Label>재주문점</Label>
+        </FormRow>
+        <FormRow label="재주문점">
           <Input
             type="number"
             min={0}
             step={0.01}
             value={reorderPoint}
             onChange={(e) => setReorderPoint(e.target.value)}
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>재주문량</Label>
+        </FormRow>
+        <FormRow label="재주문량">
           <Input
             type="number"
             min={0}
             step={0.01}
             value={reorderQty}
             onChange={(e) => setReorderQty(e.target.value)}
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>최소재고</Label>
+        </FormRow>
+        <FormRow label="최소재고">
           <Input
             type="number"
             min={0}
             step={0.01}
             value={minStock}
             onChange={(e) => setMinStock(e.target.value)}
+            className="h-8"
           />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>최대재고</Label>
+        </FormRow>
+        <FormRow label="최대재고">
           <Input
             type="number"
             min={0}
             step={0.01}
             value={maxStock}
             onChange={(e) => setMaxStock(e.target.value)}
+            className="h-8"
           />
-        </div>
-      </div>
+        </FormRow>
+      </FormGrid>
       <div className="flex gap-6">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -413,9 +453,13 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
   )
 
   return (
-    <div className="p-6">
-      <PageHeader title="품목 관리" description="재고 품목 마스터를 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="품목 관리" description="재고 품목 마스터를 관리합니다" className="mb-4">
         <SearchInput placeholder="이름·코드 검색" className="w-64" />
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 품목
@@ -424,10 +468,66 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
       </PageHeader>
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="분류">
+            <Select
+              value={qCategory || 'ALL'}
+              onValueChange={(v) => setQCategory(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="원가법">
+            <Select
+              value={qMethod || 'ALL'}
+              onValueChange={(v) => setQMethod(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(COST_METHOD_LABEL) as CostMethod[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {COST_METHOD_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="ACTIVE">활성</SelectItem>
+                <SelectItem value="INACTIVE">비활성</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={data.content}
+          data={filtered}
           columns={columns}
           getRowId={(i) => i.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           empty={
             <EmptyState
               title="등록된 품목이 없습니다"

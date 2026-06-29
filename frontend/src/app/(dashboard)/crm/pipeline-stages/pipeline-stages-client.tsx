@@ -3,10 +3,9 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
@@ -15,9 +14,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import {
   createPipelineStage,
   updatePipelineStage,
@@ -137,31 +146,35 @@ export default function PipelineStagesClient({ stages }: Props) {
 
   const stageForm = (
     <div className="grid gap-4 py-2">
-      <div className="grid gap-1.5">
-        <Label>단계명 *</Label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 제안" />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>단계 순서 *</Label>
+      <FormGrid>
+        <FormRow label="단계명" required span>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="예: 제안"
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="단계 순서" required>
           <Input
             type="number"
             min={1}
             value={stageOrder}
             onChange={(e) => setStageOrder(e.target.value)}
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>기본 확률(%)</Label>
+        </FormRow>
+        <FormRow label="기본 확률(%)">
           <Input
             type="number"
             min={0}
             max={100}
             value={probability}
             onChange={(e) => setProbability(e.target.value)}
+            className="h-8"
           />
-        </div>
-      </div>
+        </FormRow>
+      </FormGrid>
       <div className="flex gap-6">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -255,13 +268,51 @@ export default function PipelineStagesClient({ stages }: Props) {
     },
   ]
 
+  const closedLabel = (stage: PipelineStage) =>
+    stage.isClosedWon ? '성공' : stage.isClosedLost ? '실패' : '진행'
+
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 로드된 데이터 기준 클라이언트 필터.
+  const [qType, setQType] = useState('')
+  const [qKeyword, setQKeyword] = useState('')
+  const [applied, setApplied] = useState({ type: '', keyword: '' })
+  const onSearch = () => setApplied({ type: qType, keyword: qKeyword })
+  const onReset = () => {
+    setQType('')
+    setQKeyword('')
+    setApplied({ type: '', keyword: '' })
+  }
+  const filtered = stages.filter((stage) => {
+    if (applied.type) {
+      const t = stage.isClosedWon ? 'WON' : stage.isClosedLost ? 'LOST' : 'PROGRESS'
+      if (t !== applied.type) return false
+    }
+    if (applied.keyword && !stage.name.toLowerCase().includes(applied.keyword.toLowerCase()))
+      return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `파이프라인단계_${new Date().toISOString().slice(0, 10)}`,
+      ['순서', '단계명', '기본 확률(%)', '종결'],
+      filtered.map((stage) => [
+        stage.stageOrder,
+        stage.name,
+        stage.probability,
+        closedLabel(stage),
+      ]),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="파이프라인 단계"
         description="영업 기회의 진행 단계를 정의합니다"
-        className="mb-6"
+        className="mb-4"
       >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 단계
@@ -269,18 +320,46 @@ export default function PipelineStagesClient({ stages }: Props) {
         )}
       </PageHeader>
 
-      <DataTable
-        data={stages}
-        columns={columns}
-        getRowId={(stage) => stage.id}
-        initialSort={{ key: 'stageOrder', dir: 'asc' }}
-        empty={
-          <EmptyState
-            title="등록된 단계가 없습니다"
-            description={canWrite ? '우측 상단에서 새 단계를 등록하세요.' : undefined}
-          />
-        }
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="종결유형">
+            <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="PROGRESS">진행</SelectItem>
+                <SelectItem value="WON">성공</SelectItem>
+                <SelectItem value="LOST">실패</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="단계명">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="단계명 검색"
+              className="h-8 w-40"
+            />
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={filtered}
+          columns={columns}
+          getRowId={(stage) => stage.id}
+          initialSort={{ key: 'stageOrder', dir: 'asc' }}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={
+            <EmptyState
+              title="등록된 단계가 없습니다"
+              description={canWrite ? '우측 상단에서 새 단계를 등록하세요.' : undefined}
+            />
+          }
+        />
+      </div>
 
       {/* Create */}
       <Dialog

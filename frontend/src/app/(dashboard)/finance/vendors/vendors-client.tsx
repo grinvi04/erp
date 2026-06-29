@@ -3,10 +3,9 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, BanIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, BanIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
@@ -18,7 +17,6 @@ import {
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
-import { FormField } from '@/components/ui/form-field'
 import {
   Select,
   SelectContent,
@@ -27,7 +25,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
-import { SearchInput } from '@/components/ui/search-input'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createVendor, updateVendor, deactivateVendor } from './actions'
 import type { Account, Vendor } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
@@ -249,100 +249,152 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qKeyword, setQKeyword] = useState(keyword)
+  const [qStatus, setQStatus] = useState('')
+  const [applied, setApplied] = useState({ keyword, status: '' })
+  const onSearch = () => setApplied({ keyword: qKeyword, status: qStatus })
+  const onReset = () => {
+    setQKeyword('')
+    setQStatus('')
+    setApplied({ keyword: '', status: '' })
+  }
+  const filtered = data.content.filter((v) => {
+    if (applied.status === 'ACTIVE' && !v.isActive) return false
+    if (applied.status === 'INACTIVE' && v.isActive) return false
+    if (applied.keyword) {
+      const k = applied.keyword.toLowerCase()
+      const hay = `${v.code} ${v.name} ${v.businessNo ?? ''}`.toLowerCase()
+      if (!hay.includes(k)) return false
+    }
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `공급업체_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '업체명', '사업자번호', '담당자', '이메일', '전화', '결제기한(일)', '상태'],
+      filtered.map((v) => [
+        v.code,
+        v.name,
+        v.businessNo ?? '',
+        v.contactName ?? '',
+        v.contactEmail ?? '',
+        v.contactPhone ?? '',
+        v.paymentTerms,
+        v.isActive ? '활성' : '비활성',
+      ]),
+    )
+
   const vendorForm = (
     <div className="grid gap-4 py-2">
-      <div className="grid grid-cols-2 gap-4">
-        <FormField label="코드" required error={errors.code}>
-          <Input
-            value={code}
-            placeholder="V001"
-            disabled={dialog.type === 'edit'}
-            aria-invalid={!!errors.code}
-            onChange={(e) => {
-              setCode(e.target.value)
-              if (errors.code) setErrors((p) => ({ ...p, code: undefined }))
-            }}
-          />
-        </FormField>
-        <FormField label="업체명" required error={errors.name}>
-          <Input
-            value={name}
-            aria-invalid={!!errors.name}
-            onChange={(e) => {
-              setName(e.target.value)
-              if (errors.name) setErrors((p) => ({ ...p, name: undefined }))
-            }}
-          />
-        </FormField>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>사업자번호</Label>
+      <FormGrid>
+        <FormRow label="코드" required>
+          <div className="w-full">
+            <Input
+              value={code}
+              placeholder="V001"
+              disabled={dialog.type === 'edit'}
+              aria-invalid={!!errors.code}
+              className="h-8"
+              onChange={(e) => {
+                setCode(e.target.value)
+                if (errors.code) setErrors((p) => ({ ...p, code: undefined }))
+              }}
+            />
+            {errors.code && (
+              <p className="mt-1 text-xs font-medium text-destructive">{errors.code}</p>
+            )}
+          </div>
+        </FormRow>
+        <FormRow label="업체명" required>
+          <div className="w-full">
+            <Input
+              value={name}
+              aria-invalid={!!errors.name}
+              className="h-8"
+              onChange={(e) => {
+                setName(e.target.value)
+                if (errors.name) setErrors((p) => ({ ...p, name: undefined }))
+              }}
+            />
+            {errors.name && (
+              <p className="mt-1 text-xs font-medium text-destructive">{errors.name}</p>
+            )}
+          </div>
+        </FormRow>
+        <FormRow label="사업자번호">
           <Input
             value={businessNo}
             onChange={(e) => setBusinessNo(e.target.value)}
             placeholder="000-00-00000"
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>담당자명</Label>
-          <Input value={contactName} onChange={(e) => setContactName(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>이메일</Label>
+        </FormRow>
+        <FormRow label="담당자명">
+          <Input
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="이메일">
           <Input
             type="email"
             value={contactEmail}
             onChange={(e) => setContactEmail(e.target.value)}
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>전화</Label>
-          <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>결제기한 (일)</Label>
+        </FormRow>
+        <FormRow label="전화">
+          <Input
+            value={contactPhone}
+            onChange={(e) => setContactPhone(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="결제기한(일)">
           <Input
             type="number"
             min={0}
             value={paymentTerms}
             onChange={(e) => setPaymentTerms(e.target.value)}
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>외상매입금 계정 (대변)</Label>
-          <Select
-            value={payablesAccountId || NONE}
-            onValueChange={(v) => setPayablesAccountId(!v || v === NONE ? '' : v)}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="미설정" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>미설정</SelectItem>
-              {liabilityAccounts.map((a) => (
-                <SelectItem key={a.id} value={String(a.id)}>
-                  {a.code} {a.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            설정 시 AP 전표 승인이 이 계정으로 자동 분개됩니다.
-          </p>
-        </div>
-      </div>
+        </FormRow>
+        <FormRow label="외상매입금 계정">
+          <div className="w-full">
+            <Select
+              value={payablesAccountId || NONE}
+              onValueChange={(v) => setPayablesAccountId(!v || v === NONE ? '' : v)}
+            >
+              <SelectTrigger className="h-8 w-full">
+                <SelectValue placeholder="미설정" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>미설정</SelectItem>
+                {liabilityAccounts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.code} {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              설정 시 AP 전표 승인이 이 계정으로 자동 분개됩니다.
+            </p>
+          </div>
+        </FormRow>
+      </FormGrid>
     </div>
   )
 
   return (
-    <div className="p-6">
-      <PageHeader title="공급업체" description="매입 거래처 정보를 관리합니다" className="mb-6">
-        <SearchInput placeholder="이름·코드 검색" className="w-64" />
+    <div className="p-5">
+      <PageHeader title="공급업체" description="매입 거래처 정보를 관리합니다" className="mb-4">
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 공급업체
@@ -351,11 +403,36 @@ export default function VendorsClient({ data, accounts, keyword }: Props) {
       </PageHeader>
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="검색어">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="이름·코드·사업자번호"
+              className="h-8 w-52"
+            />
+          </FilterField>
+          <FilterField label="상태">
+            <Select value={qStatus || 'ALL'} onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}>
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="ACTIVE">활성</SelectItem>
+                <SelectItem value="INACTIVE">비활성</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={data.content}
+          data={filtered}
           columns={columns}
           getRowId={(v) => v.id}
           selectable={canWrite}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           renderBulkActions={
             canWrite
               ? (selected, clear) => (
