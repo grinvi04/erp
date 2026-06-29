@@ -25,6 +25,7 @@ const ROUTES: Route[] = [
   { label: '고객', href: '/finance/customers', group: '재무' },
   { label: '매출계산서', href: '/finance/ar-invoices', group: '재무' },
   { label: '재무제표', href: '/finance/reports', group: '재무' },
+  { label: '회사정보', href: '/finance/company-profile', group: '재무' },
   { label: 'FX 설정', href: '/finance/fx', group: '재무' },
   { label: '품목', href: '/inventory/items', group: '재고' },
   { label: '창고', href: '/inventory/warehouses', group: '재고' },

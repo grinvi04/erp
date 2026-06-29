@@ -65,6 +65,11 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
   const [contactPhone, setContactPhone] = useState('')
   const [paymentTerms, setPaymentTerms] = useState('30')
   const [receivablesAccountId, setReceivablesAccountId] = useState('')
+  // 세금계산서 공급받는자 인적사항
+  const [representativeName, setRepresentativeName] = useState('')
+  const [address, setAddress] = useState('')
+  const [businessType, setBusinessType] = useState('')
+  const [businessItem, setBusinessItem] = useState('')
 
   const openCreate = () => {
     setCode('')
@@ -75,6 +80,10 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
     setContactPhone('')
     setPaymentTerms('30')
     setReceivablesAccountId('')
+    setRepresentativeName('')
+    setAddress('')
+    setBusinessType('')
+    setBusinessItem('')
     setDialog({ type: 'create' })
   }
 
@@ -88,6 +97,10 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
     setReceivablesAccountId(
       customer.receivablesAccountId != null ? String(customer.receivablesAccountId) : '',
     )
+    setRepresentativeName(customer.representativeName ?? '')
+    setAddress(customer.address ?? '')
+    setBusinessType(customer.businessType ?? '')
+    setBusinessItem(customer.businessItem ?? '')
     setDialog({ type: 'edit', customer })
   }
 
@@ -107,6 +120,10 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
           contactPhone: contactPhone || null,
           paymentTerms: Number(paymentTerms) || 0,
           receivablesAccountId: receivablesAccountId ? Number(receivablesAccountId) : null,
+          representativeName: representativeName || null,
+          address: address || null,
+          businessType: businessType || null,
+          businessItem: businessItem || null,
         })
         toast.success('고객이 등록되었습니다')
         close()
@@ -131,6 +148,10 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
           contactPhone: contactPhone || null,
           paymentTerms: Number(paymentTerms) || 0,
           receivablesAccountId: receivablesAccountId ? Number(receivablesAccountId) : null,
+          representativeName: representativeName || null,
+          address: address || null,
+          businessType: businessType || null,
+          businessItem: businessItem || null,
           version: customer.version,
         })
         toast.success('고객 정보가 수정되었습니다')
@@ -298,6 +319,32 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
             value={businessNo}
             onChange={(e) => setBusinessNo(e.target.value)}
             placeholder="000-00-00000"
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="대표자">
+          <Input
+            value={representativeName}
+            onChange={(e) => setRepresentativeName(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="주소" span>
+          <Input value={address} onChange={(e) => setAddress(e.target.value)} className="h-8" />
+        </FormRow>
+        <FormRow label="업태">
+          <Input
+            value={businessType}
+            onChange={(e) => setBusinessType(e.target.value)}
+            placeholder="예: 도소매"
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="종목">
+          <Input
+            value={businessItem}
+            onChange={(e) => setBusinessItem(e.target.value)}
+            placeholder="예: 전자제품"
             className="h-8"
           />
         </FormRow>

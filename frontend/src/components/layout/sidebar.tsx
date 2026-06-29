@@ -70,6 +70,7 @@ const MODULES: (NavItem & { children: NavChild[] })[] = [
       { label: '고객', href: '/finance/customers', icon: Building2 },
       { label: '매출계산서', href: '/finance/ar-invoices', icon: FileText },
       { label: '재무제표', href: '/finance/reports', icon: BarChart3 },
+      { label: '회사정보', href: '/finance/company-profile', icon: Building2 },
       { label: 'FX 설정', href: '/finance/fx', icon: Coins },
     ],
   },

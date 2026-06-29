@@ -96,7 +96,20 @@ export interface Customer {
   paymentTerms: number
   isActive: boolean
   receivablesAccountId: number | null
+  representativeName: string | null
+  address: string | null
+  businessType: string | null
+  businessItem: string | null
   version: number
+}
+
+export interface CompanyProfile {
+  companyName: string | null
+  businessNo: string | null
+  representative: string | null
+  address: string | null
+  businessType: string | null
+  businessItem: string | null
 }
 
 export interface ArInvoice {

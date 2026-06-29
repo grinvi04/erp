@@ -14,6 +14,10 @@ export async function createCustomer(data: {
   contactPhone: string | null
   paymentTerms: number
   receivablesAccountId: number | null
+  representativeName: string | null
+  address: string | null
+  businessType: string | null
+  businessItem: string | null
 }): Promise<void> {
   await apiPost<Customer>('/api/finance/customers', data)
   revalidatePath(PATH)
@@ -29,6 +33,10 @@ export async function updateCustomer(
     contactPhone: string | null
     paymentTerms: number
     receivablesAccountId: number | null
+    representativeName: string | null
+    address: string | null
+    businessType: string | null
+    businessItem: string | null
     version: number
   },
 ): Promise<void> {
