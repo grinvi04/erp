@@ -30,6 +30,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { PageHeader } from '@/components/ui/page-header'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
 import { EmptyState } from '@/components/ui/empty-state'
 import {
   createRole,
@@ -144,7 +145,7 @@ export default function IamClient({
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-5 space-y-5">
       <PageHeader title="역할·권한 관리" />
 
       <Card>
@@ -226,32 +227,32 @@ export default function IamClient({
             <DialogTitle>{dialog.mode === 'create' ? '새 역할' : '역할 수정'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label>코드</Label>
+            <FormGrid>
+              <FormRow label="코드" required>
                 <Input
                   value={form.code}
                   disabled={dialog.mode === 'edit'}
                   onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
                   placeholder="HR_MANAGER"
+                  className="h-8"
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>이름</Label>
+              </FormRow>
+              <FormRow label="이름" required>
                 <Input
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder="인사 관리자"
+                  className="h-8"
                 />
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>설명</Label>
-              <Input
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              />
-            </div>
+              </FormRow>
+              <FormRow label="설명" span>
+                <Input
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  className="h-8"
+                />
+              </FormRow>
+            </FormGrid>
             <div className="grid gap-2">
               <Label>권한</Label>
               <div className="max-h-64 overflow-y-auto space-y-3 border rounded-md p-3">
@@ -479,11 +480,10 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
               <div className="text-sm font-medium mb-2">
                 접근 프로파일 (데이터 스코프·전결 한도)
               </div>
-              <div className="grid grid-cols-3 gap-3 max-w-2xl">
-                <div className="grid gap-1.5">
-                  <Label>데이터 스코프</Label>
+              <FormGrid className="max-w-2xl">
+                <FormRow label="데이터 스코프">
                   <Select value={scope} onValueChange={(v) => setScope((v as DataScope) ?? 'ALL')}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -492,24 +492,24 @@ function UserAccessPanel({ roles, canWrite }: { roles: Role[]; canWrite: boolean
                       <SelectItem value="SELF">본인(SELF)</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>부서 ID</Label>
+                </FormRow>
+                <FormRow label="부서 ID">
                   <Input
                     value={deptId}
                     onChange={(e) => setDeptId(e.target.value)}
                     placeholder="(선택)"
+                    className="h-8"
                   />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>전결 한도(원)</Label>
+                </FormRow>
+                <FormRow label="전결 한도(원)">
                   <Input
                     value={limit}
                     onChange={(e) => setLimit(e.target.value)}
                     placeholder="(선택)"
+                    className="h-8"
                   />
-                </div>
-              </div>
+                </FormRow>
+              </FormGrid>
               {canWrite && (
                 <Button
                   className="mt-3"
