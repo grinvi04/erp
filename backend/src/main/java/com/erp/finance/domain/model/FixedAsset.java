@@ -109,8 +109,8 @@ public class FixedAsset extends BaseEntity {
     a.code = code;
     a.name = name;
     a.acquisitionDate = acquisitionDate;
-    a.acquisitionCost = acquisitionCost.setScale(MONEY_SCALE);
-    a.residualValue = residualValue.setScale(MONEY_SCALE);
+    a.acquisitionCost = acquisitionCost.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+    a.residualValue = residualValue.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
     a.usefulLifeMonths = usefulLifeMonths;
     a.method = method;
     a.decliningAnnualRate = decliningAnnualRate;

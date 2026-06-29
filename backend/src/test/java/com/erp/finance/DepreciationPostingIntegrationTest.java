@@ -192,4 +192,32 @@ class DepreciationPostingIntegrationTest extends AbstractIntegrationTest {
     assertThat(fixedAssetRepository.findById(assetId).orElseThrow().getAccumulatedDepreciation())
         .isEqualByComparingTo("1200000");
   }
+
+  @Test
+  void run_assetAcquiredAfterPeriod_isSkipped() {
+    // 취득월부터 상각: 취득일(3월)이 대상 기간(1월) 이후면 미취득 → 건너뜀(취득 전 상각 금지).
+    configureDepreciationAccounts();
+    authenticate("creator", "finance:write");
+    Long assetId =
+        fixedAssetService
+            .create(
+                new FixedAssetCreateRequest(
+                    "FA-DEP-FUTURE",
+                    "3월취득자산",
+                    LocalDate.of(2025, 3, 1),
+                    new BigDecimal("1200000"),
+                    BigDecimal.ZERO,
+                    12,
+                    DepreciationMethod.STRAIGHT_LINE,
+                    null,
+                    assetAccountId))
+            .id();
+
+    DepreciationRunResponse result = depreciationPostingService.runForPeriod(periodId); // 1월 기간
+
+    assertThat(result.processedCount()).isZero();
+    assertThat(result.skippedCount()).isEqualTo(1);
+    assertThat(fixedAssetRepository.findById(assetId).orElseThrow().getAccumulatedDepreciation())
+        .isEqualByComparingTo("0");
+  }
 }

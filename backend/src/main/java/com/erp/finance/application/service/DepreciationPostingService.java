@@ -70,6 +70,11 @@ public class DepreciationPostingService {
     int skipped = 0;
     BigDecimal total = BigDecimal.ZERO;
     for (FixedAsset asset : assets) {
+      // 취득월부터 상각 — 취득일이 해당 회계기간 종료일 이후면 아직 미취득이므로 건너뛴다(취득 전 상각 방지).
+      if (asset.getAcquisitionDate().isAfter(period.getEndDate())) {
+        skipped++;
+        continue;
+      }
       if (depreciationEntryRepository.existsByFixedAssetIdAndFiscalPeriodId(
           asset.getId(), fiscalPeriodId)) {
         skipped++;
