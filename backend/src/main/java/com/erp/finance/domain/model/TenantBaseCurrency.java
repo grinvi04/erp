@@ -55,6 +55,24 @@ public class TenantBaseCurrency extends BaseEntity {
   @JoinColumn(name = "vat_payable_account_id")
   private Account vatPayableAccount;
 
+  // 고정자산 감가상각·처분 계정 — 감가상각비(비용)·감가상각누계액(자산 차감)·처분이익(수익)·처분손실(비용).
+  // 미설정이면 상각/처분 분개를 차단한다(빈 값 분개 금지).
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "depreciation_expense_account_id")
+  private Account depreciationExpenseAccount;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "accumulated_depreciation_account_id")
+  private Account accumulatedDepreciationAccount;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "disposal_gain_account_id")
+  private Account disposalGainAccount;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "disposal_loss_account_id")
+  private Account disposalLossAccount;
+
   protected TenantBaseCurrency() {}
 
   public static TenantBaseCurrency of(String baseCurrency) {
@@ -101,5 +119,33 @@ public class TenantBaseCurrency extends BaseEntity {
 
   public Account getVatPayableAccount() {
     return vatPayableAccount;
+  }
+
+  /** 감가상각·처분 계정 설정(함께 지정·해제). 각 nullable — 미설정 시 상각/처분 분개 차단. */
+  public void assignDepreciationAccounts(
+      Account depreciationExpenseAccount,
+      Account accumulatedDepreciationAccount,
+      Account disposalGainAccount,
+      Account disposalLossAccount) {
+    this.depreciationExpenseAccount = depreciationExpenseAccount;
+    this.accumulatedDepreciationAccount = accumulatedDepreciationAccount;
+    this.disposalGainAccount = disposalGainAccount;
+    this.disposalLossAccount = disposalLossAccount;
+  }
+
+  public Account getDepreciationExpenseAccount() {
+    return depreciationExpenseAccount;
+  }
+
+  public Account getAccumulatedDepreciationAccount() {
+    return accumulatedDepreciationAccount;
+  }
+
+  public Account getDisposalGainAccount() {
+    return disposalGainAccount;
+  }
+
+  public Account getDisposalLossAccount() {
+    return disposalLossAccount;
   }
 }
