@@ -46,8 +46,17 @@ class ArInvoiceServiceTest {
   @Mock private com.erp.finance.domain.repository.AccountRepository accountRepository;
   @Mock private ArInvoicePostingService arInvoicePostingService;
   @Mock private CurrencyConverter currencyConverter;
+  @Mock private BaseCurrencyService baseCurrencyService;
 
   @InjectMocks private ArInvoiceService arInvoiceService;
+
+  @org.junit.jupiter.api.BeforeEach
+  void stubVatAccounts() {
+    // 기본: 부가세 통제계정 미설정(생성 시 EXEMPT 게이팅) — 일부 테스트만 사용하므로 lenient.
+    org.mockito.Mockito.lenient()
+        .when(baseCurrencyService.currentVatAccounts())
+        .thenReturn(new BaseCurrencyService.VatAccounts(null, null));
+  }
 
   private Customer buildCustomer() {
     return Customer.of("C001", "고객사", null, null, null, null, 30);

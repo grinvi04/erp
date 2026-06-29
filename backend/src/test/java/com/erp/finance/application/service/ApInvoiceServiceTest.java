@@ -46,8 +46,17 @@ class ApInvoiceServiceTest {
   @Mock private com.erp.finance.domain.repository.AccountRepository accountRepository;
   @Mock private ApInvoicePostingService apInvoicePostingService;
   @Mock private CurrencyConverter currencyConverter;
+  @Mock private BaseCurrencyService baseCurrencyService;
 
   @InjectMocks private ApInvoiceService apInvoiceService;
+
+  @org.junit.jupiter.api.BeforeEach
+  void stubVatAccounts() {
+    // 기본: 부가세 통제계정 미설정(생성 시 EXEMPT 게이팅) — 일부 테스트만 사용하므로 lenient.
+    org.mockito.Mockito.lenient()
+        .when(baseCurrencyService.currentVatAccounts())
+        .thenReturn(new BaseCurrencyService.VatAccounts(null, null));
+  }
 
   private Vendor buildVendor() {
     return Vendor.of("V001", "공급사", null, null, null, null, 30);
