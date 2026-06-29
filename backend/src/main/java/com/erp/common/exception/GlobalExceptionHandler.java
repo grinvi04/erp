@@ -4,6 +4,7 @@ import com.erp.common.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -65,6 +66,19 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiResponse<Void>> handleNoResource(NoResourceFoundException e) {
     ErrorCode code = ErrorCode.RESOURCE_NOT_FOUND;
     log.warn("No resource found: {}", e.getResourcePath());
+    return ResponseEntity.status(code.getHttpStatus())
+        .body(ApiResponse.error(code.getCode(), code.getMessage()));
+  }
+
+  /**
+   * DB 무결성 제약 위반 — 주로 동시 요청이 unique 제약을 동시에 통과한 뒤 한쪽 INSERT가 충돌하는 check-then-act 레이스(예: 중복 발행·중복
+   * 코드). catch-all로 떨어지면 500(C999)으로 잘못 분류돼 ERROR 알람을 울리므로 명시적으로 409로 매핑한다. 서비스의 사전 존재 검사가 대부분의 경우를
+   * 먼저 거르며, 이 핸들러는 레이스의 패자에게 깔끔한 409를 돌려주는 안전망이다.
+   */
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException e) {
+    ErrorCode code = ErrorCode.DATA_INTEGRITY_CONFLICT;
+    log.warn("Data integrity violation: {}", e.getMostSpecificCause().getMessage());
     return ResponseEntity.status(code.getHttpStatus())
         .body(ApiResponse.error(code.getCode(), code.getMessage()));
   }
