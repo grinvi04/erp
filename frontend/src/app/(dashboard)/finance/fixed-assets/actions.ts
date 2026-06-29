@@ -35,9 +35,12 @@ export async function disposeFixedAsset(
 }
 
 export async function runDepreciation(fiscalPeriodId: number): Promise<DepreciationRunResult> {
-  const result = await apiPost<DepreciationRunResult>('/api/finance/fixed-assets/depreciation-run', {
-    fiscalPeriodId,
-  })
+  const result = await apiPost<DepreciationRunResult>(
+    '/api/finance/fixed-assets/depreciation-run',
+    {
+      fiscalPeriodId,
+    },
+  )
   revalidatePath(PATH)
   return result
 }

@@ -152,8 +152,7 @@ export default function FixedAssetsClient({
           residualValue: Number(residualValue) || 0,
           usefulLifeMonths: Number(usefulLifeMonths),
           method,
-          decliningAnnualRate:
-            method === 'DECLINING_BALANCE' ? Number(decliningAnnualRate) : null,
+          decliningAnnualRate: method === 'DECLINING_BALANCE' ? Number(decliningAnnualRate) : null,
           assetAccountId: Number(assetAccountId),
         })
         toast.success('고정자산이 등록되었습니다')
@@ -279,11 +278,7 @@ export default function FixedAssetsClient({
     })
   }
 
-  const accountSelect = (
-    value: string,
-    onChange: (v: string) => void,
-    placeholder = '미설정',
-  ) => (
+  const accountSelect = (value: string, onChange: (v: string) => void, placeholder = '미설정') => (
     <Select
       value={value || NONE}
       disabled={!canSetting}
