@@ -58,6 +58,11 @@ public class CustomerService {
             request.contactEmail(),
             request.contactPhone(),
             request.paymentTerms());
+    customer.assignTaxIdentity(
+        request.representativeName(),
+        request.address(),
+        request.businessType(),
+        request.businessItem());
     applyReceivablesAccount(customer, request.receivablesAccountId());
     return CustomerResponse.from(customerRepository.save(customer));
   }
@@ -75,6 +80,11 @@ public class CustomerService {
         request.contactEmail(),
         request.contactPhone(),
         request.paymentTerms());
+    customer.assignTaxIdentity(
+        request.representativeName(),
+        request.address(),
+        request.businessType(),
+        request.businessItem());
     applyReceivablesAccount(customer, request.receivablesAccountId());
     customerRepository.flush();
     return CustomerResponse.from(customer);
