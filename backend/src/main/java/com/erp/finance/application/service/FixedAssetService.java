@@ -6,6 +6,7 @@ import com.erp.common.response.PageResponse;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.ReferenceTypes;
+import com.erp.finance.application.dto.DepreciationEntryResponse;
 import com.erp.finance.application.dto.FixedAssetCreateRequest;
 import com.erp.finance.application.dto.FixedAssetDisposeRequest;
 import com.erp.finance.application.dto.FixedAssetResponse;
@@ -17,6 +18,7 @@ import com.erp.finance.domain.model.FiscalPeriod;
 import com.erp.finance.domain.model.FixedAsset;
 import com.erp.finance.domain.model.JournalEntryType;
 import com.erp.finance.domain.repository.AccountRepository;
+import com.erp.finance.domain.repository.DepreciationEntryRepository;
 import com.erp.finance.domain.repository.FiscalPeriodRepository;
 import com.erp.finance.domain.repository.FixedAssetRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
@@ -35,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class FixedAssetService {
 
   private final FixedAssetRepository fixedAssetRepository;
+  private final DepreciationEntryRepository depreciationEntryRepository;
   private final AccountRepository accountRepository;
   private final JournalEntryService journalEntryService;
   private final JournalEntryRepository journalEntryRepository;
@@ -51,6 +54,15 @@ public class FixedAssetService {
   public FixedAssetResponse findById(Long id) {
     permissionChecker.require(Permission.FINANCE_READ);
     return FixedAssetResponse.from(getOrThrow(id));
+  }
+
+  /** 자산의 감가상각 이력(기간 오름차순) — 상세 화면 표시용. */
+  public List<DepreciationEntryResponse> findHistory(Long id) {
+    permissionChecker.require(Permission.FINANCE_READ);
+    getOrThrow(id);
+    return depreciationEntryRepository.findByFixedAssetIdOrderByFiscalPeriodIdAsc(id).stream()
+        .map(DepreciationEntryResponse::from)
+        .toList();
   }
 
   @Transactional
