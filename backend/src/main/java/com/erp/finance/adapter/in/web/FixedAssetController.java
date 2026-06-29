@@ -10,9 +10,15 @@ import com.erp.finance.application.dto.DepreciationRunResponse;
 import com.erp.finance.application.dto.FixedAssetCreateRequest;
 import com.erp.finance.application.dto.FixedAssetDisposeRequest;
 import com.erp.finance.application.dto.FixedAssetResponse;
+import com.erp.finance.application.dto.ImpairmentAccountResponse;
+import com.erp.finance.application.dto.ImpairmentAccountUpdateRequest;
+import com.erp.finance.application.dto.ImpairmentEntryResponse;
+import com.erp.finance.application.dto.ImpairmentRecognizeRequest;
+import com.erp.finance.application.dto.ImpairmentRecognizeResponse;
 import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.application.service.DepreciationPostingService;
 import com.erp.finance.application.service.FixedAssetService;
+import com.erp.finance.application.service.ImpairmentPostingService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +46,7 @@ public class FixedAssetController {
 
   private final FixedAssetService fixedAssetService;
   private final DepreciationPostingService depreciationPostingService;
+  private final ImpairmentPostingService impairmentPostingService;
   private final BaseCurrencyService baseCurrencyService;
 
   @GetMapping
@@ -67,6 +74,17 @@ public class FixedAssetController {
         ApiResponse.ok(depreciationPostingService.runForPeriod(request.fiscalPeriodId())));
   }
 
+  @GetMapping("/impairment-accounts")
+  public ResponseEntity<ApiResponse<ImpairmentAccountResponse>> getImpairmentAccounts() {
+    return ResponseEntity.ok(ApiResponse.ok(baseCurrencyService.getImpairmentAccounts()));
+  }
+
+  @PutMapping("/impairment-accounts")
+  public ResponseEntity<ApiResponse<ImpairmentAccountResponse>> updateImpairmentAccounts(
+      @Valid @RequestBody ImpairmentAccountUpdateRequest request) {
+    return ResponseEntity.ok(ApiResponse.ok(baseCurrencyService.updateImpairmentAccounts(request)));
+  }
+
   @GetMapping("/{id}")
   public ResponseEntity<ApiResponse<FixedAssetResponse>> findById(@PathVariable Long id) {
     return ResponseEntity.ok(ApiResponse.ok(fixedAssetService.findById(id)));
@@ -76,6 +94,21 @@ public class FixedAssetController {
   public ResponseEntity<ApiResponse<List<DepreciationEntryResponse>>> findHistory(
       @PathVariable Long id) {
     return ResponseEntity.ok(ApiResponse.ok(fixedAssetService.findHistory(id)));
+  }
+
+  @GetMapping("/{id}/impairment")
+  public ResponseEntity<ApiResponse<List<ImpairmentEntryResponse>>> findImpairmentHistory(
+      @PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.ok(fixedAssetService.findImpairmentHistory(id)));
+  }
+
+  @PostMapping("/{id}/impairment")
+  public ResponseEntity<ApiResponse<ImpairmentRecognizeResponse>> recognizeImpairment(
+      @PathVariable Long id, @Valid @RequestBody ImpairmentRecognizeRequest request) {
+    return ResponseEntity.ok(
+        ApiResponse.ok(
+            impairmentPostingService.recognizeImpairment(
+                id, request.fiscalPeriodId(), request.recoverableAmount())));
   }
 
   @PostMapping

@@ -10,6 +10,7 @@ import com.erp.finance.application.dto.DepreciationEntryResponse;
 import com.erp.finance.application.dto.FixedAssetCreateRequest;
 import com.erp.finance.application.dto.FixedAssetDisposeRequest;
 import com.erp.finance.application.dto.FixedAssetResponse;
+import com.erp.finance.application.dto.ImpairmentEntryResponse;
 import com.erp.finance.application.dto.JournalEntryCreateRequest;
 import com.erp.finance.application.dto.JournalLineRequest;
 import com.erp.finance.application.service.BaseCurrencyService.DepreciationAccounts;
@@ -22,6 +23,7 @@ import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.DepreciationEntryRepository;
 import com.erp.finance.domain.repository.FiscalPeriodRepository;
 import com.erp.finance.domain.repository.FixedAssetRepository;
+import com.erp.finance.domain.repository.ImpairmentEntryRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -39,6 +41,7 @@ public class FixedAssetService {
 
   private final FixedAssetRepository fixedAssetRepository;
   private final DepreciationEntryRepository depreciationEntryRepository;
+  private final ImpairmentEntryRepository impairmentEntryRepository;
   private final AccountRepository accountRepository;
   private final JournalEntryService journalEntryService;
   private final JournalEntryRepository journalEntryRepository;
@@ -64,6 +67,15 @@ public class FixedAssetService {
     getOrThrow(id);
     return depreciationEntryRepository.findByFixedAssetIdOrderByFiscalPeriodIdAsc(id).stream()
         .map(DepreciationEntryResponse::from)
+        .toList();
+  }
+
+  /** 자산의 손상차손 이력(기간 오름차순) — 상세 화면 표시용. */
+  public List<ImpairmentEntryResponse> findImpairmentHistory(Long id) {
+    permissionChecker.require(Permission.FINANCE_READ);
+    getOrThrow(id);
+    return impairmentEntryRepository.findByFixedAssetIdOrderByFiscalPeriodIdAsc(id).stream()
+        .map(ImpairmentEntryResponse::from)
         .toList();
   }
 

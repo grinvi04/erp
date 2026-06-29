@@ -18,9 +18,14 @@ import com.erp.finance.application.dto.DepreciationRunResponse;
 import com.erp.finance.application.dto.FixedAssetCreateRequest;
 import com.erp.finance.application.dto.FixedAssetDisposeRequest;
 import com.erp.finance.application.dto.FixedAssetResponse;
+import com.erp.finance.application.dto.ImpairmentAccountResponse;
+import com.erp.finance.application.dto.ImpairmentAccountUpdateRequest;
+import com.erp.finance.application.dto.ImpairmentRecognizeRequest;
+import com.erp.finance.application.dto.ImpairmentRecognizeResponse;
 import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.application.service.DepreciationPostingService;
 import com.erp.finance.application.service.FixedAssetService;
+import com.erp.finance.application.service.ImpairmentPostingService;
 import com.erp.finance.domain.model.DepreciationMethod;
 import com.erp.finance.domain.model.FixedAssetStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,6 +50,7 @@ class FixedAssetControllerTest {
   @Autowired private ObjectMapper objectMapper;
   @MockBean private FixedAssetService fixedAssetService;
   @MockBean private DepreciationPostingService depreciationPostingService;
+  @MockBean private ImpairmentPostingService impairmentPostingService;
   @MockBean private BaseCurrencyService baseCurrencyService;
 
   private static FixedAssetResponse asset() {
@@ -204,5 +210,68 @@ class FixedAssetControllerTest {
                         new DepreciationAccountUpdateRequest(11L, 12L, 13L, 14L))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.accumulatedDepreciationAccountId").value(12));
+  }
+
+  @Test
+  void recognizeImpairment_returnsOk() throws Exception {
+    given(impairmentPostingService.recognizeImpairment(eq(1L), eq(5L), any()))
+        .willReturn(
+            new ImpairmentRecognizeResponse(
+                1L,
+                5L,
+                new BigDecimal("1100000"),
+                new BigDecimal("800000"),
+                new BigDecimal("300000"),
+                new BigDecimal("800000"),
+                42L));
+
+    mockMvc
+        .perform(
+            post("/api/finance/fixed-assets/1/impairment")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        new ImpairmentRecognizeRequest(5L, new BigDecimal("800000")))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.impairmentLoss").value(300000))
+        .andExpect(jsonPath("$.data.bookValueAfter").value(800000));
+  }
+
+  @Test
+  void recognizeImpairment_negativeRecoverable_returns400() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/finance/fixed-assets/1/impairment")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        new ImpairmentRecognizeRequest(5L, new BigDecimal("-1")))))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void getImpairmentAccounts_returnsOk() throws Exception {
+    given(baseCurrencyService.getImpairmentAccounts())
+        .willReturn(ImpairmentAccountResponse.of(21L, 22L));
+
+    mockMvc
+        .perform(get("/api/finance/fixed-assets/impairment-accounts"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.impairmentLossAccountId").value(21));
+  }
+
+  @Test
+  void updateImpairmentAccounts_returnsOk() throws Exception {
+    given(baseCurrencyService.updateImpairmentAccounts(any()))
+        .willReturn(ImpairmentAccountResponse.of(21L, 22L));
+
+    mockMvc
+        .perform(
+            put("/api/finance/fixed-assets/impairment-accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(new ImpairmentAccountUpdateRequest(21L, 22L))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.accumulatedImpairmentAccountId").value(22));
   }
 }
