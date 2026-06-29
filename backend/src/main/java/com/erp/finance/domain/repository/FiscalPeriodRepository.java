@@ -22,6 +22,7 @@ public interface FiscalPeriodRepository extends JpaRepository<FiscalPeriod, Long
   Optional<FiscalPeriod> findByStartDateLessThanEqualAndEndDateGreaterThanEqual(
       LocalDate date, LocalDate date2);
 
-  // 처분 직전까지 catch-up 상각 대상 — 처분월 시작일 이전에 끝난 회계기간(처분월 제외), 오름차순.
-  List<FiscalPeriod> findByEndDateLessThanOrderByStartDateAsc(LocalDate date);
+  // 처분 직전까지 catch-up 상각 대상 — [취득일 이후 종료 ~ 처분월 시작일 이전 종료) 기간만(처분월·취득 전 제외), 오름차순.
+  List<FiscalPeriod> findByEndDateGreaterThanEqualAndEndDateLessThanOrderByStartDateAsc(
+      LocalDate acquisitionDate, LocalDate disposalPeriodStart);
 }

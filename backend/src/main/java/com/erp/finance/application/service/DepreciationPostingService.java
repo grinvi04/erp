@@ -113,17 +113,24 @@ public class DepreciationPostingService {
         fiscalPeriodRepository
             .findByStartDateLessThanEqualAndEndDateGreaterThanEqual(disposalDate, disposalDate)
             .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_PERIOD_NOT_FOUND));
+    // [취득일 이후 종료 ~ 처분월 시작 전 종료) 기간만 조회(전체 이력 스캔·미취득 기간 배제).
     List<FiscalPeriod> priorPeriods =
-        fiscalPeriodRepository.findByEndDateLessThanOrderByStartDateAsc(
-            disposalPeriod.getStartDate());
+        fiscalPeriodRepository.findByEndDateGreaterThanEqualAndEndDateLessThanOrderByStartDateAsc(
+            asset.getAcquisitionDate(), disposalPeriod.getStartDate());
     DepreciationAccounts accounts = null;
     for (FiscalPeriod p : priorPeriods) {
-      if (!p.isOpen() || asset.getAcquisitionDate().isAfter(p.getEndDate())) {
-        continue; // 마감 기간 전기 불가 / 미취득
-      }
       if (depreciationEntryRepository.existsByFixedAssetIdAndFiscalPeriodId(
           asset.getId(), p.getId())) {
         continue; // 이미 처리
+      }
+      if (!p.isOpen()) {
+        // 마감된 기간의 미상각분은 전기 불가 — 조용히 누락하지 않고 경고(처분 전 마감 정합성 점검 필요).
+        log.atWarn()
+            .addKeyValue("event", "DEPRECIATION_CATCHUP_SKIPPED_CLOSED")
+            .addKeyValue("assetId", asset.getId())
+            .addKeyValue("fiscalPeriodId", p.getId())
+            .log("처분 catch-up — 마감된 기간의 미상각분 전기 불가, 건너뜀");
+        continue;
       }
       BigDecimal amount = asset.monthlyDepreciation();
       if (amount.signum() <= 0) {
