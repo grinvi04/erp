@@ -112,6 +112,33 @@ export interface CompanyProfile {
   businessItem: string | null
 }
 
+export interface VatPartyLine {
+  businessNo: string | null
+  name: string
+  count: number
+  supplyTotal: number
+  vatTotal: number
+}
+
+export interface VatReturn {
+  from: string
+  to: string
+  sales: {
+    taxableSupply: number
+    taxableVat: number
+    zeroRatedSupply: number
+    exemptSupply: number
+    totalVat: number
+  }
+  purchases: {
+    supply: number
+    vat: number
+  }
+  payableTax: number
+  salesByBuyer: VatPartyLine[]
+  purchasesByVendor: VatPartyLine[]
+}
+
 export type TaxInvoiceStatus = 'ISSUED' | 'CANCELLED'
 export type ChargeType = 'CHARGE' | 'RECEIPT'
 
