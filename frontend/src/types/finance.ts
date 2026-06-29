@@ -295,6 +295,7 @@ export interface FixedAsset {
   decliningAnnualRate: number | null
   assetAccountId: number | null
   accumulatedDepreciation: number
+  accumulatedImpairment: number
   bookValue: number
   status: FixedAssetStatus
 }
@@ -311,6 +312,30 @@ export interface DepreciationAccounts {
   accumulatedDepreciationAccountId: number | null
   disposalGainAccountId: number | null
   disposalLossAccountId: number | null
+}
+
+export interface ImpairmentEntry {
+  id: number
+  fiscalPeriodId: number
+  recoverableAmount: number
+  bookValueBefore: number
+  impairmentLoss: number
+  journalEntryId: number | null
+}
+
+export interface ImpairmentAccounts {
+  impairmentLossAccountId: number | null
+  accumulatedImpairmentAccountId: number | null
+}
+
+export interface ImpairmentRecognizeResult {
+  fixedAssetId: number
+  fiscalPeriodId: number
+  bookValueBefore: number
+  recoverableAmount: number
+  impairmentLoss: number
+  bookValueAfter: number
+  journalEntryId: number | null
 }
 
 export interface DepreciationRunResult {

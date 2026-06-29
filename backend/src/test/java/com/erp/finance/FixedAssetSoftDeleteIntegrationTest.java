@@ -10,12 +10,14 @@ import com.erp.finance.domain.model.DepreciationMethod;
 import com.erp.finance.domain.model.FiscalPeriod;
 import com.erp.finance.domain.model.FiscalYear;
 import com.erp.finance.domain.model.FixedAsset;
+import com.erp.finance.domain.model.ImpairmentEntry;
 import com.erp.finance.domain.model.NormalBalance;
 import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.DepreciationEntryRepository;
 import com.erp.finance.domain.repository.FiscalPeriodRepository;
 import com.erp.finance.domain.repository.FiscalYearRepository;
 import com.erp.finance.domain.repository.FixedAssetRepository;
+import com.erp.finance.domain.repository.ImpairmentEntryRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
@@ -36,6 +38,7 @@ class FixedAssetSoftDeleteIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private FixedAssetRepository fixedAssetRepository;
   @Autowired private DepreciationEntryRepository depreciationEntryRepository;
+  @Autowired private ImpairmentEntryRepository impairmentEntryRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private FiscalYearRepository fiscalYearRepository;
   @Autowired private FiscalPeriodRepository fiscalPeriodRepository;
@@ -109,6 +112,48 @@ class FixedAssetSoftDeleteIntegrationTest extends AbstractIntegrationTest {
     assertThat(
             depreciationEntryRepository.findByFixedAssetIdOrderByFiscalPeriodIdAsc(asset.getId()))
         .as("소프트삭제된 상각 이력은 조회에서 제외되어야 한다")
+        .isEmpty();
+  }
+
+  @Test
+  void softDeletedImpairmentEntry_excludedFromHistory() {
+    Account assetAccount =
+        accountRepository.save(
+            Account.of("20802", "비품3", AccountType.ASSET, NormalBalance.DEBIT, null, false));
+    FixedAsset asset =
+        fixedAssetRepository.save(
+            FixedAsset.register(
+                "FA-SD-3",
+                "노트북3",
+                LocalDate.of(2025, 1, 1),
+                new BigDecimal("1200000"),
+                BigDecimal.ZERO,
+                12,
+                DepreciationMethod.STRAIGHT_LINE,
+                null,
+                assetAccount));
+    FiscalYear fy =
+        fiscalYearRepository.save(
+            FiscalYear.of(2025, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31)));
+    FiscalPeriod period =
+        fiscalPeriodRepository.save(
+            FiscalPeriod.of(fy, 1, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)));
+    ImpairmentEntry entry =
+        impairmentEntryRepository.save(
+            ImpairmentEntry.of(
+                asset.getId(),
+                period.getId(),
+                new BigDecimal("800000"),
+                new BigDecimal("1200000"),
+                new BigDecimal("400000"),
+                null));
+
+    entry.softDelete();
+    impairmentEntryRepository.saveAndFlush(entry);
+    entityManager.clear();
+
+    assertThat(impairmentEntryRepository.findByFixedAssetIdOrderByFiscalPeriodIdAsc(asset.getId()))
+        .as("소프트삭제된 손상 이력은 조회에서 제외되어야 한다")
         .isEmpty();
   }
 }
