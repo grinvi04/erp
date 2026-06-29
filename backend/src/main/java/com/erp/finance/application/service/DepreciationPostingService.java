@@ -19,6 +19,7 @@ import com.erp.finance.domain.repository.FiscalPeriodRepository;
 import com.erp.finance.domain.repository.FixedAssetRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -99,6 +100,46 @@ public class DepreciationPostingService {
         .addKeyValue("skipped", skipped)
         .log("월 감가상각 처리");
     return new DepreciationRunResponse(fiscalPeriodId, processed, skipped, total);
+  }
+
+  /**
+   * 처분 직전까지 catch-up 상각 — 처분월 미상각(취득월 포함·처분월 제외) 정책. 처분월 시작일 이전에 끝난 OPEN 회계기간 중 미처리분에 당월 상각을 순차 전기해
+   * 장부가액을 처분 시점까지 현행화한다. 처분(dispose)에서 호출되며 권한은 호출처(FINANCE_WRITE)가 소유한다. 전기할 기간이 있으면 상각 계정 설정이
+   * 필요하다(마감 기간은 전기 불가로 건너뛴다).
+   */
+  @Transactional
+  public void catchUpBeforeDisposal(FixedAsset asset, LocalDate disposalDate) {
+    FiscalPeriod disposalPeriod =
+        fiscalPeriodRepository
+            .findByStartDateLessThanEqualAndEndDateGreaterThanEqual(disposalDate, disposalDate)
+            .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_PERIOD_NOT_FOUND));
+    List<FiscalPeriod> priorPeriods =
+        fiscalPeriodRepository.findByEndDateLessThanOrderByStartDateAsc(
+            disposalPeriod.getStartDate());
+    DepreciationAccounts accounts = null;
+    for (FiscalPeriod p : priorPeriods) {
+      if (!p.isOpen() || asset.getAcquisitionDate().isAfter(p.getEndDate())) {
+        continue; // 마감 기간 전기 불가 / 미취득
+      }
+      if (depreciationEntryRepository.existsByFixedAssetIdAndFiscalPeriodId(
+          asset.getId(), p.getId())) {
+        continue; // 이미 처리
+      }
+      BigDecimal amount = asset.monthlyDepreciation();
+      if (amount.signum() <= 0) {
+        continue; // 상각 완료(잔존 도달)
+      }
+      if (accounts == null) {
+        accounts = baseCurrencyService.currentDepreciationAccounts();
+        if (accounts.expenseAccount() == null || accounts.accumulatedAccount() == null) {
+          throw new ErpException(ErrorCode.DEPRECIATION_ACCOUNT_NOT_CONFIGURED);
+        }
+      }
+      Long journalEntryId = postDepreciation(asset, p, accounts, amount);
+      asset.applyDepreciation(amount);
+      depreciationEntryRepository.save(
+          DepreciationEntry.of(asset.getId(), p.getId(), amount, journalEntryId));
+    }
   }
 
   private Long postDepreciation(

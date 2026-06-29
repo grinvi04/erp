@@ -43,6 +43,7 @@ public class FixedAssetService {
   private final JournalEntryRepository journalEntryRepository;
   private final FiscalPeriodRepository fiscalPeriodRepository;
   private final BaseCurrencyService baseCurrencyService;
+  private final DepreciationPostingService depreciationPostingService;
   private final PermissionChecker permissionChecker;
 
   public PageResponse<FixedAssetResponse> findAll(Pageable pageable) {
@@ -108,6 +109,9 @@ public class FixedAssetService {
             .findByStartDateLessThanEqualAndEndDateGreaterThanEqual(
                 request.disposalDate(), request.disposalDate())
             .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_PERIOD_NOT_FOUND));
+
+    // 처분일까지 상각 반영(처분월 미상각) — 미처리 직전 기간을 catch-up해 장부가액을 현행화한 뒤 처분손익 계산.
+    depreciationPostingService.catchUpBeforeDisposal(asset, request.disposalDate());
 
     postDisposal(asset, period, request);
     asset.dispose();
