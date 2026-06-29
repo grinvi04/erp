@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 
 class GlobalExceptionHandlerTest {
 
@@ -23,6 +24,16 @@ class GlobalExceptionHandlerTest {
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().success()).isFalse();
     assertThat(response.getBody().error().code()).isEqualTo("C006");
+  }
+
+  @Test
+  void handleInvalidInput_missingParam_returns400() {
+    // 필수 쿼리 파라미터 누락은 500이 아니라 400(C001)으로 매핑되어야 한다.
+    ResponseEntity<ApiResponse<Void>> response =
+        handler.handleInvalidInput(new MissingServletRequestParameterException("from", "String"));
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody().error().code()).isEqualTo("C001");
   }
 
   @Test

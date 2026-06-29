@@ -48,6 +48,16 @@ class ApInvoicePurchaseAggregationIntegrationTest extends AbstractIntegrationTes
 
   private void savePurchase(
       Vendor vendor, LocalDate invoiceDate, long supply, TaxType taxType, ApInvoiceStatus status) {
+    savePurchase(vendor, invoiceDate, supply, taxType, status, "KRW");
+  }
+
+  private void savePurchase(
+      Vendor vendor,
+      LocalDate invoiceDate,
+      long supply,
+      TaxType taxType,
+      ApInvoiceStatus status,
+      String currency) {
     ApInvoice inv =
         ApInvoice.create(
             "AP-AGG-" + (++seq),
@@ -56,7 +66,7 @@ class ApInvoicePurchaseAggregationIntegrationTest extends AbstractIntegrationTes
             invoiceDate.plusDays(30),
             BigDecimal.valueOf(supply),
             taxType,
-            "KRW",
+            currency,
             null);
     ReflectionTestUtils.setField(inv, "status", status);
     apInvoiceRepository.save(inv);
@@ -70,11 +80,18 @@ class ApInvoicePurchaseAggregationIntegrationTest extends AbstractIntegrationTes
     // 매입처B: 승인 1건(공급 300만, 과세 → 세액 30만)
     savePurchase(
         vendorB, LocalDate.of(2025, 5, 1), 3_000_000, TaxType.TAXABLE, ApInvoiceStatus.APPROVED);
-    // 제외: 미승인(DRAFT)·기간 밖
+    // 제외: 미승인(DRAFT)·기간 밖·외화(USD, 국내 부가세 아님)
     savePurchase(
         vendorA, LocalDate.of(2025, 5, 2), 999_999, TaxType.TAXABLE, ApInvoiceStatus.DRAFT);
     savePurchase(
         vendorA, LocalDate.of(2025, 3, 31), 777_777, TaxType.TAXABLE, ApInvoiceStatus.APPROVED);
+    savePurchase(
+        vendorB,
+        LocalDate.of(2025, 5, 3),
+        888_888,
+        TaxType.TAXABLE,
+        ApInvoiceStatus.APPROVED,
+        "USD");
 
     List<PartyAmountRow> rows = apInvoiceRepository.aggregatePurchasesByVendor(FROM, TO);
 
