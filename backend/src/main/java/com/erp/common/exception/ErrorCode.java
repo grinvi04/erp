@@ -10,6 +10,7 @@ public enum ErrorCode {
   OPTIMISTIC_LOCK_CONFLICT(HttpStatus.CONFLICT, "C003", "다른 사용자가 먼저 수정했습니다. 최신 데이터를 불러와 다시 시도하세요"),
   TENANT_MISMATCH(HttpStatus.FORBIDDEN, "C004", "접근 권한이 없는 테넌트입니다"),
   FORBIDDEN(HttpStatus.FORBIDDEN, "C005", "접근 권한이 없습니다"),
+  DATA_INTEGRITY_CONFLICT(HttpStatus.CONFLICT, "C006", "데이터 무결성 제약을 위반했습니다 (중복 또는 참조 위반)"),
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C999", "내부 오류가 발생했습니다"),
 
   // HR
