@@ -539,7 +539,10 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
             />
           </FilterField>
           <FilterField label="유형">
-            <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qType || 'ALL'}
+              onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -554,7 +557,10 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
             </Select>
           </FilterField>
           <FilterField label="상태">
-            <Select value={qStatus || 'ALL'} onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>

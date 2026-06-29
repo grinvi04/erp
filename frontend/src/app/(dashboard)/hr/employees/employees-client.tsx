@@ -501,7 +501,10 @@ export default function EmployeesClient({
       <div className="space-y-3">
         <FilterBar onSearch={onSearch} onReset={onReset}>
           <FilterField label="부서">
-            <Select value={qDept || 'ALL'} onValueChange={(v) => setQDept(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qDept || 'ALL'}
+              onValueChange={(v) => setQDept(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-40">
                 <SelectValue />
               </SelectTrigger>
@@ -516,7 +519,10 @@ export default function EmployeesClient({
             </Select>
           </FilterField>
           <FilterField label="직위">
-            <Select value={qPos || 'ALL'} onValueChange={(v) => setQPos(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qPos || 'ALL'}
+              onValueChange={(v) => setQPos(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-40">
                 <SelectValue />
               </SelectTrigger>
@@ -531,7 +537,10 @@ export default function EmployeesClient({
             </Select>
           </FilterField>
           <FilterField label="상태">
-            <Select value={qStatus || 'ALL'} onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -793,11 +802,7 @@ export default function EmployeesClient({
                 />
               </FormRow>
               <FormRow label="연락처">
-                <Input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="h-8"
-                />
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-8" />
               </FormRow>
               <FormRow label="개인 이메일">
                 <Input

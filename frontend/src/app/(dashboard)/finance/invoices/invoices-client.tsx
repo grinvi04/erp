@@ -256,7 +256,9 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
         <span className="font-mono text-sm">{fmt(inv.totalAmount, inv.currency)}</span>
       ),
       footer: (rows) => (
-        <span className="font-mono">{rows.reduce((s, r) => s + r.totalAmount, 0).toLocaleString('ko-KR')}</span>
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + r.totalAmount, 0).toLocaleString('ko-KR')}
+        </span>
       ),
     },
     {
@@ -269,7 +271,9 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
         <span className="font-mono text-sm">{fmt(inv.outstandingAmount, inv.currency)}</span>
       ),
       footer: (rows) => (
-        <span className="font-mono">{rows.reduce((s, r) => s + r.outstandingAmount, 0).toLocaleString('ko-KR')}</span>
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + r.outstandingAmount, 0).toLocaleString('ko-KR')}
+        </span>
       ),
     },
     {
@@ -440,7 +444,10 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
             />
           </FilterField>
           <FilterField label="공급업체">
-            <Select value={qVendor || 'ALL'} onValueChange={(v) => setQVendor(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qVendor || 'ALL'}
+              onValueChange={(v) => setQVendor(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-40">
                 <SelectValue />
               </SelectTrigger>
@@ -455,7 +462,10 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
             </Select>
           </FilterField>
           <FilterField label="상태">
-            <Select value={qStatus || 'ALL'} onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -545,9 +555,7 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
                   readOnly={lines.length > 0}
                   onChange={(e) => setSupplyAmount(e.target.value)}
                   placeholder="0"
-                  className={
-                    lines.length > 0 ? 'h-8 bg-muted/40 text-muted-foreground' : 'h-8'
-                  }
+                  className={lines.length > 0 ? 'h-8 bg-muted/40 text-muted-foreground' : 'h-8'}
                 />
               </FormRow>
               <FormRow label="과세구분" required>

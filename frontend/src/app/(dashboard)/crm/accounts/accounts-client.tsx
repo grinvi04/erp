@@ -218,11 +218,7 @@ export default function AccountsClient({ data, keyword, names }: Props) {
           </Select>
         </FormRow>
         <FormRow label="업종">
-          <Input
-            value={industry}
-            onChange={(e) => setIndustry(e.target.value)}
-            className="h-8"
-          />
+          <Input value={industry} onChange={(e) => setIndustry(e.target.value)} className="h-8" />
         </FormRow>
         <FormRow label="사업자번호">
           <Input
@@ -271,11 +267,7 @@ export default function AccountsClient({ data, keyword, names }: Props) {
         </FormRow>
         {dialog.type === 'edit' && (
           <FormRow label="담당자 ID" required span>
-            <Input
-              value={ownerId}
-              onChange={(e) => setOwnerId(e.target.value)}
-              className="h-8"
-            />
+            <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="h-8" />
           </FormRow>
         )}
       </FormGrid>
@@ -419,7 +411,10 @@ export default function AccountsClient({ data, keyword, names }: Props) {
       <div className="space-y-3">
         <FilterBar onSearch={onSearch} onReset={onReset}>
           <FilterField label="유형">
-            <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qType || 'ALL'}
+              onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -434,7 +429,10 @@ export default function AccountsClient({ data, keyword, names }: Props) {
             </Select>
           </FilterField>
           <FilterField label="담당자">
-            <Select value={qOwner || 'ALL'} onValueChange={(v) => setQOwner(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qOwner || 'ALL'}
+              onValueChange={(v) => setQOwner(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-40">
                 <SelectValue />
               </SelectTrigger>
@@ -449,7 +447,10 @@ export default function AccountsClient({ data, keyword, names }: Props) {
             </Select>
           </FilterField>
           <FilterField label="상태">
-            <Select value={qStatus || 'ALL'} onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-28">
                 <SelectValue />
               </SelectTrigger>

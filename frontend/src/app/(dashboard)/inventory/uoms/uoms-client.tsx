@@ -261,11 +261,7 @@ export default function UomsClient({ uoms }: Props) {
                 <Input value={code} disabled className="h-8" />
               </FormRow>
               <FormRow label="단위명" required>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-8"
-                />
+                <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8" />
               </FormRow>
             </FormGrid>
           </div>

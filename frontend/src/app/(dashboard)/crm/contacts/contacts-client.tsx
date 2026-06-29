@@ -191,18 +191,10 @@ export default function ContactsClient({ accounts }: Props) {
     <div className="grid gap-4 py-2">
       <FormGrid>
         <FormRow label="성" required>
-          <Input
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className="h-8"
-          />
+          <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-8" />
         </FormRow>
         <FormRow label="이름" required>
-          <Input
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="h-8"
-          />
+          <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="h-8" />
         </FormRow>
         <FormRow label="직함">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-8" />
@@ -398,7 +390,10 @@ export default function ContactsClient({ accounts }: Props) {
             />
           </FilterField>
           <FilterField label="부서">
-            <Select value={qDept || 'ALL'} onValueChange={(v) => setQDept(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qDept || 'ALL'}
+              onValueChange={(v) => setQDept(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-40">
                 <SelectValue />
               </SelectTrigger>
@@ -413,7 +408,10 @@ export default function ContactsClient({ accounts }: Props) {
             </Select>
           </FilterField>
           <FilterField label="주담당자">
-            <Select value={qPrimary || 'ALL'} onValueChange={(v) => setQPrimary(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qPrimary || 'ALL'}
+              onValueChange={(v) => setQPrimary(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-28">
                 <SelectValue />
               </SelectTrigger>

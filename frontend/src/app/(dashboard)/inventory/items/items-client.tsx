@@ -324,11 +324,7 @@ export default function ItemsClient({ data, categories, uoms, keyword }: Props) 
           />
         </FormRow>
         <FormRow label="설명" span>
-          <Textarea
-            rows={2}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+          <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
         </FormRow>
         <FormRow label="분류">
           <Select value={categoryId} onValueChange={(v) => setCategoryId(v ?? '')}>

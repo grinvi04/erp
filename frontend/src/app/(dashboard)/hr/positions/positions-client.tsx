@@ -208,7 +208,10 @@ export default function PositionsClient({ positions }: Props) {
             />
           </FilterField>
           <FilterField label="레벨">
-            <Select value={qLevel || 'ALL'} onValueChange={(v) => setQLevel(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qLevel || 'ALL'}
+              onValueChange={(v) => setQLevel(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>

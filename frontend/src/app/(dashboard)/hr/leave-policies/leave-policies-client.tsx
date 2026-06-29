@@ -234,7 +234,10 @@ export default function LeavePoliciesClient({ policies }: Props) {
       <div className="space-y-3">
         <FilterBar onSearch={onSearch} onReset={onReset}>
           <FilterField label="휴가 종류">
-            <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qType || 'ALL'}
+              onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-36">
                 <SelectValue />
               </SelectTrigger>

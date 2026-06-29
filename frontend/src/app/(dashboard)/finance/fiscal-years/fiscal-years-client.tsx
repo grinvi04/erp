@@ -321,7 +321,10 @@ export default function FiscalYearsClient({ years, periods }: Props) {
           />
         </FilterField>
         <FilterField label="상태">
-          <Select value={qStatus || 'ALL'} onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}>
+          <Select
+            value={qStatus || 'ALL'}
+            onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+          >
             <SelectTrigger className="h-8 w-32">
               <SelectValue />
             </SelectTrigger>

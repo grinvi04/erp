@@ -335,7 +335,10 @@ export default function ApprovalsClient({
 
       <FilterBar onSearch={onSearch} onReset={onReset}>
         <FilterField label="유형">
-          <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+          <Select
+            value={qType || 'ALL'}
+            onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+          >
             <SelectTrigger className="h-8 w-36">
               <SelectValue />
             </SelectTrigger>

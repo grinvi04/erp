@@ -377,7 +377,10 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
       <div className="space-y-3">
         <FilterBar onSearch={onSearch} onReset={onReset}>
           <FilterField label="상태">
-            <Select value={qStatus || 'ALL'} onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -389,7 +392,10 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
             </Select>
           </FilterField>
           <FilterField label="외상매출금계정">
-            <Select value={qAccount || 'ALL'} onValueChange={(v) => setQAccount(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qAccount || 'ALL'}
+              onValueChange={(v) => setQAccount(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-48">
                 <SelectValue />
               </SelectTrigger>

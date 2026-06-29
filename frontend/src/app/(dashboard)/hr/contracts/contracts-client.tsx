@@ -256,7 +256,10 @@ export default function ContractsClient({ employees, positions, jobGrades }: Pro
             />
           </FilterField>
           <FilterField label="계약유형">
-            <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qType || 'ALL'}
+              onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>

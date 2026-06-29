@@ -321,11 +321,7 @@ export default function WarehousesClient({ warehouses }: Props) {
           <div className="grid gap-4 py-2">
             <FormGrid>
               <FormRow label="창고명" required span>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-8"
-                />
+                <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8" />
               </FormRow>
               <FormRow label="주소" span>
                 <Textarea rows={2} value={address} onChange={(e) => setAddress(e.target.value)} />

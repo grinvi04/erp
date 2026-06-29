@@ -229,18 +229,10 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
     <div className="grid gap-4 py-2">
       <FormGrid>
         <FormRow label="성" required>
-          <Input
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className="h-8"
-          />
+          <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-8" />
         </FormRow>
         <FormRow label="이름" required>
-          <Input
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="h-8"
-          />
+          <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="h-8" />
         </FormRow>
         <FormRow label="회사">
           <Input value={company} onChange={(e) => setCompany(e.target.value)} className="h-8" />
@@ -388,7 +380,8 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
     if (applied.owner && lead.ownerId !== applied.owner) return false
     if (applied.keyword) {
       const kw = applied.keyword.toLowerCase()
-      const hay = `${lead.lastName}${lead.firstName} ${lead.company ?? ''} ${lead.email ?? ''}`.toLowerCase()
+      const hay =
+        `${lead.lastName}${lead.firstName} ${lead.company ?? ''} ${lead.email ?? ''}`.toLowerCase()
       if (!hay.includes(kw)) return false
     }
     return true
@@ -426,7 +419,10 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
       <div className="space-y-3">
         <FilterBar onSearch={onSearch} onReset={onReset}>
           <FilterField label="상태">
-            <Select value={qStatus || 'ALL'} onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -441,7 +437,10 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
             </Select>
           </FilterField>
           <FilterField label="담당자">
-            <Select value={qOwner || 'ALL'} onValueChange={(v) => setQOwner(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qOwner || 'ALL'}
+              onValueChange={(v) => setQOwner(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-40">
                 <SelectValue />
               </SelectTrigger>

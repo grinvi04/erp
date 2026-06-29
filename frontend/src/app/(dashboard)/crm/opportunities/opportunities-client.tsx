@@ -271,19 +271,11 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
         </FormRow>
         {dialog.type === 'edit' && (
           <FormRow label="담당자 ID" required>
-            <Input
-              value={ownerId}
-              onChange={(e) => setOwnerId(e.target.value)}
-              className="h-8"
-            />
+            <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="h-8" />
           </FormRow>
         )}
         <FormRow label="출처">
-          <Input
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            className="h-8"
-          />
+          <Input value={source} onChange={(e) => setSource(e.target.value)} className="h-8" />
         </FormRow>
       </FormGrid>
       <div className="grid gap-1.5">

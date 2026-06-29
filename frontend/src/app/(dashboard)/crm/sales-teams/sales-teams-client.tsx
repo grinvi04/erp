@@ -363,11 +363,7 @@ export default function SalesTeamsClient({ teams }: Props) {
           <div className="grid gap-4 py-2">
             <FormGrid>
               <FormRow label="팀명" required span>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-8"
-                />
+                <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8" />
               </FormRow>
             </FormGrid>
           </div>

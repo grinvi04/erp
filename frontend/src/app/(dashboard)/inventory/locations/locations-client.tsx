@@ -349,7 +349,10 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
       <div className="space-y-3">
         <FilterBar onSearch={onSearch} onReset={onReset}>
           <FilterField label="유형">
-            <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qType || 'ALL'}
+              onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -364,7 +367,10 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
             </Select>
           </FilterField>
           <FilterField label="상태">
-            <Select value={qStatus || 'ALL'} onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-28">
                 <SelectValue />
               </SelectTrigger>

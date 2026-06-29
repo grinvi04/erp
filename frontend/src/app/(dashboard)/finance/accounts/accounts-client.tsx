@@ -234,7 +234,8 @@ export default function AccountsClient({ accounts }: Props) {
   const filtered = accounts.filter((acc) => {
     if (applied.type && acc.accountType !== applied.type) return false
     if (applied.normal && acc.normalBalance !== applied.normal) return false
-    if (applied.status && String(acc.isActive ? 'ACTIVE' : 'INACTIVE') !== applied.status) return false
+    if (applied.status && String(acc.isActive ? 'ACTIVE' : 'INACTIVE') !== applied.status)
+      return false
     return true
   })
   const exportExcel = () =>
@@ -272,7 +273,10 @@ export default function AccountsClient({ accounts }: Props) {
       <div className="space-y-3">
         <FilterBar onSearch={onSearch} onReset={onReset}>
           <FilterField label="유형">
-            <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qType || 'ALL'}
+              onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -442,11 +446,7 @@ export default function AccountsClient({ accounts }: Props) {
           <div className="grid gap-4 py-2">
             <FormGrid>
               <FormRow label="계정과목명" required span>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-8"
-                />
+                <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8" />
               </FormRow>
             </FormGrid>
             <div className="flex items-center gap-2">

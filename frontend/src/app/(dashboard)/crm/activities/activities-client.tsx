@@ -440,7 +440,10 @@ export default function ActivitiesClient({ data, accounts }: Props) {
       <div className="space-y-3">
         <FilterBar onSearch={onSearch} onReset={onReset}>
           <FilterField label="유형">
-            <Select value={qType || 'ALL'} onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qType || 'ALL'}
+              onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -455,7 +458,10 @@ export default function ActivitiesClient({ data, accounts }: Props) {
             </Select>
           </FilterField>
           <FilterField label="상태">
-            <Select value={qStatus || 'ALL'} onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -470,7 +476,10 @@ export default function ActivitiesClient({ data, accounts }: Props) {
             </Select>
           </FilterField>
           <FilterField label="고객사">
-            <Select value={qAccount || 'ALL'} onValueChange={(v) => setQAccount(v === 'ALL' ? '' : (v ?? ''))}>
+            <Select
+              value={qAccount || 'ALL'}
+              onValueChange={(v) => setQAccount(v === 'ALL' ? '' : (v ?? ''))}
+            >
               <SelectTrigger className="h-8 w-40">
                 <SelectValue />
               </SelectTrigger>

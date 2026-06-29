@@ -235,7 +235,10 @@ export default function AuditClient({
       <div className="space-y-3">
         <FilterBar onSearch={onSearch} onReset={onReset}>
           <FilterField label="대상">
-            <Select value={qEntity || ALL} onValueChange={(v) => setQEntity(!v || v === ALL ? '' : v)}>
+            <Select
+              value={qEntity || ALL}
+              onValueChange={(v) => setQEntity(!v || v === ALL ? '' : v)}
+            >
               <SelectTrigger className="h-8 w-40">
                 <SelectValue />
               </SelectTrigger>
@@ -250,7 +253,10 @@ export default function AuditClient({
             </Select>
           </FilterField>
           <FilterField label="액션">
-            <Select value={qAction || ALL} onValueChange={(v) => setQAction(!v || v === ALL ? '' : v)}>
+            <Select
+              value={qAction || ALL}
+              onValueChange={(v) => setQAction(!v || v === ALL ? '' : v)}
+            >
               <SelectTrigger className="h-8 w-32">
                 <SelectValue />
               </SelectTrigger>
