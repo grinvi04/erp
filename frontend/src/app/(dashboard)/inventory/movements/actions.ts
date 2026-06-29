@@ -1,7 +1,17 @@
 'use server'
 import { apiPost, apiGet } from '@/lib/api'
+import { fetchAllPages } from '@/lib/export'
 import { revalidatePath } from 'next/cache'
-import type { Location, MovementType } from '@/types/inventory'
+import type { Location, Movement, MovementType } from '@/types/inventory'
+
+// 전체 엑셀 내보내기 — 현재 페이지가 아닌 전체 재고이동(전 페이지 순회). 화면이 조회조건을 재적용한다.
+export async function exportAllMovements(): Promise<{
+  rows: Movement[]
+  truncated: boolean
+  limit: number
+}> {
+  return fetchAllPages<Movement>('/api/inventory/movements')
+}
 
 export interface MovementLineInput {
   itemId: number

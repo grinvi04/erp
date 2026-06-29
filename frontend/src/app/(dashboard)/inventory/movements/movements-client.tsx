@@ -38,7 +38,7 @@ import {
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { FilterBar, FilterField } from '@/components/ui/filter-bar'
 import { FormGrid, FormRow } from '@/components/ui/form-grid'
-import { downloadCsv } from '@/lib/csv'
+import { runCsvExport } from '@/lib/csv-export'
 import {
   createMovement,
   confirmMovement,
@@ -47,6 +47,7 @@ import {
   cancelMovement,
   withdrawMovement,
   getLocationsByWarehouse,
+  exportAllMovements,
 } from './actions'
 import type {
   Movement,
@@ -478,30 +479,42 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
     setQTo('')
     setApplied({ type: '', status: '', from: '', to: '' })
   }
-  const filtered = data.content.filter((mv) => {
+  const matchesFilter = (mv: Movement) => {
     if (applied.type && mv.movementType !== applied.type) return false
     if (applied.status && mv.status !== applied.status) return false
     if (applied.from && mv.movementDate < applied.from) return false
     if (applied.to && mv.movementDate > applied.to) return false
     return true
-  })
-  const exportExcel = () =>
-    downloadCsv(
-      `재고이동_${new Date().toISOString().slice(0, 10)}`,
-      ['이동번호', '유형', '품목', '이동일', '메모', '상태'],
-      filtered.map((mv) => [
-        mv.movementNo,
-        TYPE_LABEL[mv.movementType],
-        mv.lines && mv.lines.length > 0
-          ? mv.lines.length === 1
-            ? mv.lines[0].itemName
-            : `${mv.lines[0].itemName} 외 ${mv.lines.length - 1}건`
-          : '—',
-        mv.movementDate,
-        mv.note ?? '',
-        STATUS_LABEL[mv.status],
-      ]),
-    )
+  }
+  const filtered = data.content.filter(matchesFilter)
+  const exportColumns = ['이동번호', '유형', '품목', '이동일', '메모', '상태']
+  const exportRow = (mv: Movement) => [
+    mv.movementNo,
+    TYPE_LABEL[mv.movementType],
+    mv.lines && mv.lines.length > 0
+      ? mv.lines.length === 1
+        ? mv.lines[0].itemName
+        : `${mv.lines[0].itemName} 외 ${mv.lines.length - 1}건`
+      : '—',
+    mv.movementDate,
+    mv.note ?? '',
+    STATUS_LABEL[mv.status],
+  ]
+  // 전체 엑셀 — 현재 페이지가 아닌 전체 데이터셋(전 페이지 순회) 내보내기. 화면 조회조건을 동일 적용.
+  const exportExcel = () => {
+    startTransition(async () => {
+      try {
+        await runCsvExport(exportAllMovements, {
+          filename: `재고이동_${new Date().toISOString().slice(0, 10)}`,
+          columns: exportColumns,
+          matches: matchesFilter,
+          row: exportRow,
+        })
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '엑셀 내보내기 중 오류가 발생했습니다')
+      }
+    })
+  }
 
   return (
     <div className="p-5">
@@ -510,7 +523,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
         description="재고 입출고 및 이전 내역을 관리합니다"
         className="mb-4"
       >
-        <Button variant="outline" onClick={exportExcel}>
+        <Button variant="outline" onClick={exportExcel} disabled={isPending}>
           <DownloadIcon />
           엑셀
         </Button>
