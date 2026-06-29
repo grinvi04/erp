@@ -1,10 +1,9 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { PlusIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon, Trash2Icon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
@@ -23,6 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createLeavePolicy, deleteLeavePolicy } from './actions'
 import type { LeavePolicy, LeaveType } from '@/types/hr'
 
@@ -177,24 +179,112 @@ export default function LeavePoliciesClient({ policies }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 로드된 데이터 기준 클라이언트 필터.
+  const [qType, setQType] = useState('')
+  const [qApproval, setQApproval] = useState('')
+  const [qKeyword, setQKeyword] = useState('')
+  const [applied, setApplied] = useState({ type: '', approval: '', keyword: '' })
+  const onSearch = () => setApplied({ type: qType, approval: qApproval, keyword: qKeyword.trim() })
+  const onReset = () => {
+    setQType('')
+    setQApproval('')
+    setQKeyword('')
+    setApplied({ type: '', approval: '', keyword: '' })
+  }
+  const filtered = policies.filter((p) => {
+    if (applied.type && p.leaveType !== applied.type) return false
+    if (applied.approval && String(p.requiresApproval) !== applied.approval) return false
+    if (applied.keyword) {
+      const kw = applied.keyword.toLowerCase()
+      if (!p.code.toLowerCase().includes(kw) && !p.name.toLowerCase().includes(kw)) return false
+    }
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `휴가정책_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '정책명', '휴가 종류', '연간 일수', '이월 일수', '최소 통보일', '승인 필요'],
+      filtered.map((p) => [
+        p.code,
+        p.name,
+        LEAVE_TYPE_LABEL[p.leaveType] ?? p.leaveType,
+        p.annualDays,
+        p.carryOverDays,
+        p.minNoticeDays,
+        p.requiresApproval ? '필요' : '불필요',
+      ]),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="휴가 정책"
         description="휴가 종류별 부여 일수·승인 규칙을 관리합니다"
-        className="mb-6"
+        className="mb-4"
       >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         <Button onClick={openCreate}>
           <PlusIcon />새 정책
         </Button>
       </PageHeader>
 
-      <DataTable
-        data={policies}
-        columns={columns}
-        getRowId={(p) => p.id}
-        empty={<EmptyState title="등록된 휴가 정책이 없습니다" />}
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="휴가 종류">
+            <Select
+              value={qType || 'ALL'}
+              onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {LEAVE_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {LEAVE_TYPE_LABEL[t]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="승인 필요">
+            <Select
+              value={qApproval || 'ALL'}
+              onValueChange={(v) => setQApproval(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="true">필요</SelectItem>
+                <SelectItem value="false">불필요</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="검색어">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="코드·정책명"
+              className="h-8 w-44"
+            />
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={filtered}
+          columns={columns}
+          getRowId={(p) => p.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={<EmptyState title="등록된 휴가 정책이 없습니다" />}
+        />
+      </div>
 
       {/* Create Dialog */}
       <Dialog
@@ -208,90 +298,86 @@ export default function LeavePoliciesClient({ policies }: Props) {
             <DialogTitle>새 휴가 정책</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label htmlFor="lp-code">코드 *</Label>
+            <FormGrid>
+              <FormRow label="코드" required>
                 <Input
                   id="lp-code"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder="예: ANNUAL_DEFAULT"
                   maxLength={30}
+                  className="h-8"
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="lp-name">정책명 *</Label>
+              </FormRow>
+              <FormRow label="정책명" required>
                 <Input
                   id="lp-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="예: 기본 연차"
                   maxLength={100}
+                  className="h-8"
                 />
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>휴가 종류 *</Label>
-              <Select value={leaveType} onValueChange={(v) => setLeaveType(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LEAVE_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {LEAVE_TYPE_LABEL[t]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="grid gap-1.5">
-                <Label htmlFor="lp-annual">연간 일수</Label>
+              </FormRow>
+              <FormRow label="휴가 종류" required span>
+                <Select value={leaveType} onValueChange={(v) => setLeaveType(v ?? '')}>
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LEAVE_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {LEAVE_TYPE_LABEL[t]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="연간 일수">
                 <Input
                   id="lp-annual"
                   type="number"
                   value={annualDays}
                   onChange={(e) => setAnnualDays(e.target.value)}
                   min={0}
+                  className="h-8"
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="lp-carry">이월 일수</Label>
+              </FormRow>
+              <FormRow label="이월 일수">
                 <Input
                   id="lp-carry"
                   type="number"
                   value={carryOverDays}
                   onChange={(e) => setCarryOverDays(e.target.value)}
                   min={0}
+                  className="h-8"
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="lp-notice">최소 통보일</Label>
+              </FormRow>
+              <FormRow label="최소 통보일">
                 <Input
                   id="lp-notice"
                   type="number"
                   value={minNoticeDays}
                   onChange={(e) => setMinNoticeDays(e.target.value)}
                   min={0}
+                  className="h-8"
                 />
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>승인 필요 여부</Label>
-              <Select
-                value={requiresApproval}
-                onValueChange={(v) => setRequiresApproval(v ?? 'true')}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="true">승인 필요</SelectItem>
-                  <SelectItem value="false">승인 불필요</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              </FormRow>
+              <FormRow label="승인 필요 여부">
+                <Select
+                  value={requiresApproval}
+                  onValueChange={(v) => setRequiresApproval(v ?? 'true')}
+                >
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">승인 필요</SelectItem>
+                    <SelectItem value="false">승인 불필요</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button onClick={handleCreate} disabled={isPending}>

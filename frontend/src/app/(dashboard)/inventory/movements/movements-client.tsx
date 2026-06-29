@@ -3,7 +3,7 @@ import { useState, useTransition, useMemo } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, TrashIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -36,6 +36,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import {
   createMovement,
   confirmMovement,
@@ -461,13 +464,56 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qType, setQType] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [qFrom, setQFrom] = useState('')
+  const [qTo, setQTo] = useState('')
+  const [applied, setApplied] = useState({ type: '', status: '', from: '', to: '' })
+  const onSearch = () => setApplied({ type: qType, status: qStatus, from: qFrom, to: qTo })
+  const onReset = () => {
+    setQType('')
+    setQStatus('')
+    setQFrom('')
+    setQTo('')
+    setApplied({ type: '', status: '', from: '', to: '' })
+  }
+  const filtered = data.content.filter((mv) => {
+    if (applied.type && mv.movementType !== applied.type) return false
+    if (applied.status && mv.status !== applied.status) return false
+    if (applied.from && mv.movementDate < applied.from) return false
+    if (applied.to && mv.movementDate > applied.to) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `재고이동_${new Date().toISOString().slice(0, 10)}`,
+      ['이동번호', '유형', '품목', '이동일', '메모', '상태'],
+      filtered.map((mv) => [
+        mv.movementNo,
+        TYPE_LABEL[mv.movementType],
+        mv.lines && mv.lines.length > 0
+          ? mv.lines.length === 1
+            ? mv.lines[0].itemName
+            : `${mv.lines[0].itemName} 외 ${mv.lines.length - 1}건`
+          : '—',
+        mv.movementDate,
+        mv.note ?? '',
+        STATUS_LABEL[mv.status],
+      ]),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="재고 이동"
         description="재고 입출고 및 이전 내역을 관리합니다"
-        className="mb-6"
+        className="mb-4"
       >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 이동 등록
@@ -476,10 +522,66 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
       </PageHeader>
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="이동일">
+            <Input
+              type="date"
+              value={qFrom}
+              onChange={(e) => setQFrom(e.target.value)}
+              className="h-8 w-36"
+            />
+            <span className="text-muted-foreground">~</span>
+            <Input
+              type="date"
+              value={qTo}
+              onChange={(e) => setQTo(e.target.value)}
+              className="h-8 w-36"
+            />
+          </FilterField>
+          <FilterField label="유형">
+            <Select
+              value={qType || 'ALL'}
+              onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(TYPE_LABEL) as MovementType[]).map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {TYPE_LABEL[t]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(STATUS_LABEL) as MovementStatus[]).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={data.content}
+          data={filtered}
           columns={columns}
           getRowId={(mv) => mv.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           empty={<EmptyState title="재고 이동 내역이 없습니다" />}
         />
         <PaginationBar
@@ -503,17 +605,10 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
             <DialogTitle>재고 이동 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div
-              className={
-                isTransfer
-                  ? 'grid grid-cols-1 gap-4 sm:grid-cols-2'
-                  : 'grid grid-cols-1 gap-4 sm:grid-cols-3'
-              }
-            >
-              <div className="grid gap-1.5">
-                <Label>유형 *</Label>
+            <FormGrid>
+              <FormRow label="유형" required>
                 <Select value={movementType} onValueChange={onMovementTypeChange}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-8 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -524,49 +619,44 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>이동일 *</Label>
+              </FormRow>
+              <FormRow label="이동일" required>
                 <DatePicker value={movementDate} onChange={setMovementDate} />
-              </div>
+              </FormRow>
               {!isTransfer && (
-                <div className="grid gap-1.5">
-                  <Label>창고 (위치 조회용)</Label>
+                <FormRow label="창고 (위치 조회용)" span>
                   <Select value={dialogWarehouseId} onValueChange={onWarehouseChange}>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="h-8 w-full">
                       <SelectValue placeholder="창고(선택)" />
                     </SelectTrigger>
                     <SelectContent>{warehouseOptions}</SelectContent>
                   </Select>
-                </div>
+                </FormRow>
               )}
-            </div>
-            {isTransfer && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="grid gap-1.5">
-                  <Label>출고 창고 *</Label>
+              {isTransfer && (
+                <FormRow label="출고 창고" required>
                   <Select value={fromWarehouseId} onValueChange={onFromWarehouseChange}>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="h-8 w-full">
                       <SelectValue placeholder="출고 창고 선택" />
                     </SelectTrigger>
                     <SelectContent>{warehouseOptions}</SelectContent>
                   </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>입고 창고 *</Label>
+                </FormRow>
+              )}
+              {isTransfer && (
+                <FormRow label="입고 창고" required>
                   <Select value={toWarehouseId} onValueChange={onToWarehouseChange}>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="h-8 w-full">
                       <SelectValue placeholder="입고 창고 선택" />
                     </SelectTrigger>
                     <SelectContent>{warehouseOptions}</SelectContent>
                   </Select>
-                </div>
-              </div>
-            )}
-            <div className="grid gap-1.5">
-              <Label>메모</Label>
-              <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-            </div>
+                </FormRow>
+              )}
+              <FormRow label="메모" span>
+                <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+              </FormRow>
+            </FormGrid>
 
             {/* Lines */}
             <div>

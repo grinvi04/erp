@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, CheckIcon, BanIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon, CheckIcon, BanIcon, Trash2Icon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,6 +27,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import {
   createActivity,
   completeActivity,
@@ -199,14 +202,13 @@ export default function ActivitiesClient({ data, accounts }: Props) {
 
   const activityForm = (
     <div className="grid gap-4 py-2">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>유형 *</Label>
+      <FormGrid>
+        <FormRow label="유형" required>
           <Select
             value={activityType}
             onValueChange={(v) => setActivityType((v ?? 'CALL') as ActivityType)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-8 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -217,11 +219,10 @@ export default function ActivitiesClient({ data, accounts }: Props) {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="grid gap-1.5">
-          <Label>고객사</Label>
+        </FormRow>
+        <FormRow label="고객사">
           <Select value={accountId} onValueChange={(v) => selectAccount(v ?? '')}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-8 w-full">
               <SelectValue placeholder="고객사(선택)" />
             </SelectTrigger>
             <SelectContent>
@@ -232,17 +233,14 @@ export default function ActivitiesClient({ data, accounts }: Props) {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>담당자</Label>
+        </FormRow>
+        <FormRow label="담당자">
           <Select
             value={contactId}
             onValueChange={(v) => setContactId(v ?? '')}
             disabled={!accountId}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-8 w-full">
               <SelectValue placeholder={accountId ? '선택 안 함' : '고객사 먼저 선택'} />
             </SelectTrigger>
             <SelectContent>
@@ -253,15 +251,14 @@ export default function ActivitiesClient({ data, accounts }: Props) {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="grid gap-1.5">
-          <Label>영업기회</Label>
+        </FormRow>
+        <FormRow label="영업기회">
           <Select
             value={opportunityId}
             onValueChange={(v) => setOpportunityId(v ?? '')}
             disabled={!accountId}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-8 w-full">
               <SelectValue placeholder={accountId ? '선택 안 함' : '고객사 먼저 선택'} />
             </SelectTrigger>
             <SelectContent>
@@ -272,16 +269,24 @@ export default function ActivitiesClient({ data, accounts }: Props) {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
-      <div className="grid gap-1.5">
-        <Label>제목 *</Label>
-        <Input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={300} />
-      </div>
-      <div className="grid gap-1.5">
-        <Label>마감일</Label>
-        <Input type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-      </div>
+        </FormRow>
+        <FormRow label="제목" required>
+          <Input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            maxLength={300}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="마감일">
+          <Input
+            type="datetime-local"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+      </FormGrid>
       <div className="grid gap-1.5">
         <Label>설명</Label>
         <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -385,9 +390,46 @@ export default function ActivitiesClient({ data, accounts }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qType, setQType] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [qAccount, setQAccount] = useState('')
+  const [applied, setApplied] = useState({ type: '', status: '', account: '' })
+  const onSearch = () => setApplied({ type: qType, status: qStatus, account: qAccount })
+  const onReset = () => {
+    setQType('')
+    setQStatus('')
+    setQAccount('')
+    setApplied({ type: '', status: '', account: '' })
+  }
+  const filtered = data.content.filter((act) => {
+    if (applied.type && act.activityType !== applied.type) return false
+    if (applied.status && act.status !== applied.status) return false
+    if (applied.account && String(act.accountId ?? '') !== applied.account) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `활동_${new Date().toISOString().slice(0, 10)}`,
+      ['유형', '제목', '고객사', '담당자', '영업기회', '마감일', '상태'],
+      filtered.map((act) => [
+        TYPE_LABEL[act.activityType],
+        act.subject,
+        act.accountName ?? '',
+        act.contactName ?? '',
+        act.opportunityName ?? '',
+        formatDateTime(act.dueDate),
+        STATUS_LABEL[act.status],
+      ]),
+    )
+
   return (
-    <div className="p-6">
-      <PageHeader title="활동" description="영업 활동 이력을 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="활동" description="영업 활동 이력을 관리합니다" className="mb-4">
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 활동
@@ -396,10 +438,69 @@ export default function ActivitiesClient({ data, accounts }: Props) {
       </PageHeader>
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="유형">
+            <Select
+              value={qType || 'ALL'}
+              onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(TYPE_LABEL) as ActivityType[]).map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {TYPE_LABEL[t]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(STATUS_LABEL) as ActivityStatus[]).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="고객사">
+            <Select
+              value={qAccount || 'ALL'}
+              onValueChange={(v) => setQAccount(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {accounts.map((acc) => (
+                  <SelectItem key={acc.id} value={String(acc.id)}>
+                    {acc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={data.content}
+          data={filtered}
           columns={columns}
           getRowId={(act) => act.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           empty={
             <EmptyState
               title="등록된 활동이 없습니다"

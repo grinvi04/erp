@@ -3,10 +3,9 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -24,6 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createItemCategory, updateItemCategory, deleteItemCategory } from './actions'
 import type { ItemCategory } from '@/types/inventory'
 
@@ -167,31 +169,69 @@ export default function ItemCategoriesClient({ categories }: Props) {
     },
   ]
 
-  const parentField = (selfId?: number) => (
-    <div className="grid gap-1.5">
-      <Label>상위분류</Label>
-      <Select
-        value={parentId || NONE}
-        onValueChange={(v) => setParentId(v === NONE ? '' : (v ?? ''))}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={NONE}>없음 (최상위)</SelectItem>
-          {parentOptions(selfId).map((c) => (
-            <SelectItem key={c.id} value={String(c.id)}>
-              {c.code} — {c.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+  const parentSelect = (selfId?: number) => (
+    <Select
+      value={parentId || NONE}
+      onValueChange={(v) => setParentId(v === NONE ? '' : (v ?? ''))}
+    >
+      <SelectTrigger className="h-8 w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NONE}>없음 (최상위)</SelectItem>
+        {parentOptions(selfId).map((c) => (
+          <SelectItem key={c.id} value={String(c.id)}>
+            {c.code} — {c.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 로드된 데이터 기준 클라이언트 필터.
+  const NO_PARENT = '__top__'
+  const parentFilterOptions = Array.from(
+    new Map(
+      categories
+        .filter((c) => c.parentId != null)
+        .map((c) => [c.parentId as number, c.parentName ?? String(c.parentId)] as const),
+    ).entries(),
+  ).map(([id, label]) => ({ id, label }))
+  const [qKeyword, setQKeyword] = useState('')
+  const [qParent, setQParent] = useState('')
+  const [applied, setApplied] = useState({ keyword: '', parent: '' })
+  const onSearch = () => setApplied({ keyword: qKeyword, parent: qParent })
+  const onReset = () => {
+    setQKeyword('')
+    setQParent('')
+    setApplied({ keyword: '', parent: '' })
+  }
+  const filtered = categories.filter((c) => {
+    if (applied.parent === NO_PARENT) {
+      if (c.parentId != null) return false
+    } else if (applied.parent && String(c.parentId ?? '') !== applied.parent) {
+      return false
+    }
+    if (applied.keyword) {
+      const kw = applied.keyword.toLowerCase()
+      if (!c.code.toLowerCase().includes(kw) && !c.name.toLowerCase().includes(kw)) return false
+    }
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `품목분류_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '분류명', '상위분류'],
+      filtered.map((c) => [c.code, c.name, c.parentName ?? '']),
+    )
+
   return (
-    <div className="p-6">
-      <PageHeader title="품목분류 관리" description="품목 분류 체계를 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="품목분류 관리" description="품목 분류 체계를 관리합니다" className="mb-4">
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 분류
@@ -199,17 +239,51 @@ export default function ItemCategoriesClient({ categories }: Props) {
         )}
       </PageHeader>
 
-      <DataTable
-        data={categories}
-        columns={columns}
-        getRowId={(c) => c.id}
-        empty={
-          <EmptyState
-            title="등록된 품목분류가 없습니다"
-            description={canWrite ? '우측 상단에서 새 분류를 등록하세요.' : undefined}
-          />
-        }
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="검색어">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="코드·분류명"
+              className="h-8 w-48"
+            />
+          </FilterField>
+          <FilterField label="상위분류">
+            <Select
+              value={qParent || 'ALL'}
+              onValueChange={(v) => setQParent(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value={NO_PARENT}>없음 (최상위)</SelectItem>
+                {parentFilterOptions.map((p) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={filtered}
+          columns={columns}
+          getRowId={(c) => c.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={
+            <EmptyState
+              title="등록된 품목분류가 없습니다"
+              description={canWrite ? '우측 상단에서 새 분류를 등록하세요.' : undefined}
+            />
+          }
+        />
+      </div>
 
       {/* Create Dialog */}
       <Dialog
@@ -223,19 +297,27 @@ export default function ItemCategoriesClient({ categories }: Props) {
             <DialogTitle>새 품목분류 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>코드 *</Label>
-              <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="CAT-001" />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>분류명 *</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="전자제품"
-              />
-            </div>
-            {parentField()}
+            <FormGrid>
+              <FormRow label="코드" required>
+                <Input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="CAT-001"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="분류명" required>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="전자제품"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="상위분류" span>
+                {parentSelect()}
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button onClick={handleCreate} disabled={isPending}>
@@ -259,15 +341,19 @@ export default function ItemCategoriesClient({ categories }: Props) {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>코드</Label>
-              <Input value={code} disabled />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>분류명 *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            {dialog.type === 'edit' && parentField(dialog.cat.id)}
+            <FormGrid>
+              <FormRow label="코드">
+                <Input value={code} disabled className="h-8" />
+              </FormRow>
+              <FormRow label="분류명" required>
+                <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8" />
+              </FormRow>
+              {dialog.type === 'edit' && (
+                <FormRow label="상위분류" span>
+                  {parentSelect(dialog.cat.id)}
+                </FormRow>
+              )}
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button

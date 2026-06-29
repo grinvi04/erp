@@ -3,10 +3,9 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, BanIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, BanIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -16,9 +15,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createWarehouse, updateWarehouse, deactivateWarehouse } from './actions'
 import type { Warehouse } from '@/types/inventory'
 
@@ -168,9 +177,40 @@ export default function WarehousesClient({ warehouses }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qStatus, setQStatus] = useState('')
+  const [qKeyword, setQKeyword] = useState('')
+  const [applied, setApplied] = useState({ status: '', keyword: '' })
+  const onSearch = () => setApplied({ status: qStatus, keyword: qKeyword })
+  const onReset = () => {
+    setQStatus('')
+    setQKeyword('')
+    setApplied({ status: '', keyword: '' })
+  }
+  const filtered = warehouses.filter((w) => {
+    if (applied.status === 'active' && !w.active) return false
+    if (applied.status === 'inactive' && w.active) return false
+    if (applied.keyword) {
+      const kw = applied.keyword.toLowerCase()
+      const hay = `${w.code} ${w.name} ${w.address ?? ''}`.toLowerCase()
+      if (!hay.includes(kw)) return false
+    }
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `창고_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '창고명', '주소', '상태'],
+      filtered.map((w) => [w.code, w.name, w.address ?? '', w.active ? '활성' : '비활성']),
+    )
+
   return (
-    <div className="p-6">
-      <PageHeader title="창고 관리" description="물류 창고 정보를 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="창고 관리" description="물류 창고 정보를 관리합니다" className="mb-4">
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 창고
@@ -178,17 +218,47 @@ export default function WarehousesClient({ warehouses }: Props) {
         )}
       </PageHeader>
 
-      <DataTable
-        data={warehouses}
-        columns={columns}
-        getRowId={(w) => w.id}
-        empty={
-          <EmptyState
-            title="등록된 창고가 없습니다"
-            description={canWrite ? '우측 상단에서 새 창고를 등록하세요.' : undefined}
-          />
-        }
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="active">활성</SelectItem>
+                <SelectItem value="inactive">비활성</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="검색어">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="코드·창고명·주소"
+              className="h-8 w-48"
+            />
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={filtered}
+          columns={columns}
+          getRowId={(w) => w.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={
+            <EmptyState
+              title="등록된 창고가 없습니다"
+              description={canWrite ? '우측 상단에서 새 창고를 등록하세요.' : undefined}
+            />
+          }
+        />
+      </div>
 
       {/* Create Dialog */}
       <Dialog
@@ -202,27 +272,32 @@ export default function WarehousesClient({ warehouses }: Props) {
             <DialogTitle>새 창고 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>코드 *</Label>
-              <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="WH-001" />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>창고명 *</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="서울 물류센터"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>주소</Label>
-              <Textarea
-                rows={2}
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="서울특별시 ..."
-              />
-            </div>
+            <FormGrid>
+              <FormRow label="코드" required>
+                <Input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="WH-001"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="창고명" required>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="서울 물류센터"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="주소" span>
+                <Textarea
+                  rows={2}
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="서울특별시 ..."
+                />
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button onClick={handleCreate} disabled={isPending}>
@@ -244,14 +319,14 @@ export default function WarehousesClient({ warehouses }: Props) {
             <DialogTitle>창고 수정{dialog.type === 'edit' && ` — ${dialog.wh.code}`}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>창고명 *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>주소</Label>
-              <Textarea rows={2} value={address} onChange={(e) => setAddress(e.target.value)} />
-            </div>
+            <FormGrid>
+              <FormRow label="창고명" required span>
+                <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8" />
+              </FormRow>
+              <FormRow label="주소" span>
+                <Textarea rows={2} value={address} onChange={(e) => setAddress(e.target.value)} />
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button

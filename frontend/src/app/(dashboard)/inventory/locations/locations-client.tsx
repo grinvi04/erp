@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, BanIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, BanIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,6 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createLocation, updateLocation, deactivateLocation } from './actions'
 import type { Warehouse, Location, LocationType } from '@/types/inventory'
 
@@ -211,30 +214,67 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qType, setQType] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [qKeyword, setQKeyword] = useState('')
+  const [applied, setApplied] = useState({ type: '', status: '', keyword: '' })
+  const onSearch = () => setApplied({ type: qType, status: qStatus, keyword: qKeyword })
+  const onReset = () => {
+    setQType('')
+    setQStatus('')
+    setQKeyword('')
+    setApplied({ type: '', status: '', keyword: '' })
+  }
+  const filtered = locations.filter((l) => {
+    if (applied.type && l.locationType !== applied.type) return false
+    if (applied.status && String(l.active) !== applied.status) return false
+    if (applied.keyword) {
+      const kw = applied.keyword.toLowerCase()
+      if (!l.code.toLowerCase().includes(kw) && !l.name.toLowerCase().includes(kw)) return false
+    }
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `로케이션_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '로케이션명', '유형', '상위 로케이션', '상태'],
+      filtered.map((l) => [
+        l.code,
+        l.name,
+        LOCATION_TYPE_LABEL[l.locationType],
+        l.parentName ?? '',
+        l.active ? '활성' : '비활성',
+      ]),
+    )
+
   const locationForm = (selfId?: number) => (
-    <div className="grid gap-4 py-2">
-      {dialog.type === 'create' && (
-        <div className="grid gap-1.5">
-          <Label>코드 *</Label>
-          <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="A-01-01" />
-        </div>
-      )}
-      <div className="grid gap-1.5">
-        <Label>로케이션명 *</Label>
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="A구역 1번 선반"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>유형 *</Label>
+    <div className="py-2">
+      <FormGrid>
+        {dialog.type === 'create' && (
+          <FormRow label="코드" required span>
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="A-01-01"
+              className="h-8"
+            />
+          </FormRow>
+        )}
+        <FormRow label="로케이션명" required span>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="A구역 1번 선반"
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="유형" required>
           <Select
             value={locationType}
             onValueChange={(v) => setLocationType((v ?? 'ZONE') as LocationType)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-8 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -245,14 +285,13 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="grid gap-1.5">
-          <Label>상위 로케이션</Label>
+        </FormRow>
+        <FormRow label="상위 로케이션">
           <Select
             value={parentId || NONE}
             onValueChange={(v) => setParentId(v === NONE ? '' : (v ?? ''))}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-8 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -264,18 +303,22 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
+        </FormRow>
+      </FormGrid>
     </div>
   )
 
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="로케이션 관리"
         description="창고 내 보관 위치(로케이션)를 관리합니다"
-        className="mb-6"
+        className="mb-4"
       >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && hasWarehouse && (
           <Button onClick={openCreate}>
             <PlusIcon />새 로케이션
@@ -303,19 +346,67 @@ export default function LocationsClient({ warehouses, selectedWarehouseId, locat
         </Select>
       </div>
 
-      <DataTable
-        data={locations}
-        columns={columns}
-        getRowId={(l) => l.id}
-        empty={
-          <EmptyState
-            title={hasWarehouse ? '등록된 로케이션이 없습니다' : '창고를 먼저 등록해주세요'}
-            description={
-              hasWarehouse && canWrite ? '우측 상단에서 새 로케이션을 등록하세요.' : undefined
-            }
-          />
-        }
-      />
+      <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="유형">
+            <Select
+              value={qType || 'ALL'}
+              onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(LOCATION_TYPE_LABEL) as LocationType[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {LOCATION_TYPE_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="true">활성</SelectItem>
+                <SelectItem value="false">비활성</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="검색어">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="코드·로케이션명"
+              className="h-8 w-44"
+            />
+          </FilterField>
+        </FilterBar>
+
+        <DataTable
+          data={filtered}
+          columns={columns}
+          getRowId={(l) => l.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
+          empty={
+            <EmptyState
+              title={hasWarehouse ? '등록된 로케이션이 없습니다' : '창고를 먼저 등록해주세요'}
+              description={
+                hasWarehouse && canWrite ? '우측 상단에서 새 로케이션을 등록하세요.' : undefined
+              }
+            />
+          }
+        />
+      </div>
 
       {/* Create Dialog */}
       <Dialog

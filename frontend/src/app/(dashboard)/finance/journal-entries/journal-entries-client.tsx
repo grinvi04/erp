@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, TrashIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -39,6 +39,9 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { formatMoneyOne } from '@/lib/money'
 import {
   createJournalEntry,
@@ -342,6 +345,11 @@ export default function JournalEntriesClient({
       cell: (e) => (
         <span className="font-mono text-sm">{formatMoneyOne(e.totalDebit, e.currency)}</span>
       ),
+      footer: (rows) => (
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + r.totalDebit, 0).toLocaleString('ko-KR')}
+        </span>
+      ),
     },
     {
       key: 'totalCredit',
@@ -351,6 +359,11 @@ export default function JournalEntriesClient({
       sortValue: (e) => e.totalCredit,
       cell: (e) => (
         <span className="font-mono text-sm">{formatMoneyOne(e.totalCredit, e.currency)}</span>
+      ),
+      footer: (rows) => (
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + r.totalCredit, 0).toLocaleString('ko-KR')}
+        </span>
       ),
     },
     {
@@ -430,13 +443,56 @@ export default function JournalEntriesClient({
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qType, setQType] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [qFrom, setQFrom] = useState('')
+  const [qTo, setQTo] = useState('')
+  const [applied, setApplied] = useState({ type: '', status: '', from: '', to: '' })
+  const onSearch = () => setApplied({ type: qType, status: qStatus, from: qFrom, to: qTo })
+  const onReset = () => {
+    setQType('')
+    setQStatus('')
+    setQFrom('')
+    setQTo('')
+    setApplied({ type: '', status: '', from: '', to: '' })
+  }
+  const filtered = (entries?.content ?? []).filter((e) => {
+    if (applied.type && e.entryType !== applied.type) return false
+    if (applied.status && e.status !== applied.status) return false
+    if (applied.from && e.entryDate < applied.from) return false
+    if (applied.to && e.entryDate > applied.to) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `전표_${new Date().toISOString().slice(0, 10)}`,
+      ['전표번호', '전표일', '유형', '설명', '통화', '차변합계', '대변합계', '상태'],
+      filtered.map((e) => [
+        e.entryNo,
+        e.entryDate,
+        ENTRY_TYPE_LABEL[e.entryType],
+        e.description,
+        e.currency,
+        e.totalDebit,
+        e.totalCredit,
+        STATUS_LABEL[e.status],
+      ]),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="전표"
         description="회계 기간을 선택하여 전표 내역을 조회합니다"
-        className="mb-6"
+        className="mb-4"
       >
+        {selectedPeriodId != null && (
+          <Button variant="outline" onClick={exportExcel}>
+            <DownloadIcon />
+            엑셀
+          </Button>
+        )}
         {canWrite && selectedPeriodId != null && (
           <Button
             onClick={openCreate}
@@ -498,11 +554,67 @@ export default function JournalEntriesClient({
         </div>
       ) : (
         <div className="space-y-3">
+          <FilterBar onSearch={onSearch} onReset={onReset}>
+            <FilterField label="전표일">
+              <Input
+                type="date"
+                value={qFrom}
+                onChange={(e) => setQFrom(e.target.value)}
+                className="h-8 w-36"
+              />
+              <span className="text-muted-foreground">~</span>
+              <Input
+                type="date"
+                value={qTo}
+                onChange={(e) => setQTo(e.target.value)}
+                className="h-8 w-36"
+              />
+            </FilterField>
+            <FilterField label="유형">
+              <Select
+                value={qType || 'ALL'}
+                onValueChange={(v) => setQType(v === 'ALL' ? '' : (v ?? ''))}
+              >
+                <SelectTrigger className="h-8 w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">전체</SelectItem>
+                  {(Object.keys(ENTRY_TYPE_LABEL) as JournalEntryType[]).map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {ENTRY_TYPE_LABEL[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
+            <FilterField label="상태">
+              <Select
+                value={qStatus || 'ALL'}
+                onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+              >
+                <SelectTrigger className="h-8 w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">전체</SelectItem>
+                  {(Object.keys(STATUS_LABEL) as JournalEntryStatus[]).map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {STATUS_LABEL[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
+          </FilterBar>
+
           <DataTable
-            data={entries?.content ?? []}
+            data={filtered}
             columns={columns}
             getRowId={(e) => e.id}
             onRowClick={openDetail}
+            showTotals
+            totalLabel={`총 ${filtered.length}건`}
             empty={
               <EmptyState
                 title="등록된 전표가 없습니다"
@@ -655,18 +767,16 @@ export default function JournalEntriesClient({
           </DialogHeader>
           <div className="grid gap-4 py-2">
             {/* Header fields */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="grid gap-1.5">
-                <Label>전표일 *</Label>
+            <FormGrid>
+              <FormRow label="전표일" required>
                 <DatePicker value={entryDate} onChange={setEntryDate} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>유형 *</Label>
+              </FormRow>
+              <FormRow label="유형" required>
                 <Select
                   value={entryType}
                   onValueChange={(v) => setEntryType(v as JournalEntryType)}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-8 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -677,11 +787,10 @@ export default function JournalEntriesClient({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>통화</Label>
+              </FormRow>
+              <FormRow label="통화">
                 <Select value={currency} onValueChange={(v) => setCurrency(v ?? 'KRW')}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-8 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -690,16 +799,15 @@ export default function JournalEntriesClient({
                     <SelectItem value="EUR">EUR</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>설명 *</Label>
-              <Textarea
-                rows={2}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
+              </FormRow>
+              <FormRow label="설명" required span>
+                <Textarea
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </FormRow>
+            </FormGrid>
 
             {/* Lines */}
             <div>

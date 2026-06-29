@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, Trash2Icon, ArrowRightLeft } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, ArrowRightLeft, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -28,6 +28,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createLead, updateLead, convertLead, deleteLead, type LeadPayload } from './actions'
 import type { CrmAccount, Lead, LeadStatus, PipelineStage } from '@/types/crm'
 import type { PageResponse } from '@/types/api'
@@ -224,52 +227,42 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
 
   const leadForm = (
     <div className="grid gap-4 py-2">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>성 *</Label>
-          <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>이름 *</Label>
-          <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>회사</Label>
-          <Input value={company} onChange={(e) => setCompany(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>직함</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>이메일</Label>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>전화</Label>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>출처</Label>
-          <Input value={source} onChange={(e) => setSource(e.target.value)} />
-        </div>
+      <FormGrid>
+        <FormRow label="성" required>
+          <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-8" />
+        </FormRow>
+        <FormRow label="이름" required>
+          <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="h-8" />
+        </FormRow>
+        <FormRow label="회사">
+          <Input value={company} onChange={(e) => setCompany(e.target.value)} className="h-8" />
+        </FormRow>
+        <FormRow label="직함">
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-8" />
+        </FormRow>
+        <FormRow label="이메일">
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="전화">
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-8" />
+        </FormRow>
+        <FormRow label="출처" span={dialog.type !== 'edit'}>
+          <Input value={source} onChange={(e) => setSource(e.target.value)} className="h-8" />
+        </FormRow>
         {dialog.type === 'edit' && (
-          <div className="grid gap-1.5">
-            <Label>담당자 ID *</Label>
-            <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} />
-          </div>
+          <FormRow label="담당자 ID" required>
+            <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="h-8" />
+          </FormRow>
         )}
-      </div>
-      <div className="grid gap-1.5">
-        <Label>메모</Label>
-        <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
-      </div>
+        <FormRow label="메모" span>
+          <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+        </FormRow>
+      </FormGrid>
     </div>
   )
 
@@ -369,9 +362,53 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const ownerOptions = Array.from(new Set(data.content.map((l) => l.ownerId)))
+  const [qStatus, setQStatus] = useState('')
+  const [qOwner, setQOwner] = useState('')
+  const [qKeyword, setQKeyword] = useState('')
+  const [applied, setApplied] = useState({ status: '', owner: '', keyword: '' })
+  const onSearch = () => setApplied({ status: qStatus, owner: qOwner, keyword: qKeyword })
+  const onReset = () => {
+    setQStatus('')
+    setQOwner('')
+    setQKeyword('')
+    setApplied({ status: '', owner: '', keyword: '' })
+  }
+  const filtered = data.content.filter((lead) => {
+    if (applied.status && lead.status !== applied.status) return false
+    if (applied.owner && lead.ownerId !== applied.owner) return false
+    if (applied.keyword) {
+      const kw = applied.keyword.toLowerCase()
+      const hay =
+        `${lead.lastName}${lead.firstName} ${lead.company ?? ''} ${lead.email ?? ''}`.toLowerCase()
+      if (!hay.includes(kw)) return false
+    }
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `리드_${new Date().toISOString().slice(0, 10)}`,
+      ['이름', '회사', '직함', '이메일', '출처', '상태', '담당자', '생성일'],
+      filtered.map((lead) => [
+        `${lead.lastName}${lead.firstName}`,
+        lead.company ?? '',
+        lead.title ?? '',
+        lead.email ?? '',
+        lead.source ?? '',
+        STATUS_LABEL[lead.status],
+        formatUserName(lead.ownerId, names),
+        formatDate(lead.createdAt),
+      ]),
+    )
+
   return (
-    <div className="p-6">
-      <PageHeader title="리드" description="잠재 고객 리드를 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="리드" description="잠재 고객 리드를 관리합니다" className="mb-4">
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 리드
@@ -380,10 +417,59 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
       </PageHeader>
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(STATUS_LABEL) as LeadStatus[]).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="담당자">
+            <Select
+              value={qOwner || 'ALL'}
+              onValueChange={(v) => setQOwner(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {ownerOptions.map((id) => (
+                  <SelectItem key={id} value={id}>
+                    {formatUserName(id, names)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="검색어">
+            <Input
+              value={qKeyword}
+              onChange={(e) => setQKeyword(e.target.value)}
+              placeholder="이름·회사·이메일"
+              className="h-8 w-48"
+            />
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={data.content}
+          data={filtered}
           columns={columns}
           getRowId={(lead) => lead.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           empty={
             <EmptyState
               title="등록된 리드가 없습니다"

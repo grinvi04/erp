@@ -3,11 +3,10 @@ import { useState, useTransition, useMemo } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, LockIcon } from 'lucide-react'
+import { PlusIcon, LockIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
@@ -19,6 +18,16 @@ import {
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createFiscalYear, closeFiscalYear, closeFiscalPeriod } from './actions'
 import type {
   FiscalYear,
@@ -174,6 +183,11 @@ export default function FiscalYearsClient({ years, periods }: Props) {
           {periodCountByYear.get(y.id) ?? 0}
         </span>
       ),
+      footer: (rows) => (
+        <span className="tabular-nums">
+          {rows.reduce((s, r) => s + (periodCountByYear.get(r.id) ?? 0), 0).toLocaleString('ko-KR')}
+        </span>
+      ),
     },
     {
       key: 'status',
@@ -251,13 +265,45 @@ export default function FiscalYearsClient({ years, periods }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용.
+  const [qYear, setQYear] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [applied, setApplied] = useState({ year: '', status: '' })
+  const onSearch = () => setApplied({ year: qYear, status: qStatus })
+  const onReset = () => {
+    setQYear('')
+    setQStatus('')
+    setApplied({ year: '', status: '' })
+  }
+  const filteredYears = years.filter((y) => {
+    if (applied.year && !String(y.year).includes(applied.year)) return false
+    if (applied.status && y.status !== applied.status) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `회계연도_${new Date().toISOString().slice(0, 10)}`,
+      ['회계연도', '시작일', '종료일', '기간수', '상태'],
+      filteredYears.map((y) => [
+        y.year,
+        y.startDate,
+        y.endDate,
+        periodCountByYear.get(y.id) ?? 0,
+        YEAR_LABEL[y.status],
+      ]),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="회계기간"
         description="회계연도와 월별 기간을 생성·마감합니다. 전표 입력·재무제표의 선행 조건입니다."
-        className="mb-6"
+        className="mb-4"
       >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 회계연도
@@ -265,19 +311,52 @@ export default function FiscalYearsClient({ years, periods }: Props) {
         )}
       </PageHeader>
 
-      <DataTable
-        data={years}
-        columns={yearColumns}
-        getRowId={(y) => y.id}
-        onRowClick={(y) => setSelectedYearId(y.id)}
-        initialSort={{ key: 'year', dir: 'desc' }}
-        empty={
-          <EmptyState
-            title="등록된 회계연도가 없습니다"
-            description={canWrite ? '우측 상단에서 새 회계연도를 생성하세요.' : undefined}
+      <FilterBar onSearch={onSearch} onReset={onReset}>
+        <FilterField label="회계연도">
+          <Input
+            value={qYear}
+            onChange={(e) => setQYear(e.target.value)}
+            placeholder="2026"
+            className="h-8 w-28"
           />
-        }
-      />
+        </FilterField>
+        <FilterField label="상태">
+          <Select
+            value={qStatus || 'ALL'}
+            onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+          >
+            <SelectTrigger className="h-8 w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">전체</SelectItem>
+              {(Object.keys(YEAR_LABEL) as FiscalYearStatus[]).map((s) => (
+                <SelectItem key={s} value={s}>
+                  {YEAR_LABEL[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FilterField>
+      </FilterBar>
+
+      <div className="mt-3">
+        <DataTable
+          data={filteredYears}
+          columns={yearColumns}
+          getRowId={(y) => y.id}
+          onRowClick={(y) => setSelectedYearId(y.id)}
+          initialSort={{ key: 'year', dir: 'desc' }}
+          showTotals
+          totalLabel={`총 ${filteredYears.length}건`}
+          empty={
+            <EmptyState
+              title="등록된 회계연도가 없습니다"
+              description={canWrite ? '우측 상단에서 새 회계연도를 생성하세요.' : undefined}
+            />
+          }
+        />
+      </div>
 
       {selectedYear && (
         <section className="mt-8">
@@ -289,6 +368,8 @@ export default function FiscalYearsClient({ years, periods }: Props) {
             columns={periodColumns}
             getRowId={(p) => p.id}
             initialSort={{ key: 'periodNumber', dir: 'asc' }}
+            showTotals
+            totalLabel={`총 ${selectedPeriods.length}건`}
             empty={<EmptyState title="등록된 기간이 없습니다" />}
           />
         </section>
@@ -306,25 +387,23 @@ export default function FiscalYearsClient({ years, periods }: Props) {
             <DialogTitle>새 회계연도 생성</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>회계연도 *</Label>
-              <Input
-                type="number"
-                value={year}
-                onChange={(e) => onYearChange(e.target.value)}
-                placeholder="2026"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label>시작일 *</Label>
+            <FormGrid>
+              <FormRow label="회계연도" required span>
+                <Input
+                  type="number"
+                  value={year}
+                  onChange={(e) => onYearChange(e.target.value)}
+                  placeholder="2026"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="시작일" required>
                 <DatePicker value={startDate} onChange={setStartDate} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>종료일 *</Label>
+              </FormRow>
+              <FormRow label="종료일" required>
                 <DatePicker value={endDate} onChange={setEndDate} />
-              </div>
-            </div>
+              </FormRow>
+            </FormGrid>
             <p className="text-sm text-muted-foreground">
               생성 시 시작일~종료일 범위의 월별 기간이 자동으로 만들어집니다.
             </p>
