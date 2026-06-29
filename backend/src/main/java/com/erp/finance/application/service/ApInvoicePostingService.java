@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>AP·GL은 같은 finance 모듈이라 직접 호출(모듈 간 이벤트 불필요).
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class ApInvoicePostingService {
 
@@ -37,6 +39,7 @@ public class ApInvoicePostingService {
   private final FiscalPeriodRepository fiscalPeriodRepository;
   private final JournalEntryRepository journalEntryRepository;
   private final FxPaymentJournalFactory fxPaymentJournalFactory;
+  private final BaseCurrencyService baseCurrencyService;
 
   /**
    * 승인된 전표의 DRAFT 분개를 생성하고 분개 ID를 반환한다. 라인이 없거나 공급업체에 외상매입금 통제계정이 설정되지 않았으면 전기하지 않고 {@code null}을
@@ -54,7 +57,11 @@ public class ApInvoicePostingService {
                 invoice.getInvoiceDate(), invoice.getInvoiceDate())
             .orElseThrow(() -> new ErpException(ErrorCode.FISCAL_PERIOD_NOT_FOUND));
 
+    Account vatReceivable = baseCurrencyService.currentVatAccounts().receivableAccount();
+    boolean includeVat = invoice.getVatAmount().signum() > 0 && vatReceivable != null;
+
     List<JournalLineRequest> lines = new ArrayList<>();
+    // 차변: 비용/자산(공급가액) — 인보이스 라인별 계정
     for (ApInvoiceLine line : invoice.getLines()) {
       lines.add(
           new JournalLineRequest(
@@ -64,12 +71,27 @@ public class ApInvoicePostingService {
               line.getDescription(),
               null));
     }
-    // 대변: 공급업체 외상매입금 통제계정 = 총액
+    // 차변: 부가세대급금(매입세액) — 과세·세액>0·통제계정 설정 시. 미설정이면 부가세 생략(폴백) + 로그.
+    if (includeVat) {
+      lines.add(
+          new JournalLineRequest(
+              vatReceivable.getId(),
+              invoice.getVatAmount(),
+              BigDecimal.ZERO,
+              "부가세대급금: " + invoice.getInvoiceNo(),
+              null));
+    } else if (invoice.getVatAmount().signum() > 0) {
+      log.info(
+          "event=VAT_POSTING_SKIPPED type=AP invoiceNo={} reason=vat_receivable_account_not_configured",
+          invoice.getInvoiceNo());
+    }
+    // 대변: 공급업체 외상매입금 통제계정 = 부가세 포함 시 총액, 폴백 시 공급가액(차대변 균형 보존).
+    BigDecimal payableAmount = includeVat ? invoice.getTotalAmount() : invoice.getSupplyAmount();
     lines.add(
         new JournalLineRequest(
             payables.getId(),
             BigDecimal.ZERO,
-            invoice.getTotalAmount(),
+            payableAmount,
             "외상매입금: " + invoice.getInvoiceNo(),
             null));
 

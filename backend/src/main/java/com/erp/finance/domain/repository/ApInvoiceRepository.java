@@ -4,6 +4,7 @@ import com.erp.common.response.CurrencyAmount;
 import com.erp.finance.domain.model.ApInvoice;
 import com.erp.finance.domain.model.ApInvoiceStatus;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -109,4 +110,24 @@ public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
           + "GROUP BY EXTRACT(MONTH FROM i.invoiceDate) "
           + "ORDER BY EXTRACT(MONTH FROM i.invoiceDate)")
   List<MonthlyBaseRow> monthlyBaseTotals(@Param("year") int year);
+
+  /**
+   * 매입처별 합계표 — 승인/완납(APPROVED·PAID) 매입 인보이스 중 인보이스일이 기간 내(경계 포함)인 건을 공급업체 단위로 합산한다. 부가세 신고 매입세액
+   * 기초자료(미승인·취소 제외). 국내 부가세 신고이므로 <b>원화(KRW) 거래만</b> 집계한다 — 외화 매입(수입)은 통화가 섞여 단순 합산할 수 없고, 수입 부가세는
+   * 세관 수입세금계산서로 별도 처리되어 범위 밖이다. 그룹 키는 (사업자번호, 업체명)이라 같은 사업자번호+업체명이 1행으로 합산되며, 사업자번호 null도 누락 없이
+   * 그룹으로 남는다.
+   */
+  @Query(
+      "SELECT v.businessNo AS businessNo, v.name AS name, COUNT(i) AS count, "
+          + "COALESCE(SUM(i.supplyAmount), 0) AS supplyTotal, "
+          + "COALESCE(SUM(i.vatAmount), 0) AS vatTotal "
+          + "FROM ApInvoice i JOIN i.vendor v "
+          + "WHERE i.invoiceDate BETWEEN :from AND :to "
+          + "AND i.currency = 'KRW' "
+          + "AND i.status IN (com.erp.finance.domain.model.ApInvoiceStatus.APPROVED, "
+          + "com.erp.finance.domain.model.ApInvoiceStatus.PAID) "
+          + "GROUP BY v.businessNo, v.name "
+          + "ORDER BY v.name")
+  List<PartyAmountRow> aggregatePurchasesByVendor(
+      @Param("from") LocalDate from, @Param("to") LocalDate to);
 }

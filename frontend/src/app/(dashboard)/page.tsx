@@ -95,7 +95,7 @@ export default async function DashboardPage() {
   )
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-5 p-5">
       <PageHeader title="대시보드" description={`${year}년 핵심 지표 · 모듈별 요약`} />
 
       {/* 핵심 KPI */}

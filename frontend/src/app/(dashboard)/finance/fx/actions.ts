@@ -1,7 +1,7 @@
 'use server'
 import { apiPost, apiPut } from '@/lib/api'
 import { revalidatePath } from 'next/cache'
-import type { BaseCurrency, ExchangeRate, FxGainLossAccounts } from '@/types/finance'
+import type { BaseCurrency, ExchangeRate, FxGainLossAccounts, VatAccounts } from '@/types/finance'
 
 const PATH = '/finance/fx'
 
@@ -15,6 +15,14 @@ export async function updateFxGainLossAccounts(data: {
   fxLossAccountId: number | null
 }): Promise<void> {
   await apiPut<FxGainLossAccounts>('/api/finance/fx/gain-loss-accounts', data)
+  revalidatePath(PATH)
+}
+
+export async function updateVatAccounts(data: {
+  vatReceivableAccountId: number | null
+  vatPayableAccountId: number | null
+}): Promise<void> {
+  await apiPut<VatAccounts>('/api/finance/fx/vat-accounts', data)
   revalidatePath(PATH)
 }
 

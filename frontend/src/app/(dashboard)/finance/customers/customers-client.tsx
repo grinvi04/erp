@@ -3,10 +3,9 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, BanIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, BanIcon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
@@ -27,6 +26,9 @@ import {
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { SearchInput } from '@/components/ui/search-input'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import { createCustomer, updateCustomer, deactivateCustomer } from './actions'
 import type { Account, Customer } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
@@ -63,6 +65,11 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
   const [contactPhone, setContactPhone] = useState('')
   const [paymentTerms, setPaymentTerms] = useState('30')
   const [receivablesAccountId, setReceivablesAccountId] = useState('')
+  // 세금계산서 공급받는자 인적사항
+  const [representativeName, setRepresentativeName] = useState('')
+  const [address, setAddress] = useState('')
+  const [businessType, setBusinessType] = useState('')
+  const [businessItem, setBusinessItem] = useState('')
 
   const openCreate = () => {
     setCode('')
@@ -73,6 +80,10 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
     setContactPhone('')
     setPaymentTerms('30')
     setReceivablesAccountId('')
+    setRepresentativeName('')
+    setAddress('')
+    setBusinessType('')
+    setBusinessItem('')
     setDialog({ type: 'create' })
   }
 
@@ -86,6 +97,10 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
     setReceivablesAccountId(
       customer.receivablesAccountId != null ? String(customer.receivablesAccountId) : '',
     )
+    setRepresentativeName(customer.representativeName ?? '')
+    setAddress(customer.address ?? '')
+    setBusinessType(customer.businessType ?? '')
+    setBusinessItem(customer.businessItem ?? '')
     setDialog({ type: 'edit', customer })
   }
 
@@ -105,6 +120,10 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
           contactPhone: contactPhone || null,
           paymentTerms: Number(paymentTerms) || 0,
           receivablesAccountId: receivablesAccountId ? Number(receivablesAccountId) : null,
+          representativeName: representativeName || null,
+          address: address || null,
+          businessType: businessType || null,
+          businessItem: businessItem || null,
         })
         toast.success('고객이 등록되었습니다')
         close()
@@ -129,6 +148,10 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
           contactPhone: contactPhone || null,
           paymentTerms: Number(paymentTerms) || 0,
           receivablesAccountId: receivablesAccountId ? Number(receivablesAccountId) : null,
+          representativeName: representativeName || null,
+          address: address || null,
+          businessType: businessType || null,
+          businessItem: businessItem || null,
           version: customer.version,
         })
         toast.success('고객 정보가 수정되었습니다')
@@ -244,91 +267,153 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qStatus, setQStatus] = useState('')
+  const [qAccount, setQAccount] = useState('')
+  const [applied, setApplied] = useState({ status: '', account: '' })
+  const onSearch = () => setApplied({ status: qStatus, account: qAccount })
+  const onReset = () => {
+    setQStatus('')
+    setQAccount('')
+    setApplied({ status: '', account: '' })
+  }
+  const filtered = data.content.filter((c) => {
+    if (applied.status === 'ACTIVE' && !c.isActive) return false
+    if (applied.status === 'INACTIVE' && c.isActive) return false
+    if (applied.account && String(c.receivablesAccountId ?? '') !== applied.account) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `고객_${new Date().toISOString().slice(0, 10)}`,
+      ['코드', '업체명', '사업자번호', '담당자', '이메일', '전화', '결제기한(일)', '상태'],
+      filtered.map((c) => [
+        c.code,
+        c.name,
+        c.businessNo ?? '',
+        c.contactName ?? '',
+        c.contactEmail ?? '',
+        c.contactPhone ?? '',
+        c.paymentTerms,
+        c.isActive ? '활성' : '비활성',
+      ]),
+    )
+
   const customerForm = (
     <div className="grid gap-4 py-2">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>코드 *</Label>
+      <FormGrid>
+        <FormRow label="코드" required>
           <Input
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="C001"
             disabled={dialog.type === 'edit'}
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>업체명 *</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>사업자번호</Label>
+        </FormRow>
+        <FormRow label="업체명" required>
+          <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8" />
+        </FormRow>
+        <FormRow label="사업자번호">
           <Input
             value={businessNo}
             onChange={(e) => setBusinessNo(e.target.value)}
             placeholder="000-00-00000"
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>담당자명</Label>
-          <Input value={contactName} onChange={(e) => setContactName(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>이메일</Label>
+        </FormRow>
+        <FormRow label="대표자">
+          <Input
+            value={representativeName}
+            onChange={(e) => setRepresentativeName(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="주소" span>
+          <Input value={address} onChange={(e) => setAddress(e.target.value)} className="h-8" />
+        </FormRow>
+        <FormRow label="업태">
+          <Input
+            value={businessType}
+            onChange={(e) => setBusinessType(e.target.value)}
+            placeholder="예: 도소매"
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="종목">
+          <Input
+            value={businessItem}
+            onChange={(e) => setBusinessItem(e.target.value)}
+            placeholder="예: 전자제품"
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="담당자명">
+          <Input
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="이메일">
           <Input
             type="email"
             value={contactEmail}
             onChange={(e) => setContactEmail(e.target.value)}
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>전화</Label>
-          <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>결제기한 (일)</Label>
+        </FormRow>
+        <FormRow label="전화">
+          <Input
+            value={contactPhone}
+            onChange={(e) => setContactPhone(e.target.value)}
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="결제기한 (일)">
           <Input
             type="number"
             min={0}
             value={paymentTerms}
             onChange={(e) => setPaymentTerms(e.target.value)}
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>외상매출금 계정 (차변)</Label>
-          <Select
-            value={receivablesAccountId || NONE}
-            onValueChange={(v) => setReceivablesAccountId(!v || v === NONE ? '' : v)}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="미설정" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>미설정</SelectItem>
-              {assetAccounts.map((a) => (
-                <SelectItem key={a.id} value={String(a.id)}>
-                  {a.code} {a.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            설정 시 AR 전표 승인이 이 계정으로 자동 분개됩니다.
-          </p>
-        </div>
-      </div>
+        </FormRow>
+        <FormRow label="외상매출금 계정 (차변)">
+          <div className="grid w-full gap-1">
+            <Select
+              value={receivablesAccountId || NONE}
+              onValueChange={(v) => setReceivablesAccountId(!v || v === NONE ? '' : v)}
+            >
+              <SelectTrigger className="h-8 w-full">
+                <SelectValue placeholder="미설정" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>미설정</SelectItem>
+                {assetAccounts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.code} {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              설정 시 AR 전표 승인이 이 계정으로 자동 분개됩니다.
+            </p>
+          </div>
+        </FormRow>
+      </FormGrid>
     </div>
   )
 
   return (
-    <div className="p-6">
-      <PageHeader title="고객" description="매출 거래처 정보를 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="고객" description="매출 거래처 정보를 관리합니다" className="mb-4">
         <SearchInput placeholder="이름·코드 검색" className="w-64" />
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 고객
@@ -337,10 +422,48 @@ export default function CustomersClient({ data, accounts, keyword }: Props) {
       </PageHeader>
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                <SelectItem value="ACTIVE">활성</SelectItem>
+                <SelectItem value="INACTIVE">비활성</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="외상매출금계정">
+            <Select
+              value={qAccount || 'ALL'}
+              onValueChange={(v) => setQAccount(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {assetAccounts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.code} {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={data.content}
+          data={filtered}
           columns={columns}
           getRowId={(c) => c.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           selectable={canWrite}
           renderBulkActions={
             canWrite

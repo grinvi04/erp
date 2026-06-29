@@ -94,14 +94,15 @@ class FxTransactionSnapshotBackfillIntegrationTest extends AbstractIntegrationTe
 
   private Long insertApInvoice(Long vendorId, String no, BigDecimal amount, String currency) {
     return jdbcTemplate.queryForObject(
-        "INSERT INTO finance.ap_invoice (tenant_id, invoice_no, vendor_id, invoice_date, due_date, total_amount, currency) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id",
+        "INSERT INTO finance.ap_invoice (tenant_id, invoice_no, vendor_id, invoice_date, due_date, total_amount, supply_amount, vat_amount, tax_type, currency) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'TAXABLE', ?) RETURNING id",
         Long.class,
         TEST_TENANT_ID,
         no,
         vendorId,
         LocalDate.of(2025, 1, 1),
         LocalDate.of(2025, 1, 31),
+        amount,
         amount,
         currency);
   }

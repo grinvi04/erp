@@ -19,6 +19,7 @@ import com.erp.finance.application.dto.ArInvoicePayRequest;
 import com.erp.finance.application.dto.ArInvoiceResponse;
 import com.erp.finance.domain.model.ArInvoice;
 import com.erp.finance.domain.model.Customer;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.CustomerRepository;
 import java.math.BigDecimal;
@@ -45,8 +46,17 @@ class ArInvoiceServiceTest {
   @Mock private com.erp.finance.domain.repository.AccountRepository accountRepository;
   @Mock private ArInvoicePostingService arInvoicePostingService;
   @Mock private CurrencyConverter currencyConverter;
+  @Mock private BaseCurrencyService baseCurrencyService;
 
   @InjectMocks private ArInvoiceService arInvoiceService;
+
+  @org.junit.jupiter.api.BeforeEach
+  void stubVatAccounts() {
+    // 기본: 부가세 통제계정 미설정(생성 시 EXEMPT 게이팅) — 일부 테스트만 사용하므로 lenient.
+    org.mockito.Mockito.lenient()
+        .when(baseCurrencyService.currentVatAccounts())
+        .thenReturn(new BaseCurrencyService.VatAccounts(null, null));
+  }
 
   private Customer buildCustomer() {
     return Customer.of("C001", "고객사", null, null, null, null, 30);
@@ -59,6 +69,7 @@ class ArInvoiceServiceTest {
         LocalDate.of(2025, 1, 1),
         LocalDate.of(2025, 1, 31),
         new BigDecimal("100000"),
+        TaxType.EXEMPT,
         "KRW",
         null);
   }
@@ -79,6 +90,7 @@ class ArInvoiceServiceTest {
                 LocalDate.of(2025, 1, 1),
                 LocalDate.of(2025, 1, 31),
                 new BigDecimal("100000"),
+                TaxType.EXEMPT,
                 "KRW",
                 null,
                 null));
@@ -106,6 +118,7 @@ class ArInvoiceServiceTest {
             LocalDate.of(2025, 1, 1),
             LocalDate.of(2025, 1, 31),
             new BigDecimal("200"),
+            TaxType.EXEMPT,
             "USD",
             null,
             null));
@@ -131,6 +144,7 @@ class ArInvoiceServiceTest {
             LocalDate.of(2025, 1, 1),
             LocalDate.of(2025, 1, 31),
             new BigDecimal("5000"),
+            TaxType.EXEMPT,
             "JPY",
             null,
             null));
@@ -155,6 +169,7 @@ class ArInvoiceServiceTest {
                         LocalDate.of(2025, 1, 1),
                         LocalDate.of(2025, 1, 31),
                         new BigDecimal("100000"),
+                        TaxType.EXEMPT,
                         "KRW",
                         null,
                         null)));

@@ -3,6 +3,7 @@ export type NormalBalance = 'DEBIT' | 'CREDIT'
 export type JournalEntryType = 'MANUAL' | 'AP' | 'AR' | 'PAYROLL' | 'ADJUSTMENT'
 export type JournalEntryStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'POSTED' | 'REVERSED'
 export type ApInvoiceStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'
+export type TaxType = 'TAXABLE' | 'ZERO_RATED' | 'EXEMPT'
 export type ArInvoiceStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'
 export type FiscalYearStatus = 'OPEN' | 'CLOSED'
 export type FiscalPeriodStatus = 'OPEN' | 'CLOSED' | 'LOCKED'
@@ -71,6 +72,9 @@ export interface ApInvoice {
   vendorName: string
   invoiceDate: string
   dueDate: string
+  supplyAmount: number
+  vatAmount: number
+  taxType: TaxType
   totalAmount: number
   paidAmount: number
   outstandingAmount: number
@@ -92,7 +96,76 @@ export interface Customer {
   paymentTerms: number
   isActive: boolean
   receivablesAccountId: number | null
+  representativeName: string | null
+  address: string | null
+  businessType: string | null
+  businessItem: string | null
   version: number
+}
+
+export interface CompanyProfile {
+  companyName: string | null
+  businessNo: string | null
+  representative: string | null
+  address: string | null
+  businessType: string | null
+  businessItem: string | null
+}
+
+export interface VatPartyLine {
+  businessNo: string | null
+  name: string
+  count: number
+  supplyTotal: number
+  vatTotal: number
+}
+
+export interface VatReturn {
+  from: string
+  to: string
+  sales: {
+    taxableSupply: number
+    taxableVat: number
+    zeroRatedSupply: number
+    exemptSupply: number
+    totalVat: number
+  }
+  purchases: {
+    supply: number
+    vat: number
+  }
+  payableTax: number
+  salesByBuyer: VatPartyLine[]
+  purchasesByVendor: VatPartyLine[]
+}
+
+export type TaxInvoiceStatus = 'ISSUED' | 'CANCELLED'
+export type ChargeType = 'CHARGE' | 'RECEIPT'
+
+export interface TaxInvoiceParty {
+  companyName: string
+  businessNo: string | null
+  representative: string | null
+  address: string | null
+  businessType: string | null
+  businessItem: string | null
+}
+
+export interface TaxInvoice {
+  id: number
+  arInvoiceId: number
+  issueNo: string | null
+  taxType: TaxType
+  chargeType: ChargeType
+  writeDate: string
+  supplyAmount: number
+  vatAmount: number
+  totalAmount: number
+  itemName: string
+  status: TaxInvoiceStatus
+  note: string | null
+  supplier: TaxInvoiceParty
+  buyer: TaxInvoiceParty
 }
 
 export interface ArInvoice {
@@ -102,6 +175,9 @@ export interface ArInvoice {
   customerName: string
   invoiceDate: string
   dueDate: string
+  supplyAmount: number
+  vatAmount: number
+  taxType: TaxType
   totalAmount: number
   paidAmount: number
   outstandingAmount: number
@@ -136,6 +212,11 @@ export interface BaseCurrency {
 export interface FxGainLossAccounts {
   fxGainAccountId: number | null
   fxLossAccountId: number | null
+}
+
+export interface VatAccounts {
+  vatReceivableAccountId: number | null
+  vatPayableAccountId: number | null
 }
 
 export interface ExchangeRate {

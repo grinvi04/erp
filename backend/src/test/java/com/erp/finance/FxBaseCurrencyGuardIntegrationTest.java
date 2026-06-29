@@ -9,6 +9,7 @@ import com.erp.common.exception.ErrorCode;
 import com.erp.finance.application.dto.BaseCurrencyUpdateRequest;
 import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.domain.model.ApInvoice;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.VendorRepository;
@@ -42,6 +43,7 @@ class FxBaseCurrencyGuardIntegrationTest extends AbstractIntegrationTest {
             LocalDate.of(2025, 1, 1),
             LocalDate.of(2025, 1, 31),
             new BigDecimal("100"),
+            TaxType.EXEMPT,
             "USD",
             null);
     inv.applyBaseSnapshot(new BigDecimal("130000"), new BigDecimal("1300"));

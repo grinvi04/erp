@@ -9,6 +9,7 @@ import com.erp.finance.application.dto.CustomerCreateRequest;
 import com.erp.finance.application.dto.CustomerResponse;
 import com.erp.finance.application.dto.CustomerUpdateRequest;
 import com.erp.finance.domain.model.Account;
+import com.erp.finance.domain.model.BusinessNoValidator;
 import com.erp.finance.domain.model.Customer;
 import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.CustomerRepository;
@@ -47,6 +48,7 @@ public class CustomerService {
     if (customerRepository.existsByCode(request.code())) {
       throw new ErpException(ErrorCode.CUSTOMER_CODE_DUPLICATE);
     }
+    BusinessNoValidator.validate(request.businessNo());
     Customer customer =
         Customer.of(
             request.code(),
@@ -56,6 +58,11 @@ public class CustomerService {
             request.contactEmail(),
             request.contactPhone(),
             request.paymentTerms());
+    customer.assignTaxIdentity(
+        request.representativeName(),
+        request.address(),
+        request.businessType(),
+        request.businessItem());
     applyReceivablesAccount(customer, request.receivablesAccountId());
     return CustomerResponse.from(customerRepository.save(customer));
   }
@@ -65,6 +72,7 @@ public class CustomerService {
     permissionChecker.require(Permission.FINANCE_WRITE);
     Customer customer = getOrThrow(id);
     customer.checkVersion(request.version());
+    BusinessNoValidator.validate(request.businessNo());
     customer.update(
         request.name(),
         request.businessNo(),
@@ -72,6 +80,11 @@ public class CustomerService {
         request.contactEmail(),
         request.contactPhone(),
         request.paymentTerms());
+    customer.assignTaxIdentity(
+        request.representativeName(),
+        request.address(),
+        request.businessType(),
+        request.businessItem());
     applyReceivablesAccount(customer, request.receivablesAccountId());
     customerRepository.flush();
     return CustomerResponse.from(customer);

@@ -7,7 +7,8 @@ import { PlusIcon, PencilIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Label } from '@/components/ui/label'
+import { PageHeader } from '@/components/ui/page-header'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
 import {
   Dialog,
   DialogContent,
@@ -30,8 +31,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { updateBaseCurrency, createExchangeRate, updateFxGainLossAccounts } from './actions'
-import type { Account, ExchangeRate, FxGainLossAccounts } from '@/types/finance'
+import {
+  updateBaseCurrency,
+  createExchangeRate,
+  updateFxGainLossAccounts,
+  updateVatAccounts,
+} from './actions'
+import type { Account, ExchangeRate, FxGainLossAccounts, VatAccounts } from '@/types/finance'
 
 const CURRENCY_PATTERN = /^[A-Z]{3}$/
 const NONE = 'NONE'
@@ -43,9 +49,16 @@ interface Props {
   rates: ExchangeRate[]
   accounts: Account[]
   fxAccounts: FxGainLossAccounts
+  vatAccounts: VatAccounts
 }
 
-export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: Props) {
+export default function FxClient({
+  baseCurrency,
+  rates,
+  accounts,
+  fxAccounts,
+  vatAccounts,
+}: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.FINANCE_SETTING_WRITE)
   const selectableAccounts = accounts.filter((a) => !a.isSummary && a.isActive)
@@ -74,6 +87,27 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
           fxLossAccountId: fxLossAccountId ? Number(fxLossAccountId) : null,
         })
         toast.success('환차손익 계정이 저장되었습니다')
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '저장 중 오류가 발생했습니다')
+      }
+    })
+  }
+
+  const [vatReceivableAccountId, setVatReceivableAccountId] = useState(
+    vatAccounts.vatReceivableAccountId != null ? String(vatAccounts.vatReceivableAccountId) : '',
+  )
+  const [vatPayableAccountId, setVatPayableAccountId] = useState(
+    vatAccounts.vatPayableAccountId != null ? String(vatAccounts.vatPayableAccountId) : '',
+  )
+
+  const handleSaveVatAccounts = () => {
+    startTransition(async () => {
+      try {
+        await updateVatAccounts({
+          vatReceivableAccountId: vatReceivableAccountId ? Number(vatReceivableAccountId) : null,
+          vatPayableAccountId: vatPayableAccountId ? Number(vatPayableAccountId) : null,
+        })
+        toast.success('부가세 통제계정이 저장되었습니다')
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '저장 중 오류가 발생했습니다')
       }
@@ -142,15 +176,14 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">FX 설정</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          기준통화와 환율을 관리합니다 (혼합통화 거래의 환산 기준)
-        </p>
-      </div>
+    <div className="p-5">
+      <PageHeader
+        title="FX 설정"
+        description="기준통화와 환율을 관리합니다 (혼합통화 거래의 환산 기준)"
+        className="mb-4"
+      />
 
-      <div className="bg-card rounded-lg border p-5 mb-6">
+      <div className="bg-card rounded-lg border p-5 mb-4 mt-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm text-muted-foreground">기준통화</div>
@@ -165,21 +198,20 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
         </div>
       </div>
 
-      <div className="bg-card rounded-lg border p-5 mb-6">
+      <div className="bg-card rounded-lg border p-5 mb-4">
         <div className="mb-1 text-sm font-medium text-foreground">환차손익 계정 (실현)</div>
         <p className="text-xs text-muted-foreground mb-4">
           외화 결제 시 결제환율과 인보이스 환율의 차액을 분개할 계정입니다. 둘 다 설정해야 환차
           분개가 적용됩니다.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="grid gap-1.5">
-            <Label>외환차이익 계정</Label>
+        <FormGrid>
+          <FormRow label="외환차이익 계정">
             <Select
               value={fxGainAccountId || NONE}
               disabled={!canWrite}
               onValueChange={(v) => setFxGainAccountId(!v || v === NONE ? '' : v)}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="h-8 w-full">
                 <SelectValue placeholder="미설정" />
               </SelectTrigger>
               <SelectContent>
@@ -191,15 +223,14 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label>외환차손 계정</Label>
+          </FormRow>
+          <FormRow label="외환차손 계정">
             <Select
               value={fxLossAccountId || NONE}
               disabled={!canWrite}
               onValueChange={(v) => setFxLossAccountId(!v || v === NONE ? '' : v)}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="h-8 w-full">
                 <SelectValue placeholder="미설정" />
               </SelectTrigger>
               <SelectContent>
@@ -211,11 +242,66 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        </div>
+          </FormRow>
+        </FormGrid>
         {canWrite && (
           <div className="mt-4 flex justify-end">
             <Button onClick={handleSaveFxAccounts} disabled={isPending}>
+              저장
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-card rounded-lg border p-5 mb-4">
+        <div className="mb-1 text-sm font-medium text-foreground">부가세 통제계정</div>
+        <p className="text-xs text-muted-foreground mb-4">
+          과세 매입/매출 인보이스 승인 전기 시 매입세액·매출세액을 분개할 통제계정입니다. 설정하면
+          해당 부가세 라인이 자동 분개되고, 미설정이면 부가세 없이 공급가액으로 전기됩니다.
+        </p>
+        <FormGrid>
+          <FormRow label="부가세대급금 (매입)">
+            <Select
+              value={vatReceivableAccountId || NONE}
+              disabled={!canWrite}
+              onValueChange={(v) => setVatReceivableAccountId(!v || v === NONE ? '' : v)}
+            >
+              <SelectTrigger className="h-8 w-full">
+                <SelectValue placeholder="미설정" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>미설정</SelectItem>
+                {selectableAccounts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.code} {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormRow>
+          <FormRow label="부가세예수금 (매출)">
+            <Select
+              value={vatPayableAccountId || NONE}
+              disabled={!canWrite}
+              onValueChange={(v) => setVatPayableAccountId(!v || v === NONE ? '' : v)}
+            >
+              <SelectTrigger className="h-8 w-full">
+                <SelectValue placeholder="미설정" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>미설정</SelectItem>
+                {selectableAccounts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.code} {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormRow>
+        </FormGrid>
+        {canWrite && (
+          <div className="mt-4 flex justify-end">
+            <Button onClick={handleSaveVatAccounts} disabled={isPending}>
               저장
             </Button>
           </div>
@@ -272,15 +358,17 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
           <DialogHeader>
             <DialogTitle>기준통화 변경</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-1.5 py-2">
-            <Label>기준통화 (ISO 4217, 예: KRW)</Label>
-            <Input
-              value={baseInput}
-              maxLength={3}
-              onChange={(e) => setBaseInput(e.target.value.toUpperCase())}
-              placeholder="KRW"
-            />
-          </div>
+          <FormGrid cols={1} className="my-2">
+            <FormRow label="기준통화" required>
+              <Input
+                value={baseInput}
+                maxLength={3}
+                onChange={(e) => setBaseInput(e.target.value.toUpperCase())}
+                placeholder="KRW (ISO 4217)"
+                className="h-8"
+              />
+            </FormRow>
+          </FormGrid>
           <DialogFooter showCloseButton>
             <Button onClick={handleUpdateBase} disabled={isPending}>
               저장
@@ -300,45 +388,40 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
           <DialogHeader>
             <DialogTitle>환율 등록</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label>기준 통화 *</Label>
-                <Input
-                  value={fromCurrency}
-                  maxLength={3}
-                  onChange={(e) => setFromCurrency(e.target.value.toUpperCase())}
-                  placeholder="USD"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>대상 통화 *</Label>
-                <Input
-                  value={toCurrency}
-                  maxLength={3}
-                  onChange={(e) => setToCurrency(e.target.value.toUpperCase())}
-                  placeholder={baseCurrency}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label>발효일 *</Label>
-                <DatePicker value={effectiveDate} onChange={setEffectiveDate} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>환율 *</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.00000001"
-                  value={rate}
-                  onChange={(e) => setRate(e.target.value)}
-                  placeholder="1300.5"
-                />
-              </div>
-            </div>
-          </div>
+          <FormGrid className="my-2">
+            <FormRow label="기준 통화" required>
+              <Input
+                value={fromCurrency}
+                maxLength={3}
+                onChange={(e) => setFromCurrency(e.target.value.toUpperCase())}
+                placeholder="USD"
+                className="h-8"
+              />
+            </FormRow>
+            <FormRow label="대상 통화" required>
+              <Input
+                value={toCurrency}
+                maxLength={3}
+                onChange={(e) => setToCurrency(e.target.value.toUpperCase())}
+                placeholder={baseCurrency}
+                className="h-8"
+              />
+            </FormRow>
+            <FormRow label="발효일" required>
+              <DatePicker value={effectiveDate} onChange={setEffectiveDate} />
+            </FormRow>
+            <FormRow label="환율" required>
+              <Input
+                type="number"
+                min={0}
+                step="0.00000001"
+                value={rate}
+                onChange={(e) => setRate(e.target.value)}
+                placeholder="1300.5"
+                className="h-8"
+              />
+            </FormRow>
+          </FormGrid>
           <DialogFooter showCloseButton>
             <Button onClick={handleCreateRate} disabled={isPending}>
               등록

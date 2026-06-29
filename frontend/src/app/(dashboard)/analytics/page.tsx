@@ -129,7 +129,7 @@ export default async function AnalyticsPage() {
   const monthlyBaseCurrency = monthlyData?.baseCurrency ?? 'KRW'
 
   return (
-    <div className="space-y-8 p-6">
+    <div className="space-y-6 p-5">
       <PageHeader title="분석" description="영업·재무·인사·재고 핵심 지표" />
 
       {/* ===== 영업 (CRM) ===== */}

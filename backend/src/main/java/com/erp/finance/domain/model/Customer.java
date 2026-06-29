@@ -47,6 +47,21 @@ public class Customer extends BaseEntity {
   @Column(name = "payment_terms", nullable = false)
   private int paymentTerms;
 
+  // 세금계산서 공급받는자 인적사항(#3) — 대표자·주소·업태·종목. 발행 시 스냅샷 원천. 모두 선택.
+  @Column(name = "representative_name", length = 100)
+  private String representativeName;
+
+  @Column(name = "address", length = 500)
+  private String address;
+
+  // 업태
+  @Column(name = "business_type", length = 200)
+  private String businessType;
+
+  // 종목
+  @Column(name = "business_item", length = 200)
+  private String businessItem;
+
   @Column(name = "is_active", nullable = false)
   private boolean isActive;
 
@@ -92,6 +107,15 @@ public class Customer extends BaseEntity {
     this.paymentTerms = paymentTerms;
   }
 
+  /** 세금계산서 공급받는자 인적사항(대표자·주소·업태·종목) 설정. 모두 선택(null 허용). */
+  public void assignTaxIdentity(
+      String representativeName, String address, String businessType, String businessItem) {
+    this.representativeName = representativeName;
+    this.address = address;
+    this.businessType = businessType;
+    this.businessItem = businessItem;
+  }
+
   public void deactivate() {
     this.isActive = false;
   }
@@ -134,6 +158,22 @@ public class Customer extends BaseEntity {
 
   public int getPaymentTerms() {
     return paymentTerms;
+  }
+
+  public String getRepresentativeName() {
+    return representativeName;
+  }
+
+  public String getAddress() {
+    return address;
+  }
+
+  public String getBusinessType() {
+    return businessType;
+  }
+
+  public String getBusinessItem() {
+    return businessItem;
   }
 
   public boolean isActive() {

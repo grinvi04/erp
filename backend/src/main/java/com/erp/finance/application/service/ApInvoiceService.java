@@ -19,6 +19,7 @@ import com.erp.finance.application.dto.ApInvoiceResponse;
 import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.ApInvoice;
 import com.erp.finance.domain.model.ApInvoiceStatus;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
@@ -48,6 +49,7 @@ public class ApInvoiceService {
   private final AccountRepository accountRepository;
   private final ApInvoicePostingService apInvoicePostingService;
   private final CurrencyConverter currencyConverter;
+  private final BaseCurrencyService baseCurrencyService;
 
   // 전결규정상 결재자는 전결권·한도로 결정되므로 결재선에 특정인을 사전 지정하지 않는다(역할 sentinel).
   private static final String ROLE_BASED_APPROVER = "@role:" + Permission.FINANCE_INVOICE_APPROVE;
@@ -82,13 +84,20 @@ public class ApInvoiceService {
         vendorRepository
             .findById(request.vendorId())
             .orElseThrow(() -> new ErpException(ErrorCode.VENDOR_NOT_FOUND));
+    // 부가세대급금 통제계정 미설정이면 부가세를 분리하지 않는다(EXEMPT) — 전기 폴백과 인보이스
+    // 총액·미지급(생애주기)을 일관되게 공급가액=총액으로 유지(보조원장↔GL 정합).
+    TaxType effectiveTaxType =
+        baseCurrencyService.currentVatAccounts().receivableAccount() != null
+            ? request.taxType()
+            : TaxType.EXEMPT;
     ApInvoice invoice =
         ApInvoice.create(
             request.invoiceNo(),
             vendor,
             request.invoiceDate(),
             request.dueDate(),
-            request.totalAmount(),
+            request.supplyAmount(),
+            effectiveTaxType,
             request.currency(),
             request.note());
     addLines(invoice, request);
@@ -114,7 +123,7 @@ public class ApInvoiceService {
       invoice.addLine(account, lineReq.amount(), lineReq.description());
       sum = sum.add(lineReq.amount());
     }
-    if (sum.compareTo(request.totalAmount()) != 0) {
+    if (sum.compareTo(request.supplyAmount()) != 0) {
       throw new ErpException(ErrorCode.INVALID_INPUT);
     }
   }

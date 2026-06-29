@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/components/permissions-provider'
 import { PERM } from '@/lib/permissions'
-import { PlusIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { PlusIcon, PencilIcon, Trash2Icon, DownloadIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -28,6 +28,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import {
   createOpportunity,
   updateOpportunity,
@@ -195,12 +198,11 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
 
   const oppForm = (
     <div className="grid gap-4 py-2">
-      <div className="grid grid-cols-2 gap-4">
+      <FormGrid>
         {dialog.type === 'create' && (
-          <div className="grid gap-1.5">
-            <Label>고객사 *</Label>
+          <FormRow label="고객사" required>
             <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="h-8 w-full">
                 <SelectValue placeholder="선택" />
               </SelectTrigger>
               <SelectContent>
@@ -211,18 +213,19 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormRow>
         )}
-        <div className="grid gap-1.5">
-          <Label>기회명 *</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="기회명" />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-1.5">
-          <Label>단계 *</Label>
+        <FormRow label="기회명" required>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="기회명"
+            className="h-8"
+          />
+        </FormRow>
+        <FormRow label="단계" required>
           <Select value={stageId} onValueChange={(v) => selectStage(v ?? '')}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="h-8 w-full">
               <SelectValue placeholder="선택" />
             </SelectTrigger>
             <SelectContent>
@@ -233,55 +236,48 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="grid gap-1.5">
-          <Label>확률(%) *</Label>
+        </FormRow>
+        <FormRow label="확률(%)" required>
           <Input
             type="number"
             min={0}
             max={100}
             value={probability}
             onChange={(e) => setProbability(e.target.value)}
+            className="h-8"
           />
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-4">
-        <div className="grid gap-1.5">
-          <Label>금액</Label>
+        </FormRow>
+        <FormRow label="금액">
           <Input
             type="number"
             min={0}
             step={0.01}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>통화</Label>
+        </FormRow>
+        <FormRow label="통화">
           <Input
             maxLength={3}
             value={currency}
             onChange={(e) => setCurrency(e.target.value.toUpperCase())}
             placeholder="KRW"
+            className="h-8"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>예상 종결일</Label>
+        </FormRow>
+        <FormRow label="예상 종결일">
           <DatePicker value={closeDate} onChange={setCloseDate} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
+        </FormRow>
         {dialog.type === 'edit' && (
-          <div className="grid gap-1.5">
-            <Label>담당자 ID *</Label>
-            <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} />
-          </div>
+          <FormRow label="담당자 ID" required>
+            <Input value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="h-8" />
+          </FormRow>
         )}
-        <div className="grid gap-1.5">
-          <Label>출처</Label>
-          <Input value={source} onChange={(e) => setSource(e.target.value)} />
-        </div>
-      </div>
+        <FormRow label="출처">
+          <Input value={source} onChange={(e) => setSource(e.target.value)} className="h-8" />
+        </FormRow>
+      </FormGrid>
       <div className="grid gap-1.5">
         <Label>설명</Label>
         <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -319,6 +315,11 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
       sortValue: (opp) => opp.amount,
       cell: (opp) => (
         <span className="font-mono text-sm">{formatAmount(opp.amount, opp.currency)}</span>
+      ),
+      footer: (rows) => (
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + (r.amount ?? 0), 0).toLocaleString('ko-KR')}
+        </span>
       ),
     },
     {
@@ -374,9 +375,50 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qAccount, setQAccount] = useState('')
+  const [qStage, setQStage] = useState('')
+  const [qFrom, setQFrom] = useState('')
+  const [qTo, setQTo] = useState('')
+  const [applied, setApplied] = useState({ account: '', stage: '', from: '', to: '' })
+  const onSearch = () => setApplied({ account: qAccount, stage: qStage, from: qFrom, to: qTo })
+  const onReset = () => {
+    setQAccount('')
+    setQStage('')
+    setQFrom('')
+    setQTo('')
+    setApplied({ account: '', stage: '', from: '', to: '' })
+  }
+  const filtered = data.content.filter((opp) => {
+    if (applied.account && String(opp.accountId) !== applied.account) return false
+    if (applied.stage && String(opp.stageId) !== applied.stage) return false
+    if (applied.from && (!opp.closeDate || opp.closeDate < applied.from)) return false
+    if (applied.to && (!opp.closeDate || opp.closeDate > applied.to)) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `영업기회_${new Date().toISOString().slice(0, 10)}`,
+      ['기회명', '고객사', '단계', '금액', '통화', '확률(%)', '예상종결일', '담당자'],
+      filtered.map((opp) => [
+        opp.name,
+        opp.accountName,
+        opp.stageName,
+        opp.amount ?? '',
+        opp.currency ?? '',
+        opp.probability,
+        opp.closeDate ?? '',
+        formatUserName(opp.ownerId, names),
+      ]),
+    )
+
   return (
-    <div className="p-6">
-      <PageHeader title="영업 기회" description="영업 파이프라인을 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="영업 기회" description="영업 파이프라인을 관리합니다" className="mb-4">
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate} disabled={stages.length === 0}>
             <PlusIcon />새 영업기회
@@ -390,10 +432,66 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
       )}
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="고객사">
+            <Select
+              value={qAccount || 'ALL'}
+              onValueChange={(v) => setQAccount(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {accounts.map((acc) => (
+                  <SelectItem key={acc.id} value={String(acc.id)}>
+                    {acc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="단계">
+            <Select
+              value={qStage || 'ALL'}
+              onValueChange={(v) => setQStage(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {stages.map((s) => (
+                  <SelectItem key={s.id} value={String(s.id)}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="예상 종결일">
+            <Input
+              type="date"
+              value={qFrom}
+              onChange={(e) => setQFrom(e.target.value)}
+              className="h-8 w-36"
+            />
+            <span className="text-muted-foreground">~</span>
+            <Input
+              type="date"
+              value={qTo}
+              onChange={(e) => setQTo(e.target.value)}
+              className="h-8 w-36"
+            />
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={data.content}
+          data={filtered}
           columns={columns}
           getRowId={(opp) => opp.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           empty={
             <EmptyState
               title="등록된 영업 기회가 없습니다"

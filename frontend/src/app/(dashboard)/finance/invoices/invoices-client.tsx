@@ -28,9 +28,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
+import { DownloadIcon } from 'lucide-react'
 import { createInvoice, submitInvoice, approveInvoice, payInvoice, cancelInvoice } from './actions'
-import type { Account, ApInvoice, ApInvoiceStatus, Vendor } from '@/types/finance'
+import type { Account, ApInvoice, ApInvoiceStatus, TaxType, Vendor } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
+
+const TAX_TYPE_LABEL: Record<TaxType, string> = {
+  TAXABLE: '과세 (10%)',
+  ZERO_RATED: '영세율 (0%)',
+  EXEMPT: '면세',
+}
 
 type LineForm = { accountId: string; amount: string; description: string }
 
@@ -81,24 +91,22 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
   const [vendorId, setVendorId] = useState('')
   const [invoiceDate, setInvoiceDate] = useState('')
   const [dueDate, setDueDate] = useState('')
-  const [totalAmount, setTotalAmount] = useState('')
+  const [supplyAmount, setSupplyAmount] = useState('')
   const [currency, setCurrency] = useState('KRW')
   const [note, setNote] = useState('')
   const [payAmount, setPayAmount] = useState('')
   const [payCashAccountId, setPayCashAccountId] = useState('')
   const [payDate, setPayDate] = useState('')
   const [lines, setLines] = useState<LineForm[]>([])
-  const [vatAccountId, setVatAccountId] = useState('')
-  const [vatAmount, setVatAmount] = useState('')
+  const [taxType, setTaxType] = useState<TaxType>('TAXABLE')
 
-  // 라인이 있으면 총금액은 (공급가 합계 + 부가세)로 자동 산출(서버가 합계=총금액을 BigDecimal 검증).
-  // 정수 전(錢) 단위로 합산해 부동소수 오차(0.1+0.2≠0.3)를 피한다 — 금액 컬럼은 소수 2자리.
-  const supplyTotal = lines.reduce((s, l) => s + Math.round((Number(l.amount) || 0) * 100), 0) / 100
-  const vatNum = Math.round((Number(vatAmount) || 0) * 100) / 100
-  const grandTotal = Math.round((supplyTotal + vatNum) * 100) / 100
-  const effectiveTotal = lines.length > 0 ? String(grandTotal) : totalAmount
-  // 부가세 10% 자동 채움(편의값) — 실제 인보이스 세액으로 수정 가능.
-  const fillVat10 = () => setVatAmount(String(Math.round(supplyTotal * 10) / 100))
+  // 라인이 있으면 공급가액 = 라인 합계(전 단위로 합산해 부동소수 오차 회피). 없으면 직접 입력.
+  const supplyLineTotal =
+    lines.reduce((s, l) => s + Math.round((Number(l.amount) || 0) * 100), 0) / 100
+  const supplyEffective = lines.length > 0 ? supplyLineTotal : Number(supplyAmount) || 0
+  // 부가세 자동계산 — 과세는 공급가액×10% 원 미만 절사, 영세·면세는 0(백엔드와 동일).
+  const vatComputed = taxType === 'TAXABLE' ? Math.floor(supplyEffective * 0.1) : 0
+  const totalComputed = Math.round((supplyEffective + vatComputed) * 100) / 100
 
   const addLine = () => setLines((ls) => [...ls, { accountId: '', amount: '', description: '' }])
   const removeLine = (i: number) => setLines((ls) => ls.filter((_, idx) => idx !== i))
@@ -110,24 +118,16 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
     setVendorId('')
     setInvoiceDate('')
     setDueDate('')
-    setTotalAmount('')
+    setSupplyAmount('')
     setCurrency('KRW')
     setNote('')
     setLines([])
-    setVatAccountId('')
-    setVatAmount('')
+    setTaxType('TAXABLE')
     setDialog({ type: 'create' })
   }
 
   const handleCreate = () => {
-    if (
-      !invoiceNo.trim() ||
-      !vendorId ||
-      !invoiceDate ||
-      !dueDate ||
-      !effectiveTotal ||
-      Number(effectiveTotal) <= 0
-    ) {
+    if (!invoiceNo.trim() || !vendorId || !invoiceDate || !dueDate || supplyEffective <= 0) {
       toast.error('필수 항목을 모두 입력해주세요')
       return
     }
@@ -135,22 +135,12 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
       toast.error('분개 라인의 계정과 금액을 모두 입력해주세요')
       return
     }
-    if (vatNum > 0 && !vatAccountId) {
-      toast.error('부가세 금액을 입력했으면 부가세대급금 계정을 선택해주세요')
-      return
-    }
-    // 공급 라인 + (부가세 라인) → 승인 시 GL 차변. 합계 = effectiveTotal(서버가 균형 검증).
-    // 금액은 소수 2자리(전)로 반올림해 전송 — 라인합계(전 단위)·서버 BigDecimal 검증과 일치
-    // (예: 사용자가 2자리 초과 입력/붙여넣기해도 총금액 불일치로 거부되지 않게).
+    // 라인 합계 = 공급가액(서버가 검증). 세액·총액은 서버가 과세구분으로 자동계산.
     const supplyLines = lines.map((l) => ({
       accountId: Number(l.accountId),
       amount: Math.round(Number(l.amount) * 100) / 100,
       description: l.description || null,
     }))
-    const vatLine =
-      vatAccountId && vatNum > 0
-        ? [{ accountId: Number(vatAccountId), amount: vatNum, description: '부가세대급금' }]
-        : []
     startTransition(async () => {
       try {
         await createInvoice({
@@ -158,10 +148,11 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
           vendorId: Number(vendorId),
           invoiceDate,
           dueDate,
-          totalAmount: Number(effectiveTotal),
+          supplyAmount: Math.round(supplyEffective * 100) / 100,
+          taxType,
           currency: currency || 'KRW',
           note: note || null,
-          lines: lines.length > 0 ? [...supplyLines, ...vatLine] : null,
+          lines: lines.length > 0 ? supplyLines : null,
         })
         toast.success('계산서가 등록되었습니다')
         close()
@@ -264,6 +255,11 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
       cell: (inv) => (
         <span className="font-mono text-sm">{fmt(inv.totalAmount, inv.currency)}</span>
       ),
+      footer: (rows) => (
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + r.totalAmount, 0).toLocaleString('ko-KR')}
+        </span>
+      ),
     },
     {
       key: 'outstandingAmount',
@@ -273,6 +269,11 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
       sortValue: (inv) => inv.outstandingAmount,
       cell: (inv) => (
         <span className="font-mono text-sm">{fmt(inv.outstandingAmount, inv.currency)}</span>
+      ),
+      footer: (rows) => (
+        <span className="font-mono">
+          {rows.reduce((s, r) => s + r.outstandingAmount, 0).toLocaleString('ko-KR')}
+        </span>
       ),
     },
     {
@@ -370,13 +371,54 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qVendor, setQVendor] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [qFrom, setQFrom] = useState('')
+  const [qTo, setQTo] = useState('')
+  const [applied, setApplied] = useState({ vendor: '', status: '', from: '', to: '' })
+  const onSearch = () => setApplied({ vendor: qVendor, status: qStatus, from: qFrom, to: qTo })
+  const onReset = () => {
+    setQVendor('')
+    setQStatus('')
+    setQFrom('')
+    setQTo('')
+    setApplied({ vendor: '', status: '', from: '', to: '' })
+  }
+  const filtered = data.content.filter((inv) => {
+    if (applied.vendor && String(inv.vendorId) !== applied.vendor) return false
+    if (applied.status && inv.status !== applied.status) return false
+    if (applied.from && inv.invoiceDate < applied.from) return false
+    if (applied.to && inv.invoiceDate > applied.to) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `매입계산서_${new Date().toISOString().slice(0, 10)}`,
+      ['계산서번호', '공급업체', '계산서일', '만기일', '통화', '총금액', '미납금액', '상태'],
+      filtered.map((inv) => [
+        inv.invoiceNo,
+        inv.vendorName,
+        inv.invoiceDate,
+        inv.dueDate,
+        inv.currency,
+        inv.totalAmount,
+        inv.outstandingAmount,
+        STATUS_LABEL[inv.status],
+      ]),
+    )
+
   return (
-    <div className="p-6">
+    <div className="p-5">
       <PageHeader
         title="매입계산서"
         description="공급업체 계산서 및 지급 현황을 관리합니다"
-        className="mb-6"
+        className="mb-4"
       >
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 계산서
@@ -385,10 +427,66 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
       </PageHeader>
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="계산서일">
+            <Input
+              type="date"
+              value={qFrom}
+              onChange={(e) => setQFrom(e.target.value)}
+              className="h-8 w-36"
+            />
+            <span className="text-muted-foreground">~</span>
+            <Input
+              type="date"
+              value={qTo}
+              onChange={(e) => setQTo(e.target.value)}
+              className="h-8 w-36"
+            />
+          </FilterField>
+          <FilterField label="공급업체">
+            <Select
+              value={qVendor || 'ALL'}
+              onValueChange={(v) => setQVendor(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {vendors.map((v) => (
+                  <SelectItem key={v.id} value={String(v.id)}>
+                    {v.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(STATUS_LABEL) as ApInvoiceStatus[]).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={data.content}
+          data={filtered}
           columns={columns}
           getRowId={(inv) => inv.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           empty={
             <EmptyState
               title="등록된 계산서가 없습니다"
@@ -417,19 +515,18 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
             <DialogTitle>새 계산서 등록</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label>계산서번호 *</Label>
+            <FormGrid>
+              <FormRow label="계산서번호" required>
                 <Input
                   value={invoiceNo}
                   onChange={(e) => setInvoiceNo(e.target.value)}
                   placeholder="INV-2024-001"
+                  className="h-8"
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>공급업체 *</Label>
+              </FormRow>
+              <FormRow label="공급업체" required>
                 <Select value={vendorId} onValueChange={(v) => setVendorId(v ?? '')}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-8 w-full">
                     <SelectValue placeholder="선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -442,36 +539,45 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
                       ))}
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label>계산서일 *</Label>
+              </FormRow>
+              <FormRow label="계산서일" required>
                 <DatePicker value={invoiceDate} onChange={setInvoiceDate} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>만기일 *</Label>
+              </FormRow>
+              <FormRow label="만기일" required>
                 <DatePicker value={dueDate} onChange={setDueDate} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="grid gap-1.5 col-span-2">
-                <Label>총금액 *</Label>
+              </FormRow>
+              <FormRow label="공급가액" required>
                 <Input
                   type="number"
                   min={0.01}
                   step={0.01}
-                  value={effectiveTotal}
+                  value={lines.length > 0 ? supplyEffective : supplyAmount}
                   readOnly={lines.length > 0}
-                  onChange={(e) => setTotalAmount(e.target.value)}
+                  onChange={(e) => setSupplyAmount(e.target.value)}
                   placeholder="0"
-                  className={lines.length > 0 ? 'bg-muted/40 text-muted-foreground' : undefined}
+                  className={lines.length > 0 ? 'h-8 bg-muted/40 text-muted-foreground' : 'h-8'}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>통화</Label>
+              </FormRow>
+              <FormRow label="과세구분" required>
+                <Select
+                  value={taxType}
+                  onValueChange={(v) => setTaxType((v ?? 'TAXABLE') as TaxType)}
+                >
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TAX_TYPE_LABEL) as TaxType[]).map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {TAX_TYPE_LABEL[t]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="통화" span>
                 <Select value={currency} onValueChange={(v) => setCurrency(v ?? 'KRW')}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-8 w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -480,8 +586,8 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
                     <SelectItem value="EUR">EUR</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
+              </FormRow>
+            </FormGrid>
 
             {/* 분개 라인(차변) — 입력 시 승인 때 GL 자동 분개. 합계가 총금액이 된다. */}
             <div className="grid gap-2">
@@ -545,63 +651,28 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
                     </div>
                   ))}
                   <div className="text-right text-sm text-muted-foreground">
-                    공급가 합계: <span className="font-medium">{fmt(supplyTotal, currency)}</span>
+                    공급가 합계:{' '}
+                    <span className="font-medium">{fmt(supplyLineTotal, currency)}</span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* 부가세 자동 split — 부가세대급금 차변 라인을 자동 생성. 10% 자동, 실제 세액으로 수정 가능. */}
-            {lines.length > 0 && (
-              <div className="grid gap-2 rounded-md border bg-muted/40 p-3">
-                <Label>부가세 (자동 분개)</Label>
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1 grid gap-1.5">
-                    <span className="text-xs text-muted-foreground">부가세대급금 계정</span>
-                    <Select value={vatAccountId} onValueChange={(v) => setVatAccountId(v ?? '')}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="(부가세 없으면 비워두기)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {postableAccounts.map((a) => (
-                          <SelectItem key={a.id} value={String(a.id)}>
-                            {a.code} {a.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-1.5 w-36">
-                    <span className="text-xs text-muted-foreground">세액</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      placeholder="0"
-                      value={vatAmount}
-                      onChange={(e) => setVatAmount(e.target.value)}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={fillVat10}
-                    disabled={supplyTotal <= 0}
-                  >
-                    10% 자동
-                  </Button>
-                </div>
-                <div className="text-right text-sm">
-                  <span className="text-muted-foreground">
-                    공급가 {fmt(supplyTotal, currency)} + 부가세 {fmt(vatNum, currency)} ={' '}
-                  </span>
-                  <span className="font-semibold text-foreground">
-                    합계 {fmt(grandTotal, currency)}
-                  </span>
-                </div>
+            {/* 부가세 자동계산(과세구분 기준) — 승인 전기 시 부가세대급금 통제계정으로 자동 분개(설정 시). */}
+            <div className="grid gap-1 rounded-md border bg-muted/40 p-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">공급가액</span>
+                <span className="font-mono">{fmt(supplyEffective, currency)}</span>
               </div>
-            )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">부가세 ({TAX_TYPE_LABEL[taxType]})</span>
+                <span className="font-mono">{fmt(vatComputed, currency)}</span>
+              </div>
+              <div className="flex justify-between border-t pt-1 font-semibold">
+                <span>합계</span>
+                <span className="font-mono">{fmt(totalComputed, currency)}</span>
+              </div>
+            </div>
 
             <div className="grid gap-1.5">
               <Label>비고</Label>

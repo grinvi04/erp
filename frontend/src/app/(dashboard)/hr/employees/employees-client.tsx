@@ -11,6 +11,7 @@ import {
   LogOutIcon,
   LogInIcon,
   BanIcon,
+  DownloadIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,6 +37,9 @@ import {
 } from '@/components/ui/select'
 import { PaginationBar } from '@/components/ui/pagination-bar'
 import { SearchInput } from '@/components/ui/search-input'
+import { FilterBar, FilterField } from '@/components/ui/filter-bar'
+import { FormGrid, FormRow } from '@/components/ui/form-grid'
+import { downloadCsv } from '@/lib/csv'
 import {
   createEmployee,
   updateEmployee,
@@ -446,10 +450,47 @@ export default function EmployeesClient({
     },
   ]
 
+  // 조회 조건(한국 ERP) — 입력값(draft)과 적용값(applied) 분리. [조회]에 적용. 현재 페이지 데이터 기준 필터.
+  const [qDept, setQDept] = useState('')
+  const [qPos, setQPos] = useState('')
+  const [qStatus, setQStatus] = useState('')
+  const [applied, setApplied] = useState({ dept: '', pos: '', status: '' })
+  const onSearch = () => setApplied({ dept: qDept, pos: qPos, status: qStatus })
+  const onReset = () => {
+    setQDept('')
+    setQPos('')
+    setQStatus('')
+    setApplied({ dept: '', pos: '', status: '' })
+  }
+  const filtered = data.content.filter((emp) => {
+    if (applied.dept && String(emp.departmentId) !== applied.dept) return false
+    if (applied.pos && String(emp.positionId) !== applied.pos) return false
+    if (applied.status && emp.status !== applied.status) return false
+    return true
+  })
+  const exportExcel = () =>
+    downloadCsv(
+      `직원_${new Date().toISOString().slice(0, 10)}`,
+      ['사번', '이름', '부서', '직위', '이메일', '입사일', '상태'],
+      filtered.map((emp) => [
+        emp.employeeNo,
+        emp.fullName,
+        emp.departmentName,
+        emp.positionName,
+        emp.workEmail,
+        emp.hireDate,
+        STATUS_LABEL[emp.status],
+      ]),
+    )
+
   return (
-    <div className="p-6">
-      <PageHeader title="직원 관리" description="조직 내 직원 정보를 관리합니다" className="mb-6">
+    <div className="p-5">
+      <PageHeader title="직원 관리" description="조직 내 직원 정보를 관리합니다" className="mb-4">
         <SearchInput placeholder="이름·코드 검색" className="w-64" />
+        <Button variant="outline" onClick={exportExcel}>
+          <DownloadIcon />
+          엑셀
+        </Button>
         {canWrite && (
           <Button onClick={openCreate}>
             <PlusIcon />새 직원
@@ -458,10 +499,69 @@ export default function EmployeesClient({
       </PageHeader>
 
       <div className="space-y-3">
+        <FilterBar onSearch={onSearch} onReset={onReset}>
+          <FilterField label="부서">
+            <Select
+              value={qDept || 'ALL'}
+              onValueChange={(v) => setQDept(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={String(d.id)}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="직위">
+            <Select
+              value={qPos || 'ALL'}
+              onValueChange={(v) => setQPos(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {positions.map((p) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="상태">
+            <Select
+              value={qStatus || 'ALL'}
+              onValueChange={(v) => setQStatus(v === 'ALL' ? '' : (v ?? ''))}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">전체</SelectItem>
+                {(Object.keys(STATUS_LABEL) as EmployeeStatus[]).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterBar>
+
         <DataTable
-          data={data.content}
+          data={filtered}
           columns={columns}
           getRowId={(emp) => emp.id}
+          showTotals
+          totalLabel={`총 ${filtered.length}건`}
           empty={<EmptyState title="등록된 직원이 없습니다" />}
         />
         <PaginationBar
@@ -485,181 +585,178 @@ export default function EmployeesClient({
           <DialogHeader>
             <DialogTitle>새 직원 등록</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
-            <div className="grid gap-1.5">
-              <Label>사번 *</Label>
-              <Input
-                value={empNo}
-                onChange={(e) => setEmpNo(e.target.value)}
-                placeholder="EMP001"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>고용 형태 *</Label>
-              <Select value={empType} onValueChange={(v) => setEmpType(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.entries(EMPLOYMENT_TYPE_LABEL) as [EmploymentType, string][]).map(
-                    ([k, v]) => (
+          <div className="max-h-[60vh] overflow-y-auto py-2 pr-1">
+            <FormGrid>
+              <FormRow label="사번" required>
+                <Input
+                  value={empNo}
+                  onChange={(e) => setEmpNo(e.target.value)}
+                  placeholder="EMP001"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="고용 형태" required>
+                <Select value={empType} onValueChange={(v) => setEmpType(v ?? '')}>
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.entries(EMPLOYMENT_TYPE_LABEL) as [EmploymentType, string][]).map(
+                      ([k, v]) => (
+                        <SelectItem key={k} value={k}>
+                          {v}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="성" required>
+                <Input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="김"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="이름" required>
+                <Input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="철수"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="업무 이메일" required>
+                <Input
+                  type="email"
+                  value={workEmail}
+                  onChange={(e) => setWorkEmail(e.target.value)}
+                  placeholder="cs.kim@company.com"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="입사일" required>
+                <DatePicker value={hireDate} onChange={setHireDate} />
+              </FormRow>
+              <FormRow label="부서" required>
+                <Select value={deptId} onValueChange={(v) => setDeptId(v ?? '')}>
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((d) => (
+                      <SelectItem key={d.id} value={String(d.id)}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="직위" required>
+                <Select value={posId} onValueChange={(v) => setPosId(v ?? '')}>
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {positions.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="직급">
+                <Select value={gradeId} onValueChange={(v) => setGradeId(v ?? '')}>
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="없음" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">없음</SelectItem>
+                    {jobGrades.map((g) => (
+                      <SelectItem key={g.id} value={String(g.id)}>
+                        {g.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="기본급">
+                <Input
+                  type="number"
+                  value={baseSalary}
+                  onChange={(e) => setBaseSalary(e.target.value)}
+                  placeholder="0"
+                  min={0}
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="성별">
+                <Select value={gender} onValueChange={(v) => setGender(v ?? '')}>
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="선택 안 함" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">선택 안 함</SelectItem>
+                    {(Object.entries(GENDER_LABEL) as [Gender, string][]).map(([k, v]) => (
                       <SelectItem key={k} value={k}>
                         {v}
                       </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>성 *</Label>
-              <Input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="김"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>이름 *</Label>
-              <Input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="철수"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>업무 이메일 *</Label>
-              <Input
-                type="email"
-                value={workEmail}
-                onChange={(e) => setWorkEmail(e.target.value)}
-                placeholder="cs.kim@company.com"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>입사일 *</Label>
-              <DatePicker value={hireDate} onChange={setHireDate} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>부서 *</Label>
-              <Select value={deptId} onValueChange={(v) => setDeptId(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((d) => (
-                    <SelectItem key={d.id} value={String(d.id)}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>직위 *</Label>
-              <Select value={posId} onValueChange={(v) => setPosId(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {positions.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>직급</Label>
-              <Select value={gradeId} onValueChange={(v) => setGradeId(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="없음" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">없음</SelectItem>
-                  {jobGrades.map((g) => (
-                    <SelectItem key={g.id} value={String(g.id)}>
-                      {g.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>기본급</Label>
-              <Input
-                type="number"
-                value={baseSalary}
-                onChange={(e) => setBaseSalary(e.target.value)}
-                placeholder="0"
-                min={0}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>성별</Label>
-              <Select value={gender} onValueChange={(v) => setGender(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="선택 안 함" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">선택 안 함</SelectItem>
-                  {(Object.entries(GENDER_LABEL) as [Gender, string][]).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>
-                      {v}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>생년월일</Label>
-              <DatePicker value={dob} onChange={setDob} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>연락처</Label>
-              <Input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="010-0000-0000"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>개인 이메일</Label>
-              <Input
-                type="email"
-                value={personalEmail}
-                onChange={(e) => setPersonalEmail(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>주민등록번호</Label>
-              <Input value={nationalId} onChange={(e) => setNationalId(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>관리자(결재자)</Label>
-              <Select value={managerId} onValueChange={(v) => setManagerId(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="없음" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">없음</SelectItem>
-                  {managerOptions().map((m) => (
-                    <SelectItem key={m.id} value={String(m.id)}>
-                      {m.fullName} ({m.employeeNo})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>로그인 계정 ID (Keycloak)</Label>
-              <Input
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="결재자 식별용 sub"
-              />
-            </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="생년월일">
+                <DatePicker value={dob} onChange={setDob} />
+              </FormRow>
+              <FormRow label="연락처">
+                <Input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="010-0000-0000"
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="개인 이메일">
+                <Input
+                  type="email"
+                  value={personalEmail}
+                  onChange={(e) => setPersonalEmail(e.target.value)}
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="주민등록번호">
+                <Input
+                  value={nationalId}
+                  onChange={(e) => setNationalId(e.target.value)}
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="관리자(결재자)">
+                <Select value={managerId} onValueChange={(v) => setManagerId(v ?? '')}>
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="없음" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">없음</SelectItem>
+                    {managerOptions().map((m) => (
+                      <SelectItem key={m.id} value={String(m.id)}>
+                        {m.fullName} ({m.employeeNo})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="로그인 계정 ID (Keycloak)" span>
+                <Input
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="결재자 식별용 sub"
+                  className="h-8"
+                />
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button onClick={handleCreate} disabled={isPending}>
@@ -680,68 +777,74 @@ export default function EmployeesClient({
           <DialogHeader>
             <DialogTitle>직원 정보 수정</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label>성 *</Label>
-              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>이름 *</Label>
-              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5 col-span-2">
-              <Label>업무 이메일 *</Label>
-              <Input
-                type="email"
-                value={workEmail}
-                onChange={(e) => setWorkEmail(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>연락처</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>개인 이메일</Label>
-              <Input
-                type="email"
-                value={personalEmail}
-                onChange={(e) => setPersonalEmail(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>기본급</Label>
-              <Input
-                type="number"
-                value={baseSalary}
-                onChange={(e) => setBaseSalary(e.target.value)}
-                min={0}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>관리자(결재자)</Label>
-              <Select value={managerId} onValueChange={(v) => setManagerId(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="없음" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">없음</SelectItem>
-                  {managerOptions(dialog.type === 'edit' ? dialog.emp.id : undefined).map((m) => (
-                    <SelectItem key={m.id} value={String(m.id)}>
-                      {m.fullName} ({m.employeeNo})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>로그인 계정 ID (Keycloak)</Label>
-              <Input
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="결재자 식별용 sub"
-              />
-            </div>
+          <div className="py-2">
+            <FormGrid>
+              <FormRow label="성" required>
+                <Input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="이름" required>
+                <Input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="업무 이메일" required span>
+                <Input
+                  type="email"
+                  value={workEmail}
+                  onChange={(e) => setWorkEmail(e.target.value)}
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="연락처">
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-8" />
+              </FormRow>
+              <FormRow label="개인 이메일">
+                <Input
+                  type="email"
+                  value={personalEmail}
+                  onChange={(e) => setPersonalEmail(e.target.value)}
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="기본급">
+                <Input
+                  type="number"
+                  value={baseSalary}
+                  onChange={(e) => setBaseSalary(e.target.value)}
+                  min={0}
+                  className="h-8"
+                />
+              </FormRow>
+              <FormRow label="관리자(결재자)">
+                <Select value={managerId} onValueChange={(v) => setManagerId(v ?? '')}>
+                  <SelectTrigger className="h-8 w-full">
+                    <SelectValue placeholder="없음" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">없음</SelectItem>
+                    {managerOptions(dialog.type === 'edit' ? dialog.emp.id : undefined).map((m) => (
+                      <SelectItem key={m.id} value={String(m.id)}>
+                        {m.fullName} ({m.employeeNo})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormRow>
+              <FormRow label="로그인 계정 ID (Keycloak)" span>
+                <Input
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="결재자 식별용 sub"
+                  className="h-8"
+                />
+              </FormRow>
+            </FormGrid>
           </div>
           <DialogFooter showCloseButton>
             <Button

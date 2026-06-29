@@ -9,6 +9,7 @@ import com.erp.finance.application.dto.VendorCreateRequest;
 import com.erp.finance.application.dto.VendorResponse;
 import com.erp.finance.application.dto.VendorUpdateRequest;
 import com.erp.finance.domain.model.Account;
+import com.erp.finance.domain.model.BusinessNoValidator;
 import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.VendorRepository;
@@ -47,6 +48,7 @@ public class VendorService {
     if (vendorRepository.existsByCode(request.code())) {
       throw new ErpException(ErrorCode.VENDOR_CODE_DUPLICATE);
     }
+    BusinessNoValidator.validate(request.businessNo());
     Vendor vendor =
         Vendor.of(
             request.code(),
@@ -65,6 +67,7 @@ public class VendorService {
     permissionChecker.require(Permission.FINANCE_WRITE);
     Vendor vendor = getOrThrow(id);
     vendor.checkVersion(request.version());
+    BusinessNoValidator.validate(request.businessNo());
     vendor.update(
         request.name(),
         request.businessNo(),

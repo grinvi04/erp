@@ -35,24 +35,80 @@ class CustomerServiceTest {
   @Test
   void create_newCode_returnsCustomerResponse() {
     given(customerRepository.existsByCode("C001")).willReturn(false);
-    Customer customer =
-        Customer.of("C001", "테스트고객사", "123-45-67890", "홍길동", "hong@test.com", "010-1234-5678", 30);
-    given(customerRepository.save(any())).willReturn(customer);
+    given(customerRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
     CustomerResponse result =
         customerService.create(
             new CustomerCreateRequest(
                 "C001",
                 "테스트고객사",
-                "123-45-67890",
+                "120-81-47521",
                 "홍길동",
                 "hong@test.com",
                 "010-1234-5678",
                 30,
+                null,
+                null,
+                null,
+                null,
                 null));
 
     assertThat(result.code()).isEqualTo("C001");
     assertThat(result.paymentTerms()).isEqualTo(30);
+  }
+
+  @Test
+  void create_withTaxIdentity_persistsRepresentativeAddressTypeItem() {
+    // AC-2: 세금계산서 인적사항(대표자·주소·업태·종목)이 생성 응답에 반영.
+    given(customerRepository.existsByCode("C010")).willReturn(false);
+    given(customerRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+    CustomerResponse result =
+        customerService.create(
+            new CustomerCreateRequest(
+                "C010",
+                "(주)공급받는자",
+                "120-81-47521",
+                "담당자",
+                null,
+                null,
+                30,
+                null,
+                "김대표",
+                "서울시 종로구 1",
+                "도소매",
+                "전자제품"));
+
+    assertThat(result.representativeName()).isEqualTo("김대표");
+    assertThat(result.address()).isEqualTo("서울시 종로구 1");
+    assertThat(result.businessType()).isEqualTo("도소매");
+    assertThat(result.businessItem()).isEqualTo("전자제품");
+  }
+
+  @Test
+  void create_invalidBusinessNo_throwsBusinessNoInvalid() {
+    given(customerRepository.existsByCode("C002")).willReturn(false);
+
+    ErpException ex =
+        assertThrows(
+            ErpException.class,
+            () ->
+                customerService.create(
+                    new CustomerCreateRequest(
+                        "C002",
+                        "고객사",
+                        "123-45-67890",
+                        null,
+                        null,
+                        null,
+                        0,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null)));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.BUSINESS_NO_INVALID);
   }
 
   @Test
@@ -64,7 +120,9 @@ class CustomerServiceTest {
             ErpException.class,
             () ->
                 customerService.create(
-                    new CustomerCreateRequest("C001", "테스트고객사", null, null, null, null, 0, null)));
+                    new CustomerCreateRequest(
+                        "C001", "테스트고객사", null, null, null, null, 0, null, null, null, null,
+                        null)));
 
     assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.CUSTOMER_CODE_DUPLICATE);
   }
@@ -77,11 +135,33 @@ class CustomerServiceTest {
 
     CustomerResponse result =
         customerService.update(
-            1L, new CustomerUpdateRequest("변경고객사", null, null, null, null, 60, null, 3L));
+            1L,
+            new CustomerUpdateRequest(
+                "변경고객사", null, null, null, null, 60, null, null, null, null, null, 3L));
 
     assertThat(result.name()).isEqualTo("변경고객사");
     assertThat(result.paymentTerms()).isEqualTo(60);
     assertThat(result.version()).isEqualTo(3L);
+  }
+
+  @Test
+  void update_withTaxIdentity_updatesRepresentativeAddressTypeItem() {
+    // AC-2: 수정 시 인적사항(대표자·주소·업태·종목)이 갱신·응답에 반영.
+    Customer customer = Customer.of("C001", "기존고객사", null, null, null, null, 0);
+    ReflectionTestUtils.setField(customer, "version", 2L);
+    given(customerRepository.findById(1L)).willReturn(Optional.of(customer));
+
+    CustomerResponse result =
+        customerService.update(
+            1L,
+            new CustomerUpdateRequest(
+                "기존고객사", null, null, null, null, 30, null, "박대표", "인천시 1", "제조", "기계", 2L));
+
+    assertThat(result.representativeName()).isEqualTo("박대표");
+    assertThat(result.address()).isEqualTo("인천시 1");
+    assertThat(result.businessType()).isEqualTo("제조");
+    assertThat(result.businessItem()).isEqualTo("기계");
+    assertThat(customer.getRepresentativeName()).isEqualTo("박대표");
   }
 
   @Test
@@ -94,7 +174,9 @@ class CustomerServiceTest {
         ObjectOptimisticLockingFailureException.class,
         () ->
             customerService.update(
-                1L, new CustomerUpdateRequest("변경고객사", null, null, null, null, 60, null, 3L)));
+                1L,
+                new CustomerUpdateRequest(
+                    "변경고객사", null, null, null, null, 60, null, null, null, null, null, 3L)));
   }
 
   @Test

@@ -15,6 +15,7 @@ import com.erp.finance.application.dto.ApInvoiceCreateRequest;
 import com.erp.finance.application.dto.ApInvoiceResponse;
 import com.erp.finance.application.service.ApInvoiceService;
 import com.erp.finance.domain.model.ApInvoiceStatus;
+import com.erp.finance.domain.model.TaxType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -49,6 +50,9 @@ class ApInvoiceControllerTest {
         LocalDate.of(2025, 1, 31),
         new BigDecimal("100000"),
         BigDecimal.ZERO,
+        TaxType.EXEMPT,
+        new BigDecimal("100000"),
+        BigDecimal.ZERO,
         new BigDecimal("100000"),
         "KRW",
         ApInvoiceStatus.DRAFT,
@@ -80,6 +84,7 @@ class ApInvoiceControllerTest {
             LocalDate.of(2025, 1, 1),
             LocalDate.of(2025, 1, 31),
             new BigDecimal("100000"),
+            TaxType.EXEMPT,
             "KRW",
             null,
             null);

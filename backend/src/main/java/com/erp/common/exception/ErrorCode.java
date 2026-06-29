@@ -10,6 +10,7 @@ public enum ErrorCode {
   OPTIMISTIC_LOCK_CONFLICT(HttpStatus.CONFLICT, "C003", "다른 사용자가 먼저 수정했습니다. 최신 데이터를 불러와 다시 시도하세요"),
   TENANT_MISMATCH(HttpStatus.FORBIDDEN, "C004", "접근 권한이 없는 테넌트입니다"),
   FORBIDDEN(HttpStatus.FORBIDDEN, "C005", "접근 권한이 없습니다"),
+  DATA_INTEGRITY_CONFLICT(HttpStatus.CONFLICT, "C006", "데이터 무결성 제약을 위반했습니다 (중복 또는 참조 위반)"),
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C999", "내부 오류가 발생했습니다"),
 
   // HR
@@ -70,6 +71,13 @@ public enum ErrorCode {
       HttpStatus.UNPROCESSABLE_ENTITY, "F034", "해당 통화·일자의 환율이 없어 기준통화로 환산할 수 없습니다"),
   BASE_CURRENCY_CHANGE_NOT_ALLOWED(HttpStatus.CONFLICT, "F035", "이미 환산된 거래가 있어 기준통화를 변경할 수 없습니다"),
   JOURNAL_ENTRY_NOT_POSTED(HttpStatus.CONFLICT, "F036", "전기된 전표만 역분개할 수 있습니다"),
+  BUSINESS_NO_INVALID(HttpStatus.BAD_REQUEST, "F037", "사업자등록번호 형식이 올바르지 않습니다"),
+  COMPANY_PROFILE_REQUIRED(HttpStatus.CONFLICT, "F038", "회사정보(공급자)가 설정되지 않아 세금계산서를 발행할 수 없습니다"),
+  AR_INVOICE_NOT_ISSUABLE(HttpStatus.CONFLICT, "F039", "승인 또는 완납된 매출 인보이스만 세금계산서를 발행할 수 있습니다"),
+  TAX_INVOICE_ALREADY_ISSUED(HttpStatus.CONFLICT, "F040", "해당 매출 인보이스의 세금계산서가 이미 발행되었습니다"),
+  TAX_INVOICE_NOT_FOUND(HttpStatus.NOT_FOUND, "F041", "세금계산서를 찾을 수 없습니다"),
+  TAX_INVOICE_NOT_CANCELLABLE(HttpStatus.CONFLICT, "F042", "발행 상태의 세금계산서만 취소할 수 있습니다"),
+  TAX_INVOICE_XML_REQUIRES_ISSUED(HttpStatus.CONFLICT, "F043", "발행 상태의 세금계산서만 XML을 생성할 수 있습니다"),
 
   // Inventory
   ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "품목을 찾을 수 없습니다"),

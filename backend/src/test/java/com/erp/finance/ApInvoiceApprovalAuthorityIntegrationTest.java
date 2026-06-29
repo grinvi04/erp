@@ -16,6 +16,7 @@ import com.erp.finance.application.ReferenceTypes;
 import com.erp.finance.application.dto.ApInvoiceResponse;
 import com.erp.finance.application.service.ApInvoiceService;
 import com.erp.finance.domain.model.ApInvoice;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.VendorRepository;
@@ -61,6 +62,7 @@ class ApInvoiceApprovalAuthorityIntegrationTest extends AbstractIntegrationTest 
                 LocalDate.of(2024, 1, 1),
                 LocalDate.of(2024, 2, 1),
                 new BigDecimal("1000000"),
+                TaxType.EXEMPT,
                 "KRW",
                 null));
     apInvoiceService.submit(inv.getId());

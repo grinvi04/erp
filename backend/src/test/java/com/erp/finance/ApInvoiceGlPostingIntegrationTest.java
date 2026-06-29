@@ -10,13 +10,16 @@ import com.erp.finance.application.ReferenceTypes;
 import com.erp.finance.application.dto.ApInvoiceCreateRequest;
 import com.erp.finance.application.dto.ApInvoiceLineRequest;
 import com.erp.finance.application.dto.ApInvoicePayRequest;
+import com.erp.finance.application.dto.VatAccountUpdateRequest;
 import com.erp.finance.application.service.ApInvoiceService;
+import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.AccountType;
 import com.erp.finance.domain.model.FiscalPeriod;
 import com.erp.finance.domain.model.FiscalYear;
 import com.erp.finance.domain.model.JournalEntry;
 import com.erp.finance.domain.model.NormalBalance;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
@@ -47,6 +50,7 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
   @Autowired private FiscalPeriodRepository fiscalPeriodRepository;
   @Autowired private JournalEntryRepository journalEntryRepository;
   @Autowired private UserAccessProfileRepository accessProfileRepository;
+  @Autowired private BaseCurrencyService baseCurrencyService;
 
   private Long expenseAccountId;
   private Long vendorId;
@@ -99,6 +103,7 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
                 LocalDate.of(2025, 1, 10),
                 LocalDate.of(2025, 2, 10),
                 new BigDecimal("100000"),
+                TaxType.EXEMPT,
                 "KRW",
                 null,
                 List.of(
@@ -121,6 +126,69 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void approve_taxableWithVatAccount_postsVatLineAndBalances() {
+    // AC-6: 과세 매입 — 부가세대급금 통제계정 설정 후 승인 전기 →
+    // (차)소모품비 100,000·부가세대급금 10,000 (대)외상매입금 110,000.
+    authenticate("admin", BigDecimal.ZERO, "finance:setting:write");
+    Account vatInput =
+        accountRepository.save(
+            Account.of("13500", "부가세대급금", AccountType.ASSET, NormalBalance.DEBIT, null, false));
+    baseCurrencyService.updateVatAccounts(new VatAccountUpdateRequest(vatInput.getId(), null));
+
+    authenticate("creator", BigDecimal.ZERO, "finance:write");
+    var created =
+        apInvoiceService.create(
+            new ApInvoiceCreateRequest(
+                "INV-VAT-1",
+                vendorId,
+                LocalDate.of(2025, 1, 10),
+                LocalDate.of(2025, 2, 10),
+                new BigDecimal("100000"),
+                TaxType.TAXABLE,
+                "KRW",
+                null,
+                List.of(
+                    new ApInvoiceLineRequest(expenseAccountId, new BigDecimal("100000"), "소모품"))));
+    apInvoiceService.submit(created.id());
+
+    authenticate("approver", new BigDecimal("1000000"), "finance:invoice:approve");
+    var approved = apInvoiceService.approve(created.id());
+
+    JournalEntry je = journalEntryRepository.findById(approved.journalEntryId()).orElseThrow();
+    assertThat(je.isBalanced()).isTrue();
+    assertThat(je.getTotalDebit()).isEqualByComparingTo("110000");
+    assertThat(je.getTotalCredit()).isEqualByComparingTo("110000");
+  }
+
+  @Test
+  void approve_taxableWithoutVatAccount_skipsVatAndBalancesAtSupply() {
+    // AC-8: 세액>0이나 부가세 통제계정 미설정 → 부가세 라인 없이 공급가액으로 균형(전기 차단 안 함).
+    authenticate("creator", BigDecimal.ZERO, "finance:write");
+    var created =
+        apInvoiceService.create(
+            new ApInvoiceCreateRequest(
+                "INV-VAT-2",
+                vendorId,
+                LocalDate.of(2025, 1, 10),
+                LocalDate.of(2025, 2, 10),
+                new BigDecimal("100000"),
+                TaxType.TAXABLE,
+                "KRW",
+                null,
+                List.of(
+                    new ApInvoiceLineRequest(expenseAccountId, new BigDecimal("100000"), "소모품"))));
+    apInvoiceService.submit(created.id());
+
+    authenticate("approver", new BigDecimal("1000000"), "finance:invoice:approve");
+    var approved = apInvoiceService.approve(created.id());
+
+    JournalEntry je = journalEntryRepository.findById(approved.journalEntryId()).orElseThrow();
+    assertThat(je.isBalanced()).isTrue();
+    assertThat(je.getTotalDebit()).isEqualByComparingTo("100000");
+    assertThat(je.getTotalCredit()).isEqualByComparingTo("100000");
+  }
+
+  @Test
   void approve_withoutLines_doesNotPost() {
     // 라인 없는 전표(레거시) → 자동 분개 생략(추가적 변화 없음, fail-closed 아님)
     authenticate("creator", BigDecimal.ZERO, "finance:write");
@@ -132,6 +200,7 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
                 LocalDate.of(2025, 1, 10),
                 LocalDate.of(2025, 2, 10),
                 new BigDecimal("50000"),
+                TaxType.EXEMPT,
                 "KRW",
                 null,
                 null));
@@ -157,6 +226,7 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
                 LocalDate.of(2025, 1, 10),
                 LocalDate.of(2025, 2, 10),
                 new BigDecimal("100000"),
+                TaxType.EXEMPT,
                 "KRW",
                 null,
                 List.of(
