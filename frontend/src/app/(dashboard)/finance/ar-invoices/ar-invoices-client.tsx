@@ -35,8 +35,14 @@ import {
   collectArInvoice,
   cancelArInvoice,
 } from './actions'
-import type { Account, ArInvoice, ArInvoiceStatus, Customer } from '@/types/finance'
+import type { Account, ArInvoice, ArInvoiceStatus, Customer, TaxType } from '@/types/finance'
 import type { PageResponse } from '@/types/api'
+
+const TAX_TYPE_LABEL: Record<TaxType, string> = {
+  TAXABLE: '과세 (10%)',
+  ZERO_RATED: '영세율 (0%)',
+  EXEMPT: '면세',
+}
 
 type LineForm = { accountId: string; amount: string; description: string }
 
@@ -73,9 +79,6 @@ interface Props {
 
 export default function ArInvoicesClient({ data, customers, accounts }: Props) {
   const postableAccounts = accounts.filter((a) => !a.isSummary && a.isActive)
-  const liabilityAccounts = accounts.filter(
-    (a) => !a.isSummary && a.isActive && a.accountType === 'LIABILITY',
-  )
   const { can } = usePermissions()
   const canWrite = can(PERM.FINANCE_WRITE)
   // 결재(전결)는 작성권과 분리 — 별도 전결권 보유자만. 서버가 전결 한도까지 최종 검증한다.
@@ -90,24 +93,22 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
   const [customerId, setCustomerId] = useState('')
   const [invoiceDate, setInvoiceDate] = useState('')
   const [dueDate, setDueDate] = useState('')
-  const [totalAmount, setTotalAmount] = useState('')
+  const [supplyAmount, setSupplyAmount] = useState('')
   const [currency, setCurrency] = useState('KRW')
   const [note, setNote] = useState('')
   const [collectAmount, setCollectAmount] = useState('')
   const [collectCashAccountId, setCollectCashAccountId] = useState('')
   const [collectDate, setCollectDate] = useState('')
   const [lines, setLines] = useState<LineForm[]>([])
-  const [vatAccountId, setVatAccountId] = useState('')
-  const [vatAmount, setVatAmount] = useState('')
+  const [taxType, setTaxType] = useState<TaxType>('TAXABLE')
 
-  // 라인이 있으면 총금액은 (공급가 합계 + 부가세)로 자동 산출(서버가 합계=총금액을 BigDecimal 검증).
-  // 정수 전(錢) 단위로 합산해 부동소수 오차(0.1+0.2≠0.3)를 피한다 — 금액 컬럼은 소수 2자리.
-  const supplyTotal = lines.reduce((s, l) => s + Math.round((Number(l.amount) || 0) * 100), 0) / 100
-  const vatNum = Math.round((Number(vatAmount) || 0) * 100) / 100
-  const grandTotal = Math.round((supplyTotal + vatNum) * 100) / 100
-  const effectiveTotal = lines.length > 0 ? String(grandTotal) : totalAmount
-  // 부가세 10% 자동 채움(편의값) — 실제 인보이스 세액으로 수정 가능.
-  const fillVat10 = () => setVatAmount(String(Math.round(supplyTotal * 10) / 100))
+  // 라인이 있으면 공급가액 = 라인 합계(전 단위로 합산해 부동소수 오차 회피). 없으면 직접 입력.
+  const supplyLineTotal =
+    lines.reduce((s, l) => s + Math.round((Number(l.amount) || 0) * 100), 0) / 100
+  const supplyEffective = lines.length > 0 ? supplyLineTotal : Number(supplyAmount) || 0
+  // 부가세 자동계산 — 과세는 공급가액×10% 원 미만 절사, 영세·면세는 0(백엔드와 동일).
+  const vatComputed = taxType === 'TAXABLE' ? Math.floor(supplyEffective * 0.1) : 0
+  const totalComputed = Math.round((supplyEffective + vatComputed) * 100) / 100
 
   const addLine = () => setLines((ls) => [...ls, { accountId: '', amount: '', description: '' }])
   const removeLine = (i: number) => setLines((ls) => ls.filter((_, idx) => idx !== i))
@@ -119,24 +120,16 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
     setCustomerId('')
     setInvoiceDate('')
     setDueDate('')
-    setTotalAmount('')
+    setSupplyAmount('')
     setCurrency('KRW')
     setNote('')
     setLines([])
-    setVatAccountId('')
-    setVatAmount('')
+    setTaxType('TAXABLE')
     setDialog({ type: 'create' })
   }
 
   const handleCreate = () => {
-    if (
-      !invoiceNo.trim() ||
-      !customerId ||
-      !invoiceDate ||
-      !dueDate ||
-      !effectiveTotal ||
-      Number(effectiveTotal) <= 0
-    ) {
+    if (!invoiceNo.trim() || !customerId || !invoiceDate || !dueDate || supplyEffective <= 0) {
       toast.error('필수 항목을 모두 입력해주세요')
       return
     }
@@ -144,22 +137,12 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
       toast.error('분개 라인의 계정과 금액을 모두 입력해주세요')
       return
     }
-    if (vatNum > 0 && !vatAccountId) {
-      toast.error('부가세 금액을 입력했으면 부가세예수금 계정을 선택해주세요')
-      return
-    }
-    // 공급 라인 + (부가세 라인) → 승인 시 GL 대변. 합계 = effectiveTotal(서버가 균형 검증).
-    // 금액은 소수 2자리(전)로 반올림해 전송 — 라인합계(전 단위)·서버 BigDecimal 검증과 일치
-    // (예: 사용자가 2자리 초과 입력/붙여넣기해도 총금액 불일치로 거부되지 않게).
+    // 라인 합계 = 공급가액(서버가 검증). 세액·총액은 서버가 과세구분으로 자동계산.
     const supplyLines = lines.map((l) => ({
       accountId: Number(l.accountId),
       amount: Math.round(Number(l.amount) * 100) / 100,
       description: l.description || null,
     }))
-    const vatLine =
-      vatAccountId && vatNum > 0
-        ? [{ accountId: Number(vatAccountId), amount: vatNum, description: '부가세예수금' }]
-        : []
     startTransition(async () => {
       try {
         await createArInvoice({
@@ -167,10 +150,11 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
           customerId: Number(customerId),
           invoiceDate,
           dueDate,
-          totalAmount: Number(effectiveTotal),
+          supplyAmount: Math.round(supplyEffective * 100) / 100,
+          taxType,
           currency: currency || 'KRW',
           note: note || null,
-          lines: lines.length > 0 ? [...supplyLines, ...vatLine] : null,
+          lines: lines.length > 0 ? supplyLines : null,
         })
         toast.success('계산서가 등록되었습니다')
         close()
@@ -464,18 +448,36 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="grid gap-1.5 col-span-2">
-                <Label>총금액 *</Label>
+              <div className="grid gap-1.5">
+                <Label>공급가액 *</Label>
                 <Input
                   type="number"
                   min={0.01}
                   step={0.01}
-                  value={effectiveTotal}
+                  value={lines.length > 0 ? supplyEffective : supplyAmount}
                   readOnly={lines.length > 0}
-                  onChange={(e) => setTotalAmount(e.target.value)}
+                  onChange={(e) => setSupplyAmount(e.target.value)}
                   placeholder="0"
                   className={lines.length > 0 ? 'bg-muted/40 text-muted-foreground' : undefined}
                 />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>과세구분 *</Label>
+                <Select
+                  value={taxType}
+                  onValueChange={(v) => setTaxType((v ?? 'TAXABLE') as TaxType)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TAX_TYPE_LABEL) as TaxType[]).map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {TAX_TYPE_LABEL[t]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-1.5">
                 <Label>통화</Label>
@@ -554,63 +556,28 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
                     </div>
                   ))}
                   <div className="text-right text-sm text-muted-foreground">
-                    공급가 합계: <span className="font-medium">{fmt(supplyTotal, currency)}</span>
+                    공급가 합계:{' '}
+                    <span className="font-medium">{fmt(supplyLineTotal, currency)}</span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* 부가세 자동 split — 부가세예수금 대변 라인을 자동 생성. 10% 자동, 실제 세액으로 수정 가능. */}
-            {lines.length > 0 && (
-              <div className="grid gap-2 rounded-md border bg-muted/40 p-3">
-                <Label>부가세 (자동 분개)</Label>
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1 grid gap-1.5">
-                    <span className="text-xs text-muted-foreground">부가세예수금 계정</span>
-                    <Select value={vatAccountId} onValueChange={(v) => setVatAccountId(v ?? '')}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="(부가세 없으면 비워두기)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {liabilityAccounts.map((a) => (
-                          <SelectItem key={a.id} value={String(a.id)}>
-                            {a.code} {a.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-1.5 w-36">
-                    <span className="text-xs text-muted-foreground">세액</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      placeholder="0"
-                      value={vatAmount}
-                      onChange={(e) => setVatAmount(e.target.value)}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={fillVat10}
-                    disabled={supplyTotal <= 0}
-                  >
-                    10% 자동
-                  </Button>
-                </div>
-                <div className="text-right text-sm">
-                  <span className="text-muted-foreground">
-                    공급가 {fmt(supplyTotal, currency)} + 부가세 {fmt(vatNum, currency)} ={' '}
-                  </span>
-                  <span className="font-semibold text-foreground">
-                    합계 {fmt(grandTotal, currency)}
-                  </span>
-                </div>
+            {/* 부가세 자동계산(과세구분 기준) — 승인 전기 시 부가세예수금 통제계정으로 자동 분개(설정 시). */}
+            <div className="grid gap-1 rounded-md border bg-muted/40 p-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">공급가액</span>
+                <span className="font-mono">{fmt(supplyEffective, currency)}</span>
               </div>
-            )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">부가세 ({TAX_TYPE_LABEL[taxType]})</span>
+                <span className="font-mono">{fmt(vatComputed, currency)}</span>
+              </div>
+              <div className="flex justify-between border-t pt-1 font-semibold">
+                <span>합계</span>
+                <span className="font-mono">{fmt(totalComputed, currency)}</span>
+              </div>
+            </div>
 
             <div className="grid gap-1.5">
               <Label>비고</Label>

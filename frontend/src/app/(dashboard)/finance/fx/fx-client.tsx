@@ -30,8 +30,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { updateBaseCurrency, createExchangeRate, updateFxGainLossAccounts } from './actions'
-import type { Account, ExchangeRate, FxGainLossAccounts } from '@/types/finance'
+import {
+  updateBaseCurrency,
+  createExchangeRate,
+  updateFxGainLossAccounts,
+  updateVatAccounts,
+} from './actions'
+import type { Account, ExchangeRate, FxGainLossAccounts, VatAccounts } from '@/types/finance'
 
 const CURRENCY_PATTERN = /^[A-Z]{3}$/
 const NONE = 'NONE'
@@ -43,9 +48,16 @@ interface Props {
   rates: ExchangeRate[]
   accounts: Account[]
   fxAccounts: FxGainLossAccounts
+  vatAccounts: VatAccounts
 }
 
-export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: Props) {
+export default function FxClient({
+  baseCurrency,
+  rates,
+  accounts,
+  fxAccounts,
+  vatAccounts,
+}: Props) {
   const { can } = usePermissions()
   const canWrite = can(PERM.FINANCE_SETTING_WRITE)
   const selectableAccounts = accounts.filter((a) => !a.isSummary && a.isActive)
@@ -74,6 +86,27 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
           fxLossAccountId: fxLossAccountId ? Number(fxLossAccountId) : null,
         })
         toast.success('환차손익 계정이 저장되었습니다')
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '저장 중 오류가 발생했습니다')
+      }
+    })
+  }
+
+  const [vatReceivableAccountId, setVatReceivableAccountId] = useState(
+    vatAccounts.vatReceivableAccountId != null ? String(vatAccounts.vatReceivableAccountId) : '',
+  )
+  const [vatPayableAccountId, setVatPayableAccountId] = useState(
+    vatAccounts.vatPayableAccountId != null ? String(vatAccounts.vatPayableAccountId) : '',
+  )
+
+  const handleSaveVatAccounts = () => {
+    startTransition(async () => {
+      try {
+        await updateVatAccounts({
+          vatReceivableAccountId: vatReceivableAccountId ? Number(vatReceivableAccountId) : null,
+          vatPayableAccountId: vatPayableAccountId ? Number(vatPayableAccountId) : null,
+        })
+        toast.success('부가세 통제계정이 저장되었습니다')
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '저장 중 오류가 발생했습니다')
       }
@@ -216,6 +249,63 @@ export default function FxClient({ baseCurrency, rates, accounts, fxAccounts }: 
         {canWrite && (
           <div className="mt-4 flex justify-end">
             <Button onClick={handleSaveFxAccounts} disabled={isPending}>
+              저장
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-card rounded-lg border p-5 mb-6">
+        <div className="mb-1 text-sm font-medium text-foreground">부가세 통제계정</div>
+        <p className="text-xs text-muted-foreground mb-4">
+          과세 매입/매출 인보이스 승인 전기 시 매입세액·매출세액을 분개할 통제계정입니다. 설정하면
+          해당 부가세 라인이 자동 분개되고, 미설정이면 부가세 없이 공급가액으로 전기됩니다.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid gap-1.5">
+            <Label>부가세대급금 계정 (매입)</Label>
+            <Select
+              value={vatReceivableAccountId || NONE}
+              disabled={!canWrite}
+              onValueChange={(v) => setVatReceivableAccountId(!v || v === NONE ? '' : v)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="미설정" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>미설정</SelectItem>
+                {selectableAccounts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.code} {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>부가세예수금 계정 (매출)</Label>
+            <Select
+              value={vatPayableAccountId || NONE}
+              disabled={!canWrite}
+              onValueChange={(v) => setVatPayableAccountId(!v || v === NONE ? '' : v)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="미설정" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>미설정</SelectItem>
+                {selectableAccounts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.code} {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {canWrite && (
+          <div className="mt-4 flex justify-end">
+            <Button onClick={handleSaveVatAccounts} disabled={isPending}>
               저장
             </Button>
           </div>

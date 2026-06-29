@@ -8,6 +8,8 @@ import com.erp.finance.application.dto.BaseCurrencyResponse;
 import com.erp.finance.application.dto.BaseCurrencyUpdateRequest;
 import com.erp.finance.application.dto.FxGainLossAccountResponse;
 import com.erp.finance.application.dto.FxGainLossAccountUpdateRequest;
+import com.erp.finance.application.dto.VatAccountResponse;
+import com.erp.finance.application.dto.VatAccountUpdateRequest;
 import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.TenantBaseCurrency;
 import com.erp.finance.domain.repository.AccountRepository;
@@ -119,6 +121,50 @@ public class BaseCurrencyService {
         .findFirstByOrderByIdAsc()
         .filter(e -> e.getFxGainAccount() != null && e.getFxLossAccount() != null)
         .map(e -> new FxGainLossAccounts(e.getFxGainAccount(), e.getFxLossAccount()));
+  }
+
+  /** 부가세 분개용 통제계정 — 부가세대급금(매입)·부가세예수금(매출), 각각 nullable(둘은 독립). */
+  public record VatAccounts(Account receivableAccount, Account payableAccount) {}
+
+  /** 부가세 통제계정 설정 조회(FINANCE_READ). 미설정 항목은 null. */
+  public VatAccountResponse getVatAccounts() {
+    permissionChecker.require(Permission.FINANCE_READ);
+    return repository
+        .findFirstByOrderByIdAsc()
+        .map(
+            e ->
+                VatAccountResponse.of(
+                    e.getVatReceivableAccount() != null
+                        ? e.getVatReceivableAccount().getId()
+                        : null,
+                    e.getVatPayableAccount() != null ? e.getVatPayableAccount().getId() : null))
+        .orElseGet(() -> VatAccountResponse.of(null, null));
+  }
+
+  /**
+   * 부가세 통제계정 설정 변경(FINANCE_SETTING_WRITE). 부가세대급금·예수금을 함께 지정·해제한다. 설정 행이 없으면 현재 기준통화로 행을 만들어 계정만
+   * 채운다.
+   */
+  @Transactional
+  public VatAccountResponse updateVatAccounts(VatAccountUpdateRequest request) {
+    permissionChecker.require(Permission.FINANCE_SETTING_WRITE);
+    Account receivable = resolveAccount(request.vatReceivableAccountId());
+    Account payable = resolveAccount(request.vatPayableAccountId());
+    TenantBaseCurrency entity =
+        repository
+            .findFirstByOrderByIdAsc()
+            .orElseGet(() -> repository.save(TenantBaseCurrency.of(currentBaseCurrencyCode())));
+    entity.assignVatAccounts(receivable, payable);
+    return VatAccountResponse.of(
+        receivable != null ? receivable.getId() : null, payable != null ? payable.getId() : null);
+  }
+
+  /** 부가세 분개용 통제계정 — 대급금·예수금 각각 nullable(내부, 권한 검사 없음). 전기 자동분개에서 호출. */
+  public VatAccounts currentVatAccounts() {
+    return repository
+        .findFirstByOrderByIdAsc()
+        .map(e -> new VatAccounts(e.getVatReceivableAccount(), e.getVatPayableAccount()))
+        .orElseGet(() -> new VatAccounts(null, null));
   }
 
   private Account resolveAccount(Long accountId) {

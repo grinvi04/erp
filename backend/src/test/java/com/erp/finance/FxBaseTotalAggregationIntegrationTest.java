@@ -12,6 +12,7 @@ import com.erp.crm.domain.repository.CrmAccountRepository;
 import com.erp.crm.domain.repository.OpportunityRepository;
 import com.erp.crm.domain.repository.PipelineStageRepository;
 import com.erp.finance.domain.model.ApInvoice;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.VendorRepository;
@@ -162,6 +163,7 @@ class FxBaseTotalAggregationIntegrationTest extends AbstractIntegrationTest {
         LocalDate.of(2025, 1, 1),
         LocalDate.of(2025, 1, 31),
         new BigDecimal(amount),
+        TaxType.EXEMPT,
         currency,
         null);
   }

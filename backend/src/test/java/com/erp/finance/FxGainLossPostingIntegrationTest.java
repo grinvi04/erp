@@ -26,6 +26,7 @@ import com.erp.finance.domain.model.FiscalYear;
 import com.erp.finance.domain.model.JournalEntry;
 import com.erp.finance.domain.model.JournalLine;
 import com.erp.finance.domain.model.NormalBalance;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.CustomerRepository;
@@ -141,6 +142,7 @@ class FxGainLossPostingIntegrationTest extends AbstractIntegrationTest {
                 invoiceDate,
                 invoiceDate.plusMonths(1),
                 amount,
+                TaxType.EXEMPT,
                 currency,
                 null,
                 List.of(new ApInvoiceLineRequest(expenseAccountId, amount, "line"))));
@@ -169,6 +171,7 @@ class FxGainLossPostingIntegrationTest extends AbstractIntegrationTest {
                 invoiceDate,
                 invoiceDate.plusMonths(1),
                 amount,
+                TaxType.EXEMPT,
                 currency,
                 null,
                 List.of(new ArInvoiceLineRequest(revenueAccountId, amount, "line"))));

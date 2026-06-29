@@ -8,6 +8,7 @@ import com.erp.finance.application.dto.MonthlyInvoiceByCurrencyResponse;
 import com.erp.finance.application.dto.MonthlyInvoiceResponse;
 import com.erp.finance.application.service.FinanceAnalyticsService;
 import com.erp.finance.domain.model.ApInvoice;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.VendorRepository;
@@ -45,7 +46,8 @@ class MonthlyInvoiceIntegrationTest extends AbstractIntegrationTest {
 
   private ApInvoice invoice(String no, LocalDate date, BigDecimal amount, String currency) {
     return apInvoiceRepository.save(
-        ApInvoice.create(no, vendor, date, date.plusDays(30), amount, currency, null));
+        ApInvoice.create(
+            no, vendor, date, date.plusDays(30), amount, TaxType.EXEMPT, currency, null));
   }
 
   private List<MonthlyInvoiceResponse> monthsOf(

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.erp.common.AbstractIntegrationTest;
 import com.erp.common.response.CurrencyAmount;
 import com.erp.finance.domain.model.ApInvoice;
+import com.erp.finance.domain.model.TaxType;
 import com.erp.finance.domain.model.Vendor;
 import com.erp.finance.domain.repository.ApInvoiceRepository;
 import com.erp.finance.domain.repository.VendorRepository;
@@ -44,7 +45,14 @@ class ApInvoiceUnpaidQueryIntegrationTest extends AbstractIntegrationTest {
   private ApInvoice approved(String no, BigDecimal total, String currency) {
     ApInvoice inv =
         ApInvoice.create(
-            no, vendor, LocalDate.of(2024, 1, 1), LocalDate.of(2024, 2, 1), total, currency, null);
+            no,
+            vendor,
+            LocalDate.of(2024, 1, 1),
+            LocalDate.of(2024, 2, 1),
+            total,
+            TaxType.EXEMPT,
+            currency,
+            null);
     inv.submit();
     inv.approve();
     return invoiceRepository.save(inv);
@@ -76,6 +84,7 @@ class ApInvoiceUnpaidQueryIntegrationTest extends AbstractIntegrationTest {
             LocalDate.of(2024, 1, 1),
             LocalDate.of(2024, 2, 1),
             BigDecimal.valueOf(300),
+            TaxType.EXEMPT,
             "KRW",
             null);
     inv3.cancel();

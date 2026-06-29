@@ -70,6 +70,7 @@ public enum ErrorCode {
       HttpStatus.UNPROCESSABLE_ENTITY, "F034", "해당 통화·일자의 환율이 없어 기준통화로 환산할 수 없습니다"),
   BASE_CURRENCY_CHANGE_NOT_ALLOWED(HttpStatus.CONFLICT, "F035", "이미 환산된 거래가 있어 기준통화를 변경할 수 없습니다"),
   JOURNAL_ENTRY_NOT_POSTED(HttpStatus.CONFLICT, "F036", "전기된 전표만 역분개할 수 있습니다"),
+  BUSINESS_NO_INVALID(HttpStatus.BAD_REQUEST, "F037", "사업자등록번호 형식이 올바르지 않습니다"),
 
   // Inventory
   ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "품목을 찾을 수 없습니다"),

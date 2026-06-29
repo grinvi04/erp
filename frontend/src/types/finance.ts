@@ -3,6 +3,7 @@ export type NormalBalance = 'DEBIT' | 'CREDIT'
 export type JournalEntryType = 'MANUAL' | 'AP' | 'AR' | 'PAYROLL' | 'ADJUSTMENT'
 export type JournalEntryStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'POSTED' | 'REVERSED'
 export type ApInvoiceStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'
+export type TaxType = 'TAXABLE' | 'ZERO_RATED' | 'EXEMPT'
 export type ArInvoiceStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'
 export type FiscalYearStatus = 'OPEN' | 'CLOSED'
 export type FiscalPeriodStatus = 'OPEN' | 'CLOSED' | 'LOCKED'
@@ -71,6 +72,9 @@ export interface ApInvoice {
   vendorName: string
   invoiceDate: string
   dueDate: string
+  supplyAmount: number
+  vatAmount: number
+  taxType: TaxType
   totalAmount: number
   paidAmount: number
   outstandingAmount: number
@@ -102,6 +106,9 @@ export interface ArInvoice {
   customerName: string
   invoiceDate: string
   dueDate: string
+  supplyAmount: number
+  vatAmount: number
+  taxType: TaxType
   totalAmount: number
   paidAmount: number
   outstandingAmount: number
@@ -136,6 +143,11 @@ export interface BaseCurrency {
 export interface FxGainLossAccounts {
   fxGainAccountId: number | null
   fxLossAccountId: number | null
+}
+
+export interface VatAccounts {
+  vatReceivableAccountId: number | null
+  vatPayableAccountId: number | null
 }
 
 export interface ExchangeRate {

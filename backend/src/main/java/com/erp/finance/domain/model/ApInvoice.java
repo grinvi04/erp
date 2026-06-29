@@ -50,6 +50,17 @@ public class ApInvoice extends BaseEntity {
   @Column(name = "due_date", nullable = false)
   private LocalDate dueDate;
 
+  // 공급가액(라인 합)·부가세액·총액(=공급가액+부가세액). 부가세는 과세구분 기준 자동계산(원 미만 절사).
+  @Column(name = "supply_amount", nullable = false, precision = 20, scale = 2)
+  private BigDecimal supplyAmount;
+
+  @Column(name = "vat_amount", nullable = false, precision = 20, scale = 2)
+  private BigDecimal vatAmount;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "tax_type", nullable = false, length = 20)
+  private TaxType taxType;
+
   @Column(name = "total_amount", nullable = false, precision = 20, scale = 2)
   private BigDecimal totalAmount;
 
@@ -94,7 +105,8 @@ public class ApInvoice extends BaseEntity {
       Vendor vendor,
       LocalDate invoiceDate,
       LocalDate dueDate,
-      BigDecimal totalAmount,
+      BigDecimal supplyAmount,
+      TaxType taxType,
       String currency,
       String note) {
     if (dueDate.isBefore(invoiceDate)) {
@@ -105,7 +117,10 @@ public class ApInvoice extends BaseEntity {
     inv.vendor = vendor;
     inv.invoiceDate = invoiceDate;
     inv.dueDate = dueDate;
-    inv.totalAmount = totalAmount;
+    inv.taxType = taxType != null ? taxType : TaxType.TAXABLE;
+    inv.supplyAmount = supplyAmount;
+    inv.vatAmount = inv.taxType.computeVat(supplyAmount);
+    inv.totalAmount = supplyAmount.add(inv.vatAmount);
     inv.paidAmount = BigDecimal.ZERO;
     inv.currency = currency != null ? currency : "KRW";
     inv.status = ApInvoiceStatus.DRAFT;
@@ -197,6 +212,18 @@ public class ApInvoice extends BaseEntity {
 
   public BigDecimal getTotalAmount() {
     return totalAmount;
+  }
+
+  public BigDecimal getSupplyAmount() {
+    return supplyAmount;
+  }
+
+  public BigDecimal getVatAmount() {
+    return vatAmount;
+  }
+
+  public TaxType getTaxType() {
+    return taxType;
   }
 
   public BigDecimal getPaidAmount() {

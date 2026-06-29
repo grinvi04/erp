@@ -1,7 +1,7 @@
 'use server'
 import { apiPost } from '@/lib/api'
 import { revalidatePath } from 'next/cache'
-import type { ArInvoice } from '@/types/finance'
+import type { ArInvoice, TaxType } from '@/types/finance'
 
 const PATH = '/finance/ar-invoices'
 
@@ -10,7 +10,8 @@ export async function createArInvoice(data: {
   customerId: number
   invoiceDate: string
   dueDate: string
-  totalAmount: number
+  supplyAmount: number
+  taxType: TaxType
   currency: string
   note: string | null
   lines: { accountId: number; amount: number; description: string | null }[] | null
