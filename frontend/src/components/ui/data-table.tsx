@@ -7,6 +7,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -25,6 +26,8 @@ export type Column<T> = {
   align?: 'left' | 'right' | 'center'
   headerClassName?: string
   cellClassName?: string
+  /** 합계 행에 표시할 값(예: 금액 컬럼 합계). 미지정이면 빈 셀. */
+  footer?: (rows: T[]) => React.ReactNode
 }
 
 /**
@@ -44,6 +47,8 @@ export function DataTable<T>({
   skeletonRows = 6,
   empty,
   initialSort,
+  showTotals = false,
+  totalLabel,
 }: {
   data: T[]
   columns: Column<T>[]
@@ -55,6 +60,10 @@ export function DataTable<T>({
   skeletonRows?: number
   empty?: React.ReactNode
   initialSort?: { key: string; dir: 'asc' | 'desc' }
+  /** 합계 행 표시(총 건수 + 컬럼별 footer). 한국 ERP 그리드 총계. */
+  showTotals?: boolean
+  /** 합계 행 첫 칸 라벨(예: 서버 전체 건수 "총 10건"). 미지정 시 현재 페이지 건수. */
+  totalLabel?: React.ReactNode
 }) {
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(initialSort ?? null)
   const [selected, setSelected] = useState<Set<string | number>>(new Set())
@@ -114,9 +123,9 @@ export function DataTable<T>({
   const colCount = columns.length + (selectable ? 1 : 0)
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       {selectable && selectedRows.length > 0 && (
-        <div className="flex items-center justify-between gap-3 border-b border-border bg-primary/5 px-4 py-2.5">
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-primary/5 px-3 py-2">
           <span className="text-sm font-medium text-foreground">
             {selectedRows.length}개 선택됨
           </span>
@@ -253,6 +262,29 @@ export function DataTable<T>({
               })
             )}
           </TableBody>
+          {showTotals && !loading && sorted.length > 0 && (
+            <TableFooter>
+              <TableRow className="hover:bg-transparent">
+                {selectable && <TableCell className="bg-muted/40" />}
+                {columns.map((col, i) => (
+                  <TableCell
+                    key={col.key}
+                    className={cn(
+                      'bg-muted/40 font-medium',
+                      col.align === 'right' && 'text-right tabular-nums',
+                      col.align === 'center' && 'text-center',
+                    )}
+                  >
+                    {col.footer
+                      ? col.footer(sorted)
+                      : i === 0
+                        ? (totalLabel ?? `총 ${sorted.length}건`)
+                        : null}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableFooter>
+          )}
         </Table>
       </div>
     </div>
