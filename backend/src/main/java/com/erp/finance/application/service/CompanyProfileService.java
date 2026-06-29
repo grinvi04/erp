@@ -4,6 +4,7 @@ import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
 import com.erp.finance.application.dto.CompanyProfileResponse;
 import com.erp.finance.application.dto.CompanyProfileUpdateRequest;
+import com.erp.finance.domain.model.BusinessNoValidator;
 import com.erp.finance.domain.model.CompanyProfile;
 import com.erp.finance.domain.repository.CompanyProfileRepository;
 import java.util.Optional;
@@ -36,6 +37,8 @@ public class CompanyProfileService {
   @Transactional
   public CompanyProfileResponse updateCompanyProfile(CompanyProfileUpdateRequest request) {
     permissionChecker.require(Permission.FINANCE_SETTING_WRITE);
+    // 공급자(자사) 사업자번호도 거래처와 동일하게 형식·체크섬 검증 — 세금계산서 XML의 법적 필수항목.
+    BusinessNoValidator.validate(request.businessNo());
     CompanyProfile entity =
         repository
             .findFirstByOrderByIdAsc()

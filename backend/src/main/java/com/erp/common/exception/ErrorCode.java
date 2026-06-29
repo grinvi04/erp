@@ -71,7 +71,7 @@ public enum ErrorCode {
   BASE_CURRENCY_CHANGE_NOT_ALLOWED(HttpStatus.CONFLICT, "F035", "이미 환산된 거래가 있어 기준통화를 변경할 수 없습니다"),
   JOURNAL_ENTRY_NOT_POSTED(HttpStatus.CONFLICT, "F036", "전기된 전표만 역분개할 수 있습니다"),
   BUSINESS_NO_INVALID(HttpStatus.BAD_REQUEST, "F037", "사업자등록번호 형식이 올바르지 않습니다"),
-  COMPANY_PROFILE_REQUIRED(HttpStatus.BAD_REQUEST, "F038", "회사정보(공급자)가 설정되지 않아 세금계산서를 발행할 수 없습니다"),
+  COMPANY_PROFILE_REQUIRED(HttpStatus.CONFLICT, "F038", "회사정보(공급자)가 설정되지 않아 세금계산서를 발행할 수 없습니다"),
   AR_INVOICE_NOT_ISSUABLE(HttpStatus.CONFLICT, "F039", "승인 또는 완납된 매출 인보이스만 세금계산서를 발행할 수 있습니다"),
   TAX_INVOICE_ALREADY_ISSUED(HttpStatus.CONFLICT, "F040", "해당 매출 인보이스의 세금계산서가 이미 발행되었습니다"),
   TAX_INVOICE_NOT_FOUND(HttpStatus.NOT_FOUND, "F041", "세금계산서를 찾을 수 없습니다"),

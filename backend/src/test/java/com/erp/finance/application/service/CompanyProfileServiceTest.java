@@ -32,7 +32,7 @@ class CompanyProfileServiceTest {
   @InjectMocks private CompanyProfileService service;
 
   private static CompanyProfile sample() {
-    return CompanyProfile.of("(주)무역상사", "1208800344", "홍길동", "서울시 강남구 1", "도소매", "전자제품");
+    return CompanyProfile.of("(주)무역상사", "1208147521", "홍길동", "서울시 강남구 1", "도소매", "전자제품");
   }
 
   @Test
@@ -57,7 +57,7 @@ class CompanyProfileServiceTest {
     CompanyProfileResponse result = service.getCompanyProfile();
 
     assertThat(result.companyName()).isEqualTo("(주)무역상사");
-    assertThat(result.businessNo()).isEqualTo("1208800344");
+    assertThat(result.businessNo()).isEqualTo("1208147521");
     assertThat(result.representative()).isEqualTo("홍길동");
     assertThat(result.address()).isEqualTo("서울시 강남구 1");
     assertThat(result.businessType()).isEqualTo("도소매");
@@ -85,10 +85,10 @@ class CompanyProfileServiceTest {
     CompanyProfileResponse result =
         service.updateCompanyProfile(
             new CompanyProfileUpdateRequest(
-                "(주)무역상사", "1208800344", "홍길동", "서울시 강남구 1", "도소매", "전자제품"));
+                "(주)무역상사", "1208147521", "홍길동", "서울시 강남구 1", "도소매", "전자제품"));
 
     assertThat(result.companyName()).isEqualTo("(주)무역상사");
-    assertThat(result.businessNo()).isEqualTo("1208800344");
+    assertThat(result.businessNo()).isEqualTo("1208147521");
     assertThat(result.businessType()).isEqualTo("도소매");
     verify(repository).save(any(CompanyProfile.class));
   }
@@ -101,10 +101,10 @@ class CompanyProfileServiceTest {
 
     CompanyProfileResponse result =
         service.updateCompanyProfile(
-            new CompanyProfileUpdateRequest("(주)새상호", "2208612345", "김철수", "부산시 1", "제조", "기계"));
+            new CompanyProfileUpdateRequest("(주)새상호", "1008112348", "김철수", "부산시 1", "제조", "기계"));
 
     assertThat(result.companyName()).isEqualTo("(주)새상호");
-    assertThat(result.businessNo()).isEqualTo("2208612345");
+    assertThat(result.businessNo()).isEqualTo("1008112348");
     assertThat(existing.getCompanyName()).isEqualTo("(주)새상호");
     assertThat(existing.getRepresentative()).isEqualTo("김철수");
     assertThat(existing.getBusinessType()).isEqualTo("제조");
@@ -119,12 +119,26 @@ class CompanyProfileServiceTest {
 
     CompanyProfileResponse result =
         service.updateCompanyProfile(
-            new CompanyProfileUpdateRequest("(주)최소", "1018112345", null, null, null, null));
+            new CompanyProfileUpdateRequest("(주)최소", "1208147521", null, null, null, null));
 
     assertThat(result.companyName()).isEqualTo("(주)최소");
-    assertThat(result.businessNo()).isEqualTo("1018112345");
+    assertThat(result.businessNo()).isEqualTo("1208147521");
     assertThat(result.representative()).isNull();
     assertThat(result.businessItem()).isNull();
+  }
+
+  @Test
+  void updateCompanyProfile_invalidBusinessNo_throwsBusinessNoInvalid() {
+    // 공급자 사업자번호도 형식·체크섬 검증(거래처와 동일) — 잘못된 번호는 저장 거부.
+    ErpException ex =
+        assertThrows(
+            ErpException.class,
+            () ->
+                service.updateCompanyProfile(
+                    new CompanyProfileUpdateRequest(
+                        "(주)무역상사", "123-45-67890", null, null, null, null)));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.BUSINESS_NO_INVALID);
   }
 
   @Test
@@ -140,7 +154,7 @@ class CompanyProfileServiceTest {
             () ->
                 service.updateCompanyProfile(
                     new CompanyProfileUpdateRequest(
-                        "(주)무역상사", "1208800344", null, null, null, null)));
+                        "(주)무역상사", "1208147521", null, null, null, null)));
 
     assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
   }
