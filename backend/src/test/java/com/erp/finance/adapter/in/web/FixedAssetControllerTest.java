@@ -22,6 +22,7 @@ import com.erp.finance.application.dto.ImpairmentAccountResponse;
 import com.erp.finance.application.dto.ImpairmentAccountUpdateRequest;
 import com.erp.finance.application.dto.ImpairmentRecognizeRequest;
 import com.erp.finance.application.dto.ImpairmentRecognizeResponse;
+import com.erp.finance.application.dto.ImpairmentReversalResponse;
 import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.application.service.DepreciationPostingService;
 import com.erp.finance.application.service.FixedAssetService;
@@ -237,6 +238,31 @@ class FixedAssetControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.impairmentLoss").value(300000))
         .andExpect(jsonPath("$.data.bookValueAfter").value(800000));
+  }
+
+  @Test
+  void reverseImpairment_returnsOk() throws Exception {
+    given(impairmentPostingService.reverseImpairment(eq(1L), eq(5L), any()))
+        .willReturn(
+            new ImpairmentReversalResponse(
+                1L,
+                5L,
+                new BigDecimal("600000"),
+                new BigDecimal("900000"),
+                new BigDecimal("300000"),
+                new BigDecimal("900000"),
+                43L));
+
+    mockMvc
+        .perform(
+            post("/api/finance/fixed-assets/1/impairment-reversal")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        new ImpairmentRecognizeRequest(5L, new BigDecimal("900000")))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.reversalAmount").value(300000))
+        .andExpect(jsonPath("$.data.bookValueAfter").value(900000));
   }
 
   @Test

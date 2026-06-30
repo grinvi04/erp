@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 public record ImpairmentEntryResponse(
     Long id,
     Long fiscalPeriodId,
+    String entryType,
     BigDecimal recoverableAmount,
     BigDecimal bookValueBefore,
     BigDecimal impairmentLoss,
@@ -16,6 +17,7 @@ public record ImpairmentEntryResponse(
     return new ImpairmentEntryResponse(
         e.getId(),
         e.getFiscalPeriodId(),
+        e.getEntryType().name(),
         e.getRecoverableAmount(),
         e.getBookValueBefore(),
         e.getImpairmentLoss(),
