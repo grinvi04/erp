@@ -10,6 +10,7 @@ import {
   HistoryIcon,
   TrendingDownIcon,
   FileClockIcon,
+  RotateCcwIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,6 +53,7 @@ import {
   recognizeImpairment,
   updateImpairmentAccounts,
   getImpairmentHistory,
+  reverseImpairment,
 } from './actions'
 import type {
   Account,
@@ -91,6 +93,7 @@ type DialogState =
   | { type: 'run' }
   | { type: 'history'; asset: FixedAsset }
   | { type: 'impair'; asset: FixedAsset }
+  | { type: 'reversal'; asset: FixedAsset }
   | { type: 'impairHistory'; asset: FixedAsset }
 
 interface Props {
@@ -248,6 +251,39 @@ export default function FixedAssetsClient({
     })
   }
 
+  // 손상차손 환입 폼
+  const [reversalPeriodId, setReversalPeriodId] = useState('')
+  const [reversalRecoverable, setReversalRecoverable] = useState('')
+  const openReversal = (asset: FixedAsset) => {
+    setReversalPeriodId(openPeriods.length > 0 ? String(openPeriods[0].id) : '')
+    setReversalRecoverable('')
+    setDialog({ type: 'reversal', asset })
+  }
+  const handleReversal = (asset: FixedAsset) => {
+    if (!reversalPeriodId) {
+      toast.error('회계기간을 선택해주세요')
+      return
+    }
+    if (reversalRecoverable === '' || Number(reversalRecoverable) < 0) {
+      toast.error('회수가능액을 0 이상으로 입력해주세요')
+      return
+    }
+    startTransition(async () => {
+      try {
+        const result = await reverseImpairment(asset.id, {
+          fiscalPeriodId: Number(reversalPeriodId),
+          recoverableAmount: Number(reversalRecoverable),
+        })
+        toast.success(
+          `손상차손 ${won(result.reversalAmount)}원 환입 — 장부가액 ${won(result.bookValueAfter)}원`,
+        )
+        close()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : '환입 중 오류가 발생했습니다')
+      }
+    })
+  }
+
   // 손상 이력
   const [impairHistory, setImpairHistory] = useState<ImpairmentEntry[]>([])
   const [impairHistoryLoading, setImpairHistoryLoading] = useState(false)
@@ -356,6 +392,11 @@ export default function FixedAssetsClient({
       ? String(impairmentAccounts.accumulatedImpairmentAccountId)
       : '',
   )
+  const [impairReversalAcc, setImpairReversalAcc] = useState(
+    impairmentAccounts.impairmentReversalAccountId != null
+      ? String(impairmentAccounts.impairmentReversalAccountId)
+      : '',
+  )
   const handleSaveImpairmentAccounts = () => {
     startTransition(async () => {
       try {
@@ -364,6 +405,7 @@ export default function FixedAssetsClient({
           accumulatedImpairmentAccountId: impairAccumulatedAcc
             ? Number(impairAccumulatedAcc)
             : null,
+          impairmentReversalAccountId: impairReversalAcc ? Number(impairReversalAcc) : null,
         })
         toast.success('손상차손 계정이 저장되었습니다')
       } catch (e) {
@@ -524,6 +566,17 @@ export default function FixedAssetsClient({
               <TrendingDownIcon className="text-destructive" />
             </Button>
           )}
+          {canWrite && a.status === 'ACTIVE' && a.accumulatedImpairment > 0 && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title="손상차손 환입"
+              onClick={() => openReversal(a)}
+              disabled={isPending}
+            >
+              <RotateCcwIcon className="text-muted-foreground" />
+            </Button>
+          )}
           {canWrite && a.status === 'ACTIVE' && (
             <Button
               variant="ghost"
@@ -587,8 +640,9 @@ export default function FixedAssetsClient({
       <div className="bg-card rounded-lg border p-5 mb-4">
         <div className="mb-1 text-sm font-medium text-foreground">손상차손 계정</div>
         <p className="text-xs text-muted-foreground mb-4">
-          손상 인식 시 (차)손상차손비·(대)손상차손누계액으로 자동 분개할 계정입니다. 미설정이면 손상
-          처리가 차단됩니다.
+          손상 인식 시 (차)손상차손비·(대)손상차손누계액, 환입 시
+          (차)손상차손누계액·(대)손상차손환입으로 자동 분개할 계정입니다. 미설정이면 해당 처리가
+          차단됩니다.
         </p>
         <FormGrid>
           <FormRow label="유형자산손상차손 (비용)">
@@ -596,6 +650,9 @@ export default function FixedAssetsClient({
           </FormRow>
           <FormRow label="손상차손누계액 (자산차감)">
             {accountSelect(impairAccumulatedAcc, setImpairAccumulatedAcc)}
+          </FormRow>
+          <FormRow label="손상차손환입 (수익)">
+            {accountSelect(impairReversalAcc, setImpairReversalAcc)}
           </FormRow>
         </FormGrid>
         {canSetting && (
@@ -999,6 +1056,74 @@ export default function FixedAssetsClient({
         </DialogContent>
       </Dialog>
 
+      {/* 손상차손 환입 Dialog */}
+      <Dialog
+        open={dialog.type === 'reversal'}
+        onOpenChange={(o) => {
+          if (!o) close()
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>손상차손 환입</DialogTitle>
+          </DialogHeader>
+          {dialog.type === 'reversal' && (
+            <div className="grid gap-4 py-2">
+              <div className="text-sm text-muted-foreground">
+                <strong>{dialog.asset.name}</strong> — {dialog.asset.code}
+                <br />
+                현재 장부가액: <strong>{won(dialog.asset.bookValue)}원</strong> · 손상누계:{' '}
+                <strong>{won(dialog.asset.accumulatedImpairment)}원</strong>
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-sm">인식 회계기간 *</label>
+                <Select
+                  value={reversalPeriodId}
+                  onValueChange={(v) => setReversalPeriodId(v ?? '')}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="OPEN 회계기간 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {openPeriods.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.startDate} ~ {p.endDate}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {openPeriods.length === 0 && (
+                  <p className="text-xs text-destructive">OPEN 상태인 회계기간이 없습니다.</p>
+                )}
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-sm">회복된 회수가능액 *</label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={reversalRecoverable}
+                  onChange={(e) => setReversalRecoverable(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                회수가능액 회복분을 환입하되, 손상이 없었을 경우의 장부금액(한도)을 넘지 않습니다.
+                인식기간까지 감가상각을 반영한 뒤 한도·손상누계 범위로 환입액이 정해집니다.
+              </p>
+            </div>
+          )}
+          <DialogFooter showCloseButton>
+            <Button
+              onClick={() => dialog.type === 'reversal' && handleReversal(dialog.asset)}
+              disabled={isPending || openPeriods.length === 0}
+            >
+              환입 인식
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* 손상 이력 Dialog */}
       <Dialog
         open={dialog.type === 'impairHistory'}
@@ -1017,23 +1142,24 @@ export default function FixedAssetsClient({
               <TableHeader>
                 <TableRow>
                   <TableHead>회계기간 ID</TableHead>
+                  <TableHead>유형</TableHead>
                   <TableHead className="text-right">인식전 장부가액</TableHead>
                   <TableHead className="text-right">회수가능액</TableHead>
-                  <TableHead className="text-right">손상차손</TableHead>
+                  <TableHead className="text-right">금액</TableHead>
                   <TableHead className="text-right">분개</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {impairHistoryLoading && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       불러오는 중…
                     </TableCell>
                   </TableRow>
                 )}
                 {!impairHistoryLoading && impairHistory.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       손상 이력이 없습니다
                     </TableCell>
                   </TableRow>
@@ -1041,13 +1167,25 @@ export default function FixedAssetsClient({
                 {impairHistory.map((h) => (
                   <TableRow key={h.id}>
                     <TableCell className="font-mono text-sm">{h.fiscalPeriodId}</TableCell>
+                    <TableCell className="text-sm">
+                      <Badge variant={h.entryType === 'REVERSAL' ? 'secondary' : 'default'}>
+                        {h.entryType === 'REVERSAL' ? '환입' : '손상'}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right font-mono text-sm">
                       {won(h.bookValueBefore)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
                       {won(h.recoverableAmount)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-sm text-destructive">
+                    <TableCell
+                      className={
+                        h.entryType === 'REVERSAL'
+                          ? 'text-right font-mono text-sm text-foreground'
+                          : 'text-right font-mono text-sm text-destructive'
+                      }
+                    >
+                      {h.entryType === 'REVERSAL' ? '+' : '−'}
                       {won(h.impairmentLoss)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm text-muted-foreground">
