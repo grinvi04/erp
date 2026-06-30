@@ -147,6 +147,11 @@ public class ImpairmentPostingService {
         assetId, fiscalPeriodId, ImpairmentEntryType.REVERSAL)) {
       throw new ErpException(ErrorCode.IMPAIRMENT_REVERSAL_ALREADY_RECOGNIZED);
     }
+    // K-IFRS(IAS 36): 환입은 이전 기간에 인식한 손상 대상 — 같은 기간 인식분은 환입 대신 손상액을 줄여야 한다.
+    if (impairmentEntryRepository.existsByFixedAssetIdAndFiscalPeriodIdAndEntryType(
+        assetId, fiscalPeriodId, ImpairmentEntryType.IMPAIRMENT)) {
+      throw new ErpException(ErrorCode.IMPAIRMENT_REVERSAL_SAME_PERIOD_AS_IMPAIRMENT);
+    }
     ImpairmentAccounts accounts = baseCurrencyService.currentImpairmentAccounts();
     if (accounts.accumulatedAccount() == null || accounts.reversalAccount() == null) {
       throw new ErpException(ErrorCode.IMPAIRMENT_REVERSAL_ACCOUNT_NOT_CONFIGURED);

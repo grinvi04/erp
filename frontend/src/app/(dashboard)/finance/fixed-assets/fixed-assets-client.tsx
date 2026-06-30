@@ -1186,7 +1186,7 @@ export default function FixedAssetsClient({
                       }
                     >
                       {h.entryType === 'REVERSAL' ? '+' : '−'}
-                      {won(h.impairmentLoss)}
+                      {won(h.amount)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm text-muted-foreground">
                       {h.journalEntryId ? `#${h.journalEntryId}` : '-'}

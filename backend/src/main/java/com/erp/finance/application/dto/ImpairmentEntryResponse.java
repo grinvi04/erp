@@ -10,9 +10,10 @@ public record ImpairmentEntryResponse(
     String entryType,
     BigDecimal recoverableAmount,
     BigDecimal bookValueBefore,
-    BigDecimal impairmentLoss,
+    BigDecimal amount,
     Long journalEntryId) {
 
+  // amount = 손상 인식 행이면 손상차손액, 환입 행이면 환입액(부호는 entryType으로 해석).
   public static ImpairmentEntryResponse from(ImpairmentEntry e) {
     return new ImpairmentEntryResponse(
         e.getId(),

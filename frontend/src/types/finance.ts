@@ -322,7 +322,8 @@ export interface ImpairmentEntry {
   entryType: ImpairmentEntryType
   recoverableAmount: number
   bookValueBefore: number
-  impairmentLoss: number
+  // 손상 인식 행이면 손상차손액, 환입 행이면 환입액(부호는 entryType으로 해석).
+  amount: number
   journalEntryId: number | null
 }
 

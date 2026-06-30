@@ -446,6 +446,24 @@ class ImpairmentPostingIntegrationTest extends AbstractIntegrationTest {
         .isEqualTo(ErrorCode.IMPAIRMENT_REVERSAL_ALREADY_RECOGNIZED);
   }
 
+  @Test
+  void reverse_samePeriodAsImpairment_isRejected() {
+    // AC: 같은 기간 손상 인식 후 동일 기간 환입 → 거부(IAS 36: 환입은 이전 기간 손상 대상).
+    configureDepreciationAccounts();
+    configureImpairmentAccounts();
+    Long assetId = registerStraightLine("FA-REV-SAME", new BigDecimal("1200000"), 60);
+    authenticate("creator", "finance:write");
+    impairmentPostingService.recognizeImpairment(assetId, period1Id, new BigDecimal("600000"));
+
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.reverseImpairment(
+                    assetId, period1Id, new BigDecimal("900000")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.IMPAIRMENT_REVERSAL_SAME_PERIOD_AS_IMPAIRMENT);
+  }
+
   // ── 음성 인가(권한 미보유 거부) ──────────────────────────────────────
 
   @Test
