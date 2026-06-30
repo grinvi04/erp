@@ -3,6 +3,8 @@ package com.erp.finance.domain.model;
 import com.erp.common.audit.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -40,14 +42,20 @@ public class ImpairmentEntry extends BaseEntity {
   @Column(name = "book_value_before", nullable = false, precision = 20, scale = 2)
   private BigDecimal bookValueBefore;
 
+  // 손상차손액(IMPAIRMENT) 또는 환입액(REVERSAL) — 부호는 양수, 의미는 entryType으로 구분.
   @Column(name = "impairment_loss", nullable = false, precision = 20, scale = 2)
   private BigDecimal impairmentLoss;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "entry_type", nullable = false, length = 20)
+  private ImpairmentEntryType entryType;
 
   @Column(name = "journal_entry_id")
   private Long journalEntryId;
 
   protected ImpairmentEntry() {}
 
+  /** 손상 인식 이력. */
   public static ImpairmentEntry of(
       Long fixedAssetId,
       Long fiscalPeriodId,
@@ -55,12 +63,49 @@ public class ImpairmentEntry extends BaseEntity {
       BigDecimal bookValueBefore,
       BigDecimal impairmentLoss,
       Long journalEntryId) {
+    return create(
+        fixedAssetId,
+        fiscalPeriodId,
+        recoverableAmount,
+        bookValueBefore,
+        impairmentLoss,
+        ImpairmentEntryType.IMPAIRMENT,
+        journalEntryId);
+  }
+
+  /** 손상 환입 이력 — impairmentLoss에 환입액(양수), bookValueBefore는 환입 전 장부가액. */
+  public static ImpairmentEntry reversal(
+      Long fixedAssetId,
+      Long fiscalPeriodId,
+      BigDecimal recoverableAmount,
+      BigDecimal bookValueBefore,
+      BigDecimal reversalAmount,
+      Long journalEntryId) {
+    return create(
+        fixedAssetId,
+        fiscalPeriodId,
+        recoverableAmount,
+        bookValueBefore,
+        reversalAmount,
+        ImpairmentEntryType.REVERSAL,
+        journalEntryId);
+  }
+
+  private static ImpairmentEntry create(
+      Long fixedAssetId,
+      Long fiscalPeriodId,
+      BigDecimal recoverableAmount,
+      BigDecimal bookValueBefore,
+      BigDecimal impairmentLoss,
+      ImpairmentEntryType entryType,
+      Long journalEntryId) {
     ImpairmentEntry e = new ImpairmentEntry();
     e.fixedAssetId = fixedAssetId;
     e.fiscalPeriodId = fiscalPeriodId;
     e.recoverableAmount = recoverableAmount;
     e.bookValueBefore = bookValueBefore;
     e.impairmentLoss = impairmentLoss;
+    e.entryType = entryType;
     e.journalEntryId = journalEntryId;
     return e;
   }
@@ -87,6 +132,10 @@ public class ImpairmentEntry extends BaseEntity {
 
   public BigDecimal getImpairmentLoss() {
     return impairmentLoss;
+  }
+
+  public ImpairmentEntryType getEntryType() {
+    return entryType;
   }
 
   public Long getJournalEntryId() {

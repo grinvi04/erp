@@ -314,18 +314,23 @@ export interface DepreciationAccounts {
   disposalLossAccountId: number | null
 }
 
+export type ImpairmentEntryType = 'IMPAIRMENT' | 'REVERSAL'
+
 export interface ImpairmentEntry {
   id: number
   fiscalPeriodId: number
+  entryType: ImpairmentEntryType
   recoverableAmount: number
   bookValueBefore: number
-  impairmentLoss: number
+  // 손상 인식 행이면 손상차손액, 환입 행이면 환입액(부호는 entryType으로 해석).
+  amount: number
   journalEntryId: number | null
 }
 
 export interface ImpairmentAccounts {
   impairmentLossAccountId: number | null
   accumulatedImpairmentAccountId: number | null
+  impairmentReversalAccountId: number | null
 }
 
 export interface ImpairmentRecognizeResult {
@@ -334,6 +339,16 @@ export interface ImpairmentRecognizeResult {
   bookValueBefore: number
   recoverableAmount: number
   impairmentLoss: number
+  bookValueAfter: number
+  journalEntryId: number | null
+}
+
+export interface ImpairmentReversalResult {
+  fixedAssetId: number
+  fiscalPeriodId: number
+  bookValueBefore: number
+  recoverableAmount: number
+  reversalAmount: number
   bookValueAfter: number
   journalEntryId: number | null
 }
