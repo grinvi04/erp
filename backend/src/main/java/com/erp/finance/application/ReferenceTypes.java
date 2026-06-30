@@ -16,6 +16,7 @@ public final class ReferenceTypes {
   public static final String DEPRECIATION = "DEPRECIATION";
   public static final String ASSET_DISPOSAL = "ASSET_DISPOSAL";
   public static final String IMPAIRMENT = "IMPAIRMENT";
+  public static final String IMPAIRMENT_REVERSAL = "IMPAIRMENT_REVERSAL";
 
   private ReferenceTypes() {}
 }

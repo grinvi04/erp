@@ -173,6 +173,19 @@ public class FixedAsset extends BaseEntity {
    */
   public void applyImpairment(BigDecimal loss, int remainingMonths) {
     this.accumulatedImpairment = this.accumulatedImpairment.add(loss);
+    recomputeStraightLineOverride(remainingMonths);
+  }
+
+  /**
+   * 손상차손 환입 반영 — 손상차손누계액을 줄여 장부가액을 상향한다(한도는 호출처가 보장). 정액법이면 상향된 장부가액 기준으로 잔여내용연수 월상각액을 재산정한다(정률은 월초
+   * 장부가액 기반이라 자동). applyImpairment의 대칭.
+   */
+  public void applyReversal(BigDecimal amount, int remainingMonths) {
+    this.accumulatedImpairment = this.accumulatedImpairment.subtract(amount);
+    recomputeStraightLineOverride(remainingMonths);
+  }
+
+  private void recomputeStraightLineOverride(int remainingMonths) {
     if (method == DepreciationMethod.STRAIGHT_LINE) {
       int months = Math.max(remainingMonths, 1);
       this.straightLineMonthlyOverride =
@@ -181,6 +194,36 @@ public class FixedAsset extends BaseEntity {
               .max(BigDecimal.ZERO)
               .divide(BigDecimal.valueOf(months), MONEY_SCALE, RoundingMode.DOWN);
     }
+  }
+
+  /**
+   * 손상을 인식하지 않았을 경우의 장부금액(환입 한도) — 취득월부터 경과월수만큼 정상 상각했다고 가정한 가상 장부가액. 정액=취득원가−min(경과월×원월상각, 취득원가
+   * −잔존); 정률=경과월만큼 월초 장부가액×(연상각률/12) 체감 시뮬레이션(실제 상각과 동일 DOWN·잔존 하한). 환입 후 장부가액이 이 값을 넘지
+   * 못한다(K-IFRS).
+   */
+  public BigDecimal noImpairmentCarryingAmount(int monthsElapsed) {
+    int months = Math.max(monthsElapsed, 0);
+    if (method == DepreciationMethod.STRAIGHT_LINE) {
+      BigDecimal monthly =
+          acquisitionCost
+              .subtract(residualValue)
+              .divide(BigDecimal.valueOf(usefulLifeMonths), MONEY_SCALE, RoundingMode.DOWN);
+      BigDecimal hypotheticalAccumulated =
+          monthly.multiply(BigDecimal.valueOf(months)).min(acquisitionCost.subtract(residualValue));
+      return acquisitionCost.subtract(hypotheticalAccumulated);
+    }
+    BigDecimal bv = acquisitionCost;
+    for (int i = 0; i < months; i++) {
+      BigDecimal m =
+          bv.multiply(decliningAnnualRate)
+              .divide(MONTHS_PER_YEAR, MONEY_SCALE, RoundingMode.DOWN)
+              .min(bv.subtract(residualValue));
+      if (m.signum() <= 0) {
+        break;
+      }
+      bv = bv.subtract(m);
+    }
+    return bv;
   }
 
   public void dispose() {

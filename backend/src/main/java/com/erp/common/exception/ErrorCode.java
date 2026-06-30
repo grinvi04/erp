@@ -88,6 +88,12 @@ public enum ErrorCode {
   IMPAIRMENT_NOT_REQUIRED(
       HttpStatus.UNPROCESSABLE_ENTITY, "F048", "회수가능액이 장부가액 이상이어서 인식할 손상차손이 없습니다"),
   IMPAIRMENT_ALREADY_RECOGNIZED(HttpStatus.CONFLICT, "F049", "해당 회계기간에 이미 손상차손이 인식되었습니다"),
+  IMPAIRMENT_REVERSAL_ACCOUNT_NOT_CONFIGURED(
+      HttpStatus.CONFLICT, "F050", "손상차손누계액·손상차손환입 계정이 설정되지 않아 환입을 처리할 수 없습니다"),
+  IMPAIRMENT_REVERSAL_NOT_REQUIRED(
+      HttpStatus.UNPROCESSABLE_ENTITY, "F051", "환입할 손상차손이 없습니다(회수가능액이 장부가액 이하이거나 손상 잔액 없음)"),
+  IMPAIRMENT_REVERSAL_ALREADY_RECOGNIZED(
+      HttpStatus.CONFLICT, "F052", "해당 회계기간에 이미 손상차손 환입이 인식되었습니다"),
 
   // Inventory
   ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "품목을 찾을 수 없습니다"),

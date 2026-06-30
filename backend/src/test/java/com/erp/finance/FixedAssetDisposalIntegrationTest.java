@@ -185,7 +185,7 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
     Long impairmentAccumulated =
         accountId("21000", "손상차손누계액", AccountType.ASSET, NormalBalance.CREDIT);
     baseCurrencyService.updateImpairmentAccounts(
-        new ImpairmentAccountUpdateRequest(impairmentLoss, impairmentAccumulated));
+        new ImpairmentAccountUpdateRequest(impairmentLoss, impairmentAccumulated, null));
 
     Long assetId = registerAndDepreciateOnce("FA-DIS-IMP");
     authenticate("creator", "finance:write");

@@ -87,7 +87,7 @@ class ImpairmentPostingIntegrationTest extends AbstractIntegrationTest {
     Long loss = accountId("81900", "유형자산손상차손", AccountType.EXPENSE, NormalBalance.DEBIT);
     Long accumulated = accountId("21000", "손상차손누계액", AccountType.ASSET, NormalBalance.CREDIT);
     baseCurrencyService.updateImpairmentAccounts(
-        new ImpairmentAccountUpdateRequest(loss, accumulated));
+        new ImpairmentAccountUpdateRequest(loss, accumulated, null));
   }
 
   private Long period2Id() {

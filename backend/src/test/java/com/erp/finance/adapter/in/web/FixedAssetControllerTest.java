@@ -254,7 +254,7 @@ class FixedAssetControllerTest {
   @Test
   void getImpairmentAccounts_returnsOk() throws Exception {
     given(baseCurrencyService.getImpairmentAccounts())
-        .willReturn(ImpairmentAccountResponse.of(21L, 22L));
+        .willReturn(ImpairmentAccountResponse.of(21L, 22L, 23L));
 
     mockMvc
         .perform(get("/api/finance/fixed-assets/impairment-accounts"))
@@ -265,14 +265,15 @@ class FixedAssetControllerTest {
   @Test
   void updateImpairmentAccounts_returnsOk() throws Exception {
     given(baseCurrencyService.updateImpairmentAccounts(any()))
-        .willReturn(ImpairmentAccountResponse.of(21L, 22L));
+        .willReturn(ImpairmentAccountResponse.of(21L, 22L, 23L));
 
     mockMvc
         .perform(
             put("/api/finance/fixed-assets/impairment-accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    objectMapper.writeValueAsString(new ImpairmentAccountUpdateRequest(21L, 22L))))
+                    objectMapper.writeValueAsString(
+                        new ImpairmentAccountUpdateRequest(21L, 22L, 23L))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.accumulatedImpairmentAccountId").value(22));
   }

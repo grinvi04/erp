@@ -82,6 +82,11 @@ public class TenantBaseCurrency extends BaseEntity {
   @JoinColumn(name = "accumulated_impairment_account_id")
   private Account accumulatedImpairmentAccount;
 
+  // 손상차손환입(수익) — 환입 시 (대)로 인식할 계정. 미설정이면 환입 분개를 차단한다.
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "impairment_reversal_account_id")
+  private Account impairmentReversalAccount;
+
   protected TenantBaseCurrency() {}
 
   public static TenantBaseCurrency of(String baseCurrency) {
@@ -158,11 +163,14 @@ public class TenantBaseCurrency extends BaseEntity {
     return disposalLossAccount;
   }
 
-  /** 손상차손 계정 설정(함께 지정·해제). 각 nullable — 미설정 시 손상 분개 차단. */
+  /** 손상차손 계정 설정(함께 지정·해제) — 손상차손비·손상차손누계액·손상차손환입. 각 nullable(미설정 시 해당 분개 차단). */
   public void assignImpairmentAccounts(
-      Account impairmentLossAccount, Account accumulatedImpairmentAccount) {
+      Account impairmentLossAccount,
+      Account accumulatedImpairmentAccount,
+      Account impairmentReversalAccount) {
     this.impairmentLossAccount = impairmentLossAccount;
     this.accumulatedImpairmentAccount = accumulatedImpairmentAccount;
+    this.impairmentReversalAccount = impairmentReversalAccount;
   }
 
   public Account getImpairmentLossAccount() {
@@ -171,5 +179,9 @@ public class TenantBaseCurrency extends BaseEntity {
 
   public Account getAccumulatedImpairmentAccount() {
     return accumulatedImpairmentAccount;
+  }
+
+  public Account getImpairmentReversalAccount() {
+    return impairmentReversalAccount;
   }
 }
