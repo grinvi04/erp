@@ -445,4 +445,44 @@ class ImpairmentPostingIntegrationTest extends AbstractIntegrationTest {
         .extracting("errorCode")
         .isEqualTo(ErrorCode.IMPAIRMENT_REVERSAL_ALREADY_RECOGNIZED);
   }
+
+  // ── 음성 인가(권한 미보유 거부) ──────────────────────────────────────
+
+  @Test
+  void recognize_withoutWritePermission_isForbidden() {
+    // AC-13: finance:write 미보유 → 손상 인식 거부.
+    authenticate("viewer", "finance:read");
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.recognizeImpairment(
+                    1L, period1Id, new BigDecimal("800000")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+  }
+
+  @Test
+  void reverse_withoutWritePermission_isForbidden() {
+    // AC-13: finance:write 미보유 → 환입 거부.
+    authenticate("viewer", "finance:read");
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.reverseImpairment(1L, period1Id, new BigDecimal("900000")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+  }
+
+  @Test
+  void updateImpairmentAccounts_withoutSettingWrite_isForbidden() {
+    // AC-13: finance:setting:write 미보유 → 손상 계정 설정 거부.
+    authenticate("viewer", "finance:read");
+    assertThatThrownBy(
+            () ->
+                baseCurrencyService.updateImpairmentAccounts(
+                    new ImpairmentAccountUpdateRequest(1L, 2L, 3L)))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+  }
 }
