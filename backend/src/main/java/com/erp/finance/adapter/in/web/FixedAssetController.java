@@ -15,6 +15,7 @@ import com.erp.finance.application.dto.ImpairmentAccountUpdateRequest;
 import com.erp.finance.application.dto.ImpairmentEntryResponse;
 import com.erp.finance.application.dto.ImpairmentRecognizeRequest;
 import com.erp.finance.application.dto.ImpairmentRecognizeResponse;
+import com.erp.finance.application.dto.ImpairmentReversalResponse;
 import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.application.service.DepreciationPostingService;
 import com.erp.finance.application.service.FixedAssetService;
@@ -108,6 +109,15 @@ public class FixedAssetController {
     return ResponseEntity.ok(
         ApiResponse.ok(
             impairmentPostingService.recognizeImpairment(
+                id, request.fiscalPeriodId(), request.recoverableAmount())));
+  }
+
+  @PostMapping("/{id}/impairment-reversal")
+  public ResponseEntity<ApiResponse<ImpairmentReversalResponse>> reverseImpairment(
+      @PathVariable Long id, @Valid @RequestBody ImpairmentRecognizeRequest request) {
+    return ResponseEntity.ok(
+        ApiResponse.ok(
+            impairmentPostingService.reverseImpairment(
                 id, request.fiscalPeriodId(), request.recoverableAmount())));
   }
 

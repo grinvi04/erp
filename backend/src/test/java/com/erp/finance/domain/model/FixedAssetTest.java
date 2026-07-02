@@ -117,6 +117,32 @@ class FixedAssetTest {
   }
 
   @Test
+  void noImpairmentCarryingAmount_straightLine() {
+    // AC-2: 1,200만·60월·정액, 12개월 경과 → 가상 누계 240만 → 한도 960만.
+    assertThat(straightLine(12_000_000, 0, 60).noImpairmentCarryingAmount(12))
+        .isEqualByComparingTo("9600000");
+  }
+
+  @Test
+  void noImpairmentCarryingAmount_decliningBalance() {
+    // AC-2: 1,000만·0.45 정률, 2개월 시뮬레이션 → 375,000·360,937.50 차감 → 9,264,062.50.
+    assertThat(declining(10_000_000, 0, "0.45").noImpairmentCarryingAmount(2))
+        .isEqualByComparingTo("9264062.50");
+  }
+
+  @Test
+  void applyReversal_straightLine_raisesBookValueAndRespreads() {
+    // AC-5: 12개월 상각·480만 손상(장부 480만) 후 240만 환입 → 장부 720만, 잔여 48월 재배분 = 720만/48 = 15만.
+    FixedAsset a = straightLine(12_000_000, 0, 60);
+    a.applyDepreciation(new BigDecimal("2400000"));
+    a.applyImpairment(new BigDecimal("4800000"), 48);
+    a.applyReversal(new BigDecimal("2400000"), 48);
+    assertThat(a.getAccumulatedImpairment()).isEqualByComparingTo("2400000");
+    assertThat(a.bookValue()).isEqualByComparingTo("7200000");
+    assertThat(a.monthlyDepreciation()).isEqualByComparingTo("150000");
+  }
+
+  @Test
   void declining_afterImpairment_usesImpairedBookValue() {
     // AC-3: 1개월 상각(장부 962.5만) 후 회수가능액 500만으로 손상 → 차기 = 500만 × 0.45/12 = 187,500. override 미설정.
     FixedAsset a = declining(10_000_000, 0, "0.45");

@@ -10,6 +10,7 @@ import type {
   ImpairmentAccounts,
   ImpairmentEntry,
   ImpairmentRecognizeResult,
+  ImpairmentReversalResult,
 } from '@/types/finance'
 
 const PATH = '/finance/fixed-assets'
@@ -72,6 +73,18 @@ export async function recognizeImpairment(
 export async function updateImpairmentAccounts(data: ImpairmentAccounts): Promise<void> {
   await apiPut<ImpairmentAccounts>('/api/finance/fixed-assets/impairment-accounts', data)
   revalidatePath(PATH)
+}
+
+export async function reverseImpairment(
+  id: number,
+  data: { fiscalPeriodId: number; recoverableAmount: number },
+): Promise<ImpairmentReversalResult> {
+  const result = await apiPost<ImpairmentReversalResult>(
+    `/api/finance/fixed-assets/${id}/impairment-reversal`,
+    data,
+  )
+  revalidatePath(PATH)
+  return result
 }
 
 export async function getImpairmentHistory(id: number): Promise<ImpairmentEntry[]> {

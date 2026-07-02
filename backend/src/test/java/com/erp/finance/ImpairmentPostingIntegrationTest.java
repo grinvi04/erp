@@ -11,6 +11,7 @@ import com.erp.finance.application.dto.DepreciationAccountUpdateRequest;
 import com.erp.finance.application.dto.FixedAssetCreateRequest;
 import com.erp.finance.application.dto.ImpairmentAccountUpdateRequest;
 import com.erp.finance.application.dto.ImpairmentRecognizeResponse;
+import com.erp.finance.application.dto.ImpairmentReversalResponse;
 import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.application.service.DepreciationPostingService;
 import com.erp.finance.application.service.FixedAssetService;
@@ -20,6 +21,7 @@ import com.erp.finance.domain.model.AccountType;
 import com.erp.finance.domain.model.DepreciationMethod;
 import com.erp.finance.domain.model.FiscalPeriod;
 import com.erp.finance.domain.model.FiscalYear;
+import com.erp.finance.domain.model.ImpairmentEntryType;
 import com.erp.finance.domain.model.JournalEntry;
 import com.erp.finance.domain.model.NormalBalance;
 import com.erp.finance.domain.repository.AccountRepository;
@@ -86,8 +88,18 @@ class ImpairmentPostingIntegrationTest extends AbstractIntegrationTest {
     authenticate("admin", "finance:setting:write");
     Long loss = accountId("81900", "유형자산손상차손", AccountType.EXPENSE, NormalBalance.DEBIT);
     Long accumulated = accountId("21000", "손상차손누계액", AccountType.ASSET, NormalBalance.CREDIT);
+    Long reversal = accountId("91200", "손상차손환입", AccountType.REVENUE, NormalBalance.CREDIT);
     baseCurrencyService.updateImpairmentAccounts(
-        new ImpairmentAccountUpdateRequest(loss, accumulated));
+        new ImpairmentAccountUpdateRequest(loss, accumulated, reversal));
+  }
+
+  /** 환입 계정만 제외(손상차손비·누계액은 설정) — 환입 계정 미설정 차단 검증용. */
+  private void configureImpairmentAccountsWithoutReversal() {
+    authenticate("admin", "finance:setting:write");
+    Long loss = accountId("81900", "유형자산손상차손", AccountType.EXPENSE, NormalBalance.DEBIT);
+    Long accumulated = accountId("21000", "손상차손누계액", AccountType.ASSET, NormalBalance.CREDIT);
+    baseCurrencyService.updateImpairmentAccounts(
+        new ImpairmentAccountUpdateRequest(loss, accumulated, null));
   }
 
   private Long period2Id() {
@@ -285,5 +297,210 @@ class ImpairmentPostingIntegrationTest extends AbstractIntegrationTest {
         .isInstanceOf(ErpException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.FISCAL_PERIOD_CLOSED);
+  }
+
+  // ── 손상차손 환입(reversal) ─────────────────────────────────────────
+
+  /** 1월 상각·손상 인식 후 2월 환입 셋업 — 환입 대상 자산 반환. recoverable로 손상 강도 조절. */
+  private Long impairThenPeriod2(String code, BigDecimal impairRecoverable) {
+    configureDepreciationAccounts();
+    configureImpairmentAccounts();
+    Long assetId = registerStraightLine(code, new BigDecimal("1200000"), 60);
+    authenticate("creator", "finance:write");
+    impairmentPostingService.recognizeImpairment(assetId, period1Id, impairRecoverable);
+    period2Id();
+    return assetId;
+  }
+
+  @Test
+  void reverse_createsBalancedDraftAndReducesImpairment() {
+    // AC-1·15: 1월 상각·손상(회수가능 60만) 후 2월 회수가능 90만 환입 → 장부 90만(한도 116만 미만)·균형·손상누계 차감.
+    Long assetId = impairThenPeriod2("FA-REV-1", new BigDecimal("600000"));
+    BigDecimal impairmentAfter =
+        fixedAssetRepository.findById(assetId).orElseThrow().getAccumulatedImpairment();
+    Long period2 =
+        fiscalPeriodRepository.findAll().stream().mapToLong(p -> p.getId()).max().getAsLong();
+
+    ImpairmentReversalResponse result =
+        impairmentPostingService.reverseImpairment(assetId, period2, new BigDecimal("900000"));
+
+    assertThat(result.bookValueAfter()).isEqualByComparingTo("900000"); // 회수가능액(한도 미만)까지 환입
+    assertThat(result.reversalAmount())
+        .isEqualByComparingTo(result.bookValueAfter().subtract(result.bookValueBefore()));
+    assertThat(result.reversalAmount().signum()).isPositive();
+
+    var asset = fixedAssetRepository.findById(assetId).orElseThrow();
+    assertThat(asset.bookValue()).isEqualByComparingTo("900000");
+    assertThat(asset.getAccumulatedImpairment())
+        .isEqualByComparingTo(impairmentAfter.subtract(result.reversalAmount()));
+
+    var entry =
+        impairmentEntryRepository.findByFixedAssetIdOrderByFiscalPeriodIdAsc(assetId).stream()
+            .filter(e -> e.getEntryType() == ImpairmentEntryType.REVERSAL)
+            .findFirst()
+            .orElseThrow();
+    JournalEntry je = journalEntryRepository.findById(entry.getJournalEntryId()).orElseThrow();
+    assertThat(je.getStatus().name()).isEqualTo("DRAFT");
+    assertThat(je.isBalanced()).isTrue();
+    assertThat(je.getTotalDebit()).isEqualByComparingTo(result.reversalAmount());
+    assertThat(je.getTotalCredit()).isEqualByComparingTo(result.reversalAmount());
+    assertThat(je.getReferenceType()).isEqualTo(ReferenceTypes.IMPAIRMENT_REVERSAL);
+    assertThat(je.getReferenceId()).isEqualTo(assetId);
+  }
+
+  @Test
+  void reverse_cappedAtCeiling() {
+    // AC-3: 큰 손상(회수가능 10만) 후 2월 회수가능 500만(한도 초과) 환입 → 장부가액은 한도(116만)까지만.
+    Long assetId = impairThenPeriod2("FA-REV-2", new BigDecimal("100000"));
+    Long period2 =
+        fiscalPeriodRepository.findAll().stream().mapToLong(p -> p.getId()).max().getAsLong();
+
+    ImpairmentReversalResponse result =
+        impairmentPostingService.reverseImpairment(assetId, period2, new BigDecimal("5000000"));
+
+    // 한도 = 1,200,000 − min(2×20,000, …) = 1,160,000. 회수가능 500만이지만 한도까지만.
+    assertThat(result.bookValueAfter()).isEqualByComparingTo("1160000");
+  }
+
+  @Test
+  void reverse_recoverableBelowBookValue_isRejected() {
+    // AC-6: 회수가능액이 현재 장부가액 이하 → 환입할 손상 없음.
+    Long assetId = impairThenPeriod2("FA-REV-3", new BigDecimal("600000"));
+    Long period2 =
+        fiscalPeriodRepository.findAll().stream().mapToLong(p -> p.getId()).max().getAsLong();
+
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.reverseImpairment(
+                    assetId, period2, new BigDecimal("100000")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.IMPAIRMENT_REVERSAL_NOT_REQUIRED);
+  }
+
+  @Test
+  void reverse_noImpairment_isRejected() {
+    // AC-6: 손상 이력이 없는 자산 → 환입 불가(환입액 0).
+    configureDepreciationAccounts();
+    configureImpairmentAccounts();
+    Long assetId = registerStraightLine("FA-REV-4", new BigDecimal("1200000"), 60);
+
+    authenticate("creator", "finance:write");
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.reverseImpairment(
+                    assetId, period1Id, new BigDecimal("5000000")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.IMPAIRMENT_REVERSAL_NOT_REQUIRED);
+  }
+
+  @Test
+  void reverse_withoutReversalAccount_isBlocked() {
+    // AC-8: 손상차손환입 계정 미설정 → 차단.
+    configureDepreciationAccounts();
+    configureImpairmentAccountsWithoutReversal();
+    Long assetId = registerStraightLine("FA-REV-5", new BigDecimal("1200000"), 60);
+    authenticate("creator", "finance:write");
+    impairmentPostingService.recognizeImpairment(assetId, period1Id, new BigDecimal("600000"));
+    Long period2 = period2Id();
+
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.reverseImpairment(
+                    assetId, period2, new BigDecimal("900000")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.IMPAIRMENT_REVERSAL_ACCOUNT_NOT_CONFIGURED);
+  }
+
+  @Test
+  void reverse_negativeRecoverable_isRejected() {
+    // AC-9: 회수가능액 < 0 → 400.
+    configureImpairmentAccounts();
+    Long assetId = registerStraightLine("FA-REV-6", new BigDecimal("1200000"), 60);
+    authenticate("creator", "finance:write");
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.reverseImpairment(
+                    assetId, period1Id, new BigDecimal("-1")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+  }
+
+  @Test
+  void reverse_twiceSamePeriod_isRejected() {
+    // AC-7: 같은 (자산,기간,REVERSAL) 재환입 → 거부.
+    Long assetId = impairThenPeriod2("FA-REV-7", new BigDecimal("100000"));
+    Long period2 =
+        fiscalPeriodRepository.findAll().stream().mapToLong(p -> p.getId()).max().getAsLong();
+    impairmentPostingService.reverseImpairment(assetId, period2, new BigDecimal("900000"));
+
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.reverseImpairment(
+                    assetId, period2, new BigDecimal("950000")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.IMPAIRMENT_REVERSAL_ALREADY_RECOGNIZED);
+  }
+
+  @Test
+  void reverse_samePeriodAsImpairment_isRejected() {
+    // AC: 같은 기간 손상 인식 후 동일 기간 환입 → 거부(IAS 36: 환입은 이전 기간 손상 대상).
+    configureDepreciationAccounts();
+    configureImpairmentAccounts();
+    Long assetId = registerStraightLine("FA-REV-SAME", new BigDecimal("1200000"), 60);
+    authenticate("creator", "finance:write");
+    impairmentPostingService.recognizeImpairment(assetId, period1Id, new BigDecimal("600000"));
+
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.reverseImpairment(
+                    assetId, period1Id, new BigDecimal("900000")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.IMPAIRMENT_REVERSAL_SAME_PERIOD_AS_IMPAIRMENT);
+  }
+
+  // ── 음성 인가(권한 미보유 거부) ──────────────────────────────────────
+
+  @Test
+  void recognize_withoutWritePermission_isForbidden() {
+    // AC-13: finance:write 미보유 → 손상 인식 거부.
+    authenticate("viewer", "finance:read");
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.recognizeImpairment(
+                    1L, period1Id, new BigDecimal("800000")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+  }
+
+  @Test
+  void reverse_withoutWritePermission_isForbidden() {
+    // AC-13: finance:write 미보유 → 환입 거부.
+    authenticate("viewer", "finance:read");
+    assertThatThrownBy(
+            () ->
+                impairmentPostingService.reverseImpairment(1L, period1Id, new BigDecimal("900000")))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+  }
+
+  @Test
+  void updateImpairmentAccounts_withoutSettingWrite_isForbidden() {
+    // AC-13: finance:setting:write 미보유 → 손상 계정 설정 거부.
+    authenticate("viewer", "finance:read");
+    assertThatThrownBy(
+            () ->
+                baseCurrencyService.updateImpairmentAccounts(
+                    new ImpairmentAccountUpdateRequest(1L, 2L, 3L)))
+        .isInstanceOf(ErpException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
   }
 }
