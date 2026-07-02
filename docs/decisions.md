@@ -55,3 +55,26 @@
 
 ## 인프라/운영
 - branch protection: 솔로 작업 기간 일시 제거했었으나 현재 develop·main 모두 재적용(required checks: backend·frontend·secret-scan·test-guard·migration-safety, review 1). **실제 설정은 GitHub repo 상태가 정본** — 이 문서는 결정 근거만.
+
+---
+
+## 고정자산·감가상각·손상차손 (Finance)
+
+> 로컬 AI 메모리에서 이전(AGENTS.md 기록위치 정책). 스펙 정본: `docs/specs/fixed-assets.md`·`impairment.md`·`impairment-reversal.md`.
+
+### 감가상각
+- FixedAsset: 정액/정률 월상각, 잔존가치 하한·과대상각 방지 가드(`min(계산액, 장부가액−잔존)`). 취득월부터 상각.
+- 월상각 처리 → (차)감가상각비 (대)감가상각누계액 DRAFT(JournalEntryService.createInternal), (자산,기간) UNIQUE 멱등, GL 결재 경유. 계정 미설정 시 차단(빈 분개 금지).
+- 처분: 처분월 미상각(취득월 포함·처분월 제외 월할) catch-up 후 처분손익 분개. 마감 기간 미상각분은 WARN 후 건너뜀(회계기간 마감규율 전제).
+- 계정 설정은 `TenantBaseCurrency` FK + `BaseCurrencyService`(부가세·FX 계정군과 동형 패턴).
+
+### 손상차손 (impairment, #160)
+- 수동 인식(회수가능액 단일 입력) → 손상차손액=장부가액−회수가능액 → (차)손상차손비 (대)손상차손누계액.
+- `bookValue = 취득원가 − 감가상각누계액 − 손상차손누계액`. 손상 후 상각 재계산: **정률은 bookValue로 자동**, **정액은 손상 시점 1회 산정한 `straightLineMonthlyOverride`(잔여내용연수 재배분)**. 비손상 자산은 override=null → 기존 상수식 그대로(완전 회귀 안전).
+- 인식 전 인식기간까지 상각 catch-up. 잔여내용연수는 **달력 경과월수**(ChronoUnit) 기준(마감 스킵 기간에도 정확).
+
+### 손상차손 환입 (reversal, #165)
+- 한도 = **손상 없었을 경우 장부금액**(`noImpairmentCarryingAmount`: 정액=취득원가−min(경과월×원월상각,cost−residual), 정률=경과월 declining 시뮬레이션). 손상누계 전액 환원은 한도 초과하므로 상한 필수.
+- 환입액 = min(min(회수가능액, 한도) − 장부가액, 손상누계액). (차)손상차손누계액 (대)손상차손환입(수익).
+- `ImpairmentEntry.entry_type`(IMPAIRMENT/REVERSAL) + (자산,기간,유형) UNIQUE 멱등. **IAS 36: 같은 기간 인식한 손상은 환입 불가**(F053) — 환입은 이전 기간 손상 대상.
+- 알려진 한계: 재개방된 이전 기간 환입 시간역전·catch-up 마감기간 스킵은 회계기간 마감규율 전제(손상·상각과 동일).

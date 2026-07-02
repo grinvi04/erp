@@ -117,6 +117,101 @@ class FixedAssetTest {
   }
 
   @Test
+  void declining_fullyDepreciatesToResidualByEndOfLife() {
+    // AC-2·3: 정률 1,200만·60월·잔존0·율0.5 → 초기엔 정률(월0=500,000), 후반 정액 전환, 60개월 후 장부가액 0.
+    FixedAsset asset =
+        FixedAsset.register(
+            "FA-DFULL",
+            "자산",
+            DATE,
+            BigDecimal.valueOf(12_000_000),
+            BigDecimal.ZERO,
+            60,
+            DepreciationMethod.DECLINING_BALANCE,
+            new BigDecimal("0.5"),
+            null);
+    // 월0: 정률 500,000(=12M×0.5/12) > 정액 200,000(=12M/60) → 정률액.
+    assertThat(asset.monthlyDepreciation()).isEqualByComparingTo("500000");
+    for (int i = 0; i < 60; i++) {
+      BigDecimal m = asset.monthlyDepreciation();
+      assertThat(m.signum()).as("매월 양수 상각(월 %d)", i).isPositive();
+      asset.applyDepreciation(m);
+    }
+    assertThat(asset.bookValue()).isEqualByComparingTo("0");
+    assertThat(asset.monthlyDepreciation()).isEqualByComparingTo("0");
+  }
+
+  @Test
+  void noImpairmentCarryingAmount_declining_reflectsStraightLineSwitch() {
+    // 환입 한도: 정률 시뮬레이션이 monthlyDepreciation과 동일 max(정률,정액)을 써야 함.
+    // 12M·12월·율0.5는 월0부터 정액(1M)>정률(500k)이라 6개월 후 장부=6,000,000(순수정률이면 과대).
+    FixedAsset asset =
+        FixedAsset.register(
+            "FA-DCEIL",
+            "자산",
+            DATE,
+            BigDecimal.valueOf(12_000_000),
+            BigDecimal.ZERO,
+            12,
+            DepreciationMethod.DECLINING_BALANCE,
+            new BigDecimal("0.5"),
+            null);
+    assertThat(asset.noImpairmentCarryingAmount(6)).isEqualByComparingTo("6000000");
+  }
+
+  @Test
+  void declining_afterImpairment_stillFullyDepreciates() {
+    // AC-9: 손상 인식된 정률 자산도 내용연수 말 장부가액=잔존(0)에 도달.
+    FixedAsset asset =
+        FixedAsset.register(
+            "FA-DIMP",
+            "자산",
+            DATE,
+            BigDecimal.valueOf(12_000_000),
+            BigDecimal.ZERO,
+            12,
+            DepreciationMethod.DECLINING_BALANCE,
+            new BigDecimal("0.5"),
+            null);
+    for (int i = 0; i < 12; i++) {
+      if (i == 3) {
+        asset.applyImpairment(new BigDecimal("1000000"), 9); // 정률: 손상누계만 반영(override 없음)
+      }
+      asset.applyDepreciation(asset.monthlyDepreciation());
+    }
+    assertThat(asset.bookValue()).isEqualByComparingTo("0");
+  }
+
+  @Test
+  void declining_withResidual_reachesResidualByEndOfLife() {
+    // AC-4: 정률·잔존 200만·12월 → 12개월 상각 후 장부가액=잔존가치.
+    FixedAsset a =
+        FixedAsset.register(
+            "FA-DRES",
+            "자산",
+            DATE,
+            BigDecimal.valueOf(12_000_000),
+            BigDecimal.valueOf(2_000_000),
+            12,
+            DepreciationMethod.DECLINING_BALANCE,
+            new BigDecimal("0.5"),
+            null);
+    for (int i = 0; i < 12; i++) {
+      a.applyDepreciation(a.monthlyDepreciation());
+    }
+    assertThat(a.bookValue()).isEqualByComparingTo("2000000");
+  }
+
+  @Test
+  void applyDepreciation_incrementsDepreciatedMonths() {
+    // AC-6: applyDepreciation 1회당 depreciatedMonths 1 증가.
+    FixedAsset a = straightLine(12_000_000, 0, 60);
+    a.applyDepreciation(new BigDecimal("200000"));
+    a.applyDepreciation(new BigDecimal("200000"));
+    assertThat(a.getDepreciatedMonths()).isEqualTo(2);
+  }
+
+  @Test
   void noImpairmentCarryingAmount_straightLine() {
     // AC-2: 1,200만·60월·정액, 12개월 경과 → 가상 누계 240만 → 한도 960만.
     assertThat(straightLine(12_000_000, 0, 60).noImpairmentCarryingAmount(12))
