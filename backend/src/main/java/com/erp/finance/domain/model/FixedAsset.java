@@ -82,6 +82,10 @@ public class FixedAsset extends BaseEntity {
   @Column(name = "straight_line_monthly_override", precision = 20, scale = 2)
   private BigDecimal straightLineMonthlyOverride;
 
+  // 상각 처리 횟수 — 정률 완전상각(잔여내용연수 정액 전환)의 잔여내용연수 산정용. applyDepreciation마다 증가.
+  @Column(name = "depreciated_months", nullable = false)
+  private int depreciatedMonths;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false, length = 20)
   private FixedAssetStatus status;
@@ -153,18 +157,26 @@ public class FixedAsset extends BaseEntity {
                   .subtract(residualValue)
                   .divide(BigDecimal.valueOf(usefulLifeMonths), MONEY_SCALE, RoundingMode.DOWN);
     } else {
-      raw =
+      // 정률액과 '잔여내용연수 정액액' 중 큰 값 — 정액이 커지는 내용연수 후반부터 자동 정액 전환해
+      // 잔존가치까지 완전상각한다(정률 단독은 기하급수라 잔존에 도달 못 함).
+      BigDecimal declining =
           bookValue()
               .multiply(decliningAnnualRate)
               .divide(MONTHS_PER_YEAR, MONEY_SCALE, RoundingMode.DOWN);
+      int remaining = Math.max(usefulLifeMonths - depreciatedMonths, 1);
+      BigDecimal straightLine =
+          depreciableRemaining.divide(
+              BigDecimal.valueOf(remaining), MONEY_SCALE, RoundingMode.DOWN);
+      raw = declining.max(straightLine);
     }
     // 마지막 기간은 잔존가치까지만(과대상각·누적오차 보정).
     return raw.min(depreciableRemaining);
   }
 
-  /** 상각액 반영 — 누계상각액 증가. */
+  /** 상각액 반영 — 누계상각액 증가 + 상각 처리 횟수 증가(정률 완전상각의 잔여내용연수 산정용). */
   public void applyDepreciation(BigDecimal amount) {
     this.accumulatedDepreciation = this.accumulatedDepreciation.add(amount);
+    this.depreciatedMonths += 1;
   }
 
   /**
@@ -284,6 +296,10 @@ public class FixedAsset extends BaseEntity {
 
   public BigDecimal getStraightLineMonthlyOverride() {
     return straightLineMonthlyOverride;
+  }
+
+  public int getDepreciatedMonths() {
+    return depreciatedMonths;
   }
 
   public FixedAssetStatus getStatus() {
