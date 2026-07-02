@@ -72,6 +72,7 @@ HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS 
 <details><summary>mermaid 소스 (GitHub 웹에선 차트로 렌더)</summary>
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'lineColor': '#6b7280', 'background': '#f8fafc', 'mainBkg': '#f8fafc', 'fontSize': '14px'}}}%%
 flowchart LR
     Browser["🖥️ 브라우저"] -->|HTTPS| FE["<b>Next.js 15</b> · App Router<br/>next-auth v5 (BFF)"]
     FE -->|"Bearer JWT · tenant_id claim"| BE["<b>Spring Boot 3.4</b> · Java 21<br/>Resource Server"]
