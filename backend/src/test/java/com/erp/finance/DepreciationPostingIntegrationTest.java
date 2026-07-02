@@ -220,4 +220,32 @@ class DepreciationPostingIntegrationTest extends AbstractIntegrationTest {
     assertThat(fixedAssetRepository.findById(assetId).orElseThrow().getAccumulatedDepreciation())
         .isEqualByComparingTo("0");
   }
+
+  @Test
+  void run_decliningAsset_appliesDecliningAmountAndTracksDepreciatedMonths() {
+    // #170 배선: 정률 자산 상각 → 정률액(1,200,000×0.6/12=60,000) 반영 + depreciated_months 영속.
+    configureDepreciationAccounts();
+    authenticate("creator", "finance:write");
+    Long assetId =
+        fixedAssetService
+            .create(
+                new FixedAssetCreateRequest(
+                    "FA-DEP-DECL",
+                    "정률자산",
+                    LocalDate.of(2025, 1, 1),
+                    new BigDecimal("1200000"),
+                    BigDecimal.ZERO,
+                    60,
+                    DepreciationMethod.DECLINING_BALANCE,
+                    new BigDecimal("0.6"),
+                    assetAccountId))
+            .id();
+
+    DepreciationRunResponse result = depreciationPostingService.runForPeriod(periodId);
+
+    assertThat(result.totalAmount()).isEqualByComparingTo("60000"); // 정률 초기(정액 20,000보다 큼)
+    var asset = fixedAssetRepository.findById(assetId).orElseThrow();
+    assertThat(asset.getAccumulatedDepreciation()).isEqualByComparingTo("60000");
+    assertThat(asset.getDepreciatedMonths()).isEqualTo(1); // 영속 확인
+  }
 }
