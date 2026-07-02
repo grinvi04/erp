@@ -52,10 +52,7 @@ erp/
     └── milestones/                   # /milestone 추적 파일
 ```
 
-> **생성 문서는 repo에 커밋한다.** AI 도구가 만든 계획·설계 문서(`/plan` 스펙, `/milestone`
-> 추적, 설계 결정 기록 등)는 도구 로컬 디렉터리(예: `~/.claude/plans`)에 두지 말고 위 `docs/`
-> 아래에 커밋해 관리한다. 로컬 캐시는 노트북·도구·세션이 바뀌면 유실된다 — repo에 있어야
-> 누가·어디서 이어받아도 일관되게 작업할 수 있다. (단일 출처는 team-harness `ai-collaboration.md`.)
+> **이 repo의 프로젝트 상태는 repo/GitHub에 둔다.** 플랜·스펙은 `docs/specs/`, 백로그·할 일은 GitHub Issues + Milestone(`/milestone`), 작업로그는 git 히스토리 + CHANGELOG/릴리즈노트, 설계 결정·도메인 지식은 `docs/decisions.md`에 기록한다. **도구 로컬 AI 메모리(예: `~/.claude` 메모리)에 프로젝트 상태·백로그·작업로그·결정·도메인 지식을 두지 않는다**(다른 PC·세션·사람이 못 보고 유실). 로컬 메모리는 팀 공유 불필요한 *개인 작업습관*에만 최소로. (정본: `ai-collaboration.md`)
 
 ## 아키텍처 원칙
 
@@ -156,7 +153,7 @@ erp/
 | 인증·인가 | auth-standards.md | Keycloak OIDC, RBAC 권한코드+데이터 스코프 |
 | 코드 구조 | clean-architecture.md | 도메인 모듈 1차 경계, 모듈 간 이벤트로만 통신 |
 | 리뷰·커밋 | code-review.md | Conventional Commits(타입 영어+본문 한국어), PR 규칙 |
-| AI 협업 | ai-collaboration.md | 책임 원칙, 금지사항 |
+| AI 협업 | ai-collaboration.md | 책임 원칙, 금지사항, 기록 위치(스펙→docs/specs, 백로그→Issues/Milestone, 작업로그→git/CHANGELOG, 결정→docs/decisions.md, 로컬 메모리=개인 습관만) |
 | 운영·로깅 | operations.md | 로그 레벨 기준(ERROR=알람), traceId 전파 |
 
 ## 코딩 컨벤션
