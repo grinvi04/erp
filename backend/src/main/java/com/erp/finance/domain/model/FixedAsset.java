@@ -129,6 +129,7 @@ public class FixedAsset extends BaseEntity {
     a.assetAccount = assetAccount;
     a.accumulatedDepreciation = BigDecimal.ZERO.setScale(MONEY_SCALE);
     a.accumulatedImpairment = BigDecimal.ZERO.setScale(MONEY_SCALE);
+    a.depreciatedMonths = 0;
     a.status = FixedAssetStatus.ACTIVE;
     return a;
   }
@@ -210,8 +211,8 @@ public class FixedAsset extends BaseEntity {
 
   /**
    * 손상을 인식하지 않았을 경우의 장부금액(환입 한도) — 취득월부터 경과월수만큼 정상 상각했다고 가정한 가상 장부가액. 정액=취득원가−min(경과월×원월상각, 취득원가
-   * −잔존); 정률=경과월만큼 월초 장부가액×(연상각률/12) 체감 시뮬레이션(실제 상각과 동일 DOWN·잔존 하한). 환입 후 장부가액이 이 값을 넘지
-   * 못한다(K-IFRS).
+   * −잔존); 정률=경과월만큼 monthlyDepreciation과 동일한 max(정률액, 잔여내용연수 정액액) 시뮬레이션(정액 전환 포함·DOWN·잔존 하한). 환입 후
+   * 장부가액이 이 값을 넘지 못한다(K-IFRS).
    */
   public BigDecimal noImpairmentCarryingAmount(int monthsElapsed) {
     int months = Math.max(monthsElapsed, 0);
@@ -224,16 +225,20 @@ public class FixedAsset extends BaseEntity {
           monthly.multiply(BigDecimal.valueOf(months)).min(acquisitionCost.subtract(residualValue));
       return acquisitionCost.subtract(hypotheticalAccumulated);
     }
+    // 정률: monthlyDepreciation과 동일한 max(정률액, 잔여내용연수 정액액) 스케줄로 시뮬레이션해야
+    // 한도가 실제 무손상 장부가액과 일치한다(순수 정률만 쓰면 정액 전환 구간에서 한도 과대).
     BigDecimal bv = acquisitionCost;
     for (int i = 0; i < months; i++) {
-      BigDecimal m =
-          bv.multiply(decliningAnnualRate)
-              .divide(MONTHS_PER_YEAR, MONEY_SCALE, RoundingMode.DOWN)
-              .min(bv.subtract(residualValue));
-      if (m.signum() <= 0) {
+      BigDecimal remainingBase = bv.subtract(residualValue);
+      if (remainingBase.signum() <= 0) {
         break;
       }
-      bv = bv.subtract(m);
+      BigDecimal declining =
+          bv.multiply(decliningAnnualRate).divide(MONTHS_PER_YEAR, MONEY_SCALE, RoundingMode.DOWN);
+      int remaining = Math.max(usefulLifeMonths - i, 1);
+      BigDecimal straightLine =
+          remainingBase.divide(BigDecimal.valueOf(remaining), MONEY_SCALE, RoundingMode.DOWN);
+      bv = bv.subtract(declining.max(straightLine).min(remainingBase));
     }
     return bv;
   }

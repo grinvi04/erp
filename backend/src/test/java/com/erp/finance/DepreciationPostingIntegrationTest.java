@@ -243,6 +243,7 @@ class DepreciationPostingIntegrationTest extends AbstractIntegrationTest {
 
     DepreciationRunResponse result = depreciationPostingService.runForPeriod(periodId);
 
+    assertThat(result.processedCount()).isEqualTo(1);
     assertThat(result.totalAmount()).isEqualByComparingTo("60000"); // 정률 초기(정액 20,000보다 큼)
     var asset = fixedAssetRepository.findById(assetId).orElseThrow();
     assertThat(asset.getAccumulatedDepreciation()).isEqualByComparingTo("60000");
