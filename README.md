@@ -2,13 +2,13 @@
 
 [![ci-gate](https://github.com/grinvi04/erp/actions/workflows/ci-gate.yml/badge.svg)](https://github.com/grinvi04/erp/actions/workflows/ci-gate.yml)
 ![e2e](https://img.shields.io/badge/e2e-34%20passed-brightgreen)
-![version](https://img.shields.io/badge/version-v0.6.0-blue)
+![version](https://img.shields.io/badge/version-v0.13.0-blue)
 ![deploy](https://img.shields.io/badge/deploy-local%20only-lightgrey)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
 > **"수백 개 기업의 인사·재무·재고·영업을 한 플랫폼에서 — 테넌트별 완전 격리로."**
 
-HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS ERP. Spring Boot + Next.js 풀스택. 운영 미배포(로컬 풀스택 실행 지원), 현재 `v0.6.0`.
+HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS ERP. Spring Boot + Next.js 풀스택. 운영 미배포(로컬 풀스택 실행 지원), 현재 `v0.13.0`.
 
 ---
 
@@ -67,11 +67,12 @@ HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS 
 
 ## 🏗️ 아키텍처
 
-![아키텍처 다이어그램](docs/architecture.png)
+![아키텍처 다이어그램](docs/architecture.svg)
 
 <details><summary>mermaid 소스 (GitHub 웹에선 차트로 렌더)</summary>
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'lineColor': '#6b7280', 'background': '#f8fafc', 'mainBkg': '#f8fafc', 'fontSize': '14px'}}}%%
 flowchart LR
     Browser["🖥️ 브라우저"] -->|HTTPS| FE["<b>Next.js 15</b> · App Router<br/>next-auth v5 (BFF)"]
     FE -->|"Bearer JWT · tenant_id claim"| BE["<b>Spring Boot 3.4</b> · Java 21<br/>Resource Server"]
