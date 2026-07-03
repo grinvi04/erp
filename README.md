@@ -67,7 +67,7 @@ HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS 
 
 ## 🏗️ 아키텍처
 
-![아키텍처 다이어그램](docs/architecture.png)
+![아키텍처 다이어그램](docs/architecture.svg)
 
 <details><summary>mermaid 소스 (GitHub 웹에선 차트로 렌더)</summary>
 
