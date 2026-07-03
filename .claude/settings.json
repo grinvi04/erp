@@ -99,6 +99,12 @@
             "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/validate-edit.sh",
             "timeout": 120,
             "statusMessage": "코드 검증 중 (lint · 타입 · 테스트)..."
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/regen-arch-svg.sh",
+            "timeout": 15,
+            "statusMessage": "아키텍처 SVG 재생성 중..."
           }
         ]
       }
