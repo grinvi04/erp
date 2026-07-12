@@ -19,7 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
-@Profile("!test")
+@Profile("!test & !provision")
 public class SecurityConfig {
 
   private final JwtTenantFilter jwtTenantFilter;

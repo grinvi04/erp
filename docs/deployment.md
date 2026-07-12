@@ -23,7 +23,7 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 |---|---|---|---|
 | 백엔드 | `SPRING_DATASOURCE_URL`·`_USERNAME`·`_PASSWORD` | application.yml | — |
 | 백엔드 | `KEYCLOAK_ISSUER_URI` | application.yml(resource server) | 백엔드용. `.../realms/erp` |
-| 백엔드 | `ERP_IAM_BOOTSTRAP_ADMIN_SUB`·`ERP_IAM_BOOTSTRAP_TENANT_ID` | IamBootstrap.java(`erp.iam.bootstrap.*`) | **미설정 시 권한 보유자 0(fail-closed)** — 필수 |
+| 프로비저닝 명령 | `ERP_KEYCLOAK_PROVISIONING_CLIENT_ID`·`_SECRET` | TenantProvisioningConfiguration.java | 테넌트 생성 때만 주입. 일반 백엔드 런타임에는 주입하지 않음 |
 | 프론트 | `BACKEND_URL` | lib/api.ts | `NEXT_PUBLIC_API_URL` 폴백 |
 | 프론트 | `AUTH_KEYCLOAK_ID`·`AUTH_KEYCLOAK_SECRET` | lib/auth.ts | next-auth Keycloak provider |
 | 프론트 | **`KEYCLOAK_ISSUER`** | lib/auth.ts:27,56 | ⚠️ `AUTH_KEYCLOAK_ISSUER` **아님**(관례와 다름) — 틀리면 로그인 깨짐 |
@@ -80,8 +80,10 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 3. **Valid redirect URIs**: `https://<vercel-domain>/api/auth/callback/keycloak`
    **Web origins**: `https://<vercel-domain>`
 4. Credentials 탭의 **Client secret** 복사 → Vercel `AUTH_KEYCLOAK_SECRET`.
-5. **Users → Create** 로 첫 사용자 생성 → 이 사용자의 **sub(ID)** 를 백엔드 부트스트랩에 사용(아래 1-4).
-   - 토큰의 `tenant_id` 클레임: Realm/Client에 **tenant_id(상수 1)** 매퍼 추가(Client scopes → erp-frontend-dedicated → Add mapper → Hardcoded claim `tenant_id`=`1`).
+5. **Users → Create** 로 첫 관리자 사용자를 생성하고 사용자 ID(`sub`)를 기록한다. 아직 `tenant_id`는 지정하지 않는다.
+6. Realm의 User Profile에 `tenant_id` 속성을 추가하고 일반 사용자는 편집할 수 없게 한다.
+7. `erp-frontend` 전용 Client scope에 **User Attribute** 매퍼를 추가한다: 사용자 속성 `tenant_id` → 토큰 클레임 `tenant_id`, JSON 타입 `long`.
+8. confidential service-account client `erp-provisioner`를 만들고 `realm-management`의 `manage-users`, `view-users`, `query-users`만 부여한다. 이 클라이언트는 테넌트 생성 명령에만 사용한다.
 
 ### 1-4. 백엔드 서비스
 1. **New → GitHub Repo** → 이 repo 선택 → Settings → **Root Directory**: `backend` (railway.json·Dockerfile 자동 인식).
@@ -92,14 +94,30 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
    SPRING_DATASOURCE_USERNAME=${{Postgres.PGUSER}}
    SPRING_DATASOURCE_PASSWORD=${{Postgres.PGPASSWORD}}
    KEYCLOAK_ISSUER_URI=https://<keycloak-domain>/realms/erp
-   ERP_IAM_BOOTSTRAP_ADMIN_SUB=<1-3에서 만든 사용자 sub>
-   ERP_IAM_BOOTSTRAP_TENANT_ID=1
    ```
 3. Settings → Networking → **Generate Domain** → 백엔드 공개 URL(헬스체크 `/actuator/health`).
-4. 첫 배포 후 Flyway가 전체 마이그레이션(common 0xxx ~ crm 4xxx, 현재 V0008·V4005 포함)을 적용. 부트스트랩이 해당 sub에 SUPER_ADMIN 자동 배정.
+4. 첫 배포 후 Flyway가 전체 마이그레이션을 적용한다. 이 시점에는 테넌트와 권한 보유자가 없는 fail-closed 상태다.
    > ℹ️ 백엔드는 `flyway.out-of-order: true`다(접두사 번호 규약 전제 — 새 common 0xxx가 기존 4xxx보다 낮아도 증분 적용). 기존 DB에 배포할 때 이 설정이 없으면 기동 실패하므로 변경 금지. CI의 `migration-safety` 게이트가 이를 강제한다.
 
-> `ERP_IAM_BOOTSTRAP_ADMIN_SUB` 미설정으로 기동하면 **권한 보유자가 없어** 관리 API를 쓸 수 없다(설계상 fail-closed). 반드시 설정.
+### 1-5. 최초 테넌트 생성
+
+운영자 단말에서 DB와 Keycloak에 접근 가능한 상태로 실행한다. 서비스 계정 시크릿은 명령 실행 시에만 환경변수로 주입하고 저장소나 일반 백엔드 서비스 변수에 넣지 않는다.
+
+```bash
+cd backend
+ERP_KEYCLOAK_BASE_URL=https://<keycloak-domain> \
+ERP_KEYCLOAK_REALM=erp \
+ERP_KEYCLOAK_PROVISIONING_CLIENT_ID=erp-provisioner \
+ERP_KEYCLOAK_PROVISIONING_CLIENT_SECRET=<service-account-secret> \
+ERP_PROVISION_TENANT_CODE=<고유-테넌트-코드> \
+ERP_PROVISION_TENANT_NAME=<회사명> \
+ERP_PROVISION_TENANT_PLAN=STANDARD \
+ERP_PROVISION_ADMIN_USER_ID=<1-3에서 기록한 사용자 sub> \
+ERP_PROVISIONED_BY=<운영자 식별자> \
+./gradlew provisionTenant
+```
+
+명령은 테넌트를 `ACTIVE`로 만들고, Keycloak 사용자의 `tenant_id` 속성을 연결하며, ERP에 `SUPER_ADMIN` 역할과 전체 권한을 부여하고 감사 로그를 남긴다. 일부 단계 실패 시 상태는 `FAILED`로 남으며 같은 코드에 `ERP_PROVISION_RETRY=true`를 더해 재시도한다. 일반 API는 `ACTIVE` 테넌트의 JWT만 허용한다.
 
 ---
 
@@ -145,4 +163,4 @@ curl -sf https://<vercel-domain>/api/auth/session      # 프론트(미로그인 
 ## 5. 시크릿 관리
 
 - 모든 시크릿(DB 비번·Keycloak 시크릿·AUTH_SECRET)은 **각 플랫폼 Variables/Environment** 에만 둔다. **repo·`.env` 커밋 금지**(secret-scan CI가 차단).
-- `ERP_IAM_BOOTSTRAP_ADMIN_SUB` 등 운영 값도 플랫폼 변수로.
+- 프로비저닝 서비스 계정 시크릿은 테넌트 생성 작업에만 단기 주입하고 정기적으로 회전한다.

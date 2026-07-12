@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
  * erp.iam.bootstrap.admin-sub} 미설정이면 아무 것도 하지 않는다. 테스트 프로파일에선 비활성(테스트는 자체 시드).
  */
 @Component
-@Profile("!test")
+@Profile("!test & !provision")
 @RequiredArgsConstructor
 @Slf4j
 public class IamBootstrap implements ApplicationRunner {
