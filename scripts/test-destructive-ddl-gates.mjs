@@ -40,6 +40,16 @@ try {
   )
   expectExit('check-alembic-destructive-ddl.mjs', 0, 'approved inline Alembic operation')
 
+  writeFileSync(
+    alembic,
+    "from alembic import op\nrevision = '1'\ndef upgrade(_=(1, 2)): op.drop_table('customer')\n",
+  )
+  expectExit(
+    'check-alembic-destructive-ddl.mjs',
+    1,
+    'inline Alembic operation after nested signature',
+  )
+
   rmSync(alembic)
   const activeRecord = join(root, 'migration.rb')
   writeFileSync(
@@ -60,6 +70,16 @@ try {
     'check-activerecord-destructive-ddl.mjs',
     0,
     'approved endless ActiveRecord operation',
+  )
+
+  writeFileSync(
+    activeRecord,
+    'class Example < ActiveRecord::Migration[7.0]\n  def up(_ = nil) = drop_table(:customer)\nend\n',
+  )
+  expectExit(
+    'check-activerecord-destructive-ddl.mjs',
+    1,
+    'endless ActiveRecord operation after parenthesized parameters',
   )
 } finally {
   rmSync(root, { recursive: true, force: true })

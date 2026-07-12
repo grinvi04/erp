@@ -235,9 +235,20 @@ const SQL_DESTRUCTIVE = [
 ]
 const MARKER_RE = /migration-safety:\s*destructive-ok/i
 const DEF_RE = /^(?:async\s+)?def\s+(\w+)/
-const INLINE_DEF_RE =
-  /^(?:async\s+)?def\s+(\w+)\s*\([^)]*\)(?:\s*->[^:]+)?\s*:\s*(.+)$/s
 const CLASS_RE = /^(?:async\s+)?class\s/
+
+function inlineDefSuite(code) {
+  let depth = 0
+  for (let i = 0; i < code.length; i++) {
+    if (code[i] === '(' || code[i] === '[' || code[i] === '{') depth++
+    else if (code[i] === ')' || code[i] === ']' || code[i] === '}') depth--
+    else if (code[i] === ':' && depth === 0) {
+      const suite = code.slice(i + 1).trim()
+      return suite || null
+    }
+  }
+  return null
+}
 
 function detect(stmt) {
   const hit = OP_DESTRUCTIVE.find((d) => d.re.test(stmt.code))
@@ -264,14 +275,14 @@ for (const f of migrationFiles) {
       const m = DEF_RE.exec(codeT)
       if (m) {
         inScope = /^upgrade/.test(m[1]) // upgrade·upgrade_engineN → 스캔, downgrade*·기타 → 제외
-        const inline = INLINE_DEF_RE.exec(codeT)
+        const inline = inlineDefSuite(codeT)
         if (inScope && inline) {
-          const label = detect({ ...stmt, code: inline[2] })
+          const label = detect({ ...stmt, code: inline })
           if (label && !MARKER_RE.test(stmt.comments)) {
             failures.push({
               file: f,
               label,
-              snippet: inline[2].replace(/\s+/g, ' ').slice(0, 80),
+              snippet: inline.replace(/\s+/g, ' ').slice(0, 80),
             })
           }
           inScope = false // 한 줄 suite는 같은 문장에서 종료된다.

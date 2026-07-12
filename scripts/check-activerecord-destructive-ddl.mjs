@@ -296,12 +296,23 @@ const SQL_DESTRUCTIVE = [
 ]
 const MARKER_RE = /migration-safety:\s*destructive-ok/i
 const DEF_RE = /^(?:private\s+|protected\s+|public\s+)?def\s+(?:self\.)?(\w+)/
-const ENDLESS_DEF_RE =
-  /^(?:private\s+|protected\s+|public\s+)?def\s+(?:self\.)?(\w+)\s*=\s*(.+)$/s
 // def change/up 본문 스코프 추적용 — do/블록 키워드 openers, end closers.
 const OPENER_LEAD = /^(?:class|module|begin|case|if|unless|while|until|for)\b/
 const TRAILING_DO = /\bdo\b(?:\s*\|[^|]*\|)?\s*$/
 const IS_END = /^end\b/
+
+function endlessDefBody(code, prefixLength) {
+  let depth = 0
+  for (let i = prefixLength; i < code.length; i++) {
+    if (code[i] === '(' || code[i] === '[' || code[i] === '{') depth++
+    else if (code[i] === ')' || code[i] === ']' || code[i] === '}') depth--
+    else if (code[i] === '=' && depth === 0) {
+      const body = code.slice(i + 1).trim()
+      return body || null
+    }
+  }
+  return null
+}
 
 function detect(stmt) {
   const hit = OP_DESTRUCTIVE.find((d) => d.re.test(stmt.code))
@@ -332,15 +343,15 @@ for (const f of migrationFiles) {
     }
     const defM = DEF_RE.exec(codeT)
     if (defM) {
-      const endless = ENDLESS_DEF_RE.exec(codeT)
+      const endless = endlessDefBody(codeT, defM[0].length)
       if (endless) {
-        const inScope = endless[1] === 'change' || endless[1] === 'up'
-        const label = inScope ? detect({ ...stmt, code: endless[2] }) : null
+        const inScope = defM[1] === 'change' || defM[1] === 'up'
+        const label = inScope ? detect({ ...stmt, code: endless }) : null
         if (label && !(MARKER_RE.test(stmt.comments) || leadingMarker)) {
           failures.push({
             file: f,
             label,
-            snippet: endless[2].replace(/\s+/g, ' ').slice(0, 80),
+            snippet: endless.replace(/\s+/g, ' ').slice(0, 80),
           })
         }
         leadingMarker = false
