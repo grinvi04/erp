@@ -3,6 +3,9 @@ package com.erp.crm;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.erp.common.AbstractIntegrationTest;
+import com.erp.common.security.DataScope;
+import com.erp.common.security.UserAccessProfile;
+import com.erp.common.security.UserAccessProfileRepository;
 import com.erp.crm.application.dto.PipelineDistributionResponse;
 import com.erp.crm.application.service.CrmAnalyticsService;
 import com.erp.crm.domain.model.Account;
@@ -33,6 +36,7 @@ class PipelineDistributionIntegrationTest extends AbstractIntegrationTest {
   @Autowired private OpportunityRepository opportunityRepository;
   @Autowired private CrmAccountRepository crmAccountRepository;
   @Autowired private CrmAnalyticsService crmAnalyticsService;
+  @Autowired private UserAccessProfileRepository accessProfileRepository;
 
   @Test
   void pipelineDistribution_separatesAmountsByCurrencyAndPreservesEmptyStages() {
@@ -117,5 +121,63 @@ class PipelineDistributionIntegrationTest extends AbstractIntegrationTest {
         result.stream().filter(r -> r.stageId().equals(stageB.getId())).findFirst().orElseThrow();
     assertThat(rowB.count()).isEqualTo(0L);
     assertThat(rowB.amounts()).isEmpty();
+  }
+
+  @Test
+  void pipelineDistribution_selfScope_excludesOtherOwnersFromDbAggregate() {
+    PipelineStage stage =
+        pipelineStageRepository.save(PipelineStage.of("Negotiation", 1, 60, false, false));
+    Account account =
+        crmAccountRepository.save(
+            Account.of(
+                "ACC-SCOPE",
+                "Scoped Corp",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                AccountType.CUSTOMER,
+                "test-user"));
+    opportunityRepository.save(
+        Opportunity.of(
+            account,
+            "Own opportunity",
+            stage,
+            BigDecimal.valueOf(100),
+            "KRW",
+            LocalDate.of(2026, 12, 31),
+            60,
+            "test-user",
+            null,
+            null));
+    opportunityRepository.save(
+        Opportunity.of(
+            account,
+            "Other owner's opportunity",
+            stage,
+            BigDecimal.valueOf(900),
+            "KRW",
+            LocalDate.of(2026, 12, 31),
+            60,
+            "other-user",
+            null,
+            null));
+    accessProfileRepository.save(
+        UserAccessProfile.of(TEST_TENANT_ID, "test-user", DataScope.SELF, null, null));
+
+    PipelineDistributionResponse result =
+        crmAnalyticsService.getPipelineDistribution().stages().get(0);
+
+    assertThat(result.count()).isEqualTo(1L);
+    assertThat(result.amounts())
+        .singleElement()
+        .satisfies(
+            amount -> {
+              assertThat(amount.currency()).isEqualTo("KRW");
+              assertThat(amount.amount()).isEqualByComparingTo("100");
+            });
   }
 }
