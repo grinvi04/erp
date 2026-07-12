@@ -2,6 +2,7 @@ package com.erp.common.tenant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
@@ -10,11 +11,25 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 import java.util.Locale;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "tenant", schema = "common")
+@EntityListeners(AuditingEntityListener.class)
+@SQLDelete(
+    sql =
+        "UPDATE common.tenant SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, "
+            + "updated_by = 'system', version = version + 1 WHERE id = ? AND version = ?")
+@SQLRestriction("deleted_at IS NULL")
 public class Tenant {
 
   private static final int CODE_MAX_LENGTH = 30;
@@ -26,6 +41,10 @@ public class Tenant {
   @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tenant_seq")
   @SequenceGenerator(name = "tenant_seq", sequenceName = "common.tenant_id_seq", allocationSize = 1)
   private Long id;
+
+  @Version
+  @Column(nullable = false)
+  private Long version;
 
   @Column(nullable = false, unique = true, length = 30)
   private String code;
@@ -50,11 +69,24 @@ public class Tenant {
   @Column(name = "provisioning_attempted_at")
   private LocalDateTime provisioningAttemptedAt;
 
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
+
+  @CreatedDate
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
+  @LastModifiedDate
   @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
+
+  @CreatedBy
+  @Column(name = "created_by", nullable = false, updatable = false, length = 100)
+  private String createdBy;
+
+  @LastModifiedBy
+  @Column(name = "updated_by", nullable = false, length = 100)
+  private String updatedBy;
 
   protected Tenant() {}
 
@@ -140,6 +172,10 @@ public class Tenant {
 
   public Long getId() {
     return id;
+  }
+
+  public Long getVersion() {
+    return version;
   }
 
   public String getCode() {
