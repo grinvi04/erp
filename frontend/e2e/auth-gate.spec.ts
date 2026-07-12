@@ -4,6 +4,19 @@ import { test, expect } from '@playwright/test'
 // (dashboard) 레이아웃의 auth()가 세션 없는 요청을 /login으로 리다이렉트한다.
 
 test.describe('인증 게이트', () => {
+  test('공개 문서 응답이 브라우저 보안 헤더와 no-store 캐시 정책을 적용한다', async ({
+    page,
+  }) => {
+    const response = await page.goto('/login')
+    expect(response).not.toBeNull()
+    const headers = response!.headers()
+    expect(headers['x-content-type-options']).toBe('nosniff')
+    expect(headers['x-frame-options']).toBe('DENY')
+    expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin')
+    expect(headers['permissions-policy']).toBe('camera=(), microphone=(), geolocation=()')
+    expect(headers['cache-control']).toContain('private')
+    expect(headers['cache-control']).toContain('no-store')
+  })
   // 4개 모듈 + 공통 화면의 대표 보호 라우트. (dashboard) 그룹 전체가 레이아웃에서
   // 게이트되므로 모듈별로 골고루 표본을 둔다.
   const protectedRoutes = [
