@@ -72,7 +72,7 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
 
   /** 감가상각비·누계액 계정만 설정(처분 손익 계정 제외). */
   private void configureDepreciationOnly() {
-    authenticate("admin", "finance:setting:write");
+    authenticate("admin", "finance:read", "finance:setting:write");
     Long expense = accountId("81800", "감가상각비", AccountType.EXPENSE, NormalBalance.DEBIT);
     Long accumulated = accountId("20900", "감가상각누계액", AccountType.ASSET, NormalBalance.CREDIT);
     baseCurrencyService.updateDepreciationAccounts(
@@ -81,7 +81,7 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
 
   /** 감가상각·처분손익 계정 전체 설정. */
   private void configureAllAccounts() {
-    authenticate("admin", "finance:setting:write");
+    authenticate("admin", "finance:read", "finance:setting:write");
     Long expense = accountId("81800", "감가상각비", AccountType.EXPENSE, NormalBalance.DEBIT);
     Long accumulated = accountId("20900", "감가상각누계액", AccountType.ASSET, NormalBalance.CREDIT);
     Long gain = accountId("91100", "유형자산처분이익", AccountType.REVENUE, NormalBalance.CREDIT);
@@ -180,12 +180,16 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
     // AC-9: 상각 100,000(장부 1,100,000) → 회수가능액 700,000 손상(400,000)·장부 700,000 → 750,000 매각.
     // (차)감가상각누계액 100,000·손상차손누계액 400,000·현금 750,000 (대)자산 1,200,000·처분이익 50,000 = 1,250,000 균형.
     configureAllAccounts();
-    authenticate("admin", "finance:setting:write");
+    authenticate("admin", "finance:read", "finance:setting:write");
     Long impairmentLoss = accountId("81900", "유형자산손상차손", AccountType.EXPENSE, NormalBalance.DEBIT);
     Long impairmentAccumulated =
         accountId("21000", "손상차손누계액", AccountType.ASSET, NormalBalance.CREDIT);
     baseCurrencyService.updateImpairmentAccounts(
-        new ImpairmentAccountUpdateRequest(impairmentLoss, impairmentAccumulated, null));
+        new ImpairmentAccountUpdateRequest(
+            impairmentLoss,
+            impairmentAccumulated,
+            null,
+            baseCurrencyService.getBaseCurrency().version()));
 
     Long assetId = registerAndDepreciateOnce("FA-DIS-IMP");
     authenticate("creator", "finance:write");

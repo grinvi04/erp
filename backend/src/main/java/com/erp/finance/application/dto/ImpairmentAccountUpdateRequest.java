@@ -4,4 +4,13 @@ package com.erp.finance.application.dto;
 public record ImpairmentAccountUpdateRequest(
     Long impairmentLossAccountId,
     Long accumulatedImpairmentAccountId,
-    Long impairmentReversalAccountId) {}
+    Long impairmentReversalAccountId,
+    Long version) {
+  public ImpairmentAccountUpdateRequest(
+      Long impairmentLossAccountId,
+      Long accumulatedImpairmentAccountId,
+      Long impairmentReversalAccountId) {
+    this(
+        impairmentLossAccountId, accumulatedImpairmentAccountId, impairmentReversalAccountId, null);
+  }
+}

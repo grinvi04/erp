@@ -10,4 +10,15 @@ public record CompanyProfileUpdateRequest(
     @Size(max = 100) String representative,
     @Size(max = 500) String address,
     @Size(max = 200) String businessType,
-    @Size(max = 200) String businessItem) {}
+    @Size(max = 200) String businessItem,
+    Long version) {
+  public CompanyProfileUpdateRequest(
+      String companyName,
+      String businessNo,
+      String representative,
+      String address,
+      String businessType,
+      String businessItem) {
+    this(companyName, businessNo, representative, address, businessType, businessItem, null);
+  }
+}

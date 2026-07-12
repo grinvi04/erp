@@ -37,7 +37,13 @@ import {
   updateFxGainLossAccounts,
   updateVatAccounts,
 } from './actions'
-import type { Account, ExchangeRate, FxGainLossAccounts, VatAccounts } from '@/types/finance'
+import type {
+  Account,
+  BaseCurrency,
+  ExchangeRate,
+  FxGainLossAccounts,
+  VatAccounts,
+} from '@/types/finance'
 
 const CURRENCY_PATTERN = /^[A-Z]{3}$/
 const NONE = 'NONE'
@@ -45,7 +51,7 @@ const NONE = 'NONE'
 type DialogMode = { type: 'none' } | { type: 'base' } | { type: 'rate' }
 
 interface Props {
-  baseCurrency: string
+  baseCurrency: BaseCurrency
   rates: ExchangeRate[]
   accounts: Account[]
   fxAccounts: FxGainLossAccounts
@@ -66,9 +72,9 @@ export default function FxClient({
   const [isPending, startTransition] = useTransition()
   const close = () => setDialog({ type: 'none' })
 
-  const [baseInput, setBaseInput] = useState(baseCurrency)
+  const [baseInput, setBaseInput] = useState(baseCurrency.baseCurrency)
   const [fromCurrency, setFromCurrency] = useState('USD')
-  const [toCurrency, setToCurrency] = useState(baseCurrency)
+  const [toCurrency, setToCurrency] = useState(baseCurrency.baseCurrency)
   const [effectiveDate, setEffectiveDate] = useState('')
   const [rate, setRate] = useState('')
 
@@ -85,6 +91,7 @@ export default function FxClient({
         await updateFxGainLossAccounts({
           fxGainAccountId: fxGainAccountId ? Number(fxGainAccountId) : null,
           fxLossAccountId: fxLossAccountId ? Number(fxLossAccountId) : null,
+          version: fxAccounts.version,
         })
         toast.success('환차손익 계정이 저장되었습니다')
       } catch (e) {
@@ -106,6 +113,7 @@ export default function FxClient({
         await updateVatAccounts({
           vatReceivableAccountId: vatReceivableAccountId ? Number(vatReceivableAccountId) : null,
           vatPayableAccountId: vatPayableAccountId ? Number(vatPayableAccountId) : null,
+          version: vatAccounts.version,
         })
         toast.success('부가세 통제계정이 저장되었습니다')
       } catch (e) {
@@ -115,12 +123,12 @@ export default function FxClient({
   }
 
   const openBase = () => {
-    setBaseInput(baseCurrency)
+    setBaseInput(baseCurrency.baseCurrency)
     setDialog({ type: 'base' })
   }
   const openRate = () => {
     setFromCurrency('USD')
-    setToCurrency(baseCurrency)
+    setToCurrency(baseCurrency.baseCurrency)
     setEffectiveDate('')
     setRate('')
     setDialog({ type: 'rate' })
@@ -134,7 +142,7 @@ export default function FxClient({
     }
     startTransition(async () => {
       try {
-        await updateBaseCurrency(code)
+        await updateBaseCurrency(code, baseCurrency.version)
         toast.success('기준통화가 변경되었습니다')
         close()
       } catch (e) {
@@ -187,7 +195,9 @@ export default function FxClient({
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm text-muted-foreground">기준통화</div>
-            <div className="text-2xl font-semibold font-mono mt-1">{baseCurrency}</div>
+            <div className="text-2xl font-semibold font-mono mt-1">
+              {baseCurrency.baseCurrency}
+            </div>
           </div>
           {canWrite && (
             <Button variant="outline" onClick={openBase}>
@@ -403,7 +413,7 @@ export default function FxClient({
                 value={toCurrency}
                 maxLength={3}
                 onChange={(e) => setToCurrency(e.target.value.toUpperCase())}
-                placeholder={baseCurrency}
+                placeholder={baseCurrency.baseCurrency}
                 className="h-8"
               />
             </FormRow>

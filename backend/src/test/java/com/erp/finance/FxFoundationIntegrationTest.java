@@ -49,8 +49,9 @@ class FxFoundationIntegrationTest extends AbstractIntegrationTest {
     // AC-1: 변경 후 조회가 반영(테넌트당 1행).
     authenticate("admin", "finance:read", "finance:setting:write");
 
-    baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("USD"));
-    baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("EUR"));
+    BaseCurrencyResponse updated =
+        baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("USD"));
+    baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("EUR", updated.version()));
 
     assertThat(baseCurrencyService.getBaseCurrency().baseCurrency()).isEqualTo("EUR");
   }

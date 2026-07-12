@@ -9,7 +9,8 @@ public record CompanyProfileResponse(
     String representative,
     String address,
     String businessType,
-    String businessItem) {
+    String businessItem,
+    Long version) {
 
   public static CompanyProfileResponse of(CompanyProfile entity) {
     return new CompanyProfileResponse(
@@ -18,10 +19,11 @@ public record CompanyProfileResponse(
         entity.getRepresentative(),
         entity.getAddress(),
         entity.getBusinessType(),
-        entity.getBusinessItem());
+        entity.getBusinessItem(),
+        entity.getVersion());
   }
 
   public static CompanyProfileResponse empty() {
-    return new CompanyProfileResponse(null, null, null, null, null, null);
+    return new CompanyProfileResponse(null, null, null, null, null, null, null);
   }
 }

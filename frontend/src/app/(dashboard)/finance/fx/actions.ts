@@ -5,14 +5,15 @@ import type { BaseCurrency, ExchangeRate, FxGainLossAccounts, VatAccounts } from
 
 const PATH = '/finance/fx'
 
-export async function updateBaseCurrency(baseCurrency: string): Promise<void> {
-  await apiPut<BaseCurrency>('/api/finance/fx/base-currency', { baseCurrency })
+export async function updateBaseCurrency(baseCurrency: string, version: number | null): Promise<void> {
+  await apiPut<BaseCurrency>('/api/finance/fx/base-currency', { baseCurrency, version })
   revalidatePath(PATH)
 }
 
 export async function updateFxGainLossAccounts(data: {
   fxGainAccountId: number | null
   fxLossAccountId: number | null
+  version: number | null
 }): Promise<void> {
   await apiPut<FxGainLossAccounts>('/api/finance/fx/gain-loss-accounts', data)
   revalidatePath(PATH)
@@ -21,6 +22,7 @@ export async function updateFxGainLossAccounts(data: {
 export async function updateVatAccounts(data: {
   vatReceivableAccountId: number | null
   vatPayableAccountId: number | null
+  version: number | null
 }): Promise<void> {
   await apiPut<VatAccounts>('/api/finance/fx/vat-accounts', data)
   revalidatePath(PATH)
