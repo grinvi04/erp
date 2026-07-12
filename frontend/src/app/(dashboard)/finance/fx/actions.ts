@@ -5,7 +5,10 @@ import type { BaseCurrency, ExchangeRate, FxGainLossAccounts, VatAccounts } from
 
 const PATH = '/finance/fx'
 
-export async function updateBaseCurrency(baseCurrency: string, version: number | null): Promise<void> {
+export async function updateBaseCurrency(
+  baseCurrency: string,
+  version: number | null,
+): Promise<void> {
   await apiPut<BaseCurrency>('/api/finance/fx/base-currency', { baseCurrency, version })
   revalidatePath(PATH)
 }

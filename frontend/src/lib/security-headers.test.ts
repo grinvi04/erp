@@ -3,7 +3,9 @@ import { buildContentSecurityPolicy, SECURITY_HEADERS } from './security-headers
 
 describe('SECURITY_HEADERS — 공개 앱 브라우저 보안 기본선', () => {
   it('MIME 스니핑·프레임 삽입·과도한 referrer·불필요한 장치 권한을 차단한다', () => {
-    expect(Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value]))).toMatchObject({
+    expect(
+      Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value])),
+    ).toMatchObject({
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'Referrer-Policy': 'strict-origin-when-cross-origin',

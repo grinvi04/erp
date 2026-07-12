@@ -195,9 +195,7 @@ export default function FxClient({
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm text-muted-foreground">기준통화</div>
-            <div className="text-2xl font-semibold font-mono mt-1">
-              {baseCurrency.baseCurrency}
-            </div>
+            <div className="text-2xl font-semibold font-mono mt-1">{baseCurrency.baseCurrency}</div>
           </div>
           {canWrite && (
             <Button variant="outline" onClick={openBase}>
