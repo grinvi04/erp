@@ -35,7 +35,7 @@ cd frontend && npm run test:e2e
 
 ## 4. 실스택 업무흐름 UAT
 
-실 Keycloak 토큰, 실제 PostgreSQL, 후보 백엔드·프런트로 수행한다.
+실 Keycloak 토큰, 실제 PostgreSQL, 후보 백엔드·프런트로 수행한다. 고객사 개통 절차와 승인 기록은 [유료 파일럿 온보딩 체크리스트](pilot-onboarding.md)를 함께 사용한다.
 
 - [ ] 테넌트 A/B 토큰의 `tenant_id`가 서로 다르고 교차 데이터 노출이 0건이다.
 - [ ] 회계기간 생성 → 전표 입력 → 결재 → 전기 → 시산표/손익/재무상태표 반영.
