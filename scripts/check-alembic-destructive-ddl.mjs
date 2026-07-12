@@ -235,6 +235,8 @@ const SQL_DESTRUCTIVE = [
 ]
 const MARKER_RE = /migration-safety:\s*destructive-ok/i
 const DEF_RE = /^(?:async\s+)?def\s+(\w+)/
+const INLINE_DEF_RE =
+  /^(?:async\s+)?def\s+(\w+)\s*\([^)]*\)(?:\s*->[^:]+)?\s*:\s*(.+)$/s
 const CLASS_RE = /^(?:async\s+)?class\s/
 
 function detect(stmt) {
@@ -260,8 +262,21 @@ for (const f of migrationFiles) {
     // 모듈-레벨(col0) def/class/기타 문장 → 스코프 전환
     if (stmt.col0 && codeT) {
       const m = DEF_RE.exec(codeT)
-      if (m) inScope = /^upgrade/.test(m[1])       // upgrade·upgrade_engineN → 스캔, downgrade*·기타 → 제외
-      else if (CLASS_RE.test(codeT)) inScope = false
+      if (m) {
+        inScope = /^upgrade/.test(m[1]) // upgrade·upgrade_engineN → 스캔, downgrade*·기타 → 제외
+        const inline = INLINE_DEF_RE.exec(codeT)
+        if (inScope && inline) {
+          const label = detect({ ...stmt, code: inline[2] })
+          if (label && !MARKER_RE.test(stmt.comments)) {
+            failures.push({
+              file: f,
+              label,
+              snippet: inline[2].replace(/\s+/g, ' ').slice(0, 80),
+            })
+          }
+          inScope = false // 한 줄 suite는 같은 문장에서 종료된다.
+        }
+      } else if (CLASS_RE.test(codeT)) inScope = false
       else inScope = false                          // 모듈-레벨 import·assignment 등 = 함수 밖
       leadingMarker = false
       continue

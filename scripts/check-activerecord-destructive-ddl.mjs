@@ -296,6 +296,8 @@ const SQL_DESTRUCTIVE = [
 ]
 const MARKER_RE = /migration-safety:\s*destructive-ok/i
 const DEF_RE = /^(?:private\s+|protected\s+|public\s+)?def\s+(?:self\.)?(\w+)/
+const ENDLESS_DEF_RE =
+  /^(?:private\s+|protected\s+|public\s+)?def\s+(?:self\.)?(\w+)\s*=\s*(.+)$/s
 // def change/up 본문 스코프 추적용 — do/블록 키워드 openers, end closers.
 const OPENER_LEAD = /^(?:class|module|begin|case|if|unless|while|until|for)\b/
 const TRAILING_DO = /\bdo\b(?:\s*\|[^|]*\|)?\s*$/
@@ -330,6 +332,20 @@ for (const f of migrationFiles) {
     }
     const defM = DEF_RE.exec(codeT)
     if (defM) {
+      const endless = ENDLESS_DEF_RE.exec(codeT)
+      if (endless) {
+        const inScope = endless[1] === 'change' || endless[1] === 'up'
+        const label = inScope ? detect({ ...stmt, code: endless[2] }) : null
+        if (label && !(MARKER_RE.test(stmt.comments) || leadingMarker)) {
+          failures.push({
+            file: f,
+            label,
+            snippet: endless[2].replace(/\s+/g, ' ').slice(0, 80),
+          })
+        }
+        leadingMarker = false
+        continue
+      }
       // def 진입 — 이 문장 자체는 파괴 op 아님. 스코프만 전환.
       defName = defM[1]
       defDepth = depth
