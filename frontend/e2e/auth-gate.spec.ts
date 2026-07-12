@@ -16,6 +16,11 @@ test.describe('인증 게이트', () => {
     expect(headers['permissions-policy']).toBe('camera=(), microphone=(), geolocation=()')
     expect(headers['cache-control']).toContain('private')
     expect(headers['cache-control']).toContain('no-store')
+    expect(headers['content-security-policy']).toContain("script-src 'self' 'nonce-")
+    expect(headers['content-security-policy']).toContain("'strict-dynamic'")
+    expect(headers['content-security-policy']).toContain("connect-src 'self'")
+    expect(headers['content-security-policy']).not.toContain("script-src 'self' 'unsafe-inline'")
+    expect(headers['content-security-policy']).not.toContain('https:')
   })
   // 4개 모듈 + 공통 화면의 대표 보호 라우트. (dashboard) 그룹 전체가 레이아웃에서
   // 게이트되므로 모듈별로 골고루 표본을 둔다.

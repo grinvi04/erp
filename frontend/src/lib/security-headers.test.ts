@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SECURITY_HEADERS } from './security-headers'
+import { buildContentSecurityPolicy, SECURITY_HEADERS } from './security-headers'
 
 describe('SECURITY_HEADERS — 공개 앱 브라우저 보안 기본선', () => {
   it('MIME 스니핑·프레임 삽입·과도한 referrer·불필요한 장치 권한을 차단한다', () => {
@@ -18,12 +18,25 @@ describe('SECURITY_HEADERS — 공개 앱 브라우저 보안 기본선', () => 
     })
   })
 
-  it('실행 출처·객체 삽입을 제한하고 HTTPS 재접속을 강제한다', () => {
+  it('요청 nonce로 스크립트를 제한하고 임의 외부 전송을 차단한다', () => {
     const headers = Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value]))
+    const policy = buildContentSecurityPolicy('test-nonce', false)
 
-    expect(headers['Content-Security-Policy']).toContain("default-src 'self'")
-    expect(headers['Content-Security-Policy']).toContain("object-src 'none'")
-    expect(headers['Content-Security-Policy']).toContain("frame-ancestors 'none'")
+    expect(policy).toContain("default-src 'self'")
+    expect(policy).toContain("object-src 'none'")
+    expect(policy).toContain("frame-ancestors 'none'")
+    expect(policy).toContain("script-src 'self' 'nonce-test-nonce' 'strict-dynamic'")
+    expect(policy).toContain("connect-src 'self'")
+    expect(policy).not.toContain("script-src 'self' 'unsafe-inline'")
+    expect(policy).not.toContain('https:')
+    expect(policy).not.toContain('wss:')
     expect(headers['Strict-Transport-Security']).toBe('max-age=31536000; includeSubDomains')
+  })
+
+  it('개발 모드에서만 Next.js 개발 런타임 출처를 허용한다', () => {
+    const policy = buildContentSecurityPolicy('dev-nonce', true)
+
+    expect(policy).toContain("script-src 'self' 'nonce-dev-nonce' 'strict-dynamic' 'unsafe-eval'")
+    expect(policy).toContain("connect-src 'self' ws: wss:")
   })
 })
