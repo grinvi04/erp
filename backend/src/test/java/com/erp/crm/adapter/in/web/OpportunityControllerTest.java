@@ -2,6 +2,7 @@ package com.erp.crm.adapter.in.web;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -10,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.erp.common.config.TestSecurityConfig;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.response.PageResponse;
 import com.erp.crm.application.dto.OpportunityCreateRequest;
 import com.erp.crm.application.dto.OpportunityResponse;
 import com.erp.crm.application.service.OpportunityService;
@@ -17,11 +19,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -64,6 +68,26 @@ class OpportunityControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.name").value("2026 클라우드 전환"))
         .andExpect(jsonPath("$.data.probability").value(20));
+  }
+
+  @Test
+  void search_exportFilters_passesCloseDateRangeToService() throws Exception {
+    given(opportunityService.search(any(), any(), any(), any(), any()))
+        .willReturn(new PageResponse<>(List.of(), 0, 100, 0, 0, true, true));
+
+    mockMvc
+        .perform(
+            get("/api/crm/opportunities")
+                .param("accountId", "10")
+                .param("stageId", "20")
+                .param("from", "2026-01-01")
+                .param("to", "2026-12-31")
+                .param("size", "100"))
+        .andExpect(status().isOk());
+
+    verify(opportunityService)
+        .search(
+            10L, 20L, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), PageRequest.of(0, 100));
   }
 
   @Test

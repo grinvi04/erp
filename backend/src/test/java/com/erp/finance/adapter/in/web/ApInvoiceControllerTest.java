@@ -2,6 +2,7 @@ package com.erp.finance.adapter.in.web;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -71,6 +72,30 @@ class ApInvoiceControllerTest {
         .perform(get("/api/finance/invoices"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true));
+  }
+
+  @Test
+  void findAll_exportFilters_passesAllFiltersToService() throws Exception {
+    given(apInvoiceService.findAll(any(), any(), any(), any(), any()))
+        .willReturn(PageResponse.from(new PageImpl<>(List.of(), PageRequest.of(0, 100), 0)));
+
+    mockMvc
+        .perform(
+            get("/api/finance/invoices")
+                .param("status", "DRAFT")
+                .param("vendorId", "42")
+                .param("from", "2026-01-01")
+                .param("to", "2026-01-31")
+                .param("size", "100"))
+        .andExpect(status().isOk());
+
+    verify(apInvoiceService)
+        .findAll(
+            ApInvoiceStatus.DRAFT,
+            42L,
+            LocalDate.of(2026, 1, 1),
+            LocalDate.of(2026, 1, 31),
+            PageRequest.of(0, 100, org.springframework.data.domain.Sort.by("id").descending()));
   }
 
   @Test

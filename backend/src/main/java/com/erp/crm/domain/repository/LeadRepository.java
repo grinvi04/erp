@@ -31,6 +31,29 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
       Pageable pageable);
 
   @Query(
+      value =
+          "SELECT l FROM Lead l LEFT JOIN FETCH l.convertedAccount WHERE "
+              + "(:status IS NULL OR l.status = :status) AND "
+              + "(:ownerId IS NULL OR l.ownerId = :ownerId) AND "
+              + "(:keyword IS NULL OR LOWER(CONCAT(l.lastName, l.firstName)) LIKE %:keyword% "
+              + "OR LOWER(l.company) LIKE %:keyword% OR LOWER(l.email) LIKE %:keyword%) AND "
+              + "(:scoped = false OR l.ownerId IN :ownerIds)",
+      countQuery =
+          "SELECT COUNT(l) FROM Lead l WHERE "
+              + "(:status IS NULL OR l.status = :status) AND "
+              + "(:ownerId IS NULL OR l.ownerId = :ownerId) AND "
+              + "(:keyword IS NULL OR LOWER(CONCAT(l.lastName, l.firstName)) LIKE %:keyword% "
+              + "OR LOWER(l.company) LIKE %:keyword% OR LOWER(l.email) LIKE %:keyword%) AND "
+              + "(:scoped = false OR l.ownerId IN :ownerIds)")
+  Page<Lead> searchFiltered(
+      @Param("status") LeadStatus status,
+      @Param("ownerId") String ownerId,
+      @Param("keyword") String keyword,
+      @Param("scoped") boolean scoped,
+      @Param("ownerIds") java.util.Collection<String> ownerIds,
+      Pageable pageable);
+
+  @Query(
       "SELECT COUNT(l) FROM Lead l WHERE l.status = :status AND "
           + "(:scoped = false OR l.ownerId IN :ownerIds)")
   long countByStatus(

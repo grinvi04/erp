@@ -5,12 +5,23 @@ import { revalidatePath } from 'next/cache'
 import type { Lead } from '@/types/crm'
 
 // 전체 엑셀 내보내기 — 현재 페이지가 아닌 전체 리드(전 페이지 순회). 화면이 조회조건을 재적용한다.
-export async function exportAllLeads(): Promise<{
+export interface LeadExportFilter {
+  status: string
+  owner: string
+  keyword: string
+}
+
+export async function exportAllLeads(filter: LeadExportFilter): Promise<{
   rows: Lead[]
   truncated: boolean
   limit: number
 }> {
-  return fetchAllPages<Lead>('/api/crm/leads')
+  const params = new URLSearchParams()
+  if (filter.status) params.set('status', filter.status)
+  if (filter.owner) params.set('ownerId', filter.owner)
+  if (filter.keyword) params.set('keyword', filter.keyword)
+  const query = params.toString()
+  return fetchAllPages<Lead>(`/api/crm/leads${query ? `?${query}` : ''}`)
 }
 
 export interface LeadPayload {

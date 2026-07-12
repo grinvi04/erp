@@ -25,6 +25,7 @@ import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.ArInvoiceRepository;
 import com.erp.finance.domain.repository.CustomerRepository;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -66,6 +67,15 @@ public class ArInvoiceService {
           arInvoiceRepository.findByStatus(status, pageable).map(ArInvoiceResponse::from));
     }
     return PageResponse.from(arInvoiceRepository.findAll(pageable).map(ArInvoiceResponse::from));
+  }
+
+  public PageResponse<ArInvoiceResponse> findAll(
+      ArInvoiceStatus status, Long customerId, LocalDate from, LocalDate to, Pageable pageable) {
+    permissionChecker.require(Permission.FINANCE_READ);
+    return PageResponse.from(
+        arInvoiceRepository
+            .search(status, customerId, from, to, pageable)
+            .map(ArInvoiceResponse::from));
   }
 
   public PageResponse<ArInvoiceResponse> findByCustomer(Long customerId, Pageable pageable) {

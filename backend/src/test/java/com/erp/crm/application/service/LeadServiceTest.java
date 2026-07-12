@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
@@ -18,11 +19,14 @@ import com.erp.crm.domain.model.Lead;
 import com.erp.crm.domain.model.LeadStatus;
 import com.erp.crm.domain.repository.LeadRepository;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,11 +39,31 @@ class LeadServiceTest {
   @Mock private PipelineStageService stageService;
   @Mock private com.erp.common.security.PermissionChecker permissionChecker;
   @Mock private com.erp.common.security.CurrentUserProvider currentUserProvider;
+  @Mock private CrmDataScopeResolver dataScopeResolver;
   @InjectMocks private LeadService leadService;
 
   private Lead buildLead() {
     return Lead.of(
         "김", "철수", "ABC주식회사", "팀장", "kim@abc.com", "010-0000-0000", "WEB", "sales-001", null);
+  }
+
+  @Test
+  void search_filteredNormalizesKeywordAndPreservesOwnerScope() {
+    given(dataScopeResolver.ownerScope())
+        .willReturn(new CrmDataScopeResolver.OwnerScope(true, Set.of("user-001")));
+    given(leadRepository.searchFiltered(any(), any(), any(), any(Boolean.class), any(), any()))
+        .willReturn(new PageImpl<>(java.util.List.of()));
+
+    leadService.search(LeadStatus.NEW, "user-001", "  Hong@Example.COM  ", PageRequest.of(0, 20));
+
+    verify(leadRepository)
+        .searchFiltered(
+            LeadStatus.NEW,
+            "user-001",
+            "hong@example.com",
+            true,
+            Set.of("user-001"),
+            PageRequest.of(0, 20));
   }
 
   @Test

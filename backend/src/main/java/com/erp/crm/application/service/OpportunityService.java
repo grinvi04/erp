@@ -41,6 +41,16 @@ public class OpportunityService {
             .map(OpportunityResponse::from));
   }
 
+  public PageResponse<OpportunityResponse> search(
+      Long accountId, Long stageId, LocalDate from, LocalDate to, Pageable pageable) {
+    permissionChecker.require(Permission.CRM_READ);
+    var s = dataScopeResolver.ownerScope();
+    return PageResponse.from(
+        opportunityRepository
+            .searchFiltered(accountId, stageId, from, to, s.scoped(), s.ownerIds(), pageable)
+            .map(OpportunityResponse::from));
+  }
+
   public OpportunityResponse findById(Long id) {
     permissionChecker.require(Permission.CRM_READ);
     var opp = getOrThrow(id);
