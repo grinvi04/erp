@@ -3,10 +3,12 @@ import NextAuth from 'next-auth'
 import Keycloak from 'next-auth/providers/keycloak'
 import type { Session } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
+import { getToken } from 'next-auth/jwt'
+import { headers } from 'next/headers'
+import { toPublicSession } from '@/lib/auth-session'
 
 declare module 'next-auth' {
   interface Session {
-    accessToken: string
     tenantId: string
     error?: string
   }
@@ -48,6 +50,24 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   }
 }
 
+export async function getServerAccessToken(): Promise<string | null> {
+  const requestHeaders = await headers()
+  const secret = process.env.AUTH_SECRET
+  if (!secret) return null
+
+  for (const cookieName of ['__Secure-authjs.session-token', 'authjs.session-token']) {
+    const token = await getToken({
+      req: { headers: requestHeaders },
+      secret,
+      cookieName,
+      salt: cookieName,
+      secureCookie: cookieName.startsWith('__Secure-'),
+    })
+    if (typeof token?.accessToken === 'string') return token.accessToken
+  }
+  return null
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Keycloak({
@@ -79,12 +99,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return refreshAccessToken(token)
     },
     async session({ session, token }): Promise<Session> {
-      return {
-        ...session,
-        accessToken: token.accessToken,
-        tenantId: token.tenantId,
-        error: token.error,
-      }
+      return toPublicSession(session, token)
     },
   },
   pages: { signIn: '/login' },

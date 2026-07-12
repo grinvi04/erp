@@ -118,7 +118,7 @@ erp/
 
 - **CD**: Railway·Vercel **GitHub 연동**으로 main 푸시 시 자동 재배포(GH Actions 분 미소모). 릴리즈가 main 머지되면 자동 배포.
 - 상세 절차·환경변수·시크릿·Keycloak realm 설정: **`docs/deployment.md`**.
-- ⚠️ 인가 DB 기반 → 기동 시 `ERP_IAM_BOOTSTRAP_ADMIN_SUB`(+`ERP_IAM_BOOTSTRAP_TENANT_ID`) 미설정이면 권한 보유자 없음(fail-closed). 필수 설정.
+- ⚠️ 인가 DB 기반 → 최초 고객사는 `docs/deployment.md`의 감사 가능한 `provisionTenant` 명령으로 생성한다. 일반 백엔드 기동은 권한 보유자가 없어도 fail-closed하며, tenant 1에 암묵적으로 전권을 주는 부트스트랩 경로는 두지 않는다.
 
 ## 배포·헬스체크 명령
 

@@ -17,4 +17,13 @@ describe('SECURITY_HEADERS — 공개 앱 브라우저 보안 기본선', () => 
       value: 'private, no-store, max-age=0',
     })
   })
+
+  it('실행 출처·객체 삽입을 제한하고 HTTPS 재접속을 강제한다', () => {
+    const headers = Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value]))
+
+    expect(headers['Content-Security-Policy']).toContain("default-src 'self'")
+    expect(headers['Content-Security-Policy']).toContain("object-src 'none'")
+    expect(headers['Content-Security-Policy']).toContain("frame-ancestors 'none'")
+    expect(headers['Strict-Transport-Security']).toBe('max-age=31536000; includeSubDomains')
+  })
 })
