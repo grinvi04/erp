@@ -67,10 +67,13 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
    KC_DB_USERNAME=${{Postgres.PGUSER}}
    KC_DB_PASSWORD=${{Postgres.PGPASSWORD}}
    KC_DB_SCHEMA=keycloak
+   KC_HEALTH_ENABLED=true
+   KC_LEGACY_OBSERVABILITY_INTERFACE=true
    KC_HOSTNAME=${{RAILWAY_PUBLIC_DOMAIN}}
    KEYCLOAK_ADMIN=admin
    KEYCLOAK_ADMIN_PASSWORD=<강한 비밀번호>
    ```
+   `KC_LEGACY_OBSERVABILITY_INTERFACE`는 현재 고정 이미지 `26.0.x`에서 Railway의 단일 공개 포트로 readiness를 확인하기 위한 호환 설정이다. Keycloak 26.4+로 올릴 때는 이를 제거하고 `KC_HTTP_MANAGEMENT_HEALTH_ENABLED=false` 또는 비공개 관리 포트 9000 프로브로 전환한다.
 5. Settings → Networking → **Generate Domain** (공개 URL 발급). 이 URL이 Keycloak 이슈어 베이스가 된다.
 
 ### 1-3. Realm + 클라이언트 (최초 1회, Keycloak Admin)
