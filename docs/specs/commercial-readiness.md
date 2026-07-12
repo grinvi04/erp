@@ -13,6 +13,14 @@
 - 운영 배포는 아직 존재하지 않으며(`README.md`, `docs/deployment.md`), 백업·복구·장애 대응·개인정보/계약 문서는 저장소에 없다. 따라서 현재 상태를 "유료 상용 서비스"라고 주장할 근거는 없다.
 - 로컬 `develop`은 `origin/develop`보다 2커밋 뒤다. 구현 시작 전 최신 `develop`을 별도 작업 브랜치의 기준으로 재확인한다.
 
+### 구현·검증 현황 (2026-07-13, `feature/commercial-readiness`)
+
+- 태스크 1~5의 로컬 구현과 검증을 완료했다. #171의 필터 내보내기 정확성, #172의 CRM 데이터스코프·참조 잠금, 핵심 업무흐름, 복구 스크립트·런북, 보안 헤더·세션 경계를 코드와 테스트로 고정했다.
+- 릴리스 재감사에서 발견된 추가 결함도 해소했다. 브라우저 세션의 access token 제거, 요청별 nonce CSP, 운영 SecurityConfig 결선, 위험한 암묵 관리자 bootstrap 제거, Tenant 감사·낙관적 잠금·소프트삭제 DB 표준을 적용했다.
+- 운영 인증 체인은 실제 PostgreSQL에서 `JWT → DB 역할 권한 → ACTIVE tenant → API 200`과 `SUSPENDED tenant → 403/C004`를 검증한다.
+- 로컬 게이트는 backend `check`, frontend test/type-check/lint/design/build, 기본 Playwright 35건, 실제 Keycloak·Backend Playwright 7건, migration safety, 의존성 감사를 통과했다. 로컬 PostgreSQL 16 격리 복원 연습도 통과했다.
+- 아직 완료되지 않은 것은 태스크 6과 외부 변경뿐이다. 브랜치 push·PR·GitHub 이슈 상태 변경은 명시적 게시 승인 전이며, Railway/Vercel/Keycloak 운영 환경·UAT·운영 백업·법무/SLA 결정은 계정과 제품 소유자 승인이 필요하다. 따라서 현재 커밋은 **로컬 파일럿 배포 후보**이지 운영 출시 승인 상태가 아니다.
+
 ## 2. Scope
 
 - **In:** #171 CSV 정확성 수정, #172 재검증, 파일럿 업무흐름 E2E, 배포 전 릴리즈 게이트(백업·복구 연습 포함), 최소 운영 문서와 보안 헤더 검증, 유료 파일럿 온보딩 체크리스트.
