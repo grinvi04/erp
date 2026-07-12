@@ -81,6 +81,16 @@ try {
     1,
     'endless ActiveRecord operation after parenthesized parameters',
   )
+
+  writeFileSync(
+    activeRecord,
+    'class Example < ActiveRecord::Migration[7.0]\n  def up options = nil\n    drop_table :customer\n  end\nend\n',
+  )
+  expectExit(
+    'check-activerecord-destructive-ddl.mjs',
+    1,
+    'ActiveRecord operation after unparenthesized optional parameter',
+  )
 } finally {
   rmSync(root, { recursive: true, force: true })
 }

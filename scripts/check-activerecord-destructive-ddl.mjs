@@ -303,15 +303,21 @@ const IS_END = /^end\b/
 
 function endlessDefBody(code, prefixLength) {
   let depth = 0
+  const separators = []
   for (let i = prefixLength; i < code.length; i++) {
     if (code[i] === '(' || code[i] === '[' || code[i] === '{') depth++
     else if (code[i] === ')' || code[i] === ']' || code[i] === '}') depth--
-    else if (code[i] === '=' && depth === 0) {
-      const body = code.slice(i + 1).trim()
-      return body || null
-    }
+    else if (code[i] === '=' && depth === 0) separators.push(i)
   }
-  return null
+  if (separators.length === 0) return null
+
+  const separator = separators.at(-1)
+  const prefix = code.slice(prefixLength, separator).trim()
+  // 괄호 없는 기본 인자(`def up options = nil`)의 유일한 =는 본문 구분자가 아니다.
+  if (separators.length === 1 && prefix && !prefix.startsWith('(')) return null
+
+  const body = code.slice(separator + 1).trim()
+  return body || null
 }
 
 function detect(stmt) {
