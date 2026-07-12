@@ -302,6 +302,7 @@ export interface FixedAsset {
   accumulatedImpairment: number
   bookValue: number
   status: FixedAssetStatus
+  version: number
 }
 
 export interface DepreciationEntry {

@@ -25,6 +25,7 @@ import com.erp.finance.domain.model.NormalBalance;
 import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.FiscalPeriodRepository;
 import com.erp.finance.domain.repository.FiscalYearRepository;
+import com.erp.finance.domain.repository.FixedAssetRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -48,6 +49,7 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
   @Autowired private FiscalYearRepository fiscalYearRepository;
   @Autowired private FiscalPeriodRepository fiscalPeriodRepository;
   @Autowired private JournalEntryRepository journalEntryRepository;
+  @Autowired private FixedAssetRepository fixedAssetRepository;
 
   private Long periodId;
   private Long assetAccountId;
@@ -123,7 +125,10 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
         fixedAssetService.dispose(
             assetId,
             new FixedAssetDisposeRequest(
-                LocalDate.of(2025, 1, 20), new BigDecimal("1150000"), cashAccountId));
+                LocalDate.of(2025, 1, 20),
+                new BigDecimal("1150000"),
+                cashAccountId,
+                assetVersion(assetId)));
 
     assertThat(result.status().name()).isEqualTo("DISPOSED");
 
@@ -146,7 +151,9 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
 
     authenticate("creator", "finance:write");
     fixedAssetService.dispose(
-        assetId, new FixedAssetDisposeRequest(LocalDate.of(2025, 1, 20), BigDecimal.ZERO, null));
+        assetId,
+        new FixedAssetDisposeRequest(
+            LocalDate.of(2025, 1, 20), BigDecimal.ZERO, null, assetVersion(assetId)));
 
     JournalEntry je =
         journalEntryRepository
@@ -169,7 +176,10 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
                 fixedAssetService.dispose(
                     assetId,
                     new FixedAssetDisposeRequest(
-                        LocalDate.of(2025, 1, 20), new BigDecimal("1150000"), cashAccountId)))
+                        LocalDate.of(2025, 1, 20),
+                        new BigDecimal("1150000"),
+                        cashAccountId,
+                        assetVersion(assetId))))
         .isInstanceOf(ErpException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.DISPOSAL_ACCOUNT_NOT_CONFIGURED);
@@ -198,7 +208,10 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
     fixedAssetService.dispose(
         assetId,
         new FixedAssetDisposeRequest(
-            LocalDate.of(2025, 1, 20), new BigDecimal("750000"), cashAccountId));
+            LocalDate.of(2025, 1, 20),
+            new BigDecimal("750000"),
+            cashAccountId,
+            assetVersion(assetId)));
 
     JournalEntry je =
         journalEntryRepository
@@ -218,15 +231,23 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
     fixedAssetService.dispose(
         assetId,
         new FixedAssetDisposeRequest(
-            LocalDate.of(2025, 1, 20), new BigDecimal("1150000"), cashAccountId));
+            LocalDate.of(2025, 1, 20),
+            new BigDecimal("1150000"),
+            cashAccountId,
+            assetVersion(assetId)));
 
     assertThatThrownBy(
             () ->
                 fixedAssetService.dispose(
                     assetId,
-                    new FixedAssetDisposeRequest(LocalDate.of(2025, 1, 21), BigDecimal.ZERO, null)))
+                    new FixedAssetDisposeRequest(
+                        LocalDate.of(2025, 1, 21), BigDecimal.ZERO, null, assetVersion(assetId))))
         .isInstanceOf(ErpException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.FIXED_ASSET_ALREADY_DISPOSED);
+  }
+
+  private Long assetVersion(Long assetId) {
+    return fixedAssetRepository.findById(assetId).orElseThrow().getVersion();
   }
 }

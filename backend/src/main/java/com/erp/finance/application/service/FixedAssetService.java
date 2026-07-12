@@ -114,6 +114,7 @@ public class FixedAssetService {
   public FixedAssetResponse dispose(Long id, FixedAssetDisposeRequest request) {
     permissionChecker.require(Permission.FINANCE_WRITE);
     FixedAsset asset = getOrThrow(id);
+    asset.checkVersion(request.version());
     if (!asset.isActive()) {
       throw new ErpException(ErrorCode.FIXED_ASSET_ALREADY_DISPOSED);
     }

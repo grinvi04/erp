@@ -209,6 +209,7 @@ export default function FixedAssetsClient({
           disposalDate,
           proceeds: Number(proceeds) || 0,
           proceedsAccountId: proceedsAccountId ? Number(proceedsAccountId) : null,
+          version: asset.version,
         })
         toast.success('자산이 처분되었습니다')
         close()

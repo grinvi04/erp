@@ -9,4 +9,5 @@ import java.time.LocalDate;
 public record FixedAssetDisposeRequest(
     @NotNull LocalDate disposalDate,
     @NotNull @DecimalMin("0") BigDecimal proceeds,
-    Long proceedsAccountId) {}
+    Long proceedsAccountId,
+    Long version) {}
