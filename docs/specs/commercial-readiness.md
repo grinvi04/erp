@@ -19,7 +19,7 @@
 - 릴리스 재감사에서 발견된 추가 결함도 해소했다. 브라우저 세션의 access token 제거, 요청별 nonce CSP, 운영 SecurityConfig 결선, 위험한 암묵 관리자 bootstrap 제거, Tenant 감사·낙관적 잠금·소프트삭제 DB 표준을 적용했다.
 - 운영 인증 체인은 실제 PostgreSQL에서 `JWT → DB 역할 권한 → ACTIVE tenant → API 200`과 `SUSPENDED tenant → 403/C004`를 검증한다.
 - 로컬 게이트는 backend `check`, frontend test/type-check/lint/design/build, 기본 Playwright 35건, 실제 Keycloak·Backend Playwright 7건, migration safety, 의존성 감사를 통과했다. 로컬 PostgreSQL 16 격리 복원 연습도 통과했다.
-- 브랜치를 push하고 `develop` 대상 Draft PR #184를 생성했으며, 후보 SHA `b465960`에서 GitHub Actions 10개와 독립 AI 리뷰가 통과했다. 미해결 리뷰 스레드는 0개이고 PR은 mergeable 상태다. #171·#172는 PR 머지 시 종결하도록 연결했지만, 머지 승인은 아직 받지 않았으므로 열린 상태를 유지한다.
+- 브랜치를 push하고 `develop` 대상 Draft PR #184를 생성했으며, 후보 SHA `b465960`에서 GitHub Actions 10개와 독립 AI 리뷰가 통과했다. 미해결 리뷰 스레드는 0개이고 PR은 mergeable 상태다. #171·#172는 기본 브랜치 대상 PR이 아니어서 GitHub 자동 종결 대상이 아니며, develop 반영과 증거 확인 후 별도로 종결한다.
 - 아직 완료되지 않은 것은 태스크 6과 외부 변경이다. Railway/Vercel/Keycloak 운영 환경·UAT·운영 백업·법무/SLA 결정은 계정과 제품 소유자 승인이 필요하다. 따라서 현재 커밋은 **검증된 파일럿 배포 후보**이지 운영 출시 승인 상태가 아니다.
 
 ## 2. Scope
