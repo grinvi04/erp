@@ -314,7 +314,7 @@ function endlessDefBody(code, prefixLength) {
   const separator = separators.at(-1)
   const prefix = code.slice(prefixLength, separator).trim()
   // 괄호 없는 기본 인자(`def up options = nil`)의 유일한 =는 본문 구분자가 아니다.
-  if (separators.length === 1 && prefix && !prefix.startsWith('(')) return null
+  if (prefix && !prefix.startsWith('(')) return null
 
   const body = code.slice(separator + 1).trim()
   return body || null
