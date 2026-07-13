@@ -48,10 +48,17 @@ test.describe('인증된 사용자 — 렌더 스모크', () => {
   })
 
   test('헤더에 세션 사용자·계정 메뉴(로그아웃 보유)가 표시된다', async ({ page }) => {
+    const pageErrors: Error[] = []
+    page.on('pageerror', (error) => pageErrors.push(error))
+
     await page.goto('/')
     await expect(page.getByText('e2e@test.local')).toBeVisible()
     // 로그아웃은 이 계정 드롭다운 메뉴 안에 있다(헤더 재설계).
-    await expect(page.getByRole('button', { name: '계정' })).toBeVisible()
+    await page.getByRole('button', { name: '계정' }).click()
+    await expect(page.getByText('로그인됨')).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: '내 프로필' })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: '로그아웃' })).toBeVisible()
+    expect(pageErrors).toEqual([])
   })
 
   test('결재함(/approvals)이 인증 상태로 렌더된다', async ({ page }) => {
