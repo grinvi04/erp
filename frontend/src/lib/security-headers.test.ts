@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildContentSecurityPolicy, SECURITY_HEADERS } from './security-headers'
+import {
+  buildContentSecurityPolicy,
+  SECURITY_HEADERS,
+  SENSITIVE_RESPONSE_CACHE_CONTROL,
+} from './security-headers'
 
 describe('SECURITY_HEADERS — 공개 앱 브라우저 보안 기본선', () => {
   it('MIME 스니핑·프레임 삽입·과도한 referrer·불필요한 장치 권한을 차단한다', () => {
@@ -13,11 +17,11 @@ describe('SECURITY_HEADERS — 공개 앱 브라우저 보안 기본선', () => 
     })
   })
 
-  it('민감 응답이 공유 캐시에 저장되지 않도록 기본 캐시 정책을 둔다', () => {
-    expect(SECURITY_HEADERS).toContainEqual({
-      key: 'Cache-Control',
-      value: 'private, no-store, max-age=0',
-    })
+  it('정적 자산용 전역 헤더와 민감 응답 캐시 정책을 분리한다', () => {
+    expect(
+      Object.fromEntries(SECURITY_HEADERS.map(({ key, value }) => [key, value])),
+    ).not.toHaveProperty('Cache-Control')
+    expect(SENSITIVE_RESPONSE_CACHE_CONTROL).toBe('private, no-store, max-age=0')
   })
 
   it('요청 nonce로 스크립트를 제한하고 임의 외부 전송을 차단한다', () => {

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { buildContentSecurityPolicy } from '@/lib/security-headers'
+import {
+  buildContentSecurityPolicy,
+  SENSITIVE_RESPONSE_CACHE_CONTROL,
+} from '@/lib/security-headers'
 
 export const proxy = auth((request) => {
   const nonce = btoa(crypto.randomUUID())
@@ -14,6 +17,7 @@ export const proxy = auth((request) => {
 
   const response = NextResponse.next({ request: { headers: requestHeaders } })
   response.headers.set('Content-Security-Policy', contentSecurityPolicy)
+  response.headers.set('Cache-Control', SENSITIVE_RESPONSE_CACHE_CONTROL)
   return response
 })
 

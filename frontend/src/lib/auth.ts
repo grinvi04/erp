@@ -6,6 +6,7 @@ import type { JWT } from 'next-auth/jwt'
 import { getToken } from 'next-auth/jwt'
 import { headers } from 'next/headers'
 import { toPublicSession } from '@/lib/auth-session'
+import { resolveServerAccessToken } from '@/lib/server-access-token'
 
 declare module 'next-auth' {
   interface Session {
@@ -63,7 +64,7 @@ export async function getServerAccessToken(): Promise<string | null> {
       salt: cookieName,
       secureCookie: cookieName.startsWith('__Secure-'),
     })
-    if (typeof token?.accessToken === 'string') return token.accessToken
+    if (token) return resolveServerAccessToken(token, refreshAccessToken)
   }
   return null
 }

@@ -27,5 +27,6 @@ export const SECURITY_HEADERS = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-  { key: 'Cache-Control', value: 'private, no-store, max-age=0' },
 ] as const
+
+export const SENSITIVE_RESPONSE_CACHE_CONTROL = 'private, no-store, max-age=0'
