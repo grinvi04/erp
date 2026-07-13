@@ -17,7 +17,7 @@
 - 권한 코드 `{모듈}:{리소스}:{액션}` 상수(`Permission`), `PermissionChecker.require(code)`를 **application 유스케이스(service) 진입점**에서 호출(없으면 FORBIDDEN). **서버 검사가 최종.**
 - 프론트 게이팅: `GET /api/me/permissions` → `PermissionsProvider` 컨텍스트 → `usePermissions().can()`.
 - 적용: HR은 리소스별(hr:employee/department/position/jobgrade/leave, #22). Finance/Inventory/CRM은 모듈별 coarse(read/write, #23·#24). 휴가 결재는 도메인 규칙(매니저=currentStepApproverId).
-- 관리: `IamService` + `/api/iam/*`(역할 CRUD·배정·접근프로파일, `iam:read/write`, 변경 전부 감사). `Permission.all()` 카탈로그(동기화 리플렉션 테스트). `IamBootstrap`(`erp.iam.bootstrap.admin-sub`→SUPER_ADMIN 멱등). 프론트 `/iam`.
+- 관리: `IamService` + `/api/iam/*`(역할 CRUD·배정·접근프로파일, `iam:read/write`, 변경 전부 감사). `Permission.all()` 카탈로그(동기화 리플렉션 테스트). 프론트 `/iam`. 초기 `IamBootstrap`은 tenant 1 기본값·무감사 전권 배정 위험 때문에 제거했고, 최초 관리자 생성은 tenant 상태·Keycloak 속성·감사로그를 원자적으로 연결하는 `provisionTenant` 명령만 사용한다.
 
 ### 데이터 스코프 (DataScope)
 - `common/security` DataScope(ALL/DEPARTMENT/SELF) + DataScopeProvider(JWT data_scope·department_id, 미설정=ALL).

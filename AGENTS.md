@@ -118,7 +118,7 @@ erp/
 
 - **CD**: Railway·Vercel **GitHub 연동**으로 main 푸시 시 자동 재배포(GH Actions 분 미소모). 릴리즈가 main 머지되면 자동 배포.
 - 상세 절차·환경변수·시크릿·Keycloak realm 설정: **`docs/deployment.md`**.
-- ⚠️ 인가 DB 기반 → 기동 시 `ERP_IAM_BOOTSTRAP_ADMIN_SUB`(+`ERP_IAM_BOOTSTRAP_TENANT_ID`) 미설정이면 권한 보유자 없음(fail-closed). 필수 설정.
+- ⚠️ 인가 DB 기반 → 최초 고객사는 `docs/deployment.md`의 감사 가능한 `provisionTenant` 명령으로 생성한다. 일반 백엔드 기동은 권한 보유자가 없어도 fail-closed하며, tenant 1에 암묵적으로 전권을 주는 부트스트랩 경로는 두지 않는다.
 
 ## 배포·헬스체크 명령
 
@@ -158,6 +158,8 @@ erp/
 
 ## 코딩 컨벤션
 
+- 작업 대상 stack과 관련된 `.claude/rules/*.md`를 작업 전에 읽는다. 이 경로는 Claude Code의 자동 로딩
+  위치이지만 rule 원문은 도구 공통이다. Codex/Gemini는 이 지시에 따라 관련 파일을 명시적으로 읽는다.
 - 가정하지 말 것 — 불확실하면 묻는다
 - 문제를 풀 수 있는 최소한의 코드 — 요청하지 않은 기능·추상화 금지
 - 외과적 수정 — 꼭 필요한 것만 건드린다

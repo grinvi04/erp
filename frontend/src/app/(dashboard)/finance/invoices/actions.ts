@@ -6,13 +6,26 @@ import type { ApInvoice, TaxType } from '@/types/finance'
 
 const PATH = '/finance/invoices'
 
-// 전체 엑셀 내보내기 — 현재 페이지가 아닌 전체 매입계산서(전 페이지 순회). 화면이 조회조건을 재적용한다.
-export async function exportAllInvoices(): Promise<{
+export interface InvoiceExportFilter {
+  vendor: string
+  status: string
+  from: string
+  to: string
+}
+
+// 전체 엑셀 내보내기 — 조회 조건을 백엔드에 전달해 상한 이후의 일치 행도 빠뜨리지 않는다.
+export async function exportAllInvoices(filter: InvoiceExportFilter): Promise<{
   rows: ApInvoice[]
   truncated: boolean
   limit: number
 }> {
-  return fetchAllPages<ApInvoice>('/api/finance/invoices')
+  const params = new URLSearchParams()
+  if (filter.vendor) params.set('vendorId', filter.vendor)
+  if (filter.status) params.set('status', filter.status)
+  if (filter.from) params.set('from', filter.from)
+  if (filter.to) params.set('to', filter.to)
+  const query = params.toString()
+  return fetchAllPages<ApInvoice>(`/api/finance/invoices${query ? `?${query}` : ''}`)
 }
 
 export async function createInvoice(data: {

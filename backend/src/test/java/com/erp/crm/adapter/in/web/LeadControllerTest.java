@@ -3,6 +3,7 @@ package com.erp.crm.adapter.in.web;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -77,6 +78,23 @@ class LeadControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content[0].lastName").value("홍"))
         .andExpect(jsonPath("$.data.totalElements").value(1));
+  }
+
+  @Test
+  void search_exportFilters_passesOwnerAndKeywordToService() throws Exception {
+    given(leadService.search(any(), any(), any(), any()))
+        .willReturn(new PageResponse<>(List.of(), 0, 100, 0, 0, true, true));
+
+    mockMvc
+        .perform(
+            get("/api/crm/leads")
+                .param("status", "NEW")
+                .param("ownerId", "user-001")
+                .param("keyword", "hong@example.com")
+                .param("size", "100"))
+        .andExpect(status().isOk());
+
+    verify(leadService).search(eq(LeadStatus.NEW), eq("user-001"), eq("hong@example.com"), any());
   }
 
   @Test

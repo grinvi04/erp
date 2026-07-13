@@ -3,6 +3,7 @@ package com.erp.finance.domain.repository;
 import com.erp.finance.domain.model.ArInvoice;
 import com.erp.finance.domain.model.ArInvoiceStatus;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,26 @@ public interface ArInvoiceRepository extends JpaRepository<ArInvoice, Long> {
   Page<ArInvoice> findByCustomerIdAndStatus(
       @Param("customerId") Long customerId,
       @Param("status") ArInvoiceStatus status,
+      Pageable pageable);
+
+  @Query(
+      value =
+          "SELECT i FROM ArInvoice i LEFT JOIN FETCH i.customer "
+              + "WHERE (:status IS NULL OR i.status = :status) "
+              + "AND (:customerId IS NULL OR i.customer.id = :customerId) "
+              + "AND (:from IS NULL OR i.invoiceDate >= :from) "
+              + "AND (:to IS NULL OR i.invoiceDate <= :to)",
+      countQuery =
+          "SELECT COUNT(i) FROM ArInvoice i "
+              + "WHERE (:status IS NULL OR i.status = :status) "
+              + "AND (:customerId IS NULL OR i.customer.id = :customerId) "
+              + "AND (:from IS NULL OR i.invoiceDate >= :from) "
+              + "AND (:to IS NULL OR i.invoiceDate <= :to)")
+  Page<ArInvoice> search(
+      @Param("status") ArInvoiceStatus status,
+      @Param("customerId") Long customerId,
+      @Param("from") LocalDate from,
+      @Param("to") LocalDate to,
       Pageable pageable);
 
   /**

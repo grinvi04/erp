@@ -34,9 +34,14 @@ public class LeadController {
   @GetMapping
   public ResponseEntity<ApiResponse<PageResponse<LeadResponse>>> search(
       @RequestParam(required = false) LeadStatus status,
+      @RequestParam(required = false) String ownerId,
       @RequestParam(required = false) String keyword,
       @PageableDefault(size = 20) Pageable pageable) {
-    return ResponseEntity.ok(ApiResponse.ok(leadService.search(status, keyword, pageable)));
+    PageResponse<LeadResponse> leads =
+        ownerId == null
+            ? leadService.search(status, keyword, pageable)
+            : leadService.search(status, ownerId, keyword, pageable);
+    return ResponseEntity.ok(ApiResponse.ok(leads));
   }
 
   @GetMapping("/{id}")

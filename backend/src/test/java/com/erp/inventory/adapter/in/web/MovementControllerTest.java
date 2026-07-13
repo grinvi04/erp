@@ -2,6 +2,7 @@ package com.erp.inventory.adapter.in.web;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -26,6 +27,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -62,6 +65,30 @@ class MovementControllerTest {
         .perform(get("/api/inventory/movements"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.content[0].movementNo").value("MOV-20260624-11111"));
+  }
+
+  @Test
+  void findAll_exportFilters_passesDateRangeToService() throws Exception {
+    given(movementService.findAll(any(), any(), any(), any(), any()))
+        .willReturn(new PageResponse<>(List.of(), 0, 100, 0, 0, true, true));
+
+    mockMvc
+        .perform(
+            get("/api/inventory/movements")
+                .param("type", "TRANSFER")
+                .param("status", "CONFIRMED")
+                .param("from", "2026-01-01")
+                .param("to", "2026-01-31")
+                .param("size", "100"))
+        .andExpect(status().isOk());
+
+    verify(movementService)
+        .findAll(
+            MovementType.TRANSFER,
+            MovementStatus.CONFIRMED,
+            LocalDate.of(2026, 1, 1),
+            LocalDate.of(2026, 1, 31),
+            PageRequest.of(0, 100, Sort.by("id").descending()));
   }
 
   @Test

@@ -10,9 +10,12 @@ import com.erp.finance.application.ReferenceTypes;
 import com.erp.finance.application.dto.ApInvoiceCreateRequest;
 import com.erp.finance.application.dto.ApInvoiceLineRequest;
 import com.erp.finance.application.dto.ApInvoicePayRequest;
+import com.erp.finance.application.dto.TrialBalanceResponse;
 import com.erp.finance.application.dto.VatAccountUpdateRequest;
 import com.erp.finance.application.service.ApInvoiceService;
 import com.erp.finance.application.service.BaseCurrencyService;
+import com.erp.finance.application.service.JournalEntryService;
+import com.erp.finance.application.service.TrialBalanceService;
 import com.erp.finance.domain.model.Account;
 import com.erp.finance.domain.model.AccountType;
 import com.erp.finance.domain.model.FiscalPeriod;
@@ -51,6 +54,8 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
   @Autowired private JournalEntryRepository journalEntryRepository;
   @Autowired private UserAccessProfileRepository accessProfileRepository;
   @Autowired private BaseCurrencyService baseCurrencyService;
+  @Autowired private JournalEntryService journalEntryService;
+  @Autowired private TrialBalanceService trialBalanceService;
 
   private Long expenseAccountId;
   private Long vendorId;
@@ -257,5 +262,50 @@ class ApInvoiceGlPostingIntegrationTest extends AbstractIntegrationTest {
             l ->
                 l.getCreditAmount().compareTo(BigDecimal.ZERO) > 0
                     && l.getAccount().getId().equals(cash.getId()));
+  }
+
+  @Test
+  void approvedInvoicePostedThroughGlAppearsInTrialBalance() {
+    authenticate("invoice-creator", BigDecimal.ZERO, "finance:write");
+    var created =
+        apInvoiceService.create(
+            new ApInvoiceCreateRequest(
+                "INV-UAT-1",
+                vendorId,
+                LocalDate.of(2025, 1, 10),
+                LocalDate.of(2025, 2, 10),
+                new BigDecimal("100000"),
+                TaxType.EXEMPT,
+                "KRW",
+                null,
+                List.of(
+                    new ApInvoiceLineRequest(
+                        expenseAccountId, new BigDecimal("100000"), "파일럿 구매"))));
+    apInvoiceService.submit(created.id());
+
+    authenticate("invoice-approver", new BigDecimal("1000000"), "finance:invoice:approve");
+    Long journalEntryId = apInvoiceService.approve(created.id()).journalEntryId();
+
+    authenticate("gl-submitter", BigDecimal.ZERO, "finance:write");
+    journalEntryService.submitForApproval(journalEntryId);
+    authenticate("gl-approver", new BigDecimal("1000000"), "finance:gl:approve");
+    journalEntryService.approve(journalEntryId);
+
+    authenticate("report-reader", BigDecimal.ZERO, "finance:read");
+    TrialBalanceResponse trialBalance = trialBalanceService.getTrialBalance(2025);
+
+    assertThat(trialBalance.totalDebit()).isEqualByComparingTo("100000");
+    assertThat(trialBalance.totalCredit()).isEqualByComparingTo("100000");
+    assertThat(trialBalance.rows())
+        .anySatisfy(
+            row -> {
+              assertThat(row.accountCode()).isEqualTo("51100");
+              assertThat(row.debit()).isEqualByComparingTo("100000");
+            })
+        .anySatisfy(
+            row -> {
+              assertThat(row.accountCode()).isEqualTo("25100");
+              assertThat(row.credit()).isEqualByComparingTo("100000");
+            });
   }
 }

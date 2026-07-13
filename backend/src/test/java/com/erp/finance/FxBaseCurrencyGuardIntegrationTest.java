@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.erp.common.AbstractIntegrationTest;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.finance.application.dto.BaseCurrencyResponse;
 import com.erp.finance.application.dto.BaseCurrencyUpdateRequest;
 import com.erp.finance.application.service.BaseCurrencyService;
 import com.erp.finance.domain.model.ApInvoice;
@@ -78,11 +79,12 @@ class FxBaseCurrencyGuardIntegrationTest extends AbstractIntegrationTest {
   void updateBaseCurrency_sameValue_noOpAllowedEvenWithSnapshot() {
     authenticate("admin", "finance:read", "finance:setting:write");
     // 기준통화를 USD로 먼저 설정한 뒤(스냅샷 없을 때) 스냅샷을 만든다.
-    baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("USD"));
+    BaseCurrencyResponse updated =
+        baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("USD"));
     seedPricedApInvoice();
 
     // 동일 값(USD) PUT은 스냅샷이 있어도 통화가 바뀌지 않으므로 허용(no-op).
-    baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("USD"));
+    baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("USD", updated.version()));
 
     assertThat(baseCurrencyService.getBaseCurrency().baseCurrency()).isEqualTo("USD");
   }

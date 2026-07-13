@@ -4,8 +4,14 @@ package com.erp.finance.application.dto;
 public record ImpairmentAccountResponse(
     Long impairmentLossAccountId,
     Long accumulatedImpairmentAccountId,
-    Long impairmentReversalAccountId) {
+    Long impairmentReversalAccountId,
+    Long version) {
+  public static ImpairmentAccountResponse of(
+      Long loss, Long accumulated, Long reversal, Long version) {
+    return new ImpairmentAccountResponse(loss, accumulated, reversal, version);
+  }
+
   public static ImpairmentAccountResponse of(Long loss, Long accumulated, Long reversal) {
-    return new ImpairmentAccountResponse(loss, accumulated, reversal);
+    return of(loss, accumulated, reversal, null);
   }
 }

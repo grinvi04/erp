@@ -5,12 +5,25 @@ import { revalidatePath } from 'next/cache'
 import type { Opportunity } from '@/types/crm'
 
 // 전체 엑셀 내보내기 — 현재 페이지가 아닌 전체 영업기회(전 페이지 순회). 화면이 조회조건을 재적용한다.
-export async function exportAllOpportunities(): Promise<{
+export interface OpportunityExportFilter {
+  account: string
+  stage: string
+  from: string
+  to: string
+}
+
+export async function exportAllOpportunities(filter: OpportunityExportFilter): Promise<{
   rows: Opportunity[]
   truncated: boolean
   limit: number
 }> {
-  return fetchAllPages<Opportunity>('/api/crm/opportunities')
+  const params = new URLSearchParams()
+  if (filter.account) params.set('accountId', filter.account)
+  if (filter.stage) params.set('stageId', filter.stage)
+  if (filter.from) params.set('from', filter.from)
+  if (filter.to) params.set('to', filter.to)
+  const query = params.toString()
+  return fetchAllPages<Opportunity>(`/api/crm/opportunities${query ? `?${query}` : ''}`)
 }
 
 export interface OpportunityPayload {

@@ -32,7 +32,12 @@ export async function createFixedAsset(data: {
 
 export async function disposeFixedAsset(
   id: number,
-  data: { disposalDate: string; proceeds: number; proceedsAccountId: number | null },
+  data: {
+    disposalDate: string
+    proceeds: number
+    proceedsAccountId: number | null
+    version: number
+  },
 ): Promise<void> {
   await apiPost<FixedAsset>(`/api/finance/fixed-assets/${id}/dispose`, data)
   revalidatePath(PATH)

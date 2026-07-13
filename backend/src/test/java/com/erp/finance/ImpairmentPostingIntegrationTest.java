@@ -77,7 +77,7 @@ class ImpairmentPostingIntegrationTest extends AbstractIntegrationTest {
   }
 
   private void configureDepreciationAccounts() {
-    authenticate("admin", "finance:setting:write");
+    authenticate("admin", "finance:read", "finance:setting:write");
     Long expense = accountId("81800", "감가상각비", AccountType.EXPENSE, NormalBalance.DEBIT);
     Long accumulated = accountId("20900", "감가상각누계액", AccountType.ASSET, NormalBalance.CREDIT);
     baseCurrencyService.updateDepreciationAccounts(
@@ -85,21 +85,23 @@ class ImpairmentPostingIntegrationTest extends AbstractIntegrationTest {
   }
 
   private void configureImpairmentAccounts() {
-    authenticate("admin", "finance:setting:write");
+    authenticate("admin", "finance:read", "finance:setting:write");
     Long loss = accountId("81900", "유형자산손상차손", AccountType.EXPENSE, NormalBalance.DEBIT);
     Long accumulated = accountId("21000", "손상차손누계액", AccountType.ASSET, NormalBalance.CREDIT);
     Long reversal = accountId("91200", "손상차손환입", AccountType.REVENUE, NormalBalance.CREDIT);
     baseCurrencyService.updateImpairmentAccounts(
-        new ImpairmentAccountUpdateRequest(loss, accumulated, reversal));
+        new ImpairmentAccountUpdateRequest(
+            loss, accumulated, reversal, baseCurrencyService.getBaseCurrency().version()));
   }
 
   /** 환입 계정만 제외(손상차손비·누계액은 설정) — 환입 계정 미설정 차단 검증용. */
   private void configureImpairmentAccountsWithoutReversal() {
-    authenticate("admin", "finance:setting:write");
+    authenticate("admin", "finance:read", "finance:setting:write");
     Long loss = accountId("81900", "유형자산손상차손", AccountType.EXPENSE, NormalBalance.DEBIT);
     Long accumulated = accountId("21000", "손상차손누계액", AccountType.ASSET, NormalBalance.CREDIT);
     baseCurrencyService.updateImpairmentAccounts(
-        new ImpairmentAccountUpdateRequest(loss, accumulated, null));
+        new ImpairmentAccountUpdateRequest(
+            loss, accumulated, null, baseCurrencyService.getBaseCurrency().version()));
   }
 
   private Long period2Id() {

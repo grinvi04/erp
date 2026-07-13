@@ -409,7 +409,7 @@ export default function LeadsClient({ data, accounts, stages, names }: Props) {
   const exportExcel = () => {
     startTransition(async () => {
       try {
-        await runCsvExport(exportAllLeads, {
+        await runCsvExport(() => exportAllLeads(applied), {
           filename: `리드_${new Date().toISOString().slice(0, 10)}`,
           columns: exportColumns,
           matches: matchesFilter,

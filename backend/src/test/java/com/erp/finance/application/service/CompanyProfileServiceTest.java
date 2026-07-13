@@ -22,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class CompanyProfileServiceTest {
@@ -97,11 +98,13 @@ class CompanyProfileServiceTest {
   void updateCompanyProfile_existing_updatesInPlaceSingleRow() {
     // AC-1: 이미 1행 있으면 그 행을 갱신(새 행 저장 안 함 — 테넌트당 1행 유지).
     CompanyProfile existing = sample();
+    ReflectionTestUtils.setField(existing, "version", 0L);
     given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(existing));
 
     CompanyProfileResponse result =
         service.updateCompanyProfile(
-            new CompanyProfileUpdateRequest("(주)새상호", "1008112348", "김철수", "부산시 1", "제조", "기계"));
+            new CompanyProfileUpdateRequest(
+                "(주)새상호", "1008112348", "김철수", "부산시 1", "제조", "기계", 0L));
 
     assertThat(result.companyName()).isEqualTo("(주)새상호");
     assertThat(result.businessNo()).isEqualTo("1008112348");

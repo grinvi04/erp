@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,7 +68,16 @@ public class MovementService {
   public PageResponse<MovementResponse> findAll(
       MovementType type, MovementStatus status, Pageable pageable) {
     permissionChecker.require(Permission.INVENTORY_READ);
-    var page = movementRepository.findByTypeAndStatus(type, status, pageable);
+    return toPageResponse(movementRepository.findByTypeAndStatus(type, status, pageable));
+  }
+
+  public PageResponse<MovementResponse> findAll(
+      MovementType type, MovementStatus status, LocalDate from, LocalDate to, Pageable pageable) {
+    permissionChecker.require(Permission.INVENTORY_READ);
+    return toPageResponse(movementRepository.search(type, status, from, to, pageable));
+  }
+
+  private PageResponse<MovementResponse> toPageResponse(Page<Movement> page) {
     if (page.isEmpty()) {
       return PageResponse.from(page.map(MovementResponse::from));
     }

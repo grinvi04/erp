@@ -20,7 +20,8 @@ public record FixedAssetResponse(
     BigDecimal accumulatedDepreciation,
     BigDecimal accumulatedImpairment,
     BigDecimal bookValue,
-    FixedAssetStatus status) {
+    FixedAssetStatus status,
+    Long version) {
 
   public static FixedAssetResponse from(FixedAsset a) {
     return new FixedAssetResponse(
@@ -37,6 +38,7 @@ public record FixedAssetResponse(
         a.getAccumulatedDepreciation(),
         a.getAccumulatedImpairment(),
         a.bookValue(),
-        a.getStatus());
+        a.getStatus(),
+        a.getVersion());
   }
 }

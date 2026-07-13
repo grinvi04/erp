@@ -20,7 +20,7 @@ export default async function FxPage() {
   ])
   return (
     <FxClient
-      baseCurrency={baseCurrency.baseCurrency}
+      baseCurrency={baseCurrency}
       rates={rates}
       accounts={accounts}
       fxAccounts={fxAccounts}

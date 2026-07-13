@@ -25,6 +25,7 @@ import com.erp.finance.domain.model.NormalBalance;
 import com.erp.finance.domain.repository.AccountRepository;
 import com.erp.finance.domain.repository.FiscalPeriodRepository;
 import com.erp.finance.domain.repository.FiscalYearRepository;
+import com.erp.finance.domain.repository.FixedAssetRepository;
 import com.erp.finance.domain.repository.JournalEntryRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -48,6 +49,7 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
   @Autowired private FiscalYearRepository fiscalYearRepository;
   @Autowired private FiscalPeriodRepository fiscalPeriodRepository;
   @Autowired private JournalEntryRepository journalEntryRepository;
+  @Autowired private FixedAssetRepository fixedAssetRepository;
 
   private Long periodId;
   private Long assetAccountId;
@@ -72,7 +74,7 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
 
   /** 감가상각비·누계액 계정만 설정(처분 손익 계정 제외). */
   private void configureDepreciationOnly() {
-    authenticate("admin", "finance:setting:write");
+    authenticate("admin", "finance:read", "finance:setting:write");
     Long expense = accountId("81800", "감가상각비", AccountType.EXPENSE, NormalBalance.DEBIT);
     Long accumulated = accountId("20900", "감가상각누계액", AccountType.ASSET, NormalBalance.CREDIT);
     baseCurrencyService.updateDepreciationAccounts(
@@ -81,7 +83,7 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
 
   /** 감가상각·처분손익 계정 전체 설정. */
   private void configureAllAccounts() {
-    authenticate("admin", "finance:setting:write");
+    authenticate("admin", "finance:read", "finance:setting:write");
     Long expense = accountId("81800", "감가상각비", AccountType.EXPENSE, NormalBalance.DEBIT);
     Long accumulated = accountId("20900", "감가상각누계액", AccountType.ASSET, NormalBalance.CREDIT);
     Long gain = accountId("91100", "유형자산처분이익", AccountType.REVENUE, NormalBalance.CREDIT);
@@ -123,7 +125,10 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
         fixedAssetService.dispose(
             assetId,
             new FixedAssetDisposeRequest(
-                LocalDate.of(2025, 1, 20), new BigDecimal("1150000"), cashAccountId));
+                LocalDate.of(2025, 1, 20),
+                new BigDecimal("1150000"),
+                cashAccountId,
+                assetVersion(assetId)));
 
     assertThat(result.status().name()).isEqualTo("DISPOSED");
 
@@ -146,7 +151,9 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
 
     authenticate("creator", "finance:write");
     fixedAssetService.dispose(
-        assetId, new FixedAssetDisposeRequest(LocalDate.of(2025, 1, 20), BigDecimal.ZERO, null));
+        assetId,
+        new FixedAssetDisposeRequest(
+            LocalDate.of(2025, 1, 20), BigDecimal.ZERO, null, assetVersion(assetId)));
 
     JournalEntry je =
         journalEntryRepository
@@ -169,7 +176,10 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
                 fixedAssetService.dispose(
                     assetId,
                     new FixedAssetDisposeRequest(
-                        LocalDate.of(2025, 1, 20), new BigDecimal("1150000"), cashAccountId)))
+                        LocalDate.of(2025, 1, 20),
+                        new BigDecimal("1150000"),
+                        cashAccountId,
+                        assetVersion(assetId))))
         .isInstanceOf(ErpException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.DISPOSAL_ACCOUNT_NOT_CONFIGURED);
@@ -180,12 +190,16 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
     // AC-9: 상각 100,000(장부 1,100,000) → 회수가능액 700,000 손상(400,000)·장부 700,000 → 750,000 매각.
     // (차)감가상각누계액 100,000·손상차손누계액 400,000·현금 750,000 (대)자산 1,200,000·처분이익 50,000 = 1,250,000 균형.
     configureAllAccounts();
-    authenticate("admin", "finance:setting:write");
+    authenticate("admin", "finance:read", "finance:setting:write");
     Long impairmentLoss = accountId("81900", "유형자산손상차손", AccountType.EXPENSE, NormalBalance.DEBIT);
     Long impairmentAccumulated =
         accountId("21000", "손상차손누계액", AccountType.ASSET, NormalBalance.CREDIT);
     baseCurrencyService.updateImpairmentAccounts(
-        new ImpairmentAccountUpdateRequest(impairmentLoss, impairmentAccumulated, null));
+        new ImpairmentAccountUpdateRequest(
+            impairmentLoss,
+            impairmentAccumulated,
+            null,
+            baseCurrencyService.getBaseCurrency().version()));
 
     Long assetId = registerAndDepreciateOnce("FA-DIS-IMP");
     authenticate("creator", "finance:write");
@@ -194,7 +208,10 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
     fixedAssetService.dispose(
         assetId,
         new FixedAssetDisposeRequest(
-            LocalDate.of(2025, 1, 20), new BigDecimal("750000"), cashAccountId));
+            LocalDate.of(2025, 1, 20),
+            new BigDecimal("750000"),
+            cashAccountId,
+            assetVersion(assetId)));
 
     JournalEntry je =
         journalEntryRepository
@@ -214,15 +231,23 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
     fixedAssetService.dispose(
         assetId,
         new FixedAssetDisposeRequest(
-            LocalDate.of(2025, 1, 20), new BigDecimal("1150000"), cashAccountId));
+            LocalDate.of(2025, 1, 20),
+            new BigDecimal("1150000"),
+            cashAccountId,
+            assetVersion(assetId)));
 
     assertThatThrownBy(
             () ->
                 fixedAssetService.dispose(
                     assetId,
-                    new FixedAssetDisposeRequest(LocalDate.of(2025, 1, 21), BigDecimal.ZERO, null)))
+                    new FixedAssetDisposeRequest(
+                        LocalDate.of(2025, 1, 21), BigDecimal.ZERO, null, assetVersion(assetId))))
         .isInstanceOf(ErpException.class)
         .extracting("errorCode")
         .isEqualTo(ErrorCode.FIXED_ASSET_ALREADY_DISPOSED);
+  }
+
+  private Long assetVersion(Long assetId) {
+    return fixedAssetRepository.findById(assetId).orElseThrow().getVersion();
   }
 }

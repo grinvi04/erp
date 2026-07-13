@@ -7,9 +7,11 @@ import com.erp.crm.application.dto.OpportunityResponse;
 import com.erp.crm.application.dto.OpportunityUpdateRequest;
 import com.erp.crm.application.service.OpportunityService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,9 +35,14 @@ public class OpportunityController {
   public ResponseEntity<ApiResponse<PageResponse<OpportunityResponse>>> search(
       @RequestParam(required = false) Long accountId,
       @RequestParam(required = false) Long stageId,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
       @PageableDefault(size = 20) Pageable pageable) {
-    return ResponseEntity.ok(
-        ApiResponse.ok(opportunityService.search(accountId, stageId, pageable)));
+    PageResponse<OpportunityResponse> opportunities =
+        from == null && to == null
+            ? opportunityService.search(accountId, stageId, pageable)
+            : opportunityService.search(accountId, stageId, from, to, pageable);
+    return ResponseEntity.ok(ApiResponse.ok(opportunities));
   }
 
   @GetMapping("/{id}")

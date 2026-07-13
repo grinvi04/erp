@@ -504,7 +504,7 @@ export default function MovementsClient({ data, items, warehouses }: Props) {
   const exportExcel = () => {
     startTransition(async () => {
       try {
-        await runCsvExport(exportAllMovements, {
+        await runCsvExport(() => exportAllMovements(applied), {
           filename: `재고이동_${new Date().toISOString().slice(0, 10)}`,
           columns: exportColumns,
           matches: matchesFilter,

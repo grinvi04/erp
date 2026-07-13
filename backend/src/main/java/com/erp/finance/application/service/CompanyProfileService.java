@@ -44,6 +44,7 @@ public class CompanyProfileService {
             .findFirstByOrderByIdAsc()
             .map(
                 existing -> {
+                  existing.checkVersion(request.version());
                   existing.update(
                       request.companyName(),
                       request.businessNo(),
@@ -53,17 +54,24 @@ public class CompanyProfileService {
                       request.businessItem());
                   return existing;
                 })
-            .orElseGet(
-                () ->
-                    repository.save(
-                        CompanyProfile.of(
-                            request.companyName(),
-                            request.businessNo(),
-                            request.representative(),
-                            request.address(),
-                            request.businessType(),
-                            request.businessItem())));
+            .orElseGet(() -> createProfile(request));
+    repository.flush();
     return CompanyProfileResponse.of(entity);
+  }
+
+  private CompanyProfile createProfile(CompanyProfileUpdateRequest request) {
+    if (request.version() != null) {
+      throw new org.springframework.orm.ObjectOptimisticLockingFailureException(
+          CompanyProfile.class.getSimpleName(), null);
+    }
+    return repository.save(
+        CompanyProfile.of(
+            request.companyName(),
+            request.businessNo(),
+            request.representative(),
+            request.address(),
+            request.businessType(),
+            request.businessItem()));
   }
 
   /** 발행 시 공급자 스냅샷·필수검증에 쓰일 현재 회사정보(내부, 권한 검사 없음). 미설정이면 empty. */

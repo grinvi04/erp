@@ -30,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class BaseCurrencyServiceTest {
@@ -55,8 +56,9 @@ class BaseCurrencyServiceTest {
 
   @Test
   void getBaseCurrency_existing_returnsStoredCurrency() {
-    given(repository.findFirstByOrderByIdAsc())
-        .willReturn(Optional.of(TenantBaseCurrency.of("USD")));
+    TenantBaseCurrency entity = TenantBaseCurrency.of("USD");
+    ReflectionTestUtils.setField(entity, "version", 0L);
+    given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(entity));
 
     BaseCurrencyResponse result = baseCurrencyService.getBaseCurrency();
 
@@ -93,11 +95,12 @@ class BaseCurrencyServiceTest {
   @Test
   void updateBaseCurrency_noSnapshot_changeAllowed() {
     // 가드 미발동: 스냅샷이 전혀 없으면(아직 FX 거래 없음) 다른 통화로 변경 허용.
-    given(repository.findFirstByOrderByIdAsc())
-        .willReturn(Optional.of(TenantBaseCurrency.of("USD")));
+    TenantBaseCurrency entity = TenantBaseCurrency.of("USD");
+    ReflectionTestUtils.setField(entity, "version", 0L);
+    given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(entity));
 
     BaseCurrencyResponse result =
-        baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("EUR"));
+        baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("EUR", 0L));
 
     assertThat(result.baseCurrency()).isEqualTo("EUR");
   }
@@ -105,11 +108,12 @@ class BaseCurrencyServiceTest {
   @Test
   void updateBaseCurrency_sameValue_noOpAllowedEvenWithSnapshot() {
     // 동일 값 PUT(no-op)은 스냅샷이 있어도 허용 — 통화가 실제로 바뀌지 않으므로 가드 미발동.
-    given(repository.findFirstByOrderByIdAsc())
-        .willReturn(Optional.of(TenantBaseCurrency.of("USD")));
+    TenantBaseCurrency entity = TenantBaseCurrency.of("USD");
+    ReflectionTestUtils.setField(entity, "version", 0L);
+    given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(entity));
 
     BaseCurrencyResponse result =
-        baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("USD"));
+        baseCurrencyService.updateBaseCurrency(new BaseCurrencyUpdateRequest("USD", 0L));
 
     assertThat(result.baseCurrency()).isEqualTo("USD");
   }
@@ -137,6 +141,7 @@ class BaseCurrencyServiceTest {
     given(gain.getId()).willReturn(10L);
     given(loss.getId()).willReturn(20L);
     TenantBaseCurrency entity = TenantBaseCurrency.of("USD");
+    ReflectionTestUtils.setField(entity, "version", 0L);
     entity.assignFxAccounts(gain, loss);
     given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(entity));
 
@@ -166,10 +171,12 @@ class BaseCurrencyServiceTest {
     given(accountRepository.findById(10L)).willReturn(Optional.of(gain));
     given(accountRepository.findById(20L)).willReturn(Optional.of(loss));
     TenantBaseCurrency entity = TenantBaseCurrency.of("USD");
+    ReflectionTestUtils.setField(entity, "version", 0L);
     given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(entity));
 
     FxGainLossAccountResponse result =
-        baseCurrencyService.updateFxGainLossAccounts(new FxGainLossAccountUpdateRequest(10L, 20L));
+        baseCurrencyService.updateFxGainLossAccounts(
+            new FxGainLossAccountUpdateRequest(10L, 20L, 0L));
 
     assertThat(result.fxGainAccountId()).isEqualTo(10L);
     assertThat(result.fxLossAccountId()).isEqualTo(20L);
@@ -201,6 +208,7 @@ class BaseCurrencyServiceTest {
     given(receivable.getId()).willReturn(11L);
     given(payable.getId()).willReturn(21L);
     TenantBaseCurrency entity = TenantBaseCurrency.of("KRW");
+    ReflectionTestUtils.setField(entity, "version", 0L);
     entity.assignVatAccounts(receivable, payable);
     given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(entity));
 
@@ -229,10 +237,11 @@ class BaseCurrencyServiceTest {
     given(accountRepository.findById(11L)).willReturn(Optional.of(receivable));
     given(accountRepository.findById(21L)).willReturn(Optional.of(payable));
     TenantBaseCurrency entity = TenantBaseCurrency.of("KRW");
+    ReflectionTestUtils.setField(entity, "version", 0L);
     given(repository.findFirstByOrderByIdAsc()).willReturn(Optional.of(entity));
 
     VatAccountResponse result =
-        baseCurrencyService.updateVatAccounts(new VatAccountUpdateRequest(11L, 21L));
+        baseCurrencyService.updateVatAccounts(new VatAccountUpdateRequest(11L, 21L, 0L));
 
     assertThat(result.vatReceivableAccountId()).isEqualTo(11L);
     assertThat(result.vatPayableAccountId()).isEqualTo(21L);

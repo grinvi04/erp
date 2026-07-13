@@ -36,6 +36,7 @@ export default function CompanyProfileClient({ profile }: { profile: CompanyProf
           address: address || null,
           businessType: businessType || null,
           businessItem: businessItem || null,
+          version: profile.version,
         })
         toast.success('회사정보가 저장되었습니다')
       } catch (e) {

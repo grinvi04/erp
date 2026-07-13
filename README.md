@@ -92,7 +92,7 @@ flowchart LR
 
 - **클린 아키텍처** — 모듈 내 `domain`(엔티티·도메인서비스) → `application`(유스케이스·포트) → `adapter`(웹·JPA·이벤트) 3계층. 모듈 간은 `common/` 공유타입·SPI로만 통신(직접 참조 금지).
 - **멀티테넌시** — 모든 테이블 `tenant_id` + Hibernate `@TenantId` 자동 필터. JWT `tenant_id` 클레임 → `TenantContext`(ThreadLocal).
-- **인증·인가** — Backend는 Resource Server(JWT 검증), Frontend는 next-auth BFF(Keycloak). RBAC = Permission(기능권한) + DataScope(전체/부서/본인). 인가는 **DB 기반**(역할→권한) — 기동 시 `ERP_IAM_BOOTSTRAP_ADMIN_SUB` 미설정이면 권한 보유자 없음(fail-closed).
+- **인증·인가** — Backend는 Resource Server(JWT 검증), Frontend는 next-auth BFF(Keycloak). RBAC = Permission(기능권한) + DataScope(전체/부서/본인). 운영자 프로비저닝 명령이 사용자별 `tenant_id`와 최초 `SUPER_ADMIN`을 연결하며, 미등록·비활성 테넌트는 fail-closed로 거부한다.
 - **DB 표준** — BIGINT PK + 시퀀스 채번, 공통 감사 컬럼(`version` 낙관적잠금 · `deleted_at` 소프트삭제 · created/updated), Flyway forward-only(`0xxx` common · `1xxx` hr · `2xxx` finance · `3xxx` inventory · `4xxx` crm).
 
 ## 🚀 시작하기
@@ -105,14 +105,21 @@ docker compose up -d
 
 # 2) Keycloak 셋업 (realm · client · 테스트 계정, 멱등)
 ./scripts/keycloak-setup.sh
-#    → 출력의 AUTH_KEYCLOAK_SECRET · ERP_IAM_BOOTSTRAP_ADMIN_SUB 를 다음 단계에 사용
+#    → 출력의 프론트 secret · 프로비저닝 자격증명 · 관리자 user ID를 사용
 
-# 3) 백엔드 (부트스트랩 + Flyway 마이그레이션)
+# 3) 최초 테넌트 프로비저닝 (Flyway 포함)
 cd backend
-ERP_IAM_BOOTSTRAP_ADMIN_SUB=<2단계 출력 sub> ./gradlew bootRun
+ERP_KEYCLOAK_PROVISIONING_CLIENT_ID=erp-provisioner \
+ERP_KEYCLOAK_PROVISIONING_CLIENT_SECRET=<2단계 출력 secret> \
+ERP_PROVISION_TENANT_CODE=LOCAL ERP_PROVISION_TENANT_NAME='Local ERP' \
+ERP_PROVISION_ADMIN_USER_ID=<2단계 출력 user ID> ERP_PROVISIONED_BY=local-ops \
+./gradlew provisionTenant
+
+# 4) 백엔드
+./gradlew bootRun
 #    헬스: curl -sf http://localhost:8080/actuator/health   # {"status":"UP"}
 
-# 4) 프론트엔드
+# 5) 프론트엔드
 cd ../frontend && npm install
 cat > .env.local <<'EOF'
 AUTH_SECRET=<openssl rand -base64 32 로 생성>
@@ -133,7 +140,7 @@ npm run dev
 | Keycloak Admin | http://localhost:8180 (`admin` / `admin`) |
 
 **테스트 계정** — `admin` / `Admin123!` → http://localhost:3000 의 **"Keycloak으로 로그인"**.
-SUPER_ADMIN(전 권한)은 **백엔드를 이 계정의 Keycloak `sub`로 부트스트랩**(2~3단계)했을 때 부여된다. 다른 사용자는 관리자가 IAM 화면에서 역할을 준다.
+SUPER_ADMIN(전 권한)은 **테넌트 프로비저닝 명령에 이 계정의 Keycloak `sub`를 지정**했을 때 부여된다. 다른 사용자는 관리자가 IAM 화면에서 역할을 준다.
 
 ## 🧪 테스트
 

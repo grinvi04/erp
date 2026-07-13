@@ -8,6 +8,18 @@ import { test, expect } from '@playwright/test'
 // 실제 백엔드 데이터 렌더는 backend-integration.spec.ts(E2E_BACKEND 게이트)에서 검증한다.
 
 test.describe('인증된 사용자 — 렌더 스모크', () => {
+  test('공개 세션 API가 백엔드 bearer token을 노출하지 않는다', async ({ request }) => {
+    const response = await request.get('/api/auth/session')
+    expect(response.ok()).toBe(true)
+    const session = await response.json()
+
+    expect(session.tenantId).toBe('1')
+    expect(session).not.toHaveProperty('accessToken')
+    expect(session).not.toHaveProperty('refreshToken')
+    expect(session).not.toHaveProperty('serverAccessToken')
+    expect(JSON.stringify(session)).not.toContain('e2e-fake-access-token')
+  })
+
   test('대시보드(/)가 /login으로 리다이렉트되지 않고 렌더된다', async ({ page }) => {
     await page.goto('/')
     await expect(page).not.toHaveURL(/\/login/)

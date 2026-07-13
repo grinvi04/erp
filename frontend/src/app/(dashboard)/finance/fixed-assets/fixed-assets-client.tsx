@@ -209,6 +209,7 @@ export default function FixedAssetsClient({
           disposalDate,
           proceeds: Number(proceeds) || 0,
           proceedsAccountId: proceedsAccountId ? Number(proceedsAccountId) : null,
+          version: asset.version,
         })
         toast.success('자산이 처분되었습니다')
         close()
@@ -373,6 +374,7 @@ export default function FixedAssetsClient({
           accumulatedDepreciationAccountId: accumulatedAcc ? Number(accumulatedAcc) : null,
           disposalGainAccountId: gainAcc ? Number(gainAcc) : null,
           disposalLossAccountId: lossAcc ? Number(lossAcc) : null,
+          version: depreciationAccounts.version,
         })
         toast.success('감가상각·처분 계정이 저장되었습니다')
       } catch (e) {
@@ -406,6 +408,7 @@ export default function FixedAssetsClient({
             ? Number(impairAccumulatedAcc)
             : null,
           impairmentReversalAccountId: impairReversalAcc ? Number(impairReversalAcc) : null,
+          version: impairmentAccounts.version,
         })
         toast.success('손상차손 계정이 저장되었습니다')
       } catch (e) {
