@@ -3,11 +3,15 @@ import NextAuth from 'next-auth'
 import Keycloak from 'next-auth/providers/keycloak'
 import type { Session } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
-import { getToken } from 'next-auth/jwt'
 import { headers } from 'next/headers'
 import { cache } from 'react'
-import { INTERNAL_ACCESS_TOKEN_HEADER, toBrowserSession, toServerSession } from '@/lib/auth-session'
-import { resolveServerAccessToken } from '@/lib/server-access-token'
+import {
+  INTERNAL_ACCESS_TOKEN_HEADER,
+  INTERNAL_SESSION_HEADER,
+  decodeInternalSession,
+  toBrowserSession,
+  toServerSession,
+} from '@/lib/auth-session'
 
 declare module 'next-auth' {
   interface Session {
@@ -55,26 +59,17 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
 
 async function readServerAccessToken(): Promise<string | null> {
   const requestHeaders = await headers()
-  const internalToken = requestHeaders.get(INTERNAL_ACCESS_TOKEN_HEADER)
-  if (internalToken) return internalToken
-
-  const secret = process.env.AUTH_SECRET
-  if (!secret) return null
-
-  for (const cookieName of ['__Secure-authjs.session-token', 'authjs.session-token']) {
-    const token = await getToken({
-      req: { headers: requestHeaders },
-      secret,
-      cookieName,
-      salt: cookieName,
-      secureCookie: cookieName.startsWith('__Secure-'),
-    })
-    if (token) return resolveServerAccessToken(token, refreshAccessToken)
-  }
-  return null
+  return requestHeaders.get(INTERNAL_ACCESS_TOKEN_HEADER)
 }
 
 export const getServerAccessToken = cache(readServerAccessToken)
+
+async function readServerSession(): Promise<Session | null> {
+  const requestHeaders = await headers()
+  return decodeInternalSession<Session>(requestHeaders.get(INTERNAL_SESSION_HEADER))
+}
+
+export const getServerSession = cache(readServerSession)
 
 const nextAuth = NextAuth({
   providers: [

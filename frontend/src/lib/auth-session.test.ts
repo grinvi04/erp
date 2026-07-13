@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { toBrowserSession, toPublicSession, toServerSession } from './auth-session'
+import {
+  decodeInternalSession,
+  encodeInternalSession,
+  toBrowserSession,
+  toPublicSession,
+  toServerSession,
+} from './auth-session'
 
 describe('public auth session boundary', () => {
   it('does not expose the backend bearer token to browser session JSON', () => {
@@ -27,5 +33,17 @@ describe('public auth session boundary', () => {
       error: undefined,
     })
     expect(JSON.stringify(toBrowserSession(result))).not.toContain('fresh-secret-token')
+  })
+
+  it('passes only the public session through the internal request header', () => {
+    const encoded = encodeInternalSession({
+      user: { name: '사용자' },
+      tenantId: '7',
+      serverAccessToken: 'secret-token',
+    })
+
+    expect(decodeInternalSession(encoded)).toEqual({ user: { name: '사용자' }, tenantId: '7' })
+    expect(encoded).not.toContain('secret-token')
+    expect(decodeInternalSession('%invalid')).toBeNull()
   })
 })

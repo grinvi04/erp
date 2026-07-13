@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { getServerSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { SessionProvider } from 'next-auth/react'
 import { Sidebar } from '@/components/layout/sidebar'
@@ -7,7 +7,7 @@ import { PermissionsProvider } from '@/components/permissions-provider'
 import { getMyPermissions } from '@/lib/api'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth()
+  const session = await getServerSession()
   if (!session || session.error === 'RefreshAccessTokenError') redirect('/login')
 
   const permissions = await getMyPermissions()

@@ -4,6 +4,18 @@ import { test, expect } from '@playwright/test'
 // (dashboard) 레이아웃의 auth()가 세션 없는 요청을 /login으로 리다이렉트한다.
 
 test.describe('인증 게이트', () => {
+  test('외부에서 주입한 내부 인증 헤더를 신뢰하지 않는다', async ({ page }) => {
+    await page.setExtraHTTPHeaders({
+      'x-erp-internal-session': encodeURIComponent(
+        JSON.stringify({ user: { email: 'attacker@example.com' }, tenantId: '999' }),
+      ),
+      'x-erp-internal-access-token': 'attacker-token',
+    })
+
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/login(\?|$)/)
+  })
+
   test('공개 문서 응답이 브라우저 보안 헤더와 no-store 캐시 정책을 적용한다', async ({ page }) => {
     const response = await page.goto('/login')
     expect(response).not.toBeNull()

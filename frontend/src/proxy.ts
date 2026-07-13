@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { INTERNAL_ACCESS_TOKEN_HEADER } from '@/lib/auth-session'
+import {
+  INTERNAL_ACCESS_TOKEN_HEADER,
+  INTERNAL_SESSION_HEADER,
+  encodeInternalSession,
+} from '@/lib/auth-session'
 import {
   buildContentSecurityPolicy,
   SENSITIVE_RESPONSE_CACHE_CONTROL,
@@ -19,6 +23,11 @@ export const proxy = auth((request) => {
     requestHeaders.set(INTERNAL_ACCESS_TOKEN_HEADER, request.auth.serverAccessToken)
   } else {
     requestHeaders.delete(INTERNAL_ACCESS_TOKEN_HEADER)
+  }
+  if (request.auth) {
+    requestHeaders.set(INTERNAL_SESSION_HEADER, encodeInternalSession(request.auth))
+  } else {
+    requestHeaders.delete(INTERNAL_SESSION_HEADER)
   }
 
   const response = NextResponse.next({ request: { headers: requestHeaders } })
