@@ -5,13 +5,15 @@ import type { Session } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
 import { getToken } from 'next-auth/jwt'
 import { headers } from 'next/headers'
-import { toPublicSession } from '@/lib/auth-session'
+import { cache } from 'react'
+import { INTERNAL_ACCESS_TOKEN_HEADER, toBrowserSession, toServerSession } from '@/lib/auth-session'
 import { resolveServerAccessToken } from '@/lib/server-access-token'
 
 declare module 'next-auth' {
   interface Session {
     tenantId: string
     error?: string
+    serverAccessToken?: string
   }
 }
 
@@ -51,8 +53,11 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   }
 }
 
-export async function getServerAccessToken(): Promise<string | null> {
+async function readServerAccessToken(): Promise<string | null> {
   const requestHeaders = await headers()
+  const internalToken = requestHeaders.get(INTERNAL_ACCESS_TOKEN_HEADER)
+  if (internalToken) return internalToken
+
   const secret = process.env.AUTH_SECRET
   if (!secret) return null
 
@@ -69,7 +74,9 @@ export async function getServerAccessToken(): Promise<string | null> {
   return null
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const getServerAccessToken = cache(readServerAccessToken)
+
+const nextAuth = NextAuth({
   providers: [
     Keycloak({
       clientId: process.env.AUTH_KEYCLOAK_ID!,
@@ -100,8 +107,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return refreshAccessToken(token)
     },
     async session({ session, token }): Promise<Session> {
-      return toPublicSession(session, token)
+      return toServerSession(session, token)
     },
   },
   pages: { signIn: '/login' },
 })
+
+export const { auth, signIn, signOut } = nextAuth
+
+async function sanitizePublicSessionResponse(request: Request, response: Response) {
+  if (!new URL(request.url).pathname.endsWith('/session')) return response
+  if (!response.headers.get('content-type')?.includes('application/json')) return response
+
+  const headers = new Headers(response.headers)
+  headers.delete('content-length')
+  return new Response(JSON.stringify(toBrowserSession(await response.json())), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
+export const handlers = {
+  GET: async (...args: Parameters<typeof nextAuth.handlers.GET>) =>
+    sanitizePublicSessionResponse(args[0], await nextAuth.handlers.GET(...args)),
+  POST: async (...args: Parameters<typeof nextAuth.handlers.POST>) =>
+    sanitizePublicSessionResponse(args[0], await nextAuth.handlers.POST(...args)),
+}
