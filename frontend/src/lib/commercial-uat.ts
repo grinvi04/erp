@@ -14,6 +14,8 @@ export type CommercialUatConfig = {
   runId: string
   clientSecret: string
   authSecret: string
+  keycloakAdminUsername: string
+  keycloakAdminPassword: string
   creatorUsername: string
   creatorPassword: string
   approverUsername: string
@@ -65,6 +67,8 @@ export function loadCommercialUatConfig(
     runId: createCommercialUatRunId(now, uuid),
     clientSecret: requireEnv(env, 'E2E_CLIENT_SECRET'),
     authSecret: requireEnv(env, 'AUTH_SECRET'),
+    keycloakAdminUsername: requireEnv(env, 'E2E_COMMERCIAL_KC_ADMIN_USERNAME'),
+    keycloakAdminPassword: requireEnv(env, 'E2E_COMMERCIAL_KC_ADMIN_PASSWORD'),
     creatorUsername,
     creatorPassword: requireEnv(env, 'E2E_COMMERCIAL_CREATOR_PASSWORD'),
     approverUsername,

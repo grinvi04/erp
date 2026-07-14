@@ -56,6 +56,10 @@ if (BACKEND_ENABLED) {
 
 if (COMMERCIAL_CONFIG) {
   projects.push({
+    name: 'commercial-setup',
+    testMatch: /commercial\.setup\.ts/,
+  })
+  projects.push({
     name: 'commercial',
     testMatch: /commercial-workflow\.spec\.ts/,
     fullyParallel: false,
@@ -63,6 +67,7 @@ if (COMMERCIAL_CONFIG) {
       ...devices['Desktop Chrome'],
       baseURL: COMMERCIAL_CONFIG.frontendUrl,
     },
+    dependencies: ['commercial-setup'],
   })
 }
 
