@@ -163,14 +163,14 @@ E2E_BACKEND=1 E2E_CLIENT_SECRET=<2단계 secret> E2E_PASSWORD=Admin123! \
 AUTH_SECRET=<.env.local 과 동일> npm run test:e2e -- --project=backend
 ```
 
-**상용 업무흐름 UAT**(로컬 전용) — 전용 테넌트 A/B와 서로 다른 작성자·결재자를 멱등 준비하고 AP/AR→GL→재무제표·부가세, 입고→이전→출고→조정 결재, 테넌트 격리, 감사 `traceId`, 실제 화면 readback을 검증한다. `.env.local`의 로컬 Keycloak/Auth 설정과 실행 중인 PostgreSQL·Keycloak·백엔드·프론트엔드가 필요하다.
+**상용 업무흐름 UAT**(로컬 전용) — 전용 테넌트 A/B와 서로 다른 작성자·결재자·무권한 사용자를 멱등 준비하고 AP/AR→GL→재무제표·부가세, 입고→이전→출고→조정 결재, 테넌트 격리, 감사 `traceId`, 부가세 CSV/API 정합성, 무권한 메뉴/API 거부, 만료 세션의 로그인 복귀를 실제 화면에서 검증한다. `.env.local`의 로컬 Keycloak/Auth 설정과 실행 중인 PostgreSQL·Keycloak·백엔드·프론트엔드가 필요하다.
 
 ```bash
 # 환경·안전 계약만 검증(데이터 변경 없음)
 E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
   ./scripts/commercial-uat.sh --dry-run
 
-# 전용 UAT 테넌트·사용자·권한 준비
+# 전용 UAT 테넌트·사용자·권한 준비(무권한 사용자는 역할 0건으로 보정)
 E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
   ./scripts/commercial-uat.sh --setup-only
 
