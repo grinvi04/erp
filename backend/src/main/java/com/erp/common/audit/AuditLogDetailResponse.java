@@ -15,7 +15,8 @@ public record AuditLogDetailResponse(
     LocalDateTime performedAt,
     String ipAddress,
     String beforeData,
-    String afterData) {
+    String afterData,
+    String traceId) {
   public static AuditLogDetailResponse from(AuditLog log) {
     return new AuditLogDetailResponse(
         log.getId(),
@@ -26,6 +27,7 @@ public record AuditLogDetailResponse(
         log.getPerformedAt(),
         log.getIpAddress(),
         log.getBeforeData(),
-        log.getAfterData());
+        log.getAfterData(),
+        log.getTraceId());
   }
 }

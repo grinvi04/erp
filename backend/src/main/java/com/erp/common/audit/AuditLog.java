@@ -56,6 +56,9 @@ public class AuditLog {
   @Column(name = "ip_address", length = 50)
   private String ipAddress;
 
+  @Column(name = "trace_id", length = 32)
+  private String traceId;
+
   protected AuditLog() {}
 
   public static AuditLog of(
@@ -67,6 +70,19 @@ public class AuditLog {
       String after,
       String performedBy,
       String ipAddress) {
+    return of(tenantId, entityType, entityId, action, before, after, performedBy, ipAddress, null);
+  }
+
+  public static AuditLog of(
+      Long tenantId,
+      String entityType,
+      Long entityId,
+      AuditAction action,
+      String before,
+      String after,
+      String performedBy,
+      String ipAddress,
+      String traceId) {
     AuditLog log = new AuditLog();
     log.tenantId = tenantId;
     log.entityType = entityType;
@@ -77,6 +93,7 @@ public class AuditLog {
     log.performedBy = performedBy;
     log.performedAt = LocalDateTime.now();
     log.ipAddress = ipAddress;
+    log.traceId = traceId;
     return log;
   }
 
@@ -129,5 +146,9 @@ public class AuditLog {
 
   public String getIpAddress() {
     return ipAddress;
+  }
+
+  public String getTraceId() {
+    return traceId;
   }
 }
