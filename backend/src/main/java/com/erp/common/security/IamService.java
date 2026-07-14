@@ -34,6 +34,7 @@ public class IamService {
   private final UserRoleRepository userRoleRepository;
   private final UserAccessProfileRepository accessProfileRepository;
   private final PermissionChecker permissionChecker;
+  private final CurrentUserProvider currentUserProvider;
   private final AuditService auditService;
   private final AuditLogRepository auditLogRepository;
   private final ObjectMapper objectMapper;
@@ -41,30 +42,44 @@ public class IamService {
   // --- 권한 카탈로그 ---
   public Set<String> permissionCatalog() {
     permissionChecker.require(Permission.IAM_READ);
-    return Permission.all();
+    if (!isRestrictedAdministrator()) {
+      return Permission.all();
+    }
+    return Permission.all().stream()
+        .filter(permission -> !isProtectedPermission(permission))
+        .collect(java.util.stream.Collectors.toUnmodifiableSet());
   }
 
   // --- 역할 ---
   public List<RoleResponse> listRoles() {
     permissionChecker.require(Permission.IAM_READ);
-    return roleRepository.findByTenantIdWithPermissionsOrderByCodeAsc(tenant()).stream()
-        .map(RoleResponse::from)
-        .toList();
+    var roles = roleRepository.findByTenantIdWithPermissionsOrderByCodeAsc(tenant()).stream();
+    if (isRestrictedAdministrator()) {
+      roles = roles.filter(role -> !isProtectedRole(role));
+    }
+    return roles.map(RoleResponse::from).toList();
   }
 
   public RoleResponse getRole(Long id) {
     permissionChecker.require(Permission.IAM_READ);
-    return RoleResponse.from(getRoleOrThrow(id));
+    Role role = getRoleOrThrow(id);
+    if (isRestrictedAdministrator() && isProtectedRole(role)) {
+      throw forbidden();
+    }
+    return RoleResponse.from(role);
   }
 
   @Transactional
   public RoleResponse createRole(RoleCreateRequest request) {
-    permissionChecker.require(Permission.IAM_WRITE);
+    boolean delegated = requireMutationAccess();
     Long tenant = tenant();
     if (roleRepository.existsByTenantIdAndCode(tenant, request.code())) {
       throw new ErpException(ErrorCode.DUPLICATE_CODE);
     }
     validatePermissions(request.permissions());
+    if (delegated) {
+      validateDelegatedPermissions(request.permissions());
+    }
     Role role = Role.of(tenant, request.code(), request.name(), request.description());
     grantAll(role, request.permissions());
     Role saved = roleRepository.save(role);
@@ -79,8 +94,12 @@ public class IamService {
 
   @Transactional
   public RoleResponse updateRole(Long id, RoleUpdateRequest request) {
-    permissionChecker.require(Permission.IAM_WRITE);
+    boolean delegated = requireMutationAccess();
     Role role = getRoleOrThrow(id);
+    if (delegated) {
+      validateDelegatedRoleTarget(role, id);
+      validateDelegatedPermissions(request.permissions());
+    }
     // 미지 권한 코드는 변경(clear) 전에 거부 — 부분 변경 방지.
     validatePermissions(request.permissions());
     role.rename(request.name(), request.description());
@@ -96,8 +115,11 @@ public class IamService {
 
   @Transactional
   public void deleteRole(Long id) {
-    permissionChecker.require(Permission.IAM_WRITE);
+    boolean delegated = requireMutationAccess();
     Role role = getRoleOrThrow(id);
+    if (delegated) {
+      validateDelegatedRoleTarget(role, id);
+    }
     roleRepository.delete(role);
     auditService.record(
         "ROLE", id, AuditLog.AuditAction.DELETE, null, json(Map.of("code", role.getCode())));
@@ -122,16 +144,25 @@ public class IamService {
   // --- 사용자 역할 배정 ---
   public List<RoleResponse> getUserRoles(String userId) {
     permissionChecker.require(Permission.IAM_READ);
-    return userRoleRepository.findByTenantIdAndUserIdWithRolePermissions(tenant(), userId).stream()
-        .map(ur -> RoleResponse.from(ur.getRole()))
-        .toList();
+    var roles =
+        userRoleRepository.findByTenantIdAndUserIdWithRolePermissions(tenant(), userId).stream();
+    if (isRestrictedAdministrator()) {
+      roles = roles.filter(userRole -> !isProtectedRole(userRole.getRole()));
+    }
+    return roles.map(ur -> RoleResponse.from(ur.getRole())).toList();
   }
 
   @Transactional
   public void assignRole(String userId, Long roleId) {
-    permissionChecker.require(Permission.IAM_WRITE);
+    boolean delegated = requireMutationAccess();
+    if (delegated) {
+      rejectSelfMutation(userId);
+    }
     Long tenant = tenant();
     Role role = getRoleOrThrow(roleId);
+    if (delegated && isProtectedRole(role)) {
+      throw forbidden();
+    }
     if (userRoleRepository.existsByTenantIdAndUserIdAndRoleId(tenant, userId, roleId)) {
       throw new ErpException(ErrorCode.DUPLICATE_CODE);
     }
@@ -146,11 +177,17 @@ public class IamService {
 
   @Transactional
   public void unassignRole(String userId, Long roleId) {
-    permissionChecker.require(Permission.IAM_WRITE);
+    boolean delegated = requireMutationAccess();
+    if (delegated) {
+      rejectSelfMutation(userId);
+    }
     UserRole userRole =
         userRoleRepository
             .findByTenantIdAndUserIdAndRoleId(tenant(), userId, roleId)
             .orElseThrow(() -> new ErpException(ErrorCode.RESOURCE_NOT_FOUND));
+    if (delegated && isProtectedRole(userRole.getRole())) {
+      throw forbidden();
+    }
     userRoleRepository.delete(userRole);
     auditService.record(
         "USER_ROLE", roleId, AuditLog.AuditAction.DELETE, null, json(Map.of("userId", userId)));
@@ -167,7 +204,10 @@ public class IamService {
 
   @Transactional
   public AccessProfileResponse setAccessProfile(String userId, AccessProfileRequest request) {
-    permissionChecker.require(Permission.IAM_WRITE);
+    boolean delegated = requireMutationAccess();
+    if (delegated) {
+      rejectSelfMutation(userId);
+    }
     Long tenant = tenant();
     UserAccessProfile profile =
         accessProfileRepository
@@ -212,6 +252,57 @@ public class IamService {
     if (permissions != null) {
       permissions.forEach(role::grant);
     }
+  }
+
+  private boolean requireMutationAccess() {
+    if (permissionChecker.hasPermission(Permission.IAM_WRITE)) {
+      return false;
+    }
+    if (permissionChecker.hasPermission(Permission.IAM_DELEGATE)) {
+      return true;
+    }
+    permissionChecker.require(Permission.IAM_WRITE);
+    return false;
+  }
+
+  private boolean isRestrictedAdministrator() {
+    return !permissionChecker.hasPermission(Permission.IAM_WRITE);
+  }
+
+  private void validateDelegatedPermissions(Set<String> permissions) {
+    if (permissions != null && permissions.stream().anyMatch(this::isProtectedPermission)) {
+      throw forbidden();
+    }
+  }
+
+  private void validateDelegatedRoleTarget(Role role, Long roleId) {
+    if (isProtectedRole(role)
+        || userRoleRepository.existsByTenantIdAndUserIdAndRoleId(
+            tenant(), currentUserProvider.getCurrentUserId(), roleId)) {
+      throw forbidden();
+    }
+  }
+
+  private boolean isProtectedRole(Role role) {
+    return "SUPER_ADMIN".equals(role.getCode())
+        || role.getPermissions().stream().anyMatch(this::isProtectedPermission);
+  }
+
+  private boolean isProtectedPermission(String permission) {
+    return permission != null
+        && (permission.startsWith("hr:")
+            || Permission.IAM_WRITE.equals(permission)
+            || Permission.IAM_DELEGATE.equals(permission));
+  }
+
+  private void rejectSelfMutation(String userId) {
+    if (java.util.Objects.equals(currentUserProvider.getCurrentUserId(), userId)) {
+      throw forbidden();
+    }
+  }
+
+  private ErpException forbidden() {
+    return new ErpException(ErrorCode.FORBIDDEN);
   }
 
   /** 감사 afterData JSON 안전 직렬화 — userId 등 외부 입력의 따옴표가 jsonb를 깨지 않도록 Jackson 사용. */

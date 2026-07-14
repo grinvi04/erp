@@ -53,6 +53,7 @@ public final class Permission {
   // IAM (역할·권한·배정 관리 — 관리자 전용)
   public static final String IAM_READ = "iam:read";
   public static final String IAM_WRITE = "iam:write";
+  public static final String IAM_DELEGATE = "iam:delegate";
 
   /**
    * 정의된 모든 권한 코드 카탈로그 — 관리 화면의 권한 선택지·부트스트랩 슈퍼관리자 역할에 사용. 상수 추가 시 여기에도 반드시 추가한다(단일 출처). {@code
@@ -83,6 +84,7 @@ public final class Permission {
         CRM_WRITE,
         AUDIT_READ,
         IAM_READ,
-        IAM_WRITE);
+        IAM_WRITE,
+        IAM_DELEGATE);
   }
 }
