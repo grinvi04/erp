@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -71,6 +72,17 @@ public class GlobalExceptionHandler {
     ErrorCode code = ErrorCode.RESOURCE_NOT_FOUND;
     log.warn("No resource found: {}", e.getResourcePath());
     return ResponseEntity.status(code.getHttpStatus())
+        .body(ApiResponse.error(code.getCode(), code.getMessage()));
+  }
+
+  /** 지원하지 않는 HTTP 메서드 — Spring이 계산한 허용 메서드를 {@code Allow} 헤더로 보존한다. */
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMethodNotAllowed(
+      HttpRequestMethodNotSupportedException e) {
+    ErrorCode code = ErrorCode.METHOD_NOT_ALLOWED;
+    log.warn("HTTP method not allowed: {}", e.getMessage());
+    return ResponseEntity.status(code.getHttpStatus())
+        .headers(e.getHeaders())
         .body(ApiResponse.error(code.getCode(), code.getMessage()));
   }
 
