@@ -1,5 +1,7 @@
 import { defineConfig, devices, type Project } from '@playwright/test'
 
+import { isCommercialUatEnabled, loadCommercialUatConfig } from './src/lib/commercial-uat'
+
 // 기본 E2E는 프론트엔드만으로 검증 가능한 인증 게이트·인증 렌더 스모크를 커버한다.
 // (백엔드/Keycloak 불필요 — auth()는 세션 쿠키 부재 시 Keycloak 접속 없이 /login으로 보냄)
 const PORT = 3100
@@ -10,6 +12,8 @@ const BASE_URL = `http://localhost:${PORT}`
 const BACKEND_ENABLED = !!process.env.E2E_BACKEND
 // 백엔드 통합은 실 백엔드·Keycloak에 연동된 dev 서버(기본 localhost:3000)를 대상으로 한다.
 const BACKEND_BASE_URL = process.env.E2E_BACKEND_URL ?? 'http://localhost:3000'
+const COMMERCIAL_ENABLED = isCommercialUatEnabled(process.env)
+const COMMERCIAL_CONFIG = COMMERCIAL_ENABLED ? loadCommercialUatConfig(process.env) : undefined
 
 const projects: Project[] = [
   // 인증 쿠키를 생성해 storageState로 저장.
@@ -42,6 +46,23 @@ if (BACKEND_ENABLED) {
       storageState: 'e2e/.auth/backend.json',
     },
     dependencies: ['backend-setup'],
+  })
+}
+
+if (COMMERCIAL_CONFIG) {
+  projects.push({
+    name: 'commercial-setup',
+    testMatch: /commercial\.setup\.ts/,
+  })
+  projects.push({
+    name: 'commercial',
+    testMatch: /commercial-workflow\.spec\.ts/,
+    fullyParallel: false,
+    use: {
+      ...devices['Desktop Chrome'],
+      baseURL: COMMERCIAL_CONFIG.frontendUrl,
+    },
+    dependencies: ['commercial-setup'],
   })
 }
 

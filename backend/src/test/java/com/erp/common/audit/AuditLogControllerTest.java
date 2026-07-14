@@ -114,7 +114,8 @@ class AuditLogControllerTest {
             LocalDateTime.of(2026, 1, 1, 9, 0),
             "10.0.0.1",
             "{\"status\":\"DRAFT\"}",
-            "{\"status\":\"APPROVED\"}");
+            "{\"status\":\"APPROVED\"}",
+            "0123456789abcdef0123456789abcdef");
     given(auditService.findById(5L)).willReturn(detail);
 
     mockMvc
@@ -123,7 +124,8 @@ class AuditLogControllerTest {
         .andExpect(jsonPath("$.success").value(true))
         .andExpect(jsonPath("$.data.action").value("UPDATE"))
         .andExpect(jsonPath("$.data.beforeData").value("{\"status\":\"DRAFT\"}"))
-        .andExpect(jsonPath("$.data.afterData").value("{\"status\":\"APPROVED\"}"));
+        .andExpect(jsonPath("$.data.afterData").value("{\"status\":\"APPROVED\"}"))
+        .andExpect(jsonPath("$.data.traceId").value("0123456789abcdef0123456789abcdef"));
   }
 
   @Test
