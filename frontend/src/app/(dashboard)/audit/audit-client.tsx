@@ -55,6 +55,9 @@ const ACTION_VARIANT: Record<AuditAction, 'default' | 'secondary' | 'destructive
 const ENTITY_LABEL: Record<string, string> = {
   LEAVE_REQUEST: '휴가 신청',
   AP_INVOICE: '매입계산서',
+  AR_INVOICE: '매출계산서',
+  GL_ENTRY: '전표',
+  STOCK_MOVEMENT: '재고 이동',
   EMPLOYEE: '직원',
   ROLE: '역할',
   USER_ROLE: '역할 배정',
@@ -347,6 +350,11 @@ export default function AuditClient({
                 {detail.ipAddress && (
                   <DetailRow label="IP 주소">
                     <span className="font-mono">{detail.ipAddress}</span>
+                  </DetailRow>
+                )}
+                {detail.traceId && (
+                  <DetailRow label="Trace ID">
+                    <span className="break-all font-mono">{detail.traceId}</span>
                   </DetailRow>
                 )}
               </dl>

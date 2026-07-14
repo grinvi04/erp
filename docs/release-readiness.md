@@ -46,6 +46,21 @@ cd frontend && npm run test:e2e
 
 로컬 실스택 렌더 E2E 실행 예시는 README의 `E2E_BACKEND=1` 명령을 따른다. 렌더 스모크 통과만으로 위 업무흐름 UAT를 대체하지 않는다.
 
+### 로컬 후보 검증 명령
+
+README의 상용 UAT 전제를 준비한 뒤 다음을 순서대로 실행한다. `--dry-run`은 변경 없이 안전 계약만, `--setup-only`는 전용 UAT 신분·테넌트·권한을, `--all`은 실제 업무 데이터 변경과 브라우저 readback까지 수행한다.
+
+```bash
+E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
+  ./scripts/commercial-uat.sh --dry-run
+E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
+  ./scripts/commercial-uat.sh --setup-only
+E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
+  ./scripts/commercial-uat.sh --all
+```
+
+로컬 기본 포트와 다른 후보 서버를 검증할 때만 `E2E_COMMERCIAL_BACKEND_URL`/`E2E_COMMERCIAL_FRONTEND_URL`에 자격증명 없는 HTTP loopback URL을 지정한다. 결과는 릴리즈 후보 commit SHA·검증 시각·검증자·통과 건수만 6절 표에 남기고, 토큰·비밀번호·고객 데이터는 첨부하지 않는다.
+
 ## 5. 배포·관측성 게이트
 
 - [ ] Railway·Vercel·Keycloak 운영 변수가 `docs/deployment.md`와 일치하며 시크릿은 플랫폼 변수에만 있다.
