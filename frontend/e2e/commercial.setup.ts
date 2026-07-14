@@ -34,21 +34,11 @@ setup('prepare isolated commercial UAT tenants and users', async () => {
   const provisionerSecret = await keycloakClientSecret(adminToken, 'erp-provisioner')
   const creator = await ensureUser(adminToken, config.creatorUsername, config.creatorPassword)
   const approver = await ensureUser(adminToken, config.approverUsername, config.approverPassword)
-  const tenantBAdmin = await ensureUser(
-    adminToken,
-    config.tenantBUsername,
-    config.tenantBPassword,
-  )
+  const tenantBAdmin = await ensureUser(adminToken, config.tenantBUsername, config.tenantBPassword)
 
   const tenantAId =
     tenantIdOf(creator) ??
-    (await provisionTenant(
-      adminToken,
-      creator.id,
-      'UAT_A',
-      'Commercial UAT A',
-      provisionerSecret,
-    ))
+    (await provisionTenant(adminToken, creator.id, 'UAT_A', 'Commercial UAT A', provisionerSecret))
   await assignTenant(adminToken, approver, tenantAId)
   const tenantBId =
     tenantIdOf(tenantBAdmin) ??
@@ -212,7 +202,9 @@ async function provisionTenant(
     },
   })
   if (result.status !== 0) {
-    throw new Error(`[commercial.setup] ${code} 프로비저닝 실패(exit=${result.status ?? 'signal'}).`)
+    throw new Error(
+      `[commercial.setup] ${code} 프로비저닝 실패(exit=${result.status ?? 'signal'}).`,
+    )
   }
   const refreshed = await keycloakJson<KeycloakUser>(
     `${keycloakBaseUrl}/admin/realms/${realm}/users/${adminUserId}`,
@@ -243,7 +235,8 @@ async function userToken(username: string, password: string): Promise<string> {
 async function tokenFrom(response: Response, label: string): Promise<string> {
   if (!response.ok) throw new Error(`[commercial.setup] ${label} 실패(HTTP ${response.status}).`)
   const body = (await response.json()) as { access_token?: string }
-  if (!body.access_token) throw new Error(`[commercial.setup] ${label} 응답에 access token이 없습니다.`)
+  if (!body.access_token)
+    throw new Error(`[commercial.setup] ${label} 응답에 access token이 없습니다.`)
   return body.access_token
 }
 
@@ -274,14 +267,10 @@ async function ensureSuperAdmin(adminToken: string, userId: string) {
 }
 
 async function setAccessProfile(token: string, userId: string) {
-  await backendJson(
-    token,
-    `/api/iam/users/${encodeURIComponent(userId)}/access-profile`,
-    {
-      method: 'PUT',
-      body: JSON.stringify({ dataScope: 'ALL', departmentId: null, approvalLimit: '1000000000' }),
-    },
-  )
+  await backendJson(token, `/api/iam/users/${encodeURIComponent(userId)}/access-profile`, {
+    method: 'PUT',
+    body: JSON.stringify({ dataScope: 'ALL', departmentId: null, approvalLimit: '1000000000' }),
+  })
 }
 
 async function verifyPermissions(token: string) {
@@ -310,7 +299,9 @@ async function backendRequest(token: string, pathname: string, init: RequestInit
     },
   })
   if (!response.ok) {
-    throw new Error(`[commercial.setup] 백엔드 요청 실패(HTTP ${response.status}, path=${pathname}).`)
+    throw new Error(
+      `[commercial.setup] 백엔드 요청 실패(HTTP ${response.status}, path=${pathname}).`,
+    )
   }
   return response
 }
@@ -325,12 +316,7 @@ async function keycloakJson<T>(
   return (await response.json()) as T
 }
 
-async function keycloakRequest(
-  url: string,
-  token: string,
-  label: string,
-  init: RequestInit = {},
-) {
+async function keycloakRequest(url: string, token: string, label: string, init: RequestInit = {}) {
   const response = await fetch(url, {
     ...init,
     headers: {

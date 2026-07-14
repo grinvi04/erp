@@ -206,11 +206,7 @@ test.describe.serial('상용 UAT — 재무·테넌트 격리', () => {
       await json(approverToken, `/api/finance/journal-entries/${entry.id}/submit`, {
         method: 'POST',
       })
-      await expectStatus(
-        approverToken,
-        `/api/finance/journal-entries/${entry.id}/approve`,
-        403,
-      )
+      await expectStatus(approverToken, `/api/finance/journal-entries/${entry.id}/approve`, 403)
       const posted = await json<JournalEntry>(
         creatorToken,
         `/api/finance/journal-entries/${entry.id}/approve`,
@@ -287,13 +283,7 @@ test.describe.serial('상용 UAT — 재무·테넌트 격리', () => {
     expect((await confirmMovement(receipt.id)).status).toBe('CONFIRMED')
     await expectStock(item.id, locationA.id, 100)
 
-    const transfer = await createMovement(
-      'TRANSFER',
-      item.id,
-      locationA.id,
-      locationB.id,
-      30,
-    )
+    const transfer = await createMovement('TRANSFER', item.id, locationA.id, locationB.id, 30)
     expect((await confirmMovement(transfer.id)).status).toBe('CONFIRMED')
     await expectStock(item.id, locationA.id, 70)
     await expectStock(item.id, locationB.id, 30)
@@ -304,15 +294,13 @@ test.describe.serial('상용 UAT — 재무·테넌트 격리', () => {
 
     const adjustment = await createMovement('ADJUSTMENT', item.id, null, locationB.id, 5)
     expect(
-      (await json<Movement>(creatorToken, `/api/inventory/movements/${adjustment.id}/submit`, {
-        method: 'POST',
-      })).status,
+      (
+        await json<Movement>(creatorToken, `/api/inventory/movements/${adjustment.id}/submit`, {
+          method: 'POST',
+        })
+      ).status,
     ).toBe('PENDING_APPROVAL')
-    await expectStatus(
-      creatorToken,
-      `/api/inventory/movements/${adjustment.id}/approve`,
-      403,
-    )
+    await expectStatus(creatorToken, `/api/inventory/movements/${adjustment.id}/approve`, 403)
     expect(
       (await json<Movement>(creatorToken, `/api/inventory/movements/${adjustment.id}`)).status,
     ).toBe('PENDING_APPROVAL')
@@ -421,7 +409,9 @@ async function createMovement(
       referenceType: 'COMMERCIAL_UAT',
       referenceId: null,
       note: config.runId,
-      lines: [{ itemId, fromLocationId, toLocationId, lotNo: null, serialNo: null, qty, unitCost: 1000 }],
+      lines: [
+        { itemId, fromLocationId, toLocationId, lotNo: null, serialNo: null, qty, unitCost: 1000 },
+      ],
     },
   })
 }
@@ -582,7 +572,8 @@ async function userToken(username: string, password: string): Promise<string> {
   })
   if (!response.ok) throw new Error(`[commercial] 사용자 인증 실패(HTTP ${response.status}).`)
   const body = (await response.json()) as { access_token?: string }
-  if (!body.access_token) throw new Error('[commercial] 사용자 인증 응답에 access token이 없습니다.')
+  if (!body.access_token)
+    throw new Error('[commercial] 사용자 인증 응답에 access token이 없습니다.')
   return body.access_token
 }
 
@@ -606,12 +597,7 @@ async function jsonWithResponse<T>(
   return { data: envelope.data, response }
 }
 
-async function expectStatus(
-  token: string,
-  pathname: string,
-  status: number,
-  method = 'POST',
-) {
+async function expectStatus(token: string, pathname: string, status: number, method = 'POST') {
   const response = await request(token, pathname, { method, expected: status })
   expect(response.status).toBe(status)
 }

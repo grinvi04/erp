@@ -64,9 +64,7 @@ describe('commercial UAT identity topology', () => {
   const tenantB = { subject: 'tenant-b-sub', tenantId: '202' }
 
   it('accepts distinct users in tenant A and a separate tenant B', () => {
-    expect(() =>
-      assertCommercialUatIdentityTopology(creator, approver, tenantB),
-    ).not.toThrow()
+    expect(() => assertCommercialUatIdentityTopology(creator, approver, tenantB)).not.toThrow()
   })
 
   it.each([

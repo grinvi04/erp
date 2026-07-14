@@ -134,9 +134,7 @@ function requireLocalUrl(value: string, name: string): string {
     url.username ||
     url.password
   ) {
-    throw new Error(
-      `[commercial-uat] ${name}는 자격증명 없는 HTTP loopback URL이어야 합니다.`,
-    )
+    throw new Error(`[commercial-uat] ${name}는 자격증명 없는 HTTP loopback URL이어야 합니다.`)
   }
   return value
 }
