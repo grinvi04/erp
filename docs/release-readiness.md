@@ -22,9 +22,25 @@ cd frontend && npm run test:e2e
 ```
 
 - [ ] 위 명령이 모두 exit 0이다.
-- [ ] `ci-gate`, `migration-safety`, `test-guard`, `commitlint`, `secret-scan`, `dependency-review`가 모두 통과했다.
+- [ ] `ci-gate`, `migration-safety`, `test-guard`, `commitlint`, `secret-scan`, `dependency-review`, CodeQL Java·JavaScript/TypeScript가 모두 통과했다.
 - [ ] 모든 리뷰 스레드가 resolve됐고 프로젝트의 승인 정책을 충족했다.
-- [ ] 신규 high/critical 취약 의존성이 없다.
+- [ ] CodeQL default setup이 `configured`이고 `main`·`develop`에 high 이상 보안 경보 차단 규칙이 적용된다.
+- [ ] 열린 Dependabot·CodeQL high/critical 경보가 0건이다. 예외가 있으면 아래 기준의 승인 이슈가 릴리즈에 연결돼 있다.
+
+```bash
+OWNER_REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+gh api "repos/$OWNER_REPO/code-scanning/default-setup"
+for branch in main develop; do
+  gh api "repos/$OWNER_REPO/rules/branches/$branch" \
+    --jq '.[] | select(.type == "code_scanning")'
+done
+gh api "repos/$OWNER_REPO/code-scanning/alerts?state=open&per_page=100" --paginate \
+  --jq '.[] | select(.rule.security_severity_level == "high" or .rule.security_severity_level == "critical") | {number, rule: .rule.id, severity: .rule.security_severity_level}'
+gh api "repos/$OWNER_REPO/dependabot/alerts?state=open&per_page=100" --paginate \
+  --jq '.[] | select(.security_advisory.severity == "high" or .security_advisory.severity == "critical") | {number, package: .dependency.package.name, severity: .security_advisory.severity}'
+```
+
+경보 예외는 GitHub Issue에 영향 범위, 반증 근거, 보완 통제, 담당자, 승인자, 만료일과 후속 릴리즈를 기록해야 한다. 만료됐거나 이 항목이 하나라도 없는 예외는 인정하지 않는다. 실행 책임·주기·증거 위치와 자동 보안 업데이트 정책은 [운영·복구 런북](operations-runbook.md)의 "저장소 보안 경보 운영"을 따른다.
 
 ## 3. 데이터·복구 게이트
 
