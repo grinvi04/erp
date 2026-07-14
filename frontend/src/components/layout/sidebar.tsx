@@ -117,9 +117,10 @@ export function Sidebar() {
 export function SidebarNav() {
   const pathname = usePathname()
   const { permissions } = usePermissions()
-  const visibleModules = MODULES.filter((item) =>
-    item.children.some((child) => isNavigationPathVisible(child.href, permissions)),
-  )
+  const visibleModules = MODULES.map((item) => ({
+    ...item,
+    children: item.children.filter((child) => isNavigationPathVisible(child.href, permissions)),
+  })).filter((item) => item.children.length > 0)
   const showIam = isNavigationPathVisible('/iam', permissions)
   const showAudit = isNavigationPathVisible('/audit', permissions)
 

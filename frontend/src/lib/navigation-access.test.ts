@@ -1,32 +1,33 @@
 import { describe, expect, it } from 'vitest'
 
+import { isNavigationPathVisible } from './navigation-access'
 import { PERM } from './permissions'
-
-type NavigationAccessPolicy = {
-  isNavigationPathVisible: (path: string, permissions: ReadonlySet<string>) => boolean
-}
-
-async function loadNavigationAccessPolicy(): Promise<NavigationAccessPolicy | null> {
-  const modulePath: string = './navigation-access'
-  try {
-    return (await import(modulePath)) as NavigationAccessPolicy
-  } catch {
-    return null
-  }
-}
 
 describe('protected navigation access policy', () => {
   it.each([
-    PERM.HR_EMPLOYEE_READ,
-    PERM.HR_DEPARTMENT_READ,
-    PERM.HR_LEAVE_READ,
-    PERM.HR_POSITION_READ,
-    PERM.HR_JOBGRADE_READ,
-  ])('shows HR paths with any HR read permission (%s)', async (permission) => {
-    const policy = await loadNavigationAccessPolicy()
-
-    expect(policy).not.toBeNull()
-    expect(policy?.isNavigationPathVisible('/hr/employees', new Set([permission]))).toBe(true)
+    [
+      '/hr/employees',
+      [
+        PERM.HR_EMPLOYEE_READ,
+        PERM.HR_DEPARTMENT_READ,
+        PERM.HR_POSITION_READ,
+        PERM.HR_JOBGRADE_READ,
+      ],
+    ],
+    ['/hr/contracts', [PERM.HR_EMPLOYEE_READ, PERM.HR_POSITION_READ, PERM.HR_JOBGRADE_READ]],
+    ['/hr/departments', [PERM.HR_DEPARTMENT_READ]],
+    ['/hr/positions', [PERM.HR_POSITION_READ]],
+    ['/hr/job-grades', [PERM.HR_JOBGRADE_READ]],
+    ['/hr/leave-requests', [PERM.HR_LEAVE_READ, PERM.HR_EMPLOYEE_READ]],
+    ['/hr/leave-policies', [PERM.HR_LEAVE_READ]],
+    ['/hr/leave-balances', [PERM.HR_LEAVE_READ, PERM.HR_EMPLOYEE_READ]],
+  ])('requires every permission used by %s', (path, required) => {
+    expect(isNavigationPathVisible(path, new Set(required))).toBe(true)
+    for (const missing of required) {
+      expect(
+        isNavigationPathVisible(path, new Set(required.filter((item) => item !== missing))),
+      ).toBe(false)
+    }
   })
 
   it.each([
@@ -35,16 +36,12 @@ describe('protected navigation access policy', () => {
     ['CRM', '/crm/accounts', PERM.CRM_READ],
     ['IAM', '/iam', PERM.IAM_READ],
     ['audit', '/audit', PERM.AUDIT_READ],
-  ])('shows the %s path only with its read permission', async (_label, path, permission) => {
-    const policy = await loadNavigationAccessPolicy()
-
-    expect(policy).not.toBeNull()
-    expect(policy?.isNavigationPathVisible(path, new Set([permission]))).toBe(true)
-    expect(policy?.isNavigationPathVisible(path, new Set())).toBe(false)
+  ])('shows the %s path only with its read permission', (_label, path, permission) => {
+    expect(isNavigationPathVisible(path, new Set([permission]))).toBe(true)
+    expect(isNavigationPathVisible(path, new Set())).toBe(false)
   })
 
-  it('shows no protected paths without permissions', async () => {
-    const policy = await loadNavigationAccessPolicy()
+  it('shows no protected paths without permissions', () => {
     const protectedPaths = [
       '/hr/employees',
       '/finance/vat-return',
@@ -54,9 +51,13 @@ describe('protected navigation access policy', () => {
       '/audit',
     ]
 
-    expect(policy).not.toBeNull()
-    expect(
-      protectedPaths.filter((path) => policy?.isNavigationPathVisible(path, new Set())),
-    ).toEqual([])
+    expect(protectedPaths.filter((path) => isNavigationPathVisible(path, new Set()))).toEqual([])
+  })
+
+  it('allows only explicitly public top-level paths by default', () => {
+    for (const path of ['/', '/approvals', '/analytics']) {
+      expect(isNavigationPathVisible(path, new Set())).toBe(true)
+    }
+    expect(isNavigationPathVisible('/unknown-protected-route', new Set())).toBe(false)
   })
 })

@@ -456,12 +456,12 @@ test.describe.serial('상용 UAT — 재무·테넌트 격리', () => {
     await page.goto('/')
     await expect(page).toHaveURL(/\/login$/)
     await expect(page.getByRole('button', { name: 'Keycloak으로 로그인' })).toBeVisible()
-    const publicSession = (await (await page.request.get('/api/auth/session')).json()) as Record<
-      string,
-      unknown
-    >
+    const sessionResponse = await page.request.get('/api/auth/session')
+    expect(sessionResponse.ok()).toBe(true)
+    const publicSession = (await sessionResponse.json()) as Record<string, unknown>
     expect(publicSession).not.toHaveProperty('accessToken')
     expect(publicSession).not.toHaveProperty('refreshToken')
+    expect(publicSession).not.toHaveProperty('serverAccessToken')
     expect(JSON.stringify(publicSession)).not.toContain(invalidRefreshToken)
     expect(pageErrors).toEqual([])
   })
