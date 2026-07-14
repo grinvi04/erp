@@ -111,7 +111,7 @@ erp/
 
 | 구성 | 대상 | 비용 | 비고 |
 |---|---|---|---|
-| 프론트 (Next.js BFF) | **Vercel** (Hobby 무료) | $0 | `output: standalone`, root=`frontend` |
+| 프론트 (Next.js BFF) | **Vercel** (유료 파일럿은 Pro 이상) | 사용량 | Hobby는 개인·비상업 전용, `output: standalone`, root=`frontend` |
 | 백엔드 (Spring Boot) | **Railway** (Dockerfile) | 사용량 | root=`backend`, `railway.json` 헬스체크 |
 | PostgreSQL 16 | **Railway** Postgres 플러그인 | 사용량 | (대안: Neon 무료로 비용↓) |
 | Keycloak 26 (OIDC) | **Railway** 서비스 | 사용량(메모리 주비용) | 단일 realm `erp` |
