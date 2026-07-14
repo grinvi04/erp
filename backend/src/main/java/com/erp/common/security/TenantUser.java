@@ -25,6 +25,7 @@ public class TenantUser extends BaseEntity {
 
   private static final int EMAIL_MAX_LENGTH = 320;
   private static final int REQUEST_KEY_MAX_LENGTH = 100;
+  private static final int REQUEST_FINGERPRINT_LENGTH = 64;
   private static final int KEYCLOAK_USER_ID_MAX_LENGTH = 100;
   private static final int FAILURE_CODE_MAX_LENGTH = 100;
 
@@ -42,6 +43,9 @@ public class TenantUser extends BaseEntity {
   @Column(name = "request_key", nullable = false, length = REQUEST_KEY_MAX_LENGTH)
   private String requestKey;
 
+  @Column(name = "request_fingerprint", nullable = false, length = REQUEST_FINGERPRINT_LENGTH)
+  private String requestFingerprint;
+
   @Column(name = "keycloak_user_id", length = KEYCLOAK_USER_ID_MAX_LENGTH)
   private String keycloakUserId;
 
@@ -55,9 +59,15 @@ public class TenantUser extends BaseEntity {
   protected TenantUser() {}
 
   public static TenantUser pending(String email, String requestKey) {
+    return pending(email, requestKey, "0".repeat(REQUEST_FINGERPRINT_LENGTH));
+  }
+
+  public static TenantUser pending(String email, String requestKey, String requestFingerprint) {
     TenantUser user = new TenantUser();
     user.normalizedEmail = requireText(email, "email", EMAIL_MAX_LENGTH).toLowerCase(Locale.ROOT);
     user.requestKey = requireText(requestKey, "requestKey", REQUEST_KEY_MAX_LENGTH);
+    user.requestFingerprint =
+        requireExactText(requestFingerprint, "requestFingerprint", REQUEST_FINGERPRINT_LENGTH);
     user.status = TenantUserStatus.PENDING;
     return user;
   }
@@ -110,6 +120,10 @@ public class TenantUser extends BaseEntity {
     return requestKey;
   }
 
+  public String getRequestFingerprint() {
+    return requestFingerprint;
+  }
+
   public String getKeycloakUserId() {
     return keycloakUserId;
   }
@@ -140,6 +154,14 @@ public class TenantUser extends BaseEntity {
     String normalized = value.trim();
     if (normalized.length() > maxLength) {
       throw new IllegalArgumentException(field + " is too long");
+    }
+    return normalized;
+  }
+
+  private static String requireExactText(String value, String field, int length) {
+    String normalized = requireText(value, field, length);
+    if (normalized.length() != length) {
+      throw new IllegalArgumentException(field + " must be " + length + " characters");
     }
     return normalized;
   }

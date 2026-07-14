@@ -152,6 +152,21 @@ public class IamService {
     return roles.map(ur -> RoleResponse.from(ur.getRole())).toList();
   }
 
+  public void requireManageableUser(String userId) {
+    boolean delegated = requireMutationAccess();
+    if (!delegated) {
+      return;
+    }
+    rejectSelfMutation(userId);
+    boolean protectedRole =
+        userRoleRepository.findByTenantIdAndUserIdWithRolePermissions(tenant(), userId).stream()
+            .map(UserRole::getRole)
+            .anyMatch(this::isProtectedRole);
+    if (protectedRole) {
+      throw forbidden();
+    }
+  }
+
   @Transactional
   public void assignRole(String userId, Long roleId) {
     boolean delegated = requireMutationAccess();

@@ -308,4 +308,24 @@ class IamServiceTest {
     assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
     verify(accessProfileRepository, never()).save(any());
   }
+
+  @Test
+  void requireManageableUser_delegate_rejectsSelfAndProtectedRoleHolder() {
+    given(permissionChecker.hasPermission(Permission.IAM_WRITE)).willReturn(false);
+    given(permissionChecker.hasPermission(Permission.IAM_DELEGATE)).willReturn(true);
+    given(currentUserProvider.getCurrentUserId()).willReturn("delegate-admin");
+
+    ErpException self =
+        assertThrows(ErpException.class, () -> iamService.requireManageableUser("delegate-admin"));
+
+    Role protectedRole = Role.of(1L, "BUSINESS_ADMIN", "업무 관리자", null);
+    protectedRole.grant(Permission.IAM_DELEGATE);
+    given(userRoleRepository.findByTenantIdAndUserIdWithRolePermissions(1L, "other-admin"))
+        .willReturn(java.util.List.of(UserRole.of(1L, "other-admin", protectedRole)));
+    ErpException protectedUser =
+        assertThrows(ErpException.class, () -> iamService.requireManageableUser("other-admin"));
+
+    assertThat(self.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+    assertThat(protectedUser.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+  }
 }
