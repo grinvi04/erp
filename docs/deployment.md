@@ -124,6 +124,15 @@ ERP_PROVISIONED_BY=<운영자 식별자> \
 
 명령은 테넌트를 `ACTIVE`로 만들고, 테넌트 전용 break-glass 사용자의 `tenant_id` 속성을 연결하며, ERP에 `SUPER_ADMIN` 역할과 전체 권한을 부여하고 감사 로그를 남긴다. Keycloak 사용자는 단일 `tenant_id`만 가지므로 이 계정을 다른 테넌트에 재사용하지 않는다. 이 계정으로 `/iam`에서 고객 관리자용 비-HR 역할을 생성·배정한 뒤 고객 사용자의 `SUPER_ADMIN`·`hr:*` 권한이 0개인지 확인한다. 일부 단계 실패 시 상태는 `FAILED`로 남으며 같은 코드에 `ERP_PROVISION_RETRY=true`를 더해 재시도한다. 일반 API는 `ACTIVE` 테넌트의 JWT만 허용한다.
 
+프로비저닝 성공 로그의 숫자형 `tenantId`를 승인 기록과 대조한 뒤 고객 관리자를 별도로 개통한다.
+
+1. Keycloak에서 고객 관리자 사용자를 새로 만들고 관리자 전용 `tenant_id` 속성에 위 `tenantId`를 설정한다. 고객이 이 속성을 수정할 수 있게 하지 않는다.
+2. break-glass 계정으로 ERP `/iam`에 로그인해 Finance·Inventory·CRM·IAM에 필요한 권한만 가진 고객 관리자 역할을 만들고 고객 관리자 `sub`에 배정한다.
+3. 고객 관리자 계정으로 새 로그인해 JWT의 `tenant_id`, 허용 메뉴, 보호 API 접근을 확인하고 HR 메뉴 미노출·HR API 403을 검증한다.
+4. 고객 계정에 `SUPER_ADMIN` 또는 `hr:*`가 하나라도 있거나 `tenant_id`가 다르면 개통을 중단한다.
+
+추가 사용자 `tenant_id` 설정은 현재 Keycloak 관리자 작업이다. #189의 스테이징 리허설에서 이 절차와 감사 증거를 검증하고, 반복 고객 온보딩 전 자동화 여부를 별도 평가한다.
+
 ---
 
 ## 2. Vercel — 프론트엔드
