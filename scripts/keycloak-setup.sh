@@ -11,6 +11,7 @@ KC="${KEYCLOAK_URL:-http://localhost:8180}"
 REALM="erp"
 CLIENT_ID="erp-frontend"
 PROVISIONER_CLIENT_ID="erp-provisioner"
+USER_ADMIN_CLIENT_ID="erp-user-admin"
 ADMIN_USER="admin"          # 테스트 로그인 계정
 ADMIN_PASS="Admin123!"
 TENANT_ID="1"
@@ -53,6 +54,17 @@ if not any(a.get("name")=="tenant_id" for a in attrs):
 print(json.dumps(d))')
 curl -fsS -o /dev/null -X PUT "$KC/admin/realms/$REALM/users/profile" \
   "${AUTH[@]}" "${JSON[@]}" -d "$UPDATED_PROFILE"
+
+echo "→ 로컬 초대 메일 SMTP (Mailpit)"
+REALM_JSON=$(curl -fsS "$KC/admin/realms/$REALM" "${AUTH[@]}")
+UPDATED_REALM_JSON=$(printf '%s' "$REALM_JSON" | python3 -c '
+import sys,json
+d=json.load(sys.stdin)
+d["smtpServer"]={"host":"mailpit","port":"1025","from":"no-reply@erp.local",
+                 "fromDisplayName":"ERP System","auth":"false","starttls":"false","ssl":"false"}
+print(json.dumps(d))')
+curl -fsS -o /dev/null -X PUT "$KC/admin/realms/$REALM" \
+  "${AUTH[@]}" "${JSON[@]}" -d "$UPDATED_REALM_JSON"
 
 echo "→ tenant_id 사용자 속성 클레임 매퍼(long) — 사용자별 테넌트 격리"
 MAPPER_INFO=$(curl -fsS "$KC/admin/realms/$REALM/clients/$CID/protocol-mappers/models" "${AUTH[@]}" \
@@ -121,6 +133,25 @@ curl -fsS -o /dev/null -X POST \
   "$KC/admin/realms/$REALM/users/$SERVICE_USER_ID/role-mappings/clients/$REALM_MGMT_ID" \
   "${AUTH[@]}" "${JSON[@]}" -d "$PROVISIONER_ROLES"
 
+echo "→ 런타임 사용자 관리 서비스 계정 $USER_ADMIN_CLIENT_ID"
+UCID=$(curl -fsS "$KC/admin/realms/$REALM/clients?clientId=$USER_ADMIN_CLIENT_ID" "${AUTH[@]}" \
+  | python3 -c "import sys,json;d=json.load(sys.stdin);print(d[0]['id'] if d else '')")
+if [ -z "$UCID" ]; then
+  curl -fsS -o /dev/null -X POST "$KC/admin/realms/$REALM/clients" "${AUTH[@]}" "${JSON[@]}" -d '{
+    "clientId":"'"$USER_ADMIN_CLIENT_ID"'","protocol":"openid-connect","publicClient":false,
+    "standardFlowEnabled":false,"directAccessGrantsEnabled":false,"serviceAccountsEnabled":true}'
+  UCID=$(curl -fsS "$KC/admin/realms/$REALM/clients?clientId=$USER_ADMIN_CLIENT_ID" "${AUTH[@]}" \
+    | python3 -c "import sys,json;print(json.load(sys.stdin)[0]['id'])")
+fi
+USER_ADMIN_SECRET=$(curl -fsS "$KC/admin/realms/$REALM/clients/$UCID/client-secret" "${AUTH[@]}" \
+  | python3 -c "import sys,json;print(json.load(sys.stdin)['value'])")
+USER_ADMIN_SERVICE_USER_ID=$(curl -fsS \
+  "$KC/admin/realms/$REALM/clients/$UCID/service-account-user" "${AUTH[@]}" \
+  | python3 -c "import sys,json;print(json.load(sys.stdin)['id'])")
+curl -fsS -o /dev/null -X POST \
+  "$KC/admin/realms/$REALM/users/$USER_ADMIN_SERVICE_USER_ID/role-mappings/clients/$REALM_MGMT_ID" \
+  "${AUTH[@]}" "${JSON[@]}" -d "$PROVISIONER_ROLES"
+
 cat <<EOF
 
 ✅ Keycloak 셋업 완료 (realm=$REALM)
@@ -134,4 +165,13 @@ cat <<EOF
   ERP_KEYCLOAK_PROVISIONING_CLIENT_ID=$PROVISIONER_CLIENT_ID
   ERP_KEYCLOAK_PROVISIONING_CLIENT_SECRET=$PROVISIONER_SECRET
   ERP_PROVISION_ADMIN_USER_ID=$USUB
+
+  ── 백엔드 런타임 사용자 초대 ──
+  ERP_KEYCLOAK_USER_ADMIN_ENABLED=true
+  ERP_KEYCLOAK_USER_ADMIN_CLIENT_ID=$USER_ADMIN_CLIENT_ID
+  ERP_KEYCLOAK_USER_ADMIN_CLIENT_SECRET=$USER_ADMIN_SECRET
+  ERP_KEYCLOAK_USER_ADMIN_REDIRECT_URI=http://localhost:3000/login
+
+  ── 로컬 초대 메일 수신함 ──
+  http://localhost:8025
 EOF

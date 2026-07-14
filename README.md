@@ -100,12 +100,12 @@ flowchart LR
 > **전제** — Docker · JDK 21 · Node 20+
 
 ```bash
-# 1) 인프라 기동 (PostgreSQL + Keycloak)
+# 1) 인프라 기동 (PostgreSQL + Keycloak + 로컬 SMTP 수신함)
 docker compose up -d
 
 # 2) Keycloak 셋업 (realm · client · 테스트 계정, 멱등)
 ./scripts/keycloak-setup.sh
-#    → 출력의 프론트 secret · 프로비저닝 자격증명 · 관리자 user ID를 사용
+#    → 출력의 프론트 secret · 프로비저닝/사용자관리 자격증명 · 관리자 user ID를 사용
 
 # 3) 최초 테넌트 프로비저닝 (Flyway 포함)
 cd backend
@@ -115,7 +115,11 @@ ERP_PROVISION_TENANT_CODE=LOCAL ERP_PROVISION_TENANT_NAME='Local ERP' \
 ERP_PROVISION_ADMIN_USER_ID=<2단계 출력 user ID> ERP_PROVISIONED_BY=local-ops \
 ./gradlew provisionTenant
 
-# 4) 백엔드
+# 4) 백엔드 (2단계 출력의 사용자 관리 값을 주입)
+ERP_KEYCLOAK_USER_ADMIN_ENABLED=true \
+ERP_KEYCLOAK_USER_ADMIN_CLIENT_ID=erp-user-admin \
+ERP_KEYCLOAK_USER_ADMIN_CLIENT_SECRET=<2단계 출력 user-admin secret> \
+ERP_KEYCLOAK_USER_ADMIN_REDIRECT_URI=http://localhost:3000/login \
 ./gradlew bootRun
 #    헬스: curl -sf http://localhost:8080/actuator/health   # {"status":"UP"}
 
@@ -138,9 +142,10 @@ npm run dev
 | 프론트엔드 | http://localhost:3000 |
 | 백엔드 | http://localhost:8080 |
 | Keycloak Admin | http://localhost:8180 (`admin` / `admin`) |
+| 초대 메일 수신함 (Mailpit) | http://localhost:8025 |
 
 **테스트 계정** — `admin` / `Admin123!` → http://localhost:3000 의 **"Keycloak으로 로그인"**.
-SUPER_ADMIN(전 권한)은 **테넌트 프로비저닝 명령에 이 계정의 Keycloak `sub`를 지정**했을 때 부여된다. 다른 사용자는 관리자가 IAM 화면에서 역할을 준다.
+SUPER_ADMIN(전 권한)은 **테넌트 프로비저닝 명령에 이 계정의 Keycloak `sub`를 지정**했을 때 부여된다. 다른 사용자는 관리자가 IAM 화면에서 이메일로 초대하고 역할을 선택한다.
 
 ## 🧪 테스트
 
@@ -153,6 +158,11 @@ cd frontend && npm run type-check && npm run lint && npm run build
 
 # 프론트 E2E (Playwright — 인증 게이트·인증 렌더 스모크, 백엔드 불필요·자체완결)
 cd frontend && npm run build && npm run test:e2e
+
+# 로컬 사용자 초대 실증 (Keycloak·Mailpit·최신 백엔드 실행 필요, 로컬 데이터 변경)
+cd ..
+E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
+./scripts/verify-user-onboarding.sh
 ```
 
 **백엔드 통합 E2E**(선택) — 로컬 풀스택(1~4단계)을 띄운 상태에서 실제 백엔드 데이터 렌더를 검증한다. `E2E_BACKEND` 미설정 시(CI 포함) 제외된다.
