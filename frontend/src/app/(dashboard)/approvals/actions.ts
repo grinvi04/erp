@@ -8,12 +8,6 @@ import { revalidatePath } from 'next/cache'
 // 추가 판단이 필요해 엔티티 화면에서 처리(링크 이동) — 인박스에서는 반려만 인라인 지원한다.
 // 인라인 반려 지원: LEAVE_REQUEST·GL_ENTRY·STOCK_MOVEMENT. AP_INVOICE는 링크 이동만.
 
-const REJECT_ENDPOINT: Record<string, (id: number) => string> = {
-  LEAVE_REQUEST: (id) => `/api/hr/leave-requests/${id}/reject`,
-  GL_ENTRY: (id) => `/api/finance/journal-entries/${id}/reject`,
-  STOCK_MOVEMENT: (id) => `/api/inventory/movements/${id}/reject`,
-}
-
 export async function approveInboxItem(
   entityType: string,
   entityId: number,
@@ -32,10 +26,20 @@ export async function rejectInboxItem(
   entityId: number,
   comment: string,
 ): Promise<void> {
-  const endpoint = REJECT_ENDPOINT[entityType]
-  if (!endpoint) {
-    throw new Error('인박스 인라인 반려를 지원하지 않는 결재 유형입니다')
+  let endpoint: string
+  switch (entityType) {
+    case 'LEAVE_REQUEST':
+      endpoint = `/api/hr/leave-requests/${entityId}/reject`
+      break
+    case 'GL_ENTRY':
+      endpoint = `/api/finance/journal-entries/${entityId}/reject`
+      break
+    case 'STOCK_MOVEMENT':
+      endpoint = `/api/inventory/movements/${entityId}/reject`
+      break
+    default:
+      throw new Error('인박스 인라인 반려를 지원하지 않는 결재 유형입니다')
   }
-  await apiPost(endpoint(entityId), { comment })
+  await apiPost(endpoint, { comment })
   revalidatePath('/approvals')
 }
