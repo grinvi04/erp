@@ -42,15 +42,17 @@ fi
 SECRET=$(curl -fsS "$KC/admin/realms/$REALM/clients/$CID/client-secret" "${AUTH[@]}" \
   | python3 -c "import sys,json;print(json.load(sys.stdin)['value'])")
 
-echo "→ User Profile tenant_id 관리 속성(운영자만 편집)"
+echo "→ User Profile 테넌트·초대 소유권 관리 속성(운영자만 편집)"
 USER_PROFILE=$(curl -fsS "$KC/admin/realms/$REALM/users/profile" "${AUTH[@]}")
 UPDATED_PROFILE=$(printf '%s' "$USER_PROFILE" | python3 -c '
 import sys,json
 d=json.load(sys.stdin)
 attrs=d.setdefault("attributes",[])
-if not any(a.get("name")=="tenant_id" for a in attrs):
-    attrs.append({"name":"tenant_id","displayName":"Tenant ID","multivalued":False,
-                  "permissions":{"view":["admin"],"edit":["admin"]}})
+for name,display_name in (("tenant_id","Tenant ID"),
+                          ("erp_invitation_key","ERP Invitation Key")):
+    if not any(a.get("name")==name for a in attrs):
+        attrs.append({"name":name,"displayName":display_name,"multivalued":False,
+                      "permissions":{"view":["admin"],"edit":["admin"]}})
 print(json.dumps(d))')
 curl -fsS -o /dev/null -X PUT "$KC/admin/realms/$REALM/users/profile" \
   "${AUTH[@]}" "${JSON[@]}" -d "$UPDATED_PROFILE"
