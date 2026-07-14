@@ -41,6 +41,31 @@ class JpaTenantProvisioningStoreIntegrationTest extends AbstractIntegrationTest 
     var role = roleRepository.findByTenantIdAndCode(active.getId(), "SUPER_ADMIN").orElseThrow();
     assertThat(role.getPermissions()).containsExactlyInAnyOrderElementsOf(Permission.all());
     assertThat(
+            roleRepository
+                .findByTenantIdAndCode(active.getId(), "BUSINESS_ADMIN")
+                .orElseThrow()
+                .getPermissions())
+        .containsExactlyInAnyOrder(
+            Permission.AUDIT_READ, Permission.IAM_READ, Permission.IAM_DELEGATE);
+    assertThat(
+            roleRepository
+                .findByTenantIdAndCode(active.getId(), "FINANCE_USER")
+                .orElseThrow()
+                .getPermissions())
+        .containsExactlyInAnyOrder(Permission.FINANCE_READ, Permission.FINANCE_WRITE);
+    assertThat(
+            roleRepository
+                .findByTenantIdAndCode(active.getId(), "INVENTORY_USER")
+                .orElseThrow()
+                .getPermissions())
+        .containsExactlyInAnyOrder(Permission.INVENTORY_READ, Permission.INVENTORY_WRITE);
+    assertThat(
+            roleRepository
+                .findByTenantIdAndCode(active.getId(), "CRM_USER")
+                .orElseThrow()
+                .getPermissions())
+        .containsExactlyInAnyOrder(Permission.CRM_READ, Permission.CRM_WRITE);
+    assertThat(
             userRoleRepository.existsByTenantIdAndUserIdAndRoleId(
                 active.getId(), "kc-admin-1", role.getId()))
         .isTrue();
