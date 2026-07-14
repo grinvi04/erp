@@ -48,6 +48,8 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 
 ## 1. Railway — 백엔드 스택
 
+유료 파일럿은 모든 Railway 서비스와 PostgreSQL 볼륨을 승인된 동일 리전(현재 권장: 싱가포르)에 배치하고 실제 리전을 운영 기록에 남긴다. 이는 국내 보관을 의미하지 않으며, 미국 소재 Railway와 하위처리자의 계정·지원 처리를 포함한 국외 처리 기준은 [개인정보·법률 준비 기준](privacy-legal-readiness.md)을 따른다.
+
 ### 1-1. 프로젝트 + PostgreSQL
 1. [railway.app](https://railway.app) 로그인 → **New Project** → **Deploy PostgreSQL**.
 2. 생성된 Postgres의 변수 확인(Variables 탭): `PGHOST`·`PGPORT`·`PGUSER`·`PGPASSWORD`·`PGDATABASE`.
@@ -83,7 +85,7 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 3. **Valid redirect URIs**: `https://<vercel-domain>/api/auth/callback/keycloak`
    **Web origins**: `https://<vercel-domain>`
 4. Credentials 탭의 **Client secret** 복사 → Vercel `AUTH_KEYCLOAK_SECRET`.
-5. **Users → Create** 로 첫 관리자 사용자를 생성하고 사용자 ID(`sub`)를 기록한다. 아직 `tenant_id`는 지정하지 않는다.
+5. **Users → Create** 로 **해당 테넌트 전용** 프로비저닝 운영자 사용자를 새로 만들고 사용자 ID(`sub`)를 기록한다. 기존 고객의 운영자 계정을 재사용하지 않으며 `tenant_id`가 비어 있는지 확인한다. 이 계정은 고객에게 제공하지 않는 break-glass 계정이다.
 6. Realm의 User Profile에 `tenant_id` 속성을 추가하고 일반 사용자는 편집할 수 없게 한다.
 7. `erp-frontend` 전용 Client scope에 **User Attribute** 매퍼를 추가한다: 사용자 속성 `tenant_id` → 토큰 클레임 `tenant_id`, JSON 타입 `long`.
 8. confidential service-account client `erp-provisioner`를 만들고 `realm-management`의 `manage-users`, `view-users`, `query-users`만 부여한다. 이 클라이언트는 테넌트 생성 명령에만 사용한다.
@@ -115,16 +117,27 @@ ERP_KEYCLOAK_PROVISIONING_CLIENT_SECRET=<service-account-secret> \
 ERP_PROVISION_TENANT_CODE=<고유-테넌트-코드> \
 ERP_PROVISION_TENANT_NAME=<회사명> \
 ERP_PROVISION_TENANT_PLAN=STANDARD \
-ERP_PROVISION_ADMIN_USER_ID=<1-3에서 기록한 사용자 sub> \
+ERP_PROVISION_ADMIN_USER_ID=<1-3에서 새로 만든 테넌트 전용 break-glass 사용자 sub> \
 ERP_PROVISIONED_BY=<운영자 식별자> \
 ./gradlew provisionTenant
 ```
 
-명령은 테넌트를 `ACTIVE`로 만들고, Keycloak 사용자의 `tenant_id` 속성을 연결하며, ERP에 `SUPER_ADMIN` 역할과 전체 권한을 부여하고 감사 로그를 남긴다. 일부 단계 실패 시 상태는 `FAILED`로 남으며 같은 코드에 `ERP_PROVISION_RETRY=true`를 더해 재시도한다. 일반 API는 `ACTIVE` 테넌트의 JWT만 허용한다.
+명령은 테넌트를 `ACTIVE`로 만들고, 테넌트 전용 break-glass 사용자의 `tenant_id` 속성을 연결하며, ERP에 `SUPER_ADMIN` 역할과 전체 권한을 부여하고 감사 로그를 남긴다. Keycloak 사용자는 단일 `tenant_id`만 가지므로 이 계정을 다른 테넌트에 재사용하지 않는다. 이 계정으로 `/iam`에서 고객 관리자용 비-HR 역할을 생성·배정한 뒤 고객 사용자의 `SUPER_ADMIN`·`hr:*` 권한이 0개인지 확인한다. 일부 단계 실패 시 상태는 `FAILED`로 남으며 같은 코드에 `ERP_PROVISION_RETRY=true`를 더해 재시도한다. 일반 API는 `ACTIVE` 테넌트의 JWT만 허용한다.
+
+프로비저닝 성공 로그의 숫자형 `tenantId`를 승인 기록과 대조한 뒤 고객 관리자를 별도로 개통한다.
+
+1. Keycloak에서 고객 업무 관리자를 새로 만들고 관리자 전용 `tenant_id` 속성에 위 `tenantId`를 설정한다. 고객이 이 속성을 수정할 수 있게 하지 않는다.
+2. break-glass 계정으로 ERP `/iam`에 로그인해 Finance·Inventory·CRM에 필요한 권한만 가진 고객 업무 관리자 역할을 만들고 고객 사용자 `sub`에 배정한다. 고객 역할에는 `iam:write`를 부여하지 않는다.
+3. 고객 업무 관리자 계정으로 새 로그인해 JWT의 `tenant_id`, 허용 메뉴, 보호 API 접근을 확인하고 HR·IAM 관리 메뉴 미노출과 HR·IAM 쓰기 API 403을 검증한다.
+4. 고객 계정에 `SUPER_ADMIN`, `hr:*`, `iam:write`가 하나라도 있거나 `tenant_id`가 다르면 개통을 중단한다.
+
+추가 사용자 `tenant_id` 설정과 역할 변경은 현재 운영자 대행 작업이다. 고객 요청은 승인된 지원 채널로 받고 break-glass 사용 사유와 변경 전후를 감사 기록에 남긴다. #189의 스테이징 리허설에서 이 절차와 증거를 검증하고, 반복 고객 온보딩 전 안전한 위임 제한과 자동화 여부를 별도 평가한다.
 
 ---
 
 ## 2. Vercel — 프론트엔드
+
+Vercel Pro DPA와 하위처리자 목록을 확인하고 함수의 실제 실행 리전을 운영 기록에 남긴다. Next.js BFF가 로그인 세션과 업무 API 응답을 처리하므로 정적 화면 호스팅으로만 분류하지 않는다.
 
 1. [vercel.com](https://vercel.com) → **Add New → Project** → 이 repo import.
 2. **Root Directory**: `frontend` (Next.js 자동 감지, `output: 'standalone'`).
@@ -159,7 +172,7 @@ curl -sf https://<keycloak-domain>/health/ready        # Keycloak
 curl -sf https://<vercel-domain>/api/auth/session      # 프론트(미로그인 시 빈 세션)
 ```
 
-로그인 → `/iam`(SUPER_ADMIN) 에서 역할·배정 관리 → 다른 사용자에게 권한 부여.
+운영자 break-glass 계정으로 로그인 → `/iam`에서 비-HR 고객 관리자 역할·배정 관리 → 별도 고객 관리자로 권한 경계를 재확인. 운영자 계정은 일상 업무에 사용하지 않는다.
 
 ---
 

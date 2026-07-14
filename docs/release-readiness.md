@@ -65,6 +65,7 @@ E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
 
 ## 5. 배포·관측성 게이트
 
+- [ ] [개인정보·법률 준비 기준](privacy-legal-readiness.md)의 법률 문서·국외 처리·하위처리자·HR 제외 게이트를 모두 충족했다.
 - [ ] Railway·Vercel·Keycloak 운영 변수가 `docs/deployment.md`와 일치하며 시크릿은 플랫폼 변수에만 있다.
 - [ ] 백엔드·프런트·Keycloak 헬스체크가 성공한다.
 - [ ] Railway/Vercel 최신 배포 commit SHA가 릴리즈 SHA와 일치한다.
