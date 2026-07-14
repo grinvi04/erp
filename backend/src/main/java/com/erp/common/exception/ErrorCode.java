@@ -11,6 +11,7 @@ public enum ErrorCode {
   TENANT_MISMATCH(HttpStatus.FORBIDDEN, "C004", "접근 권한이 없는 테넌트입니다"),
   FORBIDDEN(HttpStatus.FORBIDDEN, "C005", "접근 권한이 없습니다"),
   DATA_INTEGRITY_CONFLICT(HttpStatus.CONFLICT, "C006", "데이터 무결성 제약을 위반했습니다 (중복 또는 참조 위반)"),
+  METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "C007", "지원하지 않는 HTTP 메서드입니다"),
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C999", "내부 오류가 발생했습니다"),
 
   // HR
