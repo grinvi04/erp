@@ -33,7 +33,7 @@ import {
 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { usePermissions } from '@/components/permissions-provider'
-import { PERM } from '@/lib/permissions'
+import { isNavigationPathVisible } from '@/lib/navigation-access'
 
 type NavChild = { label: string; href: string; icon: React.ElementType }
 type NavItem = { label: string; href?: string; icon: React.ElementType; children?: NavChild[] }
@@ -116,7 +116,12 @@ export function Sidebar() {
 
 export function SidebarNav() {
   const pathname = usePathname()
-  const { can } = usePermissions()
+  const { permissions } = usePermissions()
+  const visibleModules = MODULES.filter((item) =>
+    item.children.some((child) => isNavigationPathVisible(child.href, permissions)),
+  )
+  const showIam = isNavigationPathVisible('/iam', permissions)
+  const showAudit = isNavigationPathVisible('/audit', permissions)
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
@@ -137,19 +142,19 @@ export function SidebarNav() {
 
           <SectionLabel>모듈</SectionLabel>
           <div className="space-y-0.5">
-            {MODULES.map((item) => (
+            {visibleModules.map((item) => (
               <NavGroup key={item.label} item={item} pathname={pathname} />
             ))}
           </div>
 
-          {(can(PERM.IAM_READ) || can(PERM.AUDIT_READ)) && (
+          {(showIam || showAudit) && (
             <>
               <SectionLabel>관리</SectionLabel>
               <div className="space-y-0.5">
-                {can(PERM.IAM_READ) && (
+                {showIam && (
                   <NavLink href="/iam" label="역할·권한" icon={ShieldCheck} pathname={pathname} />
                 )}
-                {can(PERM.AUDIT_READ) && (
+                {showAudit && (
                   <NavLink href="/audit" label="감사 로그" icon={ScrollText} pathname={pathname} />
                 )}
               </div>
