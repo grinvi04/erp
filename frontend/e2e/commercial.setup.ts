@@ -35,11 +35,17 @@ setup('prepare isolated commercial UAT tenants and users', async () => {
   const creator = await ensureUser(adminToken, config.creatorUsername, config.creatorPassword)
   const approver = await ensureUser(adminToken, config.approverUsername, config.approverPassword)
   const tenantBAdmin = await ensureUser(adminToken, config.tenantBUsername, config.tenantBPassword)
+  const restricted = await ensureUser(
+    adminToken,
+    config.restrictedUsername,
+    config.restrictedPassword,
+  )
 
   const tenantAId =
     tenantIdOf(creator) ??
     (await provisionTenant(adminToken, creator.id, 'UAT_A', 'Commercial UAT A', provisionerSecret))
   await assignTenant(adminToken, approver, tenantAId)
+  await assignTenant(adminToken, restricted, tenantAId)
   const tenantBId =
     tenantIdOf(tenantBAdmin) ??
     (await provisionTenant(
@@ -53,15 +59,23 @@ setup('prepare isolated commercial UAT tenants and users', async () => {
   const creatorToken = await userToken(config.creatorUsername, config.creatorPassword)
   const approverToken = await userToken(config.approverUsername, config.approverPassword)
   const tenantBToken = await userToken(config.tenantBUsername, config.tenantBPassword)
+  const restrictedToken = await userToken(config.restrictedUsername, config.restrictedPassword)
   const creatorIdentity = identityFromToken(creatorToken)
   const approverIdentity = identityFromToken(approverToken)
   const tenantBIdentity = identityFromToken(tenantBToken)
-  assertCommercialUatIdentityTopology(creatorIdentity, approverIdentity, tenantBIdentity)
+  const restrictedIdentity = identityFromToken(restrictedToken)
+  assertCommercialUatIdentityTopology(
+    creatorIdentity,
+    approverIdentity,
+    tenantBIdentity,
+    restrictedIdentity,
+  )
   if (creatorIdentity.tenantId !== tenantAId || tenantBIdentity.tenantId !== tenantBId) {
     throw new Error('[commercial.setup] 프로비저닝 결과와 JWT tenant_id가 일치하지 않습니다.')
   }
 
   await ensureSuperAdmin(creatorToken, approverIdentity.subject)
+  await removeAllRoles(creatorToken, restrictedIdentity.subject)
   await setAccessProfile(creatorToken, creatorIdentity.subject)
   await setAccessProfile(creatorToken, approverIdentity.subject)
   await setAccessProfile(tenantBToken, tenantBIdentity.subject)
@@ -69,6 +83,7 @@ setup('prepare isolated commercial UAT tenants and users', async () => {
   await verifyPermissions(creatorToken)
   await verifyPermissions(approverToken)
   await verifyPermissions(tenantBToken)
+  await verifyNoPermissions(restrictedToken)
 })
 
 async function keycloakAdminToken(value: CommercialUatConfig): Promise<string> {
@@ -266,6 +281,20 @@ async function ensureSuperAdmin(adminToken: string, userId: string) {
   )
 }
 
+async function removeAllRoles(adminToken: string, userId: string) {
+  const assigned = await backendJson<Role[]>(
+    adminToken,
+    `/api/iam/users/${encodeURIComponent(userId)}/roles`,
+  )
+  for (const role of assigned) {
+    await backendRequest(
+      adminToken,
+      `/api/iam/users/${encodeURIComponent(userId)}/roles/${role.id}`,
+      { method: 'DELETE' },
+    )
+  }
+}
+
 async function setAccessProfile(token: string, userId: string) {
   await backendJson(token, `/api/iam/users/${encodeURIComponent(userId)}/access-profile`, {
     method: 'PUT',
@@ -279,6 +308,13 @@ async function verifyPermissions(token: string) {
     if (!permissions.includes(required)) {
       throw new Error(`[commercial.setup] 준비된 사용자에게 ${required} 권한이 없습니다.`)
     }
+  }
+}
+
+async function verifyNoPermissions(token: string) {
+  const permissions = await backendJson<string[]>(token, '/api/me/permissions')
+  if (permissions.length !== 0) {
+    throw new Error('[commercial.setup] 무권한 사용자에게 권한이 배정되어 있습니다.')
   }
 }
 

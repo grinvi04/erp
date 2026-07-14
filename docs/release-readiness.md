@@ -43,12 +43,14 @@ cd frontend && npm run test:e2e
 - [ ] 입고 → 창고간 이전 → 출고/조정 결재 후 재고 수량 일치.
 - [ ] 부가세 신고 집계와 필터 적용 CSV 전체 내보내기 결과를 API/DB와 대조했다.
 - [ ] 감사 로그에 수행자·대상·변경 전후·traceId가 확인된다.
+- [ ] 동일 테넌트 무권한 사용자의 업무·관리 메뉴 미노출과 보호 API 403/C005를 확인했다.
+- [ ] 만료 세션의 refresh 실패가 `/login` 복귀로 끝나며 세션 응답에 토큰이 노출되지 않는다.
 
 로컬 실스택 렌더 E2E 실행 예시는 README의 `E2E_BACKEND=1` 명령을 따른다. 렌더 스모크 통과만으로 위 업무흐름 UAT를 대체하지 않는다.
 
 ### 로컬 후보 검증 명령
 
-README의 상용 UAT 전제를 준비한 뒤 다음을 순서대로 실행한다. `--dry-run`은 변경 없이 안전 계약만, `--setup-only`는 전용 UAT 신분·테넌트·권한을, `--all`은 실제 업무 데이터 변경과 브라우저 readback까지 수행한다.
+README의 상용 UAT 전제를 준비한 뒤 다음을 순서대로 실행한다. `--dry-run`은 변경 없이 안전 계약만, `--setup-only`는 전용 UAT 신분·테넌트·권한(무권한 사용자의 역할 회수 포함)을, `--all`은 실제 업무 데이터 변경과 CSV·권한·세션 브라우저 readback까지 수행한다.
 
 ```bash
 E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \

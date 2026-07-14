@@ -22,6 +22,8 @@ export type CommercialUatConfig = {
   approverPassword: string
   tenantBUsername: string
   tenantBPassword: string
+  restrictedUsername: string
+  restrictedPassword: string
 }
 
 export function isCommercialUatEnabled(env: CommercialUatEnvironment): boolean {
@@ -56,8 +58,11 @@ export function loadCommercialUatConfig(
   )
   const creatorUsername = requireEnv(env, 'E2E_COMMERCIAL_CREATOR_USERNAME')
   const approverUsername = requireEnv(env, 'E2E_COMMERCIAL_APPROVER_USERNAME')
-  if (creatorUsername === approverUsername) {
-    throw new Error('[commercial-uat] 작성자와 결재자 사용자명이 달라야 합니다.')
+  const tenantBUsername = requireEnv(env, 'E2E_COMMERCIAL_TENANT_B_USERNAME')
+  const restrictedUsername = requireEnv(env, 'E2E_COMMERCIAL_RESTRICTED_USERNAME')
+  const usernames = [creatorUsername, approverUsername, tenantBUsername, restrictedUsername]
+  if (new Set(usernames).size !== usernames.length) {
+    throw new Error('[commercial-uat] 모든 UAT 사용자명이 달라야 합니다.')
   }
 
   return {
@@ -73,8 +78,10 @@ export function loadCommercialUatConfig(
     creatorPassword: requireEnv(env, 'E2E_COMMERCIAL_CREATOR_PASSWORD'),
     approverUsername,
     approverPassword: requireEnv(env, 'E2E_COMMERCIAL_APPROVER_PASSWORD'),
-    tenantBUsername: requireEnv(env, 'E2E_COMMERCIAL_TENANT_B_USERNAME'),
+    tenantBUsername,
     tenantBPassword: requireEnv(env, 'E2E_COMMERCIAL_TENANT_B_PASSWORD'),
+    restrictedUsername,
+    restrictedPassword: requireEnv(env, 'E2E_COMMERCIAL_RESTRICTED_PASSWORD'),
   }
 }
 
@@ -82,21 +89,24 @@ export function assertCommercialUatIdentityTopology(
   creator: CommercialUatIdentity,
   approver: CommercialUatIdentity,
   tenantB: CommercialUatIdentity,
+  restricted: CommercialUatIdentity,
 ): void {
   for (const [label, identity] of [
     ['작성자', creator],
     ['결재자', approver],
     ['테넌트 B 사용자', tenantB],
+    ['무권한 사용자', restricted],
   ] as const) {
     if (!identity.subject.trim() || !identity.tenantId.trim()) {
       throw new Error(`[commercial-uat] ${label} 토큰의 subject와 tenant_id가 필요합니다.`)
     }
   }
-  if (creator.subject === approver.subject) {
-    throw new Error('[commercial-uat] 작성자와 결재자 subject가 달라야 합니다.')
+  const subjects = [creator.subject, approver.subject, tenantB.subject, restricted.subject]
+  if (new Set(subjects).size !== subjects.length) {
+    throw new Error('[commercial-uat] 모든 UAT 사용자 subject가 달라야 합니다.')
   }
-  if (creator.tenantId !== approver.tenantId) {
-    throw new Error('[commercial-uat] 작성자와 결재자는 동일한 테넌트 A여야 합니다.')
+  if (creator.tenantId !== approver.tenantId || creator.tenantId !== restricted.tenantId) {
+    throw new Error('[commercial-uat] 작성자, 결재자, 무권한 사용자는 동일한 테넌트 A여야 합니다.')
   }
   if (tenantB.tenantId === creator.tenantId) {
     throw new Error('[commercial-uat] 테넌트 B는 테넌트 A와 달라야 합니다.')

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import { encode } from '@auth/core/jwt'
 
 import { loadCommercialUatConfig } from '../src/lib/commercial-uat'
+import { toCsv } from '../src/lib/csv'
 
 type Envelope<T> = { success: boolean; data: T }
 type Page<T> = { content: T[] }
@@ -34,9 +35,20 @@ type BalanceSheet = {
   excludedEntryCount: number
 }
 type VatReturn = {
+  from: string
+  to: string
   sales: { taxableSupply: number; taxableVat: number }
   purchases: { supply: number; vat: number }
   payableTax: number
+  salesByBuyer: VatPartyLine[]
+  purchasesByVendor: VatPartyLine[]
+}
+type VatPartyLine = {
+  businessNo: string | null
+  name: string
+  count: number
+  supplyTotal: number
+  vatTotal: number
 }
 type Resource = { id: number }
 type Movement = { id: number; movementNo: string; status: string }
@@ -59,12 +71,14 @@ const periodEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
 let creatorToken: string
 let approverToken: string
 let tenantBToken: string
+let restrictedToken: string
 
 test.beforeAll(async () => {
-  ;[creatorToken, approverToken, tenantBToken] = await Promise.all([
+  ;[creatorToken, approverToken, tenantBToken, restrictedToken] = await Promise.all([
     userToken(config.creatorUsername, config.creatorPassword),
     userToken(config.approverUsername, config.approverPassword),
     userToken(config.tenantBUsername, config.tenantBPassword),
+    userToken(config.restrictedUsername, config.restrictedPassword),
   ])
 })
 
@@ -375,6 +389,82 @@ test.describe.serial('상용 UAT — 재무·테넌트 격리', () => {
     await expect(page.getByText(traceId!)).toBeVisible()
     expect(pageErrors).toEqual([])
   })
+
+  test('CSV·저권한 접근·만료 세션 경계를 실제 브라우저에서 검증한다', async ({ page }) => {
+    const pageErrors: Error[] = []
+    page.on('pageerror', (error) => pageErrors.push(error))
+
+    const vat = await json<VatReturn>(
+      creatorToken,
+      `/api/finance/vat-return?from=${today}&to=${today}`,
+    )
+    await addAuthenticatedCookie(page, creatorToken)
+    await page.goto(`/finance/vat-return?from=${today}&to=${today}`)
+    await expect(page.getByRole('heading', { name: '부가세 신고' })).toBeVisible()
+
+    for (const [heading, kind, rows] of [
+      ['매출처별 세금계산서 합계표', '매출', vat.salesByBuyer],
+      ['매입처별 세금계산서 합계표', '매입', vat.purchasesByVendor],
+    ] as const) {
+      const section = page.locator('section').filter({
+        has: page.getByRole('heading', { name: heading }),
+      })
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        section.getByRole('button', { name: '엑셀' }).click(),
+      ])
+      expect(download.suggestedFilename()).toBe(`부가세신고_${kind}_${today}_${today}.csv`)
+      expect(await downloadText(download)).toBe(expectedVatCsv(rows))
+    }
+
+    await expectForbidden(restrictedToken, `/api/finance/vat-return?from=${today}&to=${today}`)
+    await expectForbidden(restrictedToken, '/api/audit/logs?size=1')
+
+    await page.context().clearCookies()
+    await addAuthenticatedCookie(page, restrictedToken, { username: config.restrictedUsername })
+    await page.goto('/')
+    await expect(page.getByRole('heading', { name: '대시보드' })).toBeVisible()
+    for (const moduleName of ['인사', '재무', '재고', 'CRM']) {
+      await expect(page.getByRole('button', { name: moduleName, exact: true })).toHaveCount(0)
+    }
+    await expect(page.getByRole('link', { name: '역할·권한' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: '감사 로그' })).toHaveCount(0)
+
+    await page.getByRole('button', { name: /페이지 검색/ }).click()
+    const palette = page.getByRole('dialog', { name: '페이지 검색' })
+    await expect(palette).toBeVisible()
+    for (const protectedRoute of [
+      '직원',
+      '부가세신고',
+      '품목',
+      '고객사',
+      '역할·권한',
+      '감사 로그',
+    ]) {
+      await expect(palette.getByRole('button', { name: protectedRoute, exact: true })).toHaveCount(
+        0,
+      )
+    }
+    await page.keyboard.press('Escape')
+
+    await page.context().clearCookies()
+    const invalidRefreshToken = 'invalid-commercial-uat-refresh'
+    await addAuthenticatedCookie(page, creatorToken, {
+      accessTokenExpires: Date.now() - 1_000,
+      refreshToken: invalidRefreshToken,
+    })
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/login$/)
+    await expect(page.getByRole('button', { name: 'Keycloak으로 로그인' })).toBeVisible()
+    const sessionResponse = await page.request.get('/api/auth/session')
+    expect(sessionResponse.ok()).toBe(true)
+    const publicSession = (await sessionResponse.json()) as Record<string, unknown>
+    expect(publicSession).not.toHaveProperty('accessToken')
+    expect(publicSession).not.toHaveProperty('refreshToken')
+    expect(publicSession).not.toHaveProperty('serverAccessToken')
+    expect(JSON.stringify(publicSession)).not.toContain(invalidRefreshToken)
+    expect(pageErrors).toEqual([])
+  })
 })
 
 async function createWarehouse(code: string): Promise<Resource> {
@@ -429,18 +519,27 @@ async function expectStock(itemId: number, locationId: number, expectedQty: numb
   expect(Number(stock?.qtyOnHand ?? 0)).toBe(expectedQty)
 }
 
-async function addAuthenticatedCookie(page: import('@playwright/test').Page, accessToken: string) {
+async function addAuthenticatedCookie(
+  page: import('@playwright/test').Page,
+  accessToken: string,
+  options: {
+    username?: string
+    refreshToken?: string
+    accessTokenExpires?: number
+  } = {},
+) {
   const cookieName = 'authjs.session-token'
   const claims = jwtClaims(accessToken)
   const oneDay = 24 * 60 * 60
+  const username = options.username ?? config.creatorUsername
   const cookieValue = await encode({
     token: {
-      name: config.creatorUsername,
-      email: `${config.creatorUsername}@uat.erp.local`,
+      name: username,
+      email: `${username}@uat.erp.local`,
       sub: claims.sub,
       accessToken,
-      refreshToken: 'commercial-uat-refresh-not-used',
-      accessTokenExpires: Date.now() + oneDay * 1000,
+      refreshToken: options.refreshToken ?? 'commercial-uat-refresh-not-used',
+      accessTokenExpires: options.accessTokenExpires ?? Date.now() + oneDay * 1000,
       tenantId: String(claims.tenant_id),
     },
     secret: config.authSecret,
@@ -451,13 +550,50 @@ async function addAuthenticatedCookie(page: import('@playwright/test').Page, acc
     {
       name: cookieName,
       value: cookieValue,
-      domain: 'localhost',
+      domain: new URL(config.frontendUrl).hostname,
       path: '/',
       httpOnly: true,
       sameSite: 'Lax',
       expires: Math.floor(Date.now() / 1000) + oneDay,
     },
   ])
+}
+
+async function expectForbidden(token: string, pathname: string) {
+  const response = await request(token, pathname, { method: 'GET', expected: 403 })
+  const envelope = (await response.json()) as {
+    success: boolean
+    data?: unknown
+    error?: { code?: string }
+  }
+  expect(envelope.success).toBe(false)
+  expect(envelope.data).toBeUndefined()
+  expect(envelope.error?.code).toBe('C005')
+}
+
+async function downloadText(download: import('@playwright/test').Download): Promise<string> {
+  const stream = await download.createReadStream()
+  const chunks: Buffer[] = []
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  }
+  return Buffer.concat(chunks).toString('utf8')
+}
+
+function expectedVatCsv(rows: readonly VatPartyLine[]): string {
+  return (
+    '\uFEFF' +
+    toCsv(
+      ['사업자번호', '거래처', '매수', '공급가액', '세액'],
+      rows.map((row) => [
+        row.businessNo ?? '미상',
+        row.name,
+        row.count,
+        row.supplyTotal,
+        row.vatTotal,
+      ]),
+    )
+  )
 }
 
 function jwtClaims(token: string): { sub: string; tenant_id: string | number } {
