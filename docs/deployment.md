@@ -48,6 +48,8 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 
 ## 1. Railway — 백엔드 스택
 
+유료 파일럿은 모든 Railway 서비스와 PostgreSQL 볼륨을 승인된 동일 리전(현재 권장: 싱가포르)에 배치하고 실제 리전을 운영 기록에 남긴다. 이는 국내 보관을 의미하지 않으며, 미국 소재 Railway와 하위처리자의 계정·지원 처리를 포함한 국외 처리 기준은 [개인정보·법률 준비 기준](privacy-legal-readiness.md)을 따른다.
+
 ### 1-1. 프로젝트 + PostgreSQL
 1. [railway.app](https://railway.app) 로그인 → **New Project** → **Deploy PostgreSQL**.
 2. 생성된 Postgres의 변수 확인(Variables 탭): `PGHOST`·`PGPORT`·`PGUSER`·`PGPASSWORD`·`PGDATABASE`.
@@ -125,6 +127,8 @@ ERP_PROVISIONED_BY=<운영자 식별자> \
 ---
 
 ## 2. Vercel — 프론트엔드
+
+Vercel Pro DPA와 하위처리자 목록을 확인하고 함수의 실제 실행 리전을 운영 기록에 남긴다. Next.js BFF가 로그인 세션과 업무 API 응답을 처리하므로 정적 화면 호스팅으로만 분류하지 않는다.
 
 1. [vercel.com](https://vercel.com) → **Add New → Project** → 이 repo import.
 2. **Root Directory**: `frontend` (Next.js 자동 감지, `output: 'standalone'`).
