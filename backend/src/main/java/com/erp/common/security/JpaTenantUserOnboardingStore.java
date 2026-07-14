@@ -6,6 +6,7 @@ import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,7 +43,7 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
     }
     try {
       TenantUser saved = repository.saveAndFlush(candidate);
-      audit(saved, AuditLog.AuditAction.CREATE, null);
+      audit(saved, AuditLog.AuditAction.CREATE, null, "BEGIN");
       return saved;
     } catch (DataIntegrityViolationException conflict) {
       throw new ErpException(ErrorCode.IDENTITY_CONFLICT, conflict);
@@ -54,8 +55,9 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
   public TenantUser retry(String requestKey) {
     TenantUser user = findByRequestKey(requestKey);
     if (user.getStatus() == TenantUserStatus.FAILED) {
+      String beforeData = snapshot(user, null);
       user.retry();
-      audit(user, AuditLog.AuditAction.UPDATE, "RETRY");
+      audit(user, AuditLog.AuditAction.UPDATE, beforeData, "RETRY");
     }
     return user;
   }
@@ -64,9 +66,10 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public TenantUser activate(String requestKey, String keycloakUserId, Set<Long> roleIds) {
     TenantUser user = findByRequestKey(requestKey);
+    String beforeData = snapshot(user, null);
     user.activate(keycloakUserId);
     roleIds.stream().sorted().forEach(roleId -> iamService.assignRole(keycloakUserId, roleId));
-    audit(user, AuditLog.AuditAction.UPDATE, "ACTIVE");
+    audit(user, AuditLog.AuditAction.UPDATE, beforeData, "ACTIVE");
     return user;
   }
 
@@ -75,8 +78,9 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
   public TenantUser markFailed(String requestKey, String failureCode) {
     TenantUser user = findByRequestKey(requestKey);
     if (user.getStatus() != TenantUserStatus.FAILED) {
+      String beforeData = snapshot(user, null);
       user.fail(failureCode);
-      audit(user, AuditLog.AuditAction.UPDATE, failureCode);
+      audit(user, AuditLog.AuditAction.UPDATE, beforeData, failureCode);
     }
     return user;
   }
@@ -86,11 +90,13 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
   public TenantUser beginReinvite(Long id) {
     TenantUser user = find(id);
     if (user.getStatus() == TenantUserStatus.DISABLED) {
+      String beforeData = snapshot(user, null);
       user.beginReinvite();
-      audit(user, AuditLog.AuditAction.UPDATE, "REINVITE");
+      audit(user, AuditLog.AuditAction.UPDATE, beforeData, "REINVITE");
     } else if (user.getStatus() == TenantUserStatus.FAILED) {
+      String beforeData = snapshot(user, null);
       user.retry();
-      audit(user, AuditLog.AuditAction.UPDATE, "RETRY");
+      audit(user, AuditLog.AuditAction.UPDATE, beforeData, "RETRY");
     } else if (user.getStatus() != TenantUserStatus.ACTIVE) {
       throw new ErpException(ErrorCode.IDENTITY_CONFLICT);
     }
@@ -101,13 +107,14 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public TenantUser disable(Long id) {
     TenantUser user = find(id);
+    String beforeData = snapshot(user, null);
     String userId = user.getKeycloakUserId();
     iamService.getUserRoles(userId).stream()
         .map(com.erp.common.security.dto.RoleResponse::id)
         .sorted()
         .forEach(roleId -> iamService.unassignRole(userId, roleId));
     user.disable();
-    audit(user, AuditLog.AuditAction.UPDATE, "DISABLED");
+    audit(user, AuditLog.AuditAction.UPDATE, beforeData, "DISABLED");
     return user;
   }
 
@@ -131,13 +138,22 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
         .orElseThrow(() -> new ErpException(ErrorCode.RESOURCE_NOT_FOUND));
   }
 
-  private void audit(TenantUser user, AuditLog.AuditAction action, String event) {
-    auditService.record(
-        "TENANT_USER",
-        user.getId(),
-        action,
-        null,
-        json(Map.of("status", user.getStatus().name(), "event", event == null ? "BEGIN" : event)));
+  private void audit(
+      TenantUser user, AuditLog.AuditAction action, String beforeData, String event) {
+    auditService.record("TENANT_USER", user.getId(), action, beforeData, snapshot(user, event));
+  }
+
+  private String snapshot(TenantUser user, String event) {
+    Map<String, Object> data = new LinkedHashMap<>();
+    data.put("status", user.getStatus().name());
+    data.put("identityLinked", user.getKeycloakUserId() != null);
+    if (user.getFailureCode() != null) {
+      data.put("failureCode", user.getFailureCode());
+    }
+    if (event != null) {
+      data.put("event", event);
+    }
+    return json(data);
   }
 
   private String json(Map<String, Object> data) {

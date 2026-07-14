@@ -4,24 +4,39 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.erp.common.AbstractIntegrationTest;
+import com.erp.common.audit.AuditLog;
+import com.erp.common.audit.AuditLogRepository;
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.observability.TraceIdFilter;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 
 class JpaTenantUserOnboardingStoreIntegrationTest extends AbstractIntegrationTest {
+
+  private static final String TRACE_ID = "0123456789abcdef0123456789abcdef";
 
   @Autowired private TenantUserOnboardingStore store;
   @Autowired private TenantUserRepository tenantUserRepository;
   @Autowired private RoleRepository roleRepository;
   @Autowired private UserRoleRepository userRoleRepository;
+  @Autowired private AuditLogRepository auditLogRepository;
 
   @BeforeEach
   void authenticateOperator() {
     authenticate("operator", Permission.IAM_READ, Permission.IAM_WRITE);
+    MDC.put(TraceIdFilter.MDC_TRACE_ID, TRACE_ID);
+  }
+
+  @AfterEach
+  void clearTraceId() {
+    MDC.remove(TraceIdFilter.MDC_TRACE_ID);
   }
 
   @Test
@@ -71,6 +86,38 @@ class JpaTenantUserOnboardingStoreIntegrationTest extends AbstractIntegrationTes
     assertThat(
             userRoleRepository.findByTenantIdAndUserId(TEST_TENANT_ID, active.getKeycloakUserId()))
         .isEmpty();
+
+    var statusChanges =
+        auditLogRepository
+            .search(
+                TEST_TENANT_ID,
+                "TENANT_USER",
+                pending.getId(),
+                null,
+                AuditLog.AuditAction.UPDATE,
+                null,
+                null,
+                PageRequest.of(0, 10))
+            .getContent();
+    assertThat(statusChanges)
+        .hasSize(2)
+        .allSatisfy(
+            log -> {
+              assertThat(log.getBeforeData()).contains("status", "identityLinked");
+              assertThat(log.getAfterData()).contains("status", "identityLinked", "event");
+              assertThat(log.getTraceId()).isEqualTo(TRACE_ID);
+            });
+    assertThat(statusChanges)
+        .anySatisfy(
+            log -> {
+              assertThat(log.getBeforeData()).contains("PENDING");
+              assertThat(log.getAfterData()).contains("ACTIVE");
+            })
+        .anySatisfy(
+            log -> {
+              assertThat(log.getBeforeData()).contains("ACTIVE");
+              assertThat(log.getAfterData()).contains("DISABLED");
+            });
   }
 
   @Test
