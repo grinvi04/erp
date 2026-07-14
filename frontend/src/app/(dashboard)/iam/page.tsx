@@ -1,16 +1,16 @@
 import { apiGet, getMyPermissions } from '@/lib/api'
 import { PERM } from '@/lib/permissions'
-import type { Role } from '@/types/iam'
+import type { Role, TenantUser } from '@/types/iam'
 import IamClient from './iam-client'
 
-export const metadata = { title: '역할·권한 관리 | ERP' }
+export const metadata = { title: '사용자·권한 관리 | ERP' }
 
 export default async function IamPage() {
   const perms = await getMyPermissions()
   if (!perms.includes(PERM.IAM_READ)) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-semibold text-foreground">역할·권한 관리</h1>
+        <h1 className="text-2xl font-semibold text-foreground">사용자·권한 관리</h1>
         <p className="mt-4 text-sm text-muted-foreground">
           접근 권한이 없습니다. 관리에는 <code>iam:read</code> 권한이 필요합니다.
         </p>
@@ -18,11 +18,19 @@ export default async function IamPage() {
     )
   }
 
-  const [roles, catalog] = await Promise.all([
+  const [roles, catalog, tenantUsers] = await Promise.all([
     apiGet<Role[]>('/api/iam/roles'),
     apiGet<string[]>('/api/iam/permissions'),
+    apiGet<TenantUser[]>('/api/iam/tenant-users'),
   ])
 
   const canWrite = perms.includes(PERM.IAM_WRITE) || perms.includes(PERM.IAM_DELEGATE)
-  return <IamClient roles={roles} catalog={[...catalog].sort()} canWrite={canWrite} />
+  return (
+    <IamClient
+      roles={roles}
+      catalog={[...catalog].sort()}
+      tenantUsers={tenantUsers}
+      canWrite={canWrite}
+    />
+  )
 }

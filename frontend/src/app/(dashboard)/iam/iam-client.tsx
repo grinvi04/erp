@@ -43,7 +43,8 @@ import {
   unassignRole,
   setAccessProfile,
 } from './actions'
-import type { AccessProfile, DataScope, Role } from '@/types/iam'
+import type { AccessProfile, DataScope, Role, TenantUser } from '@/types/iam'
+import TenantUserPanel from './tenant-user-panel'
 
 function groupByModule(catalog: string[]): Record<string, string[]> {
   const groups: Record<string, string[]> = {}
@@ -60,10 +61,12 @@ type RoleDialog = { mode: 'none' } | { mode: 'create' } | { mode: 'edit'; role: 
 export default function IamClient({
   roles,
   catalog,
+  tenantUsers,
   canWrite,
 }: {
   roles: Role[]
   catalog: string[]
+  tenantUsers: TenantUser[]
   canWrite: boolean
 }) {
   const [isPending, startTransition] = useTransition()
@@ -146,7 +149,13 @@ export default function IamClient({
 
   return (
     <div className="p-5 space-y-5">
-      <PageHeader title="역할·권한 관리" />
+      <PageHeader
+        eyebrow="Identity & access"
+        title="사용자·권한 관리"
+        description="사용자를 초대하고 업무 역할과 데이터 접근 범위를 관리합니다."
+      />
+
+      <TenantUserPanel initialUsers={tenantUsers} roles={roles} canWrite={canWrite} />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
