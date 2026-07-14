@@ -88,6 +88,11 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
     if (user.getStatus() == TenantUserStatus.DISABLED) {
       user.beginReinvite();
       audit(user, AuditLog.AuditAction.UPDATE, "REINVITE");
+    } else if (user.getStatus() == TenantUserStatus.FAILED) {
+      user.retry();
+      audit(user, AuditLog.AuditAction.UPDATE, "RETRY");
+    } else if (user.getStatus() != TenantUserStatus.ACTIVE) {
+      throw new ErpException(ErrorCode.IDENTITY_CONFLICT);
     }
     return user;
   }

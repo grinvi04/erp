@@ -103,11 +103,35 @@ public class TenantUserOnboardingService {
     if (user.getStatus() == TenantUserStatus.ACTIVE) {
       return TenantUserResponse.from(user);
     }
-    String userId = requireIdentity(user);
-    iamService.requireManageableUser(userId);
     Long tenantId = TenantContext.requireTenantId();
+    String userId = user.getKeycloakUserId();
+    if (userId != null) {
+      iamService.requireManageableUser(userId);
+    }
     try {
-      identityPort.setEnabled(userId, tenantId, true);
+      if (userId == null) {
+        Optional<TenantIdentityUser> existing = identityPort.findByEmail(user.getNormalizedEmail());
+        if (existing.isPresent()) {
+          TenantIdentityUser identity = existing.orElseThrow();
+          if (!isOwnedIdentity(identity, tenantId, user.getRequestKey())) {
+            store.markFailed(user.getRequestKey(), "IDENTITY_CONFLICT");
+            throw new ErpException(ErrorCode.IDENTITY_CONFLICT);
+          }
+          userId = identity.id();
+          identityPort.setEnabled(userId, tenantId, true);
+        } else {
+          TenantIdentityUser created =
+              identityPort.createUser(
+                  new TenantIdentityCreateRequest(
+                      tenantId, user.getNormalizedEmail(), null, null, user.getRequestKey()));
+          userId = created == null ? null : created.id();
+          if (!isOwnedIdentity(created, tenantId, user.getRequestKey())) {
+            throw new TenantIdentityAdminException("identity provider returned an invalid user");
+          }
+        }
+      } else {
+        identityPort.setEnabled(userId, tenantId, true);
+      }
       identityPort.sendInvite(userId, tenantId);
       return TenantUserResponse.from(
           store.activate(user.getRequestKey(), userId, request.roleIds()));

@@ -209,6 +209,27 @@ class TenantUserOnboardingServiceTest {
   }
 
   @Test
+  void reinvite_failedBeforeIdentityCreation_createsIdentityAndActivates() {
+    TenantUser pending = TenantUser.pending("admin@example.com", "request-1");
+    TenantUser active = TenantUser.pending("admin@example.com", "request-1");
+    active.activate("keycloak-user-1");
+    given(permissionChecker.hasPermission(Permission.IAM_WRITE)).willReturn(true);
+    given(iamService.getRole(7L))
+        .willReturn(new RoleResponse(7L, "FINANCE_USER", "재무 사용자", null, Set.of()));
+    given(store.beginReinvite(3L)).willReturn(pending);
+    given(identityPort.findByEmail("admin@example.com")).willReturn(Optional.empty());
+    given(identityPort.createUser(any()))
+        .willReturn(new TenantIdentityUser("keycloak-user-1", 1L, "request-1", true));
+    given(store.activate("request-1", "keycloak-user-1", Set.of(7L))).willReturn(active);
+
+    var result = service.reinvite(3L, new TenantUserReinviteRequest(Set.of(7L)));
+
+    verify(identityPort).sendInvite("keycloak-user-1", 1L);
+    verify(store).activate("request-1", "keycloak-user-1", Set.of(7L));
+    assertThat(result.status()).isEqualTo(TenantUserStatus.ACTIVE);
+  }
+
+  @Test
   void reinvite_activeUser_isIdempotent() {
     TenantUser active = TenantUser.pending("admin@example.com", "request-1");
     active.activate("keycloak-user-1");

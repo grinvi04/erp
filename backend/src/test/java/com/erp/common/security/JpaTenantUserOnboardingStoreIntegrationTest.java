@@ -87,6 +87,18 @@ class JpaTenantUserOnboardingStoreIntegrationTest extends AbstractIntegrationTes
     assertThat(tenantUserRepository.findByRequestKey(requestKey)).isPresent();
   }
 
+  @Test
+  void beginReinvite_failedInvitation_returnsToPending() {
+    String requestKey = uniqueKey();
+    TenantUser user = store.begin(uniqueEmail(), requestKey, fingerprint("reinvite"));
+    store.markFailed(requestKey, "IDENTITY_PROVIDER_UNAVAILABLE");
+
+    TenantUser pending = store.beginReinvite(user.getId());
+
+    assertThat(pending.getStatus()).isEqualTo(TenantUserStatus.PENDING);
+    assertThat(pending.getFailureCode()).isNull();
+  }
+
   private Role role(String code, String permission) {
     Role role = Role.of(TEST_TENANT_ID, code, code, null);
     role.grant(permission);
