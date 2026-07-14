@@ -31,7 +31,7 @@ cd frontend && npm run test:e2e
 - [ ] 모든 Flyway 파일이 forward-only이며 기존 적용 파일을 수정하지 않았다.
 - [ ] [운영·복구 런북](operations-runbook.md)에 따라 격리 DB 복원 검증이 성공했다.
 - [ ] 운영 백업의 생성 시각·보존 정책·복원 검증 시각을 운영 기록에 남겼다.
-- [ ] 제품 소유자가 RPO·RTO·백업 주기·보존 기간을 확정했다.
+- [ ] 제품 소유자가 [서비스 운영 정책](service-policy.md)의 RPO·RTO·백업 주기·보존 기간을 승인했고 실제 설정과 일치한다.
 
 ## 4. 실스택 업무흐름 UAT
 
@@ -69,7 +69,8 @@ E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
 - [ ] 백엔드·프런트·Keycloak 헬스체크가 성공한다.
 - [ ] Railway/Vercel 최신 배포 commit SHA가 릴리즈 SHA와 일치한다.
 - [ ] ERROR 로그·5xx·지연·DB 연결 고갈 알림의 수신 채널과 담당자가 정해졌다.
-- [ ] 장애 연락망·지원 채널·지원 시간이 고객 계약과 일치한다.
+- [ ] 장애 연락망·지원 채널·지원 시간·고객 통지 기준이 승인된 서비스 운영 정책과 고객 계약에 일치한다.
+- [ ] 데이터 반출·운영 데이터 삭제·백업 순환 삭제 절차를 실제 테넌트 사본으로 리허설했다.
 
 ## 6. 출시 승인
 
