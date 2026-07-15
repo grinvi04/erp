@@ -83,12 +83,14 @@ Dependabot 자동 보안 수정 PR은 현재 비활성 상태로 유지한다. �
 
 ```bash
 cd backend
-./gradlew --write-verification-metadata sha256 check
+./gradlew --write-verification-metadata sha256 dependencies
+./gradlew --write-verification-metadata sha256 check bootJar
 git diff -- gradle/verification-metadata.xml
 ./gradlew check
+docker build --tag erp-backend:verification .
 ```
 
-생성 결과를 그대로 승인하지 않는다. diff가 의도한 의존성·버전과 전이 의존성에 한정되는지 확인하고, 출처를 설명할 수 없는 컴포넌트나 기존 체크섬 교체는 병합하지 않는다. 의도하지 않은 변경이면 의존성 변경과 메타데이터 변경을 함께 되돌린다. 메타데이터에 없는 아티팩트나 체크섬이 다른 아티팩트는 Gradle이 빌드 전에 거부해야 한다.
+두 번의 메타데이터 생성은 Dockerfile의 분리된 `dependencies`·`bootJar` 해석 경로를 모두 포함하기 위한 것이다. 생성 결과를 그대로 승인하지 않는다. diff가 의도한 의존성·버전과 전이 의존성에 한정되는지 확인하고, 출처를 설명할 수 없는 컴포넌트나 기존 체크섬 교체는 병합하지 않는다. 의도하지 않은 변경이면 의존성 변경과 메타데이터 변경을 함께 되돌린다. 메타데이터에 없는 아티팩트나 체크섬이 다른 아티팩트는 Gradle이 빌드 전에 거부해야 한다.
 
 ## 검증 기록
 
