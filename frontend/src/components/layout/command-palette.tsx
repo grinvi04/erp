@@ -40,7 +40,7 @@ const ROUTES: Route[] = [
   { label: '리드', href: '/crm/leads', group: 'CRM' },
   { label: '영업 기회', href: '/crm/opportunities', group: 'CRM' },
   { label: '활동', href: '/crm/activities', group: 'CRM' },
-  { label: '역할·권한', href: '/iam', group: '관리' },
+  { label: '사용자·권한', href: '/iam', group: '관리' },
   { label: '감사 로그', href: '/audit', group: '관리' },
 ]
 

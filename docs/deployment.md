@@ -24,6 +24,8 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 | 백엔드 | `SPRING_DATASOURCE_URL`·`_USERNAME`·`_PASSWORD` | application.yml | — |
 | 백엔드 | `KEYCLOAK_ISSUER_URI` | application.yml(resource server) | 백엔드용. `.../realms/erp` |
 | 프로비저닝 명령 | `ERP_KEYCLOAK_PROVISIONING_CLIENT_ID`·`_SECRET` | TenantProvisioningConfiguration.java | 테넌트 생성 때만 주입. 일반 백엔드 런타임에는 주입하지 않음 |
+| 백엔드 | `ERP_KEYCLOAK_USER_ADMIN_ENABLED`·`_CLIENT_ID`·`_CLIENT_SECRET` | TenantIdentityAdminConfiguration.java | 사용자 초대 런타임 전용 서비스 계정. 운영은 `true` |
+| 백엔드 | `ERP_KEYCLOAK_USER_ADMIN_BASE_URL`·`_REALM`·`_FRONTEND_CLIENT_ID`·`_REDIRECT_URI` | TenantIdentityAdminConfiguration.java | 초대 메일의 로그인 대상과 Keycloak Admin API |
 | 프론트 | `BACKEND_URL` | lib/api.ts | `NEXT_PUBLIC_API_URL` 폴백 |
 | 프론트 | `AUTH_KEYCLOAK_ID`·`AUTH_KEYCLOAK_SECRET` | lib/auth.ts | next-auth Keycloak provider |
 | 프론트 | **`KEYCLOAK_ISSUER`** | lib/auth.ts:27,56 | ⚠️ `AUTH_KEYCLOAK_ISSUER` **아님**(관례와 다름) — 틀리면 로그인 깨짐 |
@@ -82,13 +84,17 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 `https://<keycloak-domain>/admin` → admin 로그인 →
 1. **Create realm**: `erp`
 2. **Clients → Create**: Client ID `erp-frontend`, OpenID Connect, **Client authentication ON**(confidential), Standard flow.
-3. **Valid redirect URIs**: `https://<vercel-domain>/api/auth/callback/keycloak`
+3. **Valid redirect URIs**에 아래 두 URI를 각각 등록한다.
+   - `https://<vercel-domain>/api/auth/callback/keycloak` (로그인 OIDC 콜백)
+   - `https://<vercel-domain>/login` (초대 메일의 필수 작업 완료 후 복귀)
    **Web origins**: `https://<vercel-domain>`
 4. Credentials 탭의 **Client secret** 복사 → Vercel `AUTH_KEYCLOAK_SECRET`.
 5. **Users → Create** 로 **해당 테넌트 전용** 프로비저닝 운영자 사용자를 새로 만들고 사용자 ID(`sub`)를 기록한다. 기존 고객의 운영자 계정을 재사용하지 않으며 `tenant_id`가 비어 있는지 확인한다. 이 계정은 고객에게 제공하지 않는 break-glass 계정이다.
 6. Realm의 User Profile에 `tenant_id` 속성을 추가하고 일반 사용자는 편집할 수 없게 한다.
 7. `erp-frontend` 전용 Client scope에 **User Attribute** 매퍼를 추가한다: 사용자 속성 `tenant_id` → 토큰 클레임 `tenant_id`, JSON 타입 `long`.
 8. confidential service-account client `erp-provisioner`를 만들고 `realm-management`의 `manage-users`, `view-users`, `query-users`만 부여한다. 이 클라이언트는 테넌트 생성 명령에만 사용한다.
+9. 별도 confidential service-account client `erp-user-admin`을 만들고 같은 세 역할만 부여한다. 이 클라이언트는 백엔드의 사용자 초대·중지 런타임에만 사용하며 `erp-provisioner` 시크릿과 분리해 회전한다.
+10. Realm email 설정에 운영 SMTP 공급자의 TLS·발신자·자격증명을 설정하고 테스트 메일을 수신한다. SMTP 시크릿은 Keycloak 서비스 변수 또는 승인된 시크릿 저장소에만 둔다.
 
 ### 1-4. 백엔드 서비스
 1. **New → GitHub Repo** → 이 repo 선택 → Settings → **Root Directory**: `backend` (railway.json·Dockerfile 자동 인식).
@@ -99,6 +105,13 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
    SPRING_DATASOURCE_USERNAME=${{Postgres.PGUSER}}
    SPRING_DATASOURCE_PASSWORD=${{Postgres.PGPASSWORD}}
    KEYCLOAK_ISSUER_URI=https://<keycloak-domain>/realms/erp
+   ERP_KEYCLOAK_USER_ADMIN_ENABLED=true
+   ERP_KEYCLOAK_USER_ADMIN_BASE_URL=https://<keycloak-domain>
+   ERP_KEYCLOAK_USER_ADMIN_REALM=erp
+   ERP_KEYCLOAK_USER_ADMIN_CLIENT_ID=erp-user-admin
+   ERP_KEYCLOAK_USER_ADMIN_CLIENT_SECRET=<runtime-service-account-secret>
+   ERP_KEYCLOAK_USER_ADMIN_FRONTEND_CLIENT_ID=erp-frontend
+   ERP_KEYCLOAK_USER_ADMIN_REDIRECT_URI=https://<vercel-domain>/login
    ```
 3. Settings → Networking → **Generate Domain** → 백엔드 공개 URL(헬스체크 `/actuator/health`).
 4. 첫 배포 후 Flyway가 전체 마이그레이션을 적용한다. 이 시점에는 테넌트와 권한 보유자가 없는 fail-closed 상태다.
@@ -126,12 +139,13 @@ ERP_PROVISIONED_BY=<운영자 식별자> \
 
 프로비저닝 성공 로그의 숫자형 `tenantId`를 승인 기록과 대조한 뒤 고객 관리자를 별도로 개통한다.
 
-1. Keycloak에서 고객 업무 관리자를 새로 만들고 관리자 전용 `tenant_id` 속성에 위 `tenantId`를 설정한다. 고객이 이 속성을 수정할 수 있게 하지 않는다.
-2. break-glass 계정으로 ERP `/iam`에 로그인해 Finance·Inventory·CRM에 필요한 권한만 가진 고객 업무 관리자 역할을 만들고 고객 사용자 `sub`에 배정한다. 고객 역할에는 `iam:write`를 부여하지 않는다.
-3. 고객 업무 관리자 계정으로 새 로그인해 JWT의 `tenant_id`, 허용 메뉴, 보호 API 접근을 확인하고 HR·IAM 관리 메뉴 미노출과 HR·IAM 쓰기 API 403을 검증한다.
-4. 고객 계정에 `SUPER_ADMIN`, `hr:*`, `iam:write`가 하나라도 있거나 `tenant_id`가 다르면 개통을 중단한다.
+1. break-glass 계정으로 ERP `/iam`에 로그인해 기본 `BUSINESS_ADMIN` 역할로 고객 업무 관리자를 이메일 초대한다. 백엔드가 `tenant_id`를 직접 연결하며 일반 사용자가 수정할 수 없다.
+2. 고객 업무 관리자는 초대 메일에서 이메일 확인·비밀번호 설정을 마친 뒤 로그인한다. `BUSINESS_ADMIN`은 안전한 비-HR 역할만 다른 사용자에게 위임할 수 있고 `SUPER_ADMIN`, `hr:*`, `iam:write`, `iam:delegate`는 부여할 수 없다.
+3. 고객 업무 관리자 계정으로 새 로그인해 JWT의 `tenant_id`, IAM 사용자 초대, 허용 메뉴와 보호 API 접근을 확인한다. HR 메뉴·API와 보호 역할 조작은 거부되어야 한다.
+4. `/iam`에서 Finance·Inventory·CRM 업무 사용자를 각 기본 역할로 초대하고 메일 수신·첫 로그인·사용 중지·재초대를 표본 검증한다.
+5. 고객 계정에 `SUPER_ADMIN`, `hr:*`, `iam:write`가 하나라도 있거나 `tenant_id`가 다르면 개통을 중단한다.
 
-추가 사용자 `tenant_id` 설정과 역할 변경은 현재 운영자 대행 작업이다. 고객 요청은 승인된 지원 채널로 받고 break-glass 사용 사유와 변경 전후를 감사 기록에 남긴다. #189의 스테이징 리허설에서 이 절차와 증거를 검증하고, 반복 고객 온보딩 전 안전한 위임 제한과 자동화 여부를 별도 평가한다.
+추가 사용자는 고객 업무 관리자가 `/iam`에서 초대·중지한다. 보호 역할이나 HR 접근이 필요한 예외 요청은 승인된 지원 채널과 break-glass 절차를 거치고 변경 전후를 감사 기록에 남긴다. #189의 스테이징 리허설에서 SMTP 전달률, 초대 링크, 중지 즉시성, 서비스 계정 회전을 검증한다.
 
 ---
 

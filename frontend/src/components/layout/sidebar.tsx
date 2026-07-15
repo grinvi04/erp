@@ -153,7 +153,7 @@ export function SidebarNav() {
               <SectionLabel>관리</SectionLabel>
               <div className="space-y-0.5">
                 {showIam && (
-                  <NavLink href="/iam" label="역할·권한" icon={ShieldCheck} pathname={pathname} />
+                  <NavLink href="/iam" label="사용자·권한" icon={ShieldCheck} pathname={pathname} />
                 )}
                 {showAudit && (
                   <NavLink href="/audit" label="감사 로그" icon={ScrollText} pathname={pathname} />

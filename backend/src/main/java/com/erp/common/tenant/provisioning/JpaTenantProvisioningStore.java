@@ -10,6 +10,7 @@ import com.erp.common.security.UserRoleRepository;
 import com.erp.common.tenant.Tenant;
 import com.erp.common.tenant.TenantRepository;
 import com.erp.common.tenant.TenantStatus;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -70,6 +71,30 @@ public class JpaTenantProvisioningStore implements TenantProvisioningStore {
             .orElseGet(() -> Role.of(tenantId, SUPER_ADMIN, "슈퍼 관리자", "모든 권한(테넌트 최초 관리자)"));
     Permission.all().forEach(role::grant);
     role = roleRepository.save(role);
+    ensureRole(
+        tenantId,
+        "BUSINESS_ADMIN",
+        "업무 관리자",
+        "비-HR 사용자·역할 관리",
+        Set.of(Permission.AUDIT_READ, Permission.IAM_READ, Permission.IAM_DELEGATE));
+    ensureRole(
+        tenantId,
+        "FINANCE_USER",
+        "재무 사용자",
+        "재무 조회·입력",
+        Set.of(Permission.FINANCE_READ, Permission.FINANCE_WRITE));
+    ensureRole(
+        tenantId,
+        "INVENTORY_USER",
+        "재고 사용자",
+        "재고 조회·입력",
+        Set.of(Permission.INVENTORY_READ, Permission.INVENTORY_WRITE));
+    ensureRole(
+        tenantId,
+        "CRM_USER",
+        "CRM 사용자",
+        "CRM 조회·입력",
+        Set.of(Permission.CRM_READ, Permission.CRM_WRITE));
     if (!userRoleRepository.existsByTenantIdAndUserIdAndRoleId(
         tenantId, tenant.getAdminUserId(), role.getId())) {
       userRoleRepository.save(UserRole.of(tenantId, tenant.getAdminUserId(), role));
@@ -96,6 +121,16 @@ public class JpaTenantProvisioningStore implements TenantProvisioningStore {
     return tenantRepository
         .findByCode(code)
         .orElseThrow(() -> new TenantProvisioningNotFoundException(code));
+  }
+
+  private void ensureRole(
+      Long tenantId, String code, String name, String description, Set<String> permissions) {
+    Role role =
+        roleRepository
+            .findByTenantIdAndCode(tenantId, code)
+            .orElseGet(() -> Role.of(tenantId, code, name, description));
+    role.replacePermissions(permissions);
+    roleRepository.save(role);
   }
 
   private Tenant findById(Long id) {

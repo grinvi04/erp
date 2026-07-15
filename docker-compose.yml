@@ -10,6 +10,18 @@
 # (Keycloak 26은 KC_DB_SCHEMA 스키마를 자동 생성하지 않으므로 필수). 상세 셋업은 README.
 
 services:
+  mailpit:
+    image: axllent/mailpit:v1.30.4
+    container_name: erp-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   postgres:
     image: postgres:16-alpine
     container_name: erp-postgres
@@ -47,6 +59,8 @@ services:
     ports:
       - "8180:8080"
     depends_on:
+      mailpit:
+        condition: service_healthy
       postgres:
         condition: service_healthy
     healthcheck:

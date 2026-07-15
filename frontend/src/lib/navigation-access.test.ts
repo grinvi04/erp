@@ -34,7 +34,7 @@ describe('protected navigation access policy', () => {
     ['finance', '/finance/vat-return', PERM.FINANCE_READ],
     ['inventory', '/inventory/items', PERM.INVENTORY_READ],
     ['CRM', '/crm/accounts', PERM.CRM_READ],
-    ['IAM', '/iam', PERM.IAM_READ],
+    ['사용자·권한', '/iam', PERM.IAM_READ],
     ['audit', '/audit', PERM.AUDIT_READ],
   ])('shows the %s path only with its read permission', (_label, path, permission) => {
     expect(isNavigationPathVisible(path, new Set([permission]))).toBe(true)
