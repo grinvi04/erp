@@ -30,9 +30,9 @@ class LeadsByStatusIntegrationTest extends AbstractIntegrationTest {
   @Test
   void leadsByStatus_fillsAllStatusValuesWithZeroForMissing() {
     // NEW x2, QUALIFIED x1 — all other statuses absent
-    leadRepository.save(Lead.of("Kim", "A", "Corp", null, null, null, null, "user1", null));
-    leadRepository.save(Lead.of("Lee", "B", "Corp", null, null, null, null, "user1", null));
-    Lead qualified = Lead.of("Park", "C", "Corp", null, null, null, null, "user1", null);
+    leadRepository.save(Lead.of("Kim", "A", "Corp", null, null, null, null, "test-user", null));
+    leadRepository.save(Lead.of("Lee", "B", "Corp", null, null, null, null, "test-user", null));
+    Lead qualified = Lead.of("Park", "C", "Corp", null, null, null, null, "test-user", null);
     qualified.qualify();
     leadRepository.save(qualified);
 
