@@ -12,7 +12,7 @@
 
 **기술 스택**
 - Backend: Spring Boot 3.4.x · Java 21 · Gradle · PostgreSQL 16 · Flyway · Keycloak OIDC
-- Frontend: Next.js 15 (App Router) · TypeScript · next-auth v5 · Tailwind CSS · shadcn/ui
+- Frontend: Next.js 16 (App Router) · TypeScript · next-auth v5 · Tailwind CSS · shadcn/ui
 - Auth: Keycloak (단일 realm, tenant_id JWT claim) — Backend: Resource Server, Frontend: BFF
 - Infra: Docker Compose (로컬), GitHub Actions CI
 

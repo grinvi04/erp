@@ -15,9 +15,9 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 
 ---
 
-## ✅ 배포 전 점검 (pre-flight — v0.5.0 코드 기준 검증)
+## ✅ 배포 전 점검 (pre-flight — 현재 `develop` 코드 기준 검증)
 
-> 코드가 실제로 읽는 환경변수 이름을 v0.5.0 소스로 교차검증한 결과. 이 표 기준으로 플랫폼 변수를 설정하면 "배포는 됐는데 안 됨"을 피한다.
+> 코드가 실제로 읽는 환경변수 이름을 현재 `develop` 소스와 교차검증한 결과. 이 표 기준으로 플랫폼 변수를 설정하면 "배포는 됐는데 안 됨"을 피한다.
 
 | 대상 | 변수 | 코드 출처 | 주의 |
 |---|---|---|---|
@@ -26,6 +26,7 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 | 프로비저닝 명령 | `ERP_KEYCLOAK_PROVISIONING_CLIENT_ID`·`_SECRET` | TenantProvisioningConfiguration.java | 테넌트 생성 때만 주입. 일반 백엔드 런타임에는 주입하지 않음 |
 | 백엔드 | `ERP_KEYCLOAK_USER_ADMIN_ENABLED`·`_CLIENT_ID`·`_CLIENT_SECRET` | TenantIdentityAdminConfiguration.java | 사용자 초대 런타임 전용 서비스 계정. 운영은 `true` |
 | 백엔드 | `ERP_KEYCLOAK_USER_ADMIN_BASE_URL`·`_REALM`·`_FRONTEND_CLIENT_ID`·`_REDIRECT_URI` | TenantIdentityAdminConfiguration.java | 초대 메일의 로그인 대상과 Keycloak Admin API |
+| 백엔드 | `ERP_KEYCLOAK_USER_ADMIN_INVITE_LIFESPAN_SECONDS` | TenantIdentityAdminConfiguration.java | 초대 링크 유효시간(초). 기본값 `900` |
 | 프론트 | `BACKEND_URL` | lib/api.ts | `NEXT_PUBLIC_API_URL` 폴백 |
 | 프론트 | `AUTH_KEYCLOAK_ID`·`AUTH_KEYCLOAK_SECRET` | lib/auth.ts | next-auth Keycloak provider |
 | 프론트 | **`KEYCLOAK_ISSUER`** | lib/auth.ts:27,56 | ⚠️ `AUTH_KEYCLOAK_ISSUER` **아님**(관례와 다름) — 틀리면 로그인 깨짐 |
@@ -112,6 +113,7 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
    ERP_KEYCLOAK_USER_ADMIN_CLIENT_SECRET=<runtime-service-account-secret>
    ERP_KEYCLOAK_USER_ADMIN_FRONTEND_CLIENT_ID=erp-frontend
    ERP_KEYCLOAK_USER_ADMIN_REDIRECT_URI=https://<vercel-domain>/login
+   ERP_KEYCLOAK_USER_ADMIN_INVITE_LIFESPAN_SECONDS=900
    ```
 3. Settings → Networking → **Generate Domain** → 백엔드 공개 URL(헬스체크 `/actuator/health`).
 4. 첫 배포 후 Flyway가 전체 마이그레이션을 적용한다. 이 시점에는 테넌트와 권한 보유자가 없는 fail-closed 상태다.

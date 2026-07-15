@@ -110,7 +110,7 @@ def gen_architecture():
     out += box(browser_x, browser_y, browser_w, bh,
                "Browser", "", color="border")
     out += box(nextjs_x, nextjs_y, nextjs_w, bh,
-               "Next.js 15", "Vercel · BFF · next-auth v5", color="green")
+               "Next.js 16", "Vercel · BFF · next-auth v5", color="green")
     out += box(spring_x, spring_y, spring_w, bh,
                "Spring Boot 3", "HR · Finance · Inventory · CRM", color="purple")
     out += box(kc_x, kc_y, kc_w, bh,

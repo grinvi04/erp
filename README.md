@@ -62,7 +62,7 @@ HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS 
 | 영역 | 스택 |
 |------|------|
 | **Backend** | Spring Boot 3.4 · Java 21 · Gradle · PostgreSQL 16 · Flyway · Keycloak(OIDC) |
-| **Frontend** | Next.js 15 (App Router) · TypeScript · next-auth v5(BFF) · Tailwind CSS · shadcn/ui |
+| **Frontend** | Next.js 16 (App Router) · TypeScript · next-auth v5(BFF) · Tailwind CSS · shadcn/ui |
 | **Infra · CI** | Docker Compose(로컬) · GitHub Actions(ci-gate) · Playwright(E2E) |
 
 ## 🏗️ 아키텍처
@@ -74,7 +74,7 @@ HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'lineColor': '#6b7280', 'background': '#f8fafc', 'mainBkg': '#f8fafc', 'fontSize': '14px'}}}%%
 flowchart LR
-    Browser["🖥️ 브라우저"] -->|HTTPS| FE["<b>Next.js 15</b> · App Router<br/>next-auth v5 (BFF)"]
+    Browser["🖥️ 브라우저"] -->|HTTPS| FE["<b>Next.js 16</b> · App Router<br/>next-auth v5 (BFF)"]
     FE -->|"Bearer JWT · tenant_id claim"| BE["<b>Spring Boot 3.4</b> · Java 21<br/>Resource Server"]
     FE -. "OIDC 로그인" .-> KC["🔐 Keycloak<br/>realm: erp"]
     BE -. "JWT/JWKS 검증" .-> KC
