@@ -23,6 +23,7 @@ fi
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:16-alpine}"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
+SECONDS=0
 
 run_pg() {
   local database_url="$1"
@@ -46,22 +47,41 @@ snapshot_counts() {
 }
 
 echo "1/4 원본 데이터 스냅샷 집계"
+phase_started=$SECONDS
 SOURCE_COUNTS="$(snapshot_counts "$SOURCE_DATABASE_URL")"
+snapshot_seconds=$((SECONDS - phase_started))
 
 echo "2/4 PostgreSQL custom-format 백업 생성"
+phase_started=$SECONDS
 run_pg "$SOURCE_DATABASE_URL" \
   pg_dump "$SOURCE_DATABASE_URL" --format=custom --no-owner --no-acl --file=/work/erp.dump
+backup_seconds=$((SECONDS - phase_started))
+backup_bytes="$(run_pg "$SOURCE_DATABASE_URL" sh -c 'wc -c < /work/erp.dump')"
+backup_sha256="$(run_pg "$SOURCE_DATABASE_URL" sha256sum /work/erp.dump | awk '{print $1}')"
 
 echo "3/4 격리된 대상 DB에 복원"
+phase_started=$SECONDS
 run_pg "$RESTORE_DATABASE_URL" \
   pg_restore --dbname="$RESTORE_DATABASE_URL" --clean --if-exists --no-owner --no-acl \
   --exit-on-error /work/erp.dump
+restore_seconds=$((SECONDS - phase_started))
 
 echo "4/4 Flyway·테넌트·핵심 모듈·Keycloak 데이터 대조"
+phase_started=$SECONDS
 RESTORE_COUNTS="$(snapshot_counts "$RESTORE_DATABASE_URL")"
 if [[ "$SOURCE_COUNTS" != "$RESTORE_COUNTS" ]]; then
   echo "복원 검증 실패: 핵심 테이블 행 수가 원본과 다릅니다." >&2
   exit 1
 fi
+verification_seconds=$((SECONDS - phase_started))
+restore_total_seconds=$((restore_seconds + verification_seconds))
 
 echo "복원 검증 성공: 핵심 스키마와 행 수가 원본과 일치합니다."
+echo "backup_bytes=$backup_bytes"
+echo "backup_sha256=$backup_sha256"
+echo "snapshot_seconds=$snapshot_seconds"
+echo "backup_seconds=$backup_seconds"
+echo "restore_seconds=$restore_seconds"
+echo "verification_seconds=$verification_seconds"
+echo "restore_total_seconds=$restore_total_seconds"
+echo "rehearsal_total_seconds=$SECONDS"
