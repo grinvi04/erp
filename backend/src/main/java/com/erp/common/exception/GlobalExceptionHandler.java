@@ -59,7 +59,7 @@ public class GlobalExceptionHandler {
   })
   public ResponseEntity<ApiResponse<Void>> handleInvalidInput(Exception e) {
     ErrorCode code = ErrorCode.INVALID_INPUT;
-    log.warn("Invalid client input: {}", e.getMessage());
+    log.warn("Invalid client input [{}]", e.getClass().getSimpleName());
     return ResponseEntity.status(code.getHttpStatus())
         .body(ApiResponse.error(code.getCode(), code.getMessage()));
   }
@@ -94,7 +94,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(DataIntegrityViolationException.class)
   public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException e) {
     ErrorCode code = ErrorCode.DATA_INTEGRITY_CONFLICT;
-    log.warn("Data integrity violation: {}", e.getMostSpecificCause().getMessage());
+    log.warn("Data integrity violation [{}]", e.getMostSpecificCause().getClass().getSimpleName());
     return ResponseEntity.status(code.getHttpStatus())
         .body(ApiResponse.error(code.getCode(), code.getMessage()));
   }
