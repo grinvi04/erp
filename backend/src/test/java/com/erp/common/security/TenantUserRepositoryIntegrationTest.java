@@ -9,10 +9,12 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 class TenantUserRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private TenantUserRepository repository;
+  @Autowired private JdbcTemplate jdbcTemplate;
 
   @Test
   void lookupIsTenantScopedAndAllowsSameEmailInAnotherTenant() {
@@ -39,6 +41,26 @@ class TenantUserRepositoryIntegrationTest extends AbstractIntegrationTest {
 
     assertThatThrownBy(() -> repository.saveAndFlush(TenantUser.pending(uniqueEmail(), requestKey)))
         .isInstanceOf(DataIntegrityViolationException.class);
+  }
+
+  @Test
+  void deleteSoftDeletesTenantUserAndExcludesItFromRepositoryQueries() {
+    TenantUser user = repository.saveAndFlush(TenantUser.pending(uniqueEmail(), uniqueKey()));
+
+    repository.delete(user);
+    repository.flush();
+
+    assertThat(repository.findById(user.getId())).isEmpty();
+    assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM common.tenant_user WHERE id = ?", Long.class, user.getId()))
+        .isEqualTo(1L);
+    assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT deleted_at IS NOT NULL FROM common.tenant_user WHERE id = ?",
+                Boolean.class,
+                user.getId()))
+        .isTrue();
   }
 
   private static String uniqueEmail() {
