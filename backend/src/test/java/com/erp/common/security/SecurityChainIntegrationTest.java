@@ -1,23 +1,38 @@
 package com.erp.common.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -27,16 +42,18 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       "spring.datasource.password=erp_ci_pass"
     })
 @ActiveProfiles("security-integration")
+@Import(SecurityChainIntegrationTest.JwtTestConfiguration.class)
 class SecurityChainIntegrationTest {
 
   private static final long ACTIVE_TENANT_ID = 91001L;
   private static final long SUSPENDED_TENANT_ID = 91002L;
   private static final long ROLE_ID = 91001L;
   private static final String USER_ID = "security-chain-user";
+  private static final KeyPair TRUSTED_KEY_PAIR = generateKeyPair();
 
   @Autowired private TestRestTemplate restTemplate;
   @Autowired private JdbcTemplate jdbcTemplate;
-  @MockitoBean private JwtDecoder jwtDecoder;
+  @Autowired private JwtEncoder jwtEncoder;
 
   @BeforeEach
   void setUpAuthorizationData() {
@@ -81,10 +98,6 @@ class SecurityChainIntegrationTest {
         ACTIVE_TENANT_ID,
         USER_ID,
         ROLE_ID);
-
-    when(jwtDecoder.decode("active-token")).thenReturn(jwt("active-token", ACTIVE_TENANT_ID));
-    when(jwtDecoder.decode("suspended-token"))
-        .thenReturn(jwt("suspended-token", SUSPENDED_TENANT_ID));
   }
 
   @Test
@@ -105,7 +118,10 @@ class SecurityChainIntegrationTest {
   void validJwtLoadsDatabaseAuthoritiesForActiveTenant() {
     var response =
         restTemplate.exchange(
-            "/api/me/permissions", HttpMethod.GET, bearer("active-token"), String.class);
+            "/api/me/permissions",
+            HttpMethod.GET,
+            bearer(signedToken(jwtEncoder, ACTIVE_TENANT_ID, Instant.now().plusSeconds(300))),
+            String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).contains(Permission.HR_EMPLOYEE_READ);
@@ -115,7 +131,67 @@ class SecurityChainIntegrationTest {
   void validJwtForSuspendedTenantIsRejected() {
     var response =
         restTemplate.exchange(
-            "/api/me/permissions", HttpMethod.GET, bearer("suspended-token"), String.class);
+            "/api/me/permissions",
+            HttpMethod.GET,
+            bearer(signedToken(jwtEncoder, SUSPENDED_TENANT_ID, Instant.now().plusSeconds(300))),
+            String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(response.getBody()).contains("C004");
+  }
+
+  @Test
+  void jwtSignedByUntrustedKeyIsUnauthorized() {
+    JwtEncoder untrustedEncoder = encoder(generateKeyPair());
+
+    var response =
+        restTemplate.exchange(
+            "/api/me/permissions",
+            HttpMethod.GET,
+            bearer(signedToken(untrustedEncoder, ACTIVE_TENANT_ID, Instant.now().plusSeconds(300))),
+            String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+  }
+
+  @Test
+  void tamperedJwtIsUnauthorized() {
+    String valid = signedToken(jwtEncoder, ACTIVE_TENANT_ID, Instant.now().plusSeconds(300));
+    String[] segments = valid.split("\\.");
+    int last = segments[1].length() - 1;
+    char replacement = segments[1].charAt(last) == 'A' ? 'B' : 'A';
+    segments[1] = segments[1].substring(0, last) + replacement;
+
+    var response =
+        restTemplate.exchange(
+            "/api/me/permissions",
+            HttpMethod.GET,
+            bearer(String.join(".", segments)),
+            String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+  }
+
+  @Test
+  void expiredJwtIsUnauthorized() {
+    var response =
+        restTemplate.exchange(
+            "/api/me/permissions",
+            HttpMethod.GET,
+            bearer(signedToken(jwtEncoder, ACTIVE_TENANT_ID, Instant.now().minusSeconds(60))),
+            String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+  }
+
+  @Test
+  void signedJwtWithoutTenantClaimIsForbidden() {
+    var response =
+        restTemplate.exchange(
+            "/api/me/permissions",
+            HttpMethod.GET,
+            bearer(signedToken(jwtEncoder, null, Instant.now().plusSeconds(300))),
+            String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     assertThat(response.getBody()).contains("C004");
@@ -127,15 +203,51 @@ class SecurityChainIntegrationTest {
     return new HttpEntity<>(headers);
   }
 
-  private Jwt jwt(String tokenValue, long tenantId) {
+  private static String signedToken(JwtEncoder encoder, Long tenantId, Instant expiresAt) {
     Instant now = Instant.now();
-    return Jwt.withTokenValue(tokenValue)
-        .header("alg", "RS256")
-        .subject(USER_ID)
-        .issuedAt(now.minusSeconds(30))
-        .expiresAt(now.plusSeconds(300))
-        .claim("tenant_id", tenantId)
-        .claim("preferred_username", USER_ID)
-        .build();
+    JwtClaimsSet.Builder claims =
+        JwtClaimsSet.builder()
+            .subject(USER_ID)
+            .issuedAt(now.minusSeconds(120))
+            .expiresAt(expiresAt)
+            .claim("preferred_username", USER_ID);
+    if (tenantId != null) {
+      claims.claim("tenant_id", tenantId);
+    }
+    JwsHeader header = JwsHeader.with(SignatureAlgorithm.RS256).build();
+    return encoder.encode(JwtEncoderParameters.from(header, claims.build())).getTokenValue();
+  }
+
+  private static JwtEncoder encoder(KeyPair keyPair) {
+    RSAKey rsaKey =
+        new RSAKey.Builder((RSAPublicKey) keyPair.getPublic())
+            .privateKey((RSAPrivateKey) keyPair.getPrivate())
+            .keyID("test-key")
+            .build();
+    return new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(rsaKey)));
+  }
+
+  private static KeyPair generateKeyPair() {
+    try {
+      KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+      generator.initialize(2048);
+      return generator.generateKeyPair();
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("RSA is required by the Java runtime", e);
+    }
+  }
+
+  @TestConfiguration
+  static class JwtTestConfiguration {
+
+    @Bean
+    JwtDecoder jwtDecoder() {
+      return NimbusJwtDecoder.withPublicKey((RSAPublicKey) TRUSTED_KEY_PAIR.getPublic()).build();
+    }
+
+    @Bean
+    JwtEncoder jwtEncoder() {
+      return encoder(TRUSTED_KEY_PAIR);
+    }
   }
 }
