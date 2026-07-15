@@ -34,19 +34,19 @@ class DataScopeProviderTest {
   }
 
   @Test
-  void getDataScope_noProfile_defaultsToAll() {
+  void getDataScope_noProfile_defaultsToSelf() {
     currentUser(1L, "u");
     given(authorizationResolver.accessProfile(1L, "u")).willReturn(Optional.empty());
 
-    assertThat(provider.getDataScope()).isEqualTo(DataScope.ALL);
+    assertThat(provider.getDataScope()).isEqualTo(DataScope.SELF);
     assertThat(provider.getDepartmentId()).isNull();
   }
 
   @Test
-  void getDataScope_unauthenticated_defaultsToAll() {
+  void getDataScope_unauthenticated_defaultsToSelf() {
     currentUser(null, null);
     given(authorizationResolver.accessProfile(null, null)).willReturn(Optional.empty());
 
-    assertThat(provider.getDataScope()).isEqualTo(DataScope.ALL);
+    assertThat(provider.getDataScope()).isEqualTo(DataScope.SELF);
   }
 }

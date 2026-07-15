@@ -60,7 +60,7 @@ class PipelineDistributionIntegrationTest extends AbstractIntegrationTest {
                 null,
                 null,
                 AccountType.CUSTOMER,
-                "user1"));
+                "test-user"));
 
     opportunityRepository.save(
         Opportunity.of(
@@ -71,7 +71,7 @@ class PipelineDistributionIntegrationTest extends AbstractIntegrationTest {
             "KRW",
             LocalDate.of(2026, 12, 31),
             10,
-            "user1",
+            "test-user",
             null,
             null));
     opportunityRepository.save(
@@ -83,7 +83,7 @@ class PipelineDistributionIntegrationTest extends AbstractIntegrationTest {
             "KRW",
             LocalDate.of(2026, 12, 31),
             10,
-            "user1",
+            "test-user",
             null,
             null));
     opportunityRepository.save(
@@ -95,7 +95,7 @@ class PipelineDistributionIntegrationTest extends AbstractIntegrationTest {
             "USD",
             LocalDate.of(2026, 12, 31),
             10,
-            "user1",
+            "test-user",
             null,
             null));
 
