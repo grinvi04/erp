@@ -68,9 +68,9 @@ ALLOW_DESTRUCTIVE_RESTORE=true \
 4. 오탐·테스트 전용 경보는 GitHub 경보 화면에 구체적 근거를 남겨 dismiss한다. 위험 수용은 영향 범위, 반증 근거, 보완 통제, 담당자, 승인자, 만료일, 후속 릴리즈가 있는 GitHub Issue만 인정한다.
 5. 점검 증거는 고객 데이터나 시크릿 없이 점검 시각, 검사한 commit SHA, 열린 경보 수, 관련 Issue/PR 링크를 `paid-pilot-launch` 마일스톤 Issue에 남긴다. GitHub Security의 원본 경보와 Actions 실행 이력이 상세 증거다.
 
-Dependabot 자동 보안 수정 PR은 현재 비활성 상태로 유지한다. 기본 브랜치 `main`이 릴리즈 때만 `develop`을 받는 git-flow에서 자동 PR이 이미 수정된 `develop`과 중복되거나 역방향 변경을 만들 수 있기 때문이다. GitHub Actions·배포 Docker base image의 주간 예약 갱신 PR은 `.github/dependabot.yml`이 다음 정식 릴리즈로 기본 브랜치 `main`에 반영된 뒤 활성화되며, `develop`을 대상으로 명시하고 자동 머지는 사용하지 않는다. Gradle 예약 버전 PR은 새 체크섬을 만들 수 없으므로 활성화하지 않고, Dependabot 경보와 주간 점검에서 변경 필요성을 확인한 사람이 아래 절차로 의존성과 체크섬을 같은 브랜치에서 갱신한다. Dependabot 경보, PR `dependency-review`, 위 정기 점검을 유지하고 첫 운영 릴리즈 후 다음 조건을 모두 확인해 자동 보안 수정 PR 활성화를 재평가한다.
+Dependabot 자동 보안 수정 PR은 현재 비활성 상태로 유지한다. 기본 브랜치 `main`이 릴리즈 때만 `develop`을 받는 git-flow에서 자동 PR이 이미 수정된 `develop`과 중복되거나 역방향 변경을 만들 수 있기 때문이다. GitHub Actions·배포 Docker base image·로컬 Docker Compose·프런트 npm의 주간 예약 갱신 PR은 `.github/dependabot.yml`이 다음 정식 릴리즈로 기본 브랜치 `main`에 반영된 뒤 활성화되며, `develop`을 대상으로 명시하고 자동 머지는 사용하지 않는다. npm 예약 갱신은 patch/minor만 허용하며 major는 변경 로그와 마이그레이션 범위를 검토한 사람이 별도 PR로 수행한다. Gradle 예약 버전 PR은 새 체크섬을 만들 수 없으므로 활성화하지 않고, Dependabot 경보와 주간 점검에서 변경 필요성을 확인한 사람이 아래 절차로 의존성과 체크섬을 같은 브랜치에서 갱신한다. Dependabot 경보, PR `dependency-review`, 위 정기 점검을 유지하고 첫 운영 릴리즈 후 다음 조건을 모두 확인해 자동 보안 수정 PR 활성화를 재평가한다.
 
-예약 갱신 PR의 Action commit SHA와 Docker digest는 공급자의 공식 릴리즈·레지스트리에서 태그 대응 관계를 다시 확인한다. 전체 CI와 해당 Docker build가 통과한 변경만 병합하며, 장애 시 새 핀만 임의 값으로 바꾸지 않고 직전 정상 핀으로 되돌리는 PR을 같은 게이트로 통과시킨다. PR에는 이전 핀, 새 핀, 원래 버전 태그와 검증 출처를 남긴다.
+예약 갱신 PR의 Action commit SHA와 Docker digest는 공급자의 공식 릴리즈·레지스트리에서 태그 대응 관계를 다시 확인한다. CI PostgreSQL 서비스 이미지는 Dependabot 관리 대상이 아니므로 같은 주간 점검에서 `docker buildx imagetools inspect postgres:16`의 OCI 인덱스 digest와 수동 대조한다. Compose와 CI에는 멀티아키텍처 선택을 보존하는 OCI 인덱스 digest를 `tag@sha256` 형식으로 기록한다. 전체 CI와 해당 Docker build가 통과한 변경만 병합하며, 장애 시 새 핀만 임의 값으로 바꾸지 않고 직전 정상 핀으로 되돌리는 PR을 같은 게이트로 통과시킨다. PR에는 이전 핀, 새 핀, 원래 버전 태그와 검증 출처를 남긴다.
 
 - 자동 PR 대상이 `develop` 흐름과 충돌하지 않는다.
 - 생성 PR이 백엔드·프런트 전체 품질 게이트와 CodeQL을 통과한다.
