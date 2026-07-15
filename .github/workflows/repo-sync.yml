@@ -5,7 +5,7 @@
 # sync 됐는지 점검한다. new-repo.sh(신규 셋업)의 대칭 — "기존 repo 점검"을 CI 메커니즘으로 닫는다.
 #
 # ⚠️ 스캐폴드 — 활성화 전 CUSTOMIZE:
-#   1) team-harness ref(@main)를 운영 정책에 맞게 핀 고정 권장(태그/커밋 SHA).
+#   1) team-harness는 검증한 릴리즈 커밋으로 고정한다. 버전 갱신 시 공식 tag의 commit SHA를 다시 확인한다.
 #   2) required check로 강제할지(드리프트 = 머지 차단) 혹은 정보성으로 둘지 결정.
 #      MISSING이면 exit 1이라 required로 걸면 표준 게이트가 빠진 PR이 막힌다.
 name: repo-sync
@@ -25,16 +25,16 @@ jobs:
     # 활성화: repo(또는 org) Variables에 HARNESS_SYNC_ENABLED=true.
     if: ${{ vars.HARNESS_SYNC_ENABLED == 'true' }}
     steps:
-      - uses: actions/checkout@v5  # 대상 repo
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5, 대상 repo
 
       - name: Checkout team-harness (표준 출처)
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           repository: grinvi04/team-harness   # CUSTOMIZE: 사내 호스팅 이전 시 교체
-          ref: main                            # CUSTOMIZE: 태그/SHA로 핀 고정 권장
+          ref: ccd0ed805389b8e044bd721313a38a0cc5de8d61 # v0.55.3
           path: .team-harness
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
 
