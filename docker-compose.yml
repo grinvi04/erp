@@ -11,7 +11,7 @@
 
 services:
   mailpit:
-    image: axllent/mailpit:v1.30.4
+    image: axllent/mailpit:v1.30.4@sha256:5a49a77c5bdbe7c5474450b4f46348d09949df3695257729c93a30369382d4f6
     container_name: erp-mailpit
     ports:
       - "1025:1025"
@@ -23,7 +23,7 @@ services:
       retries: 5
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
     container_name: erp-postgres
     environment:
       POSTGRES_USER: erp
@@ -42,7 +42,7 @@ services:
       retries: 5
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.0
+    image: quay.io/keycloak/keycloak:26.0@sha256:09a381c715ab0b111835b70f2905955274843a219c6f27efb348e4d9f4086858
     container_name: erp-keycloak
     environment:
       KC_DB: postgres

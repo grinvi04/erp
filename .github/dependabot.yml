@@ -18,3 +18,23 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+  - package-ecosystem: docker-compose
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+  - package-ecosystem: npm
+    directory: /frontend
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: wednesday
+      time: "04:00"
+      timezone: Asia/Seoul
+    open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
