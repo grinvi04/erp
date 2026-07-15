@@ -57,6 +57,20 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
+  void handleErpException_doesNotLogUserDetail() {
+    String sensitiveValue = "secret@example.com\nforged-log-entry";
+
+    List<String> logs =
+        captureLogs(
+            () ->
+                handler.handleErpException(
+                    new ErpException(ErrorCode.INVALID_INPUT, sensitiveValue)));
+
+    assertThat(logs).noneMatch(message -> message.contains(sensitiveValue));
+    assertThat(logs).anyMatch(message -> message.contains(ErrorCode.INVALID_INPUT.getCode()));
+  }
+
+  @Test
   void handleDataIntegrity_doesNotLogDatabaseDetail() {
     String sensitiveValue = "duplicate email secret@example.com";
 
