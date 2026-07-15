@@ -51,6 +51,7 @@ class TenantRepositoryIntegrationTest extends AbstractIntegrationTest {
     tenantRepository.flush();
 
     assertThat(tenantRepository.findById(tenant.getId())).isEmpty();
+    assertThat(tenantRepository.findAll()).extracting(Tenant::getId).doesNotContain(tenant.getId());
     assertThat(
             jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM common.tenant WHERE id = ?", Long.class, tenant.getId()))
