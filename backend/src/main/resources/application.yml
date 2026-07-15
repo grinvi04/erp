@@ -73,7 +73,7 @@ logging:
     correlation: "[%X{traceId:-}] "
   level:
     root: INFO
-    com.erp: DEBUG
+    com.erp: INFO
     org.springframework.security: INFO
     org.hibernate.SQL: WARN
 
