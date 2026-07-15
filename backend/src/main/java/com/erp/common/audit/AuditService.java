@@ -2,6 +2,7 @@ package com.erp.common.audit;
 
 import com.erp.common.exception.ErpException;
 import com.erp.common.exception.ErrorCode;
+import com.erp.common.observability.TraceIdFilter;
 import com.erp.common.security.CurrentUserProvider;
 import com.erp.common.security.Permission;
 import com.erp.common.security.PermissionChecker;
@@ -9,6 +10,7 @@ import com.erp.common.tenant.TenantContext;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,7 +49,8 @@ public class AuditService {
             beforeData,
             afterData,
             performedBy,
-            null);
+            null,
+            MDC.get(TraceIdFilter.MDC_TRACE_ID));
     auditLogRepository.save(log);
   }
 

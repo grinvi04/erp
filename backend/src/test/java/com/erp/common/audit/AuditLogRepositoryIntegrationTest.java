@@ -3,6 +3,8 @@ package com.erp.common.audit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.erp.common.AbstractIntegrationTest;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 class AuditLogRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private AuditLogRepository repository;
+  @PersistenceContext private EntityManager entityManager;
 
   @BeforeEach
   void seed() {
@@ -97,5 +100,40 @@ class AuditLogRepositoryIntegrationTest extends AbstractIntegrationTest {
     assertThat(repository.existsByTenantIdAndPerformedBy(TEST_TENANT_ID, "ghost")).isFalse();
     // carol는 타테넌트 — 현재 테넌트에서는 존재하지 않아야 한다.
     assertThat(repository.existsByTenantIdAndPerformedBy(TEST_TENANT_ID, "carol")).isFalse();
+  }
+
+  @Test
+  void traceId_roundTripsAndLegacyFactoryStoresNull() {
+    AuditLog traced =
+        repository.saveAndFlush(
+            AuditLog.of(
+                TEST_TENANT_ID,
+                "ROLE",
+                10L,
+                AuditLog.AuditAction.CREATE,
+                null,
+                "{\"name\":\"admin\"}",
+                "alice",
+                null,
+                "0123456789abcdef0123456789abcdef"));
+    AuditLog withoutTrace =
+        repository.saveAndFlush(
+            AuditLog.of(
+                TEST_TENANT_ID,
+                "TENANT",
+                11L,
+                AuditLog.AuditAction.UPDATE,
+                null,
+                null,
+                "system-job",
+                null));
+
+    Long tracedId = traced.getId();
+    Long withoutTraceId = withoutTrace.getId();
+    entityManager.clear();
+
+    assertThat(repository.findById(tracedId).orElseThrow().getTraceId())
+        .isEqualTo("0123456789abcdef0123456789abcdef");
+    assertThat(repository.findById(withoutTraceId).orElseThrow().getTraceId()).isNull();
   }
 }

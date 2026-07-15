@@ -42,16 +42,16 @@ public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
   @Query(
       value =
           "SELECT i FROM ApInvoice i LEFT JOIN FETCH i.vendor "
-              + "WHERE (:status IS NULL OR i.status = :status) "
-              + "AND (:vendorId IS NULL OR i.vendor.id = :vendorId) "
-              + "AND (:from IS NULL OR i.invoiceDate >= :from) "
-              + "AND (:to IS NULL OR i.invoiceDate <= :to)",
+              + "WHERE i.status = COALESCE(:status, i.status) "
+              + "AND i.vendor.id = COALESCE(:vendorId, i.vendor.id) "
+              + "AND i.invoiceDate >= COALESCE(:from, i.invoiceDate) "
+              + "AND i.invoiceDate <= COALESCE(:to, i.invoiceDate)",
       countQuery =
           "SELECT COUNT(i) FROM ApInvoice i "
-              + "WHERE (:status IS NULL OR i.status = :status) "
-              + "AND (:vendorId IS NULL OR i.vendor.id = :vendorId) "
-              + "AND (:from IS NULL OR i.invoiceDate >= :from) "
-              + "AND (:to IS NULL OR i.invoiceDate <= :to)")
+              + "WHERE i.status = COALESCE(:status, i.status) "
+              + "AND i.vendor.id = COALESCE(:vendorId, i.vendor.id) "
+              + "AND i.invoiceDate >= COALESCE(:from, i.invoiceDate) "
+              + "AND i.invoiceDate <= COALESCE(:to, i.invoiceDate)")
   Page<ApInvoice> search(
       @Param("status") ApInvoiceStatus status,
       @Param("vendorId") Long vendorId,
