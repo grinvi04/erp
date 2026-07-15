@@ -32,6 +32,19 @@ ALLOW_DESTRUCTIVE_RESTORE=true \
 - `crm.account`
 - `keycloak.user_entity`
 
+성공 시 백업 내용 대신 다음 비식별 증거만 출력한다. `restore_total_seconds`는 기존 백업을
+복원하고 핵심 집계를 대조하는 데 걸린 시간(`restore_seconds + verification_seconds`)이며,
+`rehearsal_total_seconds`는 원본 집계와 백업 생성까지 포함한 전체 실행 시간이다.
+
+- `backup_bytes`, `backup_sha256`
+- `snapshot_seconds`, `backup_seconds`
+- `restore_seconds`, `verification_seconds`, `restore_total_seconds`
+- `rehearsal_total_seconds`
+
+초 단위 값이 `0`인 단계는 생략이 아니라 1초 미만에 완료된 것이다. 운영 RTO 증거에는
+실제 운영 규모 백업의 `restore_total_seconds`와 실행 환경을 기록하고, 로컬 소량 데이터 결과를
+대신 사용하지 않는다.
+
 ## 장애 복구 순서
 
 1. 쓰기 트래픽을 차단하고 사고 시작 시각·영향 테넌트·마지막 정상 배포 SHA를 기록한다.
@@ -65,3 +78,4 @@ Dependabot 자동 보안 수정 PR은 현재 비활성 상태로 유지한다. �
 ## 검증 기록
 
 - 2026-07-13: 로컬 PostgreSQL 16의 전체 ERP+Keycloak DB를 별도 임시 DB에 custom-format으로 복원하고, Flyway 및 6개 핵심 데이터 집계를 원본과 대조해 통과. 임시 DB는 검증 직후 삭제했다. 이 결과는 스크립트 동작 증거이며 운영 백업·RPO/RTO 충족 증거는 아니다.
+- 2026-07-16: develop `027c98fb0b02bb40619ef53e95bd5355a1804e17`의 로컬 PostgreSQL 16 ERP+Keycloak DB를 격리 임시 DB에 복원해 대조 통과. 백업 420,764 bytes, 복원 2초, 검증 1초 미만, 복원+검증 2초, 전체 리허설 4초였으며 임시 DB는 즉시 삭제했다. 로컬 합성·UAT 데이터 결과이므로 운영 용량 RTO 증거가 아니다.
