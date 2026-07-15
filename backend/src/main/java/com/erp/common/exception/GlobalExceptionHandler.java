@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ErpException.class)
   public ResponseEntity<ApiResponse<Void>> handleErpException(ErpException e) {
     ErrorCode code = e.getErrorCode();
-    log.warn("ERP exception [{}] {}", code.getCode(), e.getMessage());
+    log.warn("ERP exception [{}]", code.getCode());
     return ResponseEntity.status(code.getHttpStatus())
         .body(ApiResponse.error(code.getCode(), e.getMessage()));
   }
