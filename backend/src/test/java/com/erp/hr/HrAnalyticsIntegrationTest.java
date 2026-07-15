@@ -11,10 +11,12 @@ import com.erp.common.security.UserAccessProfileRepository;
 import com.erp.hr.application.dto.DepartmentHeadcountResponse;
 import com.erp.hr.application.dto.EmployeeStatusCountResponse;
 import com.erp.hr.application.dto.EmploymentTypeCountResponse;
+import com.erp.hr.application.dto.HrSummaryResponse;
 import com.erp.hr.application.dto.LeaveTypeStatResponse;
 import com.erp.hr.application.dto.MonthlyHiresTerminationsResponse;
 import com.erp.hr.application.dto.PositionHeadcountResponse;
 import com.erp.hr.application.service.HrAnalyticsService;
+import com.erp.hr.application.service.HrSummaryService;
 import com.erp.hr.domain.model.Department;
 import com.erp.hr.domain.model.Employee;
 import com.erp.hr.domain.model.EmployeeStatus;
@@ -41,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 class HrAnalyticsIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private HrAnalyticsService hrAnalyticsService;
+  @Autowired private HrSummaryService hrSummaryService;
   @Autowired private DepartmentRepository departmentRepository;
   @Autowired private PositionRepository positionRepository;
   @Autowired private EmployeeRepository employeeRepository;
@@ -268,6 +271,54 @@ class HrAnalyticsIntegrationTest extends AbstractIntegrationTest {
     assertThrows(ErpException.class, () -> hrAnalyticsService.getLeavesByType());
   }
 
+  @Test
+  void summary_allScope_countsAllEmployeesAndPendingLeaves() {
+    empC.onLeave();
+    seedPendingLeaves();
+    authenticateAll();
+
+    HrSummaryResponse summary = hrSummaryService.getSummary();
+
+    assertThat(summary.activeEmployees()).isEqualTo(2L);
+    assertThat(summary.onLeaveEmployees()).isEqualTo(1L);
+    assertThat(summary.pendingLeaveRequests()).isEqualTo(2L);
+  }
+
+  @Test
+  void summary_departmentScope_excludesOtherDepartment() {
+    empC.onLeave();
+    seedPendingLeaves();
+    authenticate(List.of("hr:employee:read", "hr:leave:read"), DataScope.DEPARTMENT, deptA.getId());
+
+    HrSummaryResponse summary = hrSummaryService.getSummary();
+
+    assertThat(summary.activeEmployees()).isEqualTo(2L);
+    assertThat(summary.onLeaveEmployees()).isZero();
+    assertThat(summary.pendingLeaveRequests()).isEqualTo(1L);
+  }
+
+  @Test
+  void summary_selfScope_countsOnlyLinkedEmployee() {
+    empC.onLeave();
+    seedPendingLeaves();
+    authenticate(List.of("hr:employee:read", "hr:leave:read"), DataScope.SELF, null);
+
+    HrSummaryResponse summary = hrSummaryService.getSummary();
+
+    assertThat(summary.activeEmployees()).isEqualTo(1L);
+    assertThat(summary.onLeaveEmployees()).isZero();
+    assertThat(summary.pendingLeaveRequests()).isEqualTo(1L);
+  }
+
+  @Test
+  void summary_requiresEmployeeAndLeaveReadPermissions() {
+    authenticate(List.of("hr:leave:read"), DataScope.ALL, null);
+    assertThrows(ErpException.class, () -> hrSummaryService.getSummary());
+
+    authenticate(List.of("hr:employee:read"), DataScope.ALL, null);
+    assertThrows(ErpException.class, () -> hrSummaryService.getSummary());
+  }
+
   private void seedLeaves() {
     LeavePolicy annual =
         leavePolicyRepository.save(LeavePolicy.of("ANN", "연차", LeaveType.ANNUAL, 15, 5, true, 1));
@@ -285,6 +336,19 @@ class HrAnalyticsIntegrationTest extends AbstractIntegrationTest {
             LocalDate.of(2026, 7, 1),
             BigDecimal.valueOf(1),
             "pending"));
+  }
+
+  private void seedPendingLeaves() {
+    LeavePolicy policy =
+        leavePolicyRepository.save(
+            LeavePolicy.of("SUM", "요약 테스트", LeaveType.COMPENSATORY, 5, 0, true, 1));
+    pending(empA, policy, LocalDate.of(2026, 8, 1));
+    pending(empC, policy, LocalDate.of(2026, 8, 2));
+  }
+
+  private void pending(Employee employee, LeavePolicy policy, LocalDate date) {
+    leaveRequestRepository.save(
+        LeaveRequest.create(employee, policy, date, date, BigDecimal.ONE, "pending summary"));
   }
 
   private void approved(Employee emp, LeavePolicy policy, BigDecimal days) {

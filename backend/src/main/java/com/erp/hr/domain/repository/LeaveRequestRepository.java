@@ -3,6 +3,7 @@ package com.erp.hr.domain.repository;
 import com.erp.common.workflow.ApprovalStatus;
 import com.erp.hr.domain.model.LeaveRequest;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +20,15 @@ public interface LeaveRequestRepository
 
   List<LeaveRequest> findByApprovalStatus(ApprovalStatus status);
 
-  long countByApprovalStatus(ApprovalStatus status);
+  @Query(
+      "SELECT COUNT(lr.id) FROM LeaveRequest lr WHERE lr.approvalStatus = :status "
+          + "AND (:unscoped = true OR lr.employee.userId = :selfUserId "
+          + "OR lr.employee.department.id IN :deptIds)")
+  long countByApprovalStatusInScope(
+      @Param("status") ApprovalStatus status,
+      @Param("unscoped") boolean unscoped,
+      @Param("selfUserId") String selfUserId,
+      @Param("deptIds") Collection<Long> deptIds);
 
   @Query(
       "SELECT lr FROM LeaveRequest lr WHERE lr.employee.id = :employeeId "

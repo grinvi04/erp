@@ -22,7 +22,14 @@ public interface EmployeeRepository
 
   List<Employee> findByStatus(EmployeeStatus status);
 
-  long countByStatus(EmployeeStatus status);
+  @Query(
+      "SELECT COUNT(e.id) FROM Employee e WHERE e.status = :status "
+          + "AND (:unscoped = true OR e.userId = :selfUserId OR e.department.id IN :deptIds)")
+  long countByStatusInScope(
+      @Param("status") EmployeeStatus status,
+      @Param("unscoped") boolean unscoped,
+      @Param("selfUserId") String selfUserId,
+      @Param("deptIds") Collection<Long> deptIds);
 
   boolean existsByEmployeeNo(String employeeNo);
 
