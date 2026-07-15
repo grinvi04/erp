@@ -85,6 +85,7 @@ Dependabot 자동 보안 수정 PR은 현재 비활성 상태로 유지한다. �
 cd backend
 ./gradlew --write-verification-metadata sha256 dependencies
 ./gradlew --write-verification-metadata sha256 check bootJar
+./gradlew --write-verification-metadata sha256 spotlessCheck
 git diff -- gradle/verification-metadata.xml
 ./gradlew check
 docker build --tag erp-backend:verification .
