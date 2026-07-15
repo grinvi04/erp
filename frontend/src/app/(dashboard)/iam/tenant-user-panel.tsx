@@ -27,7 +27,12 @@ import {
 } from '@/components/ui/table'
 import type { Role, TenantUser, TenantUserStatus } from '@/types/iam'
 import { disableTenantUser, inviteTenantUser, reinviteTenantUser } from './actions'
-import { statusLabel, upsertTenantUser } from './tenant-user-model'
+import {
+  canReinvite,
+  canSelectReinviteRoles,
+  statusLabel,
+  upsertTenantUser,
+} from './tenant-user-model'
 
 const STATUS_VARIANT: Record<
   TenantUserStatus,
@@ -201,7 +206,7 @@ export default function TenantUserPanel({
                     <TableCell className="text-right">
                       {canWrite && (
                         <div className="flex justify-end gap-1">
-                          {(user.status === 'DISABLED' || user.status === 'FAILED') && (
+                          {canReinvite(user.status) && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -298,14 +303,18 @@ export default function TenantUserPanel({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              <strong className="text-foreground">{reinviteTarget?.email}</strong> 계정을 다시
-              활성화하고 새 초대 메일을 보냅니다. 이번에 적용할 역할을 선택하세요.
+              <strong className="text-foreground">{reinviteTarget?.email}</strong>{' '}
+              {reinviteTarget?.status === 'ACTIVE'
+                ? '계정의 역할은 변경하지 않고 새 초대 메일을 보냅니다.'
+                : '계정을 다시 활성화하고 새 초대 메일을 보냅니다. 이번에 적용할 역할을 선택하세요.'}
             </p>
-            <RolePicker
-              roles={roles}
-              selected={reinviteRoles}
-              onToggle={(roleId) => setReinviteRoles((current) => toggled(current, roleId))}
-            />
+            {reinviteTarget && canSelectReinviteRoles(reinviteTarget.status) && (
+              <RolePicker
+                roles={roles}
+                selected={reinviteRoles}
+                onToggle={(roleId) => setReinviteRoles((current) => toggled(current, roleId))}
+              />
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReinviteTarget(null)} disabled={isPending}>

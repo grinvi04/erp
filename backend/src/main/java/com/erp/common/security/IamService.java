@@ -157,6 +157,10 @@ public class IamService {
     if (!delegated) {
       return;
     }
+    validateDelegatedUserTarget(userId);
+  }
+
+  private void validateDelegatedUserTarget(String userId) {
     rejectSelfMutation(userId);
     boolean protectedRole =
         userRoleRepository.findByTenantIdAndUserIdWithRolePermissions(tenant(), userId).stream()
@@ -171,7 +175,7 @@ public class IamService {
   public void assignRole(String userId, Long roleId) {
     boolean delegated = requireMutationAccess();
     if (delegated) {
-      rejectSelfMutation(userId);
+      validateDelegatedUserTarget(userId);
     }
     Long tenant = tenant();
     Role role = getRoleOrThrow(roleId);
@@ -194,7 +198,7 @@ public class IamService {
   public void unassignRole(String userId, Long roleId) {
     boolean delegated = requireMutationAccess();
     if (delegated) {
-      rejectSelfMutation(userId);
+      validateDelegatedUserTarget(userId);
     }
     UserRole userRole =
         userRoleRepository
@@ -206,6 +210,19 @@ public class IamService {
     userRoleRepository.delete(userRole);
     auditService.record(
         "USER_ROLE", roleId, AuditLog.AuditAction.DELETE, null, json(Map.of("userId", userId)));
+  }
+
+  @Transactional
+  public void unassignAllRoles(String userId) {
+    boolean delegated = requireMutationAccess();
+    if (delegated) {
+      validateDelegatedUserTarget(userId);
+    }
+    userRoleRepository.findByTenantIdAndUserId(tenant(), userId).stream()
+        .map(userRole -> userRole.getRole().getId())
+        .sorted()
+        .toList()
+        .forEach(roleId -> unassignRole(userId, roleId));
   }
 
   // --- 접근 프로파일(데이터 스코프·전결 한도) ---
@@ -221,7 +238,7 @@ public class IamService {
   public AccessProfileResponse setAccessProfile(String userId, AccessProfileRequest request) {
     boolean delegated = requireMutationAccess();
     if (delegated) {
-      rejectSelfMutation(userId);
+      validateDelegatedUserTarget(userId);
     }
     Long tenant = tenant();
     UserAccessProfile profile =

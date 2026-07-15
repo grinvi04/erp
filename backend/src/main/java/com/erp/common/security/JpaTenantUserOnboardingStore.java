@@ -36,6 +36,9 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
           || !existing.getRequestFingerprint().equals(candidate.getRequestFingerprint())) {
         throw new ErpException(ErrorCode.IDENTITY_CONFLICT);
       }
+      if (existing.getStatus() == TenantUserStatus.PENDING) {
+        throw new ErpException(ErrorCode.IDENTITY_CONFLICT);
+      }
       return existing;
     }
     if (repository.findByNormalizedEmail(candidate.getNormalizedEmail()).isPresent()) {
@@ -54,11 +57,12 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public TenantUser retry(String requestKey) {
     TenantUser user = findByRequestKey(requestKey);
-    if (user.getStatus() == TenantUserStatus.FAILED) {
-      String beforeData = snapshot(user, null);
-      user.retry();
-      audit(user, AuditLog.AuditAction.UPDATE, beforeData, "RETRY");
+    if (user.getStatus() != TenantUserStatus.FAILED) {
+      throw new ErpException(ErrorCode.IDENTITY_CONFLICT);
     }
+    String beforeData = snapshot(user, null);
+    user.retry();
+    audit(user, AuditLog.AuditAction.UPDATE, beforeData, "RETRY");
     return user;
   }
 
@@ -77,11 +81,12 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public TenantUser markFailed(String requestKey, String failureCode) {
     TenantUser user = findByRequestKey(requestKey);
-    if (user.getStatus() != TenantUserStatus.FAILED) {
-      String beforeData = snapshot(user, null);
-      user.fail(failureCode);
-      audit(user, AuditLog.AuditAction.UPDATE, beforeData, failureCode);
+    if (user.getStatus() != TenantUserStatus.PENDING) {
+      return user;
     }
+    String beforeData = snapshot(user, null);
+    user.fail(failureCode);
+    audit(user, AuditLog.AuditAction.UPDATE, beforeData, failureCode);
     return user;
   }
 
@@ -89,6 +94,9 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public TenantUser beginReinvite(Long id) {
     TenantUser user = find(id);
+    if (user.getKeycloakUserId() != null) {
+      iamService.requireManageableUser(user.getKeycloakUserId());
+    }
     if (user.getStatus() == TenantUserStatus.DISABLED) {
       String beforeData = snapshot(user, null);
       user.beginReinvite();
@@ -109,10 +117,7 @@ public class JpaTenantUserOnboardingStore implements TenantUserOnboardingStore {
     TenantUser user = find(id);
     String beforeData = snapshot(user, null);
     String userId = user.getKeycloakUserId();
-    iamService.getUserRoles(userId).stream()
-        .map(com.erp.common.security.dto.RoleResponse::id)
-        .sorted()
-        .forEach(roleId -> iamService.unassignRole(userId, roleId));
+    iamService.unassignAllRoles(userId);
     user.disable();
     audit(user, AuditLog.AuditAction.UPDATE, beforeData, "DISABLED");
     return user;

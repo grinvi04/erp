@@ -15,6 +15,7 @@ import com.erp.common.exception.ErrorCode;
 import com.erp.common.security.dto.RoleCreateRequest;
 import com.erp.common.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -235,6 +236,40 @@ class IamServiceTest {
   }
 
   @Test
+  void assignRole_delegate_rejectsProtectedTargetUser() {
+    given(permissionChecker.hasPermission(Permission.IAM_WRITE)).willReturn(false);
+    given(permissionChecker.hasPermission("iam:delegate")).willReturn(true);
+    given(currentUserProvider.getCurrentUserId()).willReturn("delegate-admin");
+    Role protectedRole = Role.of(1L, "HR_ADMIN", "인사 관리자", null);
+    protectedRole.grant(Permission.HR_EMPLOYEE_READ);
+    given(userRoleRepository.findByTenantIdAndUserIdWithRolePermissions(1L, "protected-user"))
+        .willReturn(List.of(UserRole.of(1L, "protected-user", protectedRole)));
+
+    ErpException ex =
+        assertThrows(ErpException.class, () -> iamService.assignRole("protected-user", 7L));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+    verify(userRoleRepository, never()).save(any());
+  }
+
+  @Test
+  void unassignRole_delegate_rejectsProtectedTargetUser() {
+    given(permissionChecker.hasPermission(Permission.IAM_WRITE)).willReturn(false);
+    given(permissionChecker.hasPermission("iam:delegate")).willReturn(true);
+    given(currentUserProvider.getCurrentUserId()).willReturn("delegate-admin");
+    Role protectedRole = Role.of(1L, "HR_ADMIN", "인사 관리자", null);
+    protectedRole.grant(Permission.HR_EMPLOYEE_READ);
+    given(userRoleRepository.findByTenantIdAndUserIdWithRolePermissions(1L, "protected-user"))
+        .willReturn(List.of(UserRole.of(1L, "protected-user", protectedRole)));
+
+    ErpException ex =
+        assertThrows(ErpException.class, () -> iamService.unassignRole("protected-user", 7L));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+    verify(userRoleRepository, never()).delete(any());
+  }
+
+  @Test
   void updateRole_delegate_rejectsRoleAssignedToSelf() {
     given(permissionChecker.hasPermission(Permission.IAM_WRITE)).willReturn(false);
     given(permissionChecker.hasPermission("iam:delegate")).willReturn(true);
@@ -304,6 +339,29 @@ class IamServiceTest {
                     "delegate-admin",
                     new com.erp.common.security.dto.AccessProfileRequest(
                         DataScope.ALL, null, null)));
+
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+    verify(accessProfileRepository, never()).save(any());
+  }
+
+  @Test
+  void setAccessProfile_delegate_rejectsProtectedRoleHolder() {
+    given(permissionChecker.hasPermission(Permission.IAM_WRITE)).willReturn(false);
+    given(permissionChecker.hasPermission(Permission.IAM_DELEGATE)).willReturn(true);
+    given(currentUserProvider.getCurrentUserId()).willReturn("delegate-admin");
+    Role protectedRole = Role.of(1L, "SUPER_ADMIN", "슈퍼 관리자", null);
+    protectedRole.grant(Permission.FINANCE_READ);
+    given(userRoleRepository.findByTenantIdAndUserIdWithRolePermissions(1L, "protected-user"))
+        .willReturn(java.util.List.of(UserRole.of(1L, "protected-user", protectedRole)));
+
+    ErpException ex =
+        assertThrows(
+            ErpException.class,
+            () ->
+                iamService.setAccessProfile(
+                    "protected-user",
+                    new com.erp.common.security.dto.AccessProfileRequest(
+                        DataScope.ALL, null, java.math.BigDecimal.valueOf(1_000_000L))));
 
     assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
     verify(accessProfileRepository, never()).save(any());

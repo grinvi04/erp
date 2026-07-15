@@ -11,6 +11,14 @@ export function statusLabel(status: TenantUserStatus): string {
   return STATUS_LABELS[status]
 }
 
+export function canReinvite(status: TenantUserStatus): boolean {
+  return status !== 'PENDING'
+}
+
+export function canSelectReinviteRoles(status: TenantUserStatus): boolean {
+  return status === 'FAILED' || status === 'DISABLED'
+}
+
 export function upsertTenantUser(users: TenantUser[], updated: TenantUser): TenantUser[] {
   const next = users.filter((user) => user.id !== updated.id)
   next.push(updated)

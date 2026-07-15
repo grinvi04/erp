@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { TenantUser } from '@/types/iam'
-import { statusLabel, upsertTenantUser } from './tenant-user-model'
+import {
+  canReinvite,
+  canSelectReinviteRoles,
+  statusLabel,
+  upsertTenantUser,
+} from './tenant-user-model'
 
 const active: TenantUser = {
   id: 2,
@@ -16,6 +21,20 @@ describe('tenant user view model', () => {
     expect(statusLabel('ACTIVE')).toBe('사용 중')
     expect(statusLabel('FAILED')).toBe('초대 실패')
     expect(statusLabel('DISABLED')).toBe('사용 중지')
+  })
+
+  it('allows reissuing invitations unless an invitation is still pending', () => {
+    expect(canReinvite('ACTIVE')).toBe(true)
+    expect(canReinvite('FAILED')).toBe(true)
+    expect(canReinvite('DISABLED')).toBe(true)
+    expect(canReinvite('PENDING')).toBe(false)
+  })
+
+  it('changes roles only when reactivating a failed or disabled invitation', () => {
+    expect(canSelectReinviteRoles('ACTIVE')).toBe(false)
+    expect(canSelectReinviteRoles('FAILED')).toBe(true)
+    expect(canSelectReinviteRoles('DISABLED')).toBe(true)
+    expect(canSelectReinviteRoles('PENDING')).toBe(false)
   })
 
   it('replaces an updated user and keeps email ordering', () => {

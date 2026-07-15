@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
@@ -74,6 +75,44 @@ class TenantUserOnboardingServiceTest {
   }
 
   @Test
+  void invite_normalizesRequestKeyForLocalAndIdentityOwnership() {
+    var request =
+        new TenantUserInviteRequest("admin@example.com", "ERP", "Admin", " request-1 ", Set.of(7L));
+    TenantUser pending = TenantUser.pending(request.email(), "request-1");
+    TenantUser active = TenantUser.pending(request.email(), "request-1");
+    active.activate("keycloak-user-1");
+    given(permissionChecker.hasPermission(Permission.IAM_WRITE)).willReturn(true);
+    given(iamService.getRole(7L))
+        .willReturn(new RoleResponse(7L, "FINANCE_USER", "재무 사용자", null, Set.of()));
+    given(store.begin(eq(request.email()), eq("request-1"), anyString())).willReturn(pending);
+    given(identityPort.findByEmail("admin@example.com")).willReturn(Optional.empty());
+    given(identityPort.createUser(any()))
+        .willReturn(new TenantIdentityUser("keycloak-user-1", 1L, "request-1", true));
+    given(store.activate("request-1", "keycloak-user-1", Set.of(7L))).willReturn(active);
+
+    service.invite(request);
+
+    verify(identityPort)
+        .createUser(argThat(identity -> identity.invitationKey().equals("request-1")));
+    verify(store).activate("request-1", "keycloak-user-1", Set.of(7L));
+  }
+
+  @Test
+  void invite_invalidRole_isRejectedBeforeInvitationIsPersisted() {
+    var request = request("request-1");
+    given(permissionChecker.hasPermission(Permission.IAM_WRITE)).willReturn(true);
+    given(iamService.getRole(7L)).willThrow(new ErpException(ErrorCode.RESOURCE_NOT_FOUND));
+
+    assertThatThrownBy(() -> service.invite(request))
+        .isInstanceOfSatisfying(
+            ErpException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND));
+
+    verify(store, never()).begin(anyString(), anyString(), anyString());
+  }
+
+  @Test
   void invite_sameCompletedRequest_returnsExistingResultWithoutExternalMutation() {
     var request = request("request-1");
     TenantUser active = TenantUser.pending(request.email(), request.requestKey());
@@ -85,7 +124,7 @@ class TenantUserOnboardingServiceTest {
     var result = service.invite(request);
 
     assertThat(result.status()).isEqualTo(TenantUserStatus.ACTIVE);
-    verify(iamService, never()).getRole(any());
+    verify(iamService).getRole(7L);
     verify(identityPort, never()).findByEmail(anyString());
     verify(identityPort, never()).sendInvite(anyString(), any());
     verify(store, never()).activate(anyString(), anyString(), any());
@@ -116,6 +155,8 @@ class TenantUserOnboardingServiceTest {
   @Test
   void invite_matchingIdentityMarker_recoversAmbiguousCreate() {
     var request = request("request-1");
+    TenantUser failed = TenantUser.pending(request.email(), request.requestKey());
+    failed.fail("IDENTITY_PROVIDER_UNAVAILABLE");
     TenantUser pending = TenantUser.pending(request.email(), request.requestKey());
     TenantUser active = TenantUser.pending(request.email(), request.requestKey());
     active.activate("recovered-user");
@@ -123,7 +164,8 @@ class TenantUserOnboardingServiceTest {
     given(iamService.getRole(7L))
         .willReturn(new RoleResponse(7L, "FINANCE_USER", "재무 사용자", null, Set.of()));
     given(store.begin(eq(request.email()), eq(request.requestKey()), anyString()))
-        .willReturn(pending);
+        .willReturn(failed);
+    given(store.retry("request-1")).willReturn(pending);
     given(identityPort.findByEmail("admin@example.com"))
         .willReturn(Optional.of(new TenantIdentityUser("recovered-user", 1L, "request-1", false)));
     given(store.activate("request-1", "recovered-user", Set.of(7L))).willReturn(active);
@@ -134,6 +176,27 @@ class TenantUserOnboardingServiceTest {
     verify(identityPort).sendInvite("recovered-user", 1L);
     verify(identityPort, never()).createUser(any());
     assertThat(result.userId()).isEqualTo("recovered-user");
+  }
+
+  @Test
+  void invite_newRequest_rejectsExistingIdentityEvenWhenMarkerMatches() {
+    var request = request("request-1");
+    given(permissionChecker.hasPermission(Permission.IAM_WRITE)).willReturn(true);
+    given(iamService.getRole(7L))
+        .willReturn(new RoleResponse(7L, "FINANCE_USER", "재무 사용자", null, Set.of()));
+    given(store.begin(eq(request.email()), eq(request.requestKey()), anyString()))
+        .willReturn(TenantUser.pending(request.email(), request.requestKey()));
+    given(identityPort.findByEmail("admin@example.com"))
+        .willReturn(Optional.of(new TenantIdentityUser("existing", 1L, "request-1", true)));
+
+    assertThatThrownBy(() -> service.invite(request))
+        .isInstanceOfSatisfying(
+            ErpException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.IDENTITY_CONFLICT));
+
+    verify(identityPort, never()).setEnabled(any(), any(), any(Boolean.class));
+    verify(store, never()).activate(any(), any(), any());
   }
 
   @Test
@@ -202,7 +265,6 @@ class TenantUserOnboardingServiceTest {
 
     var result = service.reinvite(3L, new TenantUserReinviteRequest(Set.of(7L)));
 
-    verify(iamService).requireManageableUser("keycloak-user-1");
     verify(identityPort).setEnabled("keycloak-user-1", 1L, true);
     verify(identityPort).sendInvite("keycloak-user-1", 1L);
     assertThat(result.status()).isEqualTo(TenantUserStatus.ACTIVE);
@@ -230,7 +292,7 @@ class TenantUserOnboardingServiceTest {
   }
 
   @Test
-  void reinvite_activeUser_isIdempotent() {
+  void reinvite_activeUser_resendsInviteWithoutRoleMutation() {
     TenantUser active = TenantUser.pending("admin@example.com", "request-1");
     active.activate("keycloak-user-1");
     given(permissionChecker.hasPermission(Permission.IAM_WRITE)).willReturn(true);
@@ -242,7 +304,8 @@ class TenantUserOnboardingServiceTest {
 
     assertThat(result.status()).isEqualTo(TenantUserStatus.ACTIVE);
     verify(identityPort, never()).setEnabled(anyString(), any(), any(Boolean.class));
-    verify(identityPort, never()).sendInvite(anyString(), any());
+    verify(identityPort).sendInvite("keycloak-user-1", 1L);
+    verify(store, never()).activate(anyString(), anyString(), any());
   }
 
   @Test
@@ -259,6 +322,26 @@ class TenantUserOnboardingServiceTest {
     var order = inOrder(identityPort, store);
     order.verify(identityPort).setEnabled("keycloak-user-1", 1L, false);
     order.verify(store).disable(3L);
+  }
+
+  @Test
+  void disable_identityFailure_isMappedWithoutLocalMutation() {
+    TenantUser active = TenantUser.pending("admin@example.com", "request-1");
+    active.activate("keycloak-user-1");
+    given(permissionChecker.hasPermission(Permission.IAM_WRITE)).willReturn(true);
+    given(store.find(3L)).willReturn(active);
+    org.mockito.Mockito.doThrow(new TenantIdentityAdminException("keycloak unavailable"))
+        .when(identityPort)
+        .setEnabled("keycloak-user-1", 1L, false);
+
+    assertThatThrownBy(() -> service.disable(3L))
+        .isInstanceOfSatisfying(
+            ErpException.class,
+            exception ->
+                assertThat(exception.getErrorCode())
+                    .isEqualTo(ErrorCode.IDENTITY_PROVIDER_UNAVAILABLE));
+
+    verify(store, never()).disable(any());
   }
 
   @Test

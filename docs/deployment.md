@@ -84,7 +84,9 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 `https://<keycloak-domain>/admin` → admin 로그인 →
 1. **Create realm**: `erp`
 2. **Clients → Create**: Client ID `erp-frontend`, OpenID Connect, **Client authentication ON**(confidential), Standard flow.
-3. **Valid redirect URIs**: `https://<vercel-domain>/api/auth/callback/keycloak`
+3. **Valid redirect URIs**에 아래 두 URI를 각각 등록한다.
+   - `https://<vercel-domain>/api/auth/callback/keycloak` (로그인 OIDC 콜백)
+   - `https://<vercel-domain>/login` (초대 메일의 필수 작업 완료 후 복귀)
    **Web origins**: `https://<vercel-domain>`
 4. Credentials 탭의 **Client secret** 복사 → Vercel `AUTH_KEYCLOAK_SECRET`.
 5. **Users → Create** 로 **해당 테넌트 전용** 프로비저닝 운영자 사용자를 새로 만들고 사용자 ID(`sub`)를 기록한다. 기존 고객의 운영자 계정을 재사용하지 않으며 `tenant_id`가 비어 있는지 확인한다. 이 계정은 고객에게 제공하지 않는 break-glass 계정이다.

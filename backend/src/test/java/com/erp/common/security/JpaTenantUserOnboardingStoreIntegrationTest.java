@@ -40,14 +40,23 @@ class JpaTenantUserOnboardingStoreIntegrationTest extends AbstractIntegrationTes
   }
 
   @Test
-  void begin_isIdempotentByRequestKeyAndRejectsIdentityReuse() {
+  void begin_rejectsInProgressDuplicateAndIsIdempotentAfterCompletion() {
     String email = uniqueEmail();
     String requestKey = uniqueKey();
 
     TenantUser first = store.begin(email, requestKey, fingerprint("payload-1"));
+    assertThatThrownBy(() -> store.begin(email.toUpperCase(), requestKey, fingerprint("payload-1")))
+        .isInstanceOfSatisfying(
+            ErpException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.IDENTITY_CONFLICT));
+
+    TenantUser active = store.activate(requestKey, "keycloak-" + suffix(), Set.of());
     TenantUser repeated = store.begin(email.toUpperCase(), requestKey, fingerprint("payload-1"));
 
-    assertThat(repeated.getId()).isEqualTo(first.getId());
+    assertThat(active.getId()).isEqualTo(first.getId());
+    assertThat(repeated.getId()).isEqualTo(active.getId());
+    assertThat(repeated.getStatus()).isEqualTo(TenantUserStatus.ACTIVE);
     assertThatThrownBy(() -> store.begin(uniqueEmail(), requestKey, fingerprint("payload-1")))
         .isInstanceOfSatisfying(
             ErpException.class,
@@ -121,6 +130,22 @@ class JpaTenantUserOnboardingStoreIntegrationTest extends AbstractIntegrationTes
   }
 
   @Test
+  void disable_withMutationPermissionOnly_revokesRolesAndUpdatesStatus() {
+    String requestKey = uniqueKey();
+    TenantUser pending = store.begin(uniqueEmail(), requestKey, fingerprint("write-only-disable"));
+    Role finance = role("FIN_" + suffix(), Permission.FINANCE_READ);
+    TenantUser active = store.activate(requestKey, "keycloak-" + suffix(), Set.of(finance.getId()));
+    authenticate("writer", Permission.IAM_WRITE);
+
+    TenantUser disabled = store.disable(pending.getId());
+
+    assertThat(disabled.getStatus()).isEqualTo(TenantUserStatus.DISABLED);
+    assertThat(
+            userRoleRepository.findByTenantIdAndUserId(TEST_TENANT_ID, active.getKeycloakUserId()))
+        .isEmpty();
+  }
+
+  @Test
   void failedInvitation_isDurableAndRetryable() {
     String requestKey = uniqueKey();
     store.begin(uniqueEmail(), requestKey, fingerprint("retry"));
@@ -132,6 +157,24 @@ class JpaTenantUserOnboardingStoreIntegrationTest extends AbstractIntegrationTes
 
     assertThat(pending.getStatus()).isEqualTo(TenantUserStatus.PENDING);
     assertThat(tenantUserRepository.findByRequestKey(requestKey)).isPresent();
+    assertThatThrownBy(() -> store.retry(requestKey))
+        .isInstanceOfSatisfying(
+            ErpException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.IDENTITY_CONFLICT));
+  }
+
+  @Test
+  void markFailed_doesNotDowngradeCompletedInvitation() {
+    String requestKey = uniqueKey();
+    store.begin(uniqueEmail(), requestKey, fingerprint("completed"));
+    TenantUser active = store.activate(requestKey, "keycloak-" + suffix(), Set.of());
+
+    TenantUser unchanged = store.markFailed(requestKey, "LATE_FAILURE");
+
+    assertThat(unchanged.getId()).isEqualTo(active.getId());
+    assertThat(unchanged.getStatus()).isEqualTo(TenantUserStatus.ACTIVE);
+    assertThat(unchanged.getFailureCode()).isNull();
   }
 
   @Test
@@ -144,6 +187,26 @@ class JpaTenantUserOnboardingStoreIntegrationTest extends AbstractIntegrationTes
 
     assertThat(pending.getStatus()).isEqualTo(TenantUserStatus.PENDING);
     assertThat(pending.getFailureCode()).isNull();
+  }
+
+  @Test
+  void beginReinvite_delegateRejectsProtectedTargetWithoutChangingState() {
+    String requestKey = uniqueKey();
+    TenantUser user = store.begin(uniqueEmail(), requestKey, fingerprint("protected-reinvite"));
+    store.activate(requestKey, "keycloak-" + suffix(), Set.of());
+    TenantUser disabled = store.disable(user.getId());
+    Role protectedRole = role("SUPER_ADMIN", Permission.FINANCE_READ);
+    userRoleRepository.saveAndFlush(
+        UserRole.of(TEST_TENANT_ID, disabled.getKeycloakUserId(), protectedRole));
+    authenticate("delegate", Permission.IAM_READ, Permission.IAM_DELEGATE);
+
+    assertThatThrownBy(() -> store.beginReinvite(user.getId()))
+        .isInstanceOfSatisfying(
+            ErpException.class,
+            exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN));
+
+    assertThat(tenantUserRepository.findById(user.getId()).orElseThrow().getStatus())
+        .isEqualTo(TenantUserStatus.DISABLED);
   }
 
   private Role role(String code, String permission) {
