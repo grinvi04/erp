@@ -121,6 +121,7 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
     Long assetId = registerAndDepreciateOnce("FA-DIS-1");
 
     authenticate("creator", "finance:write");
+    Long versionBeforeDisposal = assetVersion(assetId);
     var result =
         fixedAssetService.dispose(
             assetId,
@@ -128,9 +129,10 @@ class FixedAssetDisposalIntegrationTest extends AbstractIntegrationTest {
                 LocalDate.of(2025, 1, 20),
                 new BigDecimal("1150000"),
                 cashAccountId,
-                assetVersion(assetId)));
+                versionBeforeDisposal));
 
     assertThat(result.status().name()).isEqualTo("DISPOSED");
+    assertThat(result.version()).isGreaterThan(versionBeforeDisposal);
 
     JournalEntry je =
         journalEntryRepository
