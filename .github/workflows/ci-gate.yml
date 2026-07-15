@@ -84,6 +84,13 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      - name: Check architecture SVG freshness
+        if: steps.check.outputs.initialized == 'true'
+        working-directory: '.'
+        run: |
+          node scripts/test-architecture-freshness.mjs
+          node scripts/check-architecture-freshness.mjs
+
       - run: npm ci --ignore-scripts
         if: steps.check.outputs.initialized == 'true'
       - run: npm run type-check --if-present
