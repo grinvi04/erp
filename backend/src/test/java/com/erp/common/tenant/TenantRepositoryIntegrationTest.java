@@ -63,4 +63,21 @@ class TenantRepositoryIntegrationTest extends AbstractIntegrationTest {
                 tenant.getId()))
         .isTrue();
   }
+
+  @Test
+  void softDeletedTenantCodeCanBeReused() {
+    String code = "T" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+    Tenant deleted =
+        tenantRepository.saveAndFlush(
+            Tenant.startProvisioning(code, "삭제 고객사", TenantPlan.TRIAL, "kc-user-deleted"));
+
+    tenantRepository.delete(deleted);
+    tenantRepository.flush();
+
+    Tenant replacement =
+        tenantRepository.saveAndFlush(
+            Tenant.startProvisioning(code, "대체 고객사", TenantPlan.STANDARD, "kc-user-new"));
+
+    assertThat(replacement.getId()).isNotEqualTo(deleted.getId());
+  }
 }

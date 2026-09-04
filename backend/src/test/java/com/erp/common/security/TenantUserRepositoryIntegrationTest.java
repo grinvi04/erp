@@ -44,6 +44,20 @@ class TenantUserRepositoryIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void keycloakIdentityIsUniqueWithinTenant() {
+    String keycloakUserId = "keycloak-" + uniqueKey();
+    TenantUser first = TenantUser.pending(uniqueEmail(), uniqueKey());
+    first.activate(keycloakUserId);
+    repository.saveAndFlush(first);
+
+    TenantUser duplicate = TenantUser.pending(uniqueEmail(), uniqueKey());
+    duplicate.activate(keycloakUserId);
+
+    assertThatThrownBy(() -> repository.saveAndFlush(duplicate))
+        .isInstanceOf(DataIntegrityViolationException.class);
+  }
+
+  @Test
   void deleteSoftDeletesTenantUserAndExcludesItFromRepositoryQueries() {
     TenantUser user = repository.saveAndFlush(TenantUser.pending(uniqueEmail(), uniqueKey()));
 
@@ -64,6 +78,25 @@ class TenantUserRepositoryIntegrationTest extends AbstractIntegrationTest {
                 Boolean.class,
                 user.getId()))
         .isTrue();
+  }
+
+  @Test
+  void softDeletedTenantUserUniqueValuesCanBeReused() {
+    String email = uniqueEmail();
+    String requestKey = uniqueKey();
+    String keycloakUserId = "keycloak-" + uniqueKey();
+    TenantUser deleted = TenantUser.pending(email, requestKey);
+    deleted.activate(keycloakUserId);
+    deleted = repository.saveAndFlush(deleted);
+
+    repository.delete(deleted);
+    repository.flush();
+
+    TenantUser replacement = TenantUser.pending(email, requestKey);
+    replacement.activate(keycloakUserId);
+    replacement = repository.saveAndFlush(replacement);
+
+    assertThat(replacement.getId()).isNotEqualTo(deleted.getId());
   }
 
   private static String uniqueEmail() {
