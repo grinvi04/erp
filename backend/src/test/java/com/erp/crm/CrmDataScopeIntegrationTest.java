@@ -54,6 +54,16 @@ class CrmDataScopeIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void missingProfile_defaultsToSelf_notAllLeads() {
+    createLeadOwnedBy(ALICE);
+    createLeadOwnedBy(BOB);
+
+    List<LeadResponse> visible = search();
+
+    assertThat(visible).extracting(LeadResponse::ownerId).containsExactly(ALICE);
+  }
+
+  @Test
   void all_scope_seesEveryLead() {
     createLeadOwnedBy(ALICE);
     createLeadOwnedBy(BOB);

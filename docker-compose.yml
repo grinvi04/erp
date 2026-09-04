@@ -10,8 +10,20 @@
 # (Keycloak 26은 KC_DB_SCHEMA 스키마를 자동 생성하지 않으므로 필수). 상세 셋업은 README.
 
 services:
+  mailpit:
+    image: axllent/mailpit:v1.30.4@sha256:5a49a77c5bdbe7c5474450b4f46348d09949df3695257729c93a30369382d4f6
+    container_name: erp-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
     container_name: erp-postgres
     environment:
       POSTGRES_USER: erp
@@ -30,7 +42,7 @@ services:
       retries: 5
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.0
+    image: quay.io/keycloak/keycloak:26.0@sha256:09a381c715ab0b111835b70f2905955274843a219c6f27efb348e4d9f4086858
     container_name: erp-keycloak
     environment:
       KC_DB: postgres
@@ -38,19 +50,26 @@ services:
       KC_DB_USERNAME: erp
       KC_DB_PASSWORD: erp
       KC_DB_SCHEMA: keycloak
+      KC_HEALTH_ENABLED: "true"
+      # 26.0.x는 health를 기본 9000 관리 포트에 둔다. 로컬 단일 포트 프로브를 위해 legacy 경로 사용.
+      KC_LEGACY_OBSERVABILITY_INTERFACE: "true"
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
     command: start-dev
     ports:
       - "8180:8080"
     depends_on:
+      mailpit:
+        condition: service_healthy
       postgres:
         condition: service_healthy
     healthcheck:
-      # Keycloak 26 이미지에는 curl/wget이 없고 9000 health 엔드포인트도 기본 비활성이라
-      # HTTP 프로브는 항상 실패(unhealthy 오탐)한다. 컨테이너 sh의 /dev/tcp로 8080 리슨을
-      # TCP 프로브한다.
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080"]
+      # Keycloak 이미지에는 curl/wget이 없으므로 bash TCP 소켓으로 readiness HTTP 응답을 확인한다.
+      test:
+        [
+          "CMD-SHELL",
+          "{ printf 'HEAD /health/ready HTTP/1.0\r\n\r\n' >&0; grep 'HTTP/1.0 200'; } 0<>/dev/tcp/localhost/8080",
+        ]
       interval: 15s
       timeout: 5s
       retries: 10

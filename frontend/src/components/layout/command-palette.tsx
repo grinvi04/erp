@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Search, CornerDownLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { usePermissions } from '@/components/permissions-provider'
+import { isNavigationPathVisible } from '@/lib/navigation-access'
 
 type Route = { label: string; href: string; group?: string }
 
@@ -38,7 +40,7 @@ const ROUTES: Route[] = [
   { label: '리드', href: '/crm/leads', group: 'CRM' },
   { label: '영업 기회', href: '/crm/opportunities', group: 'CRM' },
   { label: '활동', href: '/crm/activities', group: 'CRM' },
-  { label: '역할·권한', href: '/iam', group: '관리' },
+  { label: '사용자·권한', href: '/iam', group: '관리' },
   { label: '감사 로그', href: '/audit', group: '관리' },
 ]
 
@@ -50,6 +52,7 @@ export function CommandPalette({
   onOpenChange: (o: boolean) => void
 }) {
   const router = useRouter()
+  const { permissions } = usePermissions()
   const [q, setQ] = useState('')
   const [active, setActive] = useState(0)
 
@@ -65,11 +68,14 @@ export function CommandPalette({
 
   const results = useMemo(() => {
     const t = q.trim().toLowerCase()
-    if (!t) return ROUTES
     return ROUTES.filter(
-      (r) => r.label.toLowerCase().includes(t) || (r.group?.toLowerCase().includes(t) ?? false),
+      (route) =>
+        isNavigationPathVisible(route.href, permissions) &&
+        (!t ||
+          route.label.toLowerCase().includes(t) ||
+          (route.group?.toLowerCase().includes(t) ?? false)),
     )
-  }, [q])
+  }, [permissions, q])
 
   function close(next: boolean) {
     onOpenChange(next)

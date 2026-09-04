@@ -69,7 +69,8 @@ class FixedAssetControllerTest {
         BigDecimal.ZERO,
         BigDecimal.ZERO,
         new BigDecimal("1200000"),
-        FixedAssetStatus.ACTIVE);
+        FixedAssetStatus.ACTIVE,
+        0L);
   }
 
   private static FixedAssetCreateRequest createRequest() {
@@ -159,7 +160,8 @@ class FixedAssetControllerTest {
             new BigDecimal("100000"),
             BigDecimal.ZERO,
             new BigDecimal("1100000"),
-            FixedAssetStatus.DISPOSED);
+            FixedAssetStatus.DISPOSED,
+            1L);
     given(fixedAssetService.dispose(eq(1L), any())).willReturn(disposed);
 
     mockMvc
@@ -169,7 +171,7 @@ class FixedAssetControllerTest {
                 .content(
                     objectMapper.writeValueAsString(
                         new FixedAssetDisposeRequest(
-                            LocalDate.of(2025, 1, 20), new BigDecimal("1150000"), 9L))))
+                            LocalDate.of(2025, 1, 20), new BigDecimal("1150000"), 9L, 3L))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.status").value("DISPOSED"));
   }

@@ -3,6 +3,7 @@ package com.erp.inventory.domain.repository;
 import com.erp.inventory.domain.model.Movement;
 import com.erp.inventory.domain.model.MovementStatus;
 import com.erp.inventory.domain.model.MovementType;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,19 @@ public interface MovementRepository extends JpaRepository<Movement, Long> {
           + "(:status IS NULL OR m.status = :status)")
   Page<Movement> findByTypeAndStatus(
       @Param("type") MovementType type, @Param("status") MovementStatus status, Pageable pageable);
+
+  @Query(
+      "SELECT m FROM Movement m WHERE "
+          + "(:type IS NULL OR m.movementType = :type) AND "
+          + "(:status IS NULL OR m.status = :status) AND "
+          + "(:from IS NULL OR m.movementDate >= :from) AND "
+          + "(:to IS NULL OR m.movementDate <= :to)")
+  Page<Movement> search(
+      @Param("type") MovementType type,
+      @Param("status") MovementStatus status,
+      @Param("from") LocalDate from,
+      @Param("to") LocalDate to,
+      Pageable pageable);
 
   /**
    * 현재 사용자가 확정 결재할 수 있는 대기 조정 이동 — 통합 결재함 라우팅용. 상태=대기, 유형=ADJUSTMENT, 작성자≠본인(직무분리). 재고는 금액 전결한도

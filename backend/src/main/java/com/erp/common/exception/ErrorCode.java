@@ -11,6 +11,10 @@ public enum ErrorCode {
   TENANT_MISMATCH(HttpStatus.FORBIDDEN, "C004", "접근 권한이 없는 테넌트입니다"),
   FORBIDDEN(HttpStatus.FORBIDDEN, "C005", "접근 권한이 없습니다"),
   DATA_INTEGRITY_CONFLICT(HttpStatus.CONFLICT, "C006", "데이터 무결성 제약을 위반했습니다 (중복 또는 참조 위반)"),
+  METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "C007", "지원하지 않는 HTTP 메서드입니다"),
+  IDENTITY_CONFLICT(HttpStatus.CONFLICT, "C008", "이미 다른 사용자 또는 테넌트에 연결된 계정입니다"),
+  IDENTITY_PROVIDER_UNAVAILABLE(
+      HttpStatus.SERVICE_UNAVAILABLE, "C009", "사용자 인증 서비스를 일시적으로 사용할 수 없습니다"),
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C999", "내부 오류가 발생했습니다"),
 
   // HR

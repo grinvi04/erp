@@ -1,6 +1,7 @@
 package com.erp.finance;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.erp.common.AbstractIntegrationTest;
 import com.erp.finance.application.ReferenceTypes;
@@ -29,6 +30,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -114,7 +116,10 @@ class FixedAssetDisposalCatchUpIntegrationTest extends AbstractIntegrationTest {
         fixedAssetService.dispose(
             assetId,
             new FixedAssetDisposeRequest(
-                LocalDate.of(2025, 3, 15), new BigDecimal("1050000"), cashAccountId));
+                LocalDate.of(2025, 3, 15),
+                new BigDecimal("1050000"),
+                cashAccountId,
+                assetVersion(assetId)));
 
     assertThat(result.status().name()).isEqualTo("DISPOSED");
 
@@ -150,7 +155,10 @@ class FixedAssetDisposalCatchUpIntegrationTest extends AbstractIntegrationTest {
     fixedAssetService.dispose(
         assetId,
         new FixedAssetDisposeRequest(
-            LocalDate.of(2025, 3, 20), new BigDecimal("1050000"), cashAccountId));
+            LocalDate.of(2025, 3, 20),
+            new BigDecimal("1050000"),
+            cashAccountId,
+            assetVersion(assetId)));
 
     var asset = fixedAssetRepository.findById(assetId).orElseThrow();
     assertThat(asset.getAccumulatedDepreciation()).isEqualByComparingTo("200000");
@@ -167,11 +175,47 @@ class FixedAssetDisposalCatchUpIntegrationTest extends AbstractIntegrationTest {
     fixedAssetService.dispose(
         assetId,
         new FixedAssetDisposeRequest(
-            LocalDate.of(2025, 1, 20), new BigDecimal("1200000"), cashAccountId));
+            LocalDate.of(2025, 1, 20),
+            new BigDecimal("1200000"),
+            cashAccountId,
+            assetVersion(assetId)));
 
     var asset = fixedAssetRepository.findById(assetId).orElseThrow();
     assertThat(asset.getAccumulatedDepreciation()).isEqualByComparingTo("0");
     assertThat(depreciationEntryRepository.findByFixedAssetIdOrderByFiscalPeriodIdAsc(assetId))
         .isEmpty();
+  }
+
+  @Test
+  void dispose_staleVersion_doesNotCreateCatchUpOrDisposalJournal() {
+    Long assetId = registerJanAsset("FA-CU-STALE");
+    Long staleVersion = assetVersion(assetId);
+    authenticate("creator", "finance:write");
+    depreciationPostingService.runForPeriod(janId);
+    fixedAssetRepository.flush();
+
+    assertThatThrownBy(
+            () ->
+                fixedAssetService.dispose(
+                    assetId,
+                    new FixedAssetDisposeRequest(
+                        LocalDate.of(2025, 3, 15),
+                        new BigDecimal("1050000"),
+                        cashAccountId,
+                        staleVersion)))
+        .isInstanceOf(ObjectOptimisticLockingFailureException.class);
+
+    assertThat(depreciationEntryRepository.findByFixedAssetIdOrderByFiscalPeriodIdAsc(assetId))
+        .extracting(DepreciationEntry::getFiscalPeriodId)
+        .containsExactly(janId);
+    assertThat(
+            journalEntryRepository.findByReferenceTypeAndReferenceId(
+                ReferenceTypes.ASSET_DISPOSAL, assetId))
+        .isEmpty();
+    assertThat(fixedAssetRepository.findById(assetId).orElseThrow().isActive()).isTrue();
+  }
+
+  private Long assetVersion(Long assetId) {
+    return fixedAssetRepository.findById(assetId).orElseThrow().getVersion();
   }
 }

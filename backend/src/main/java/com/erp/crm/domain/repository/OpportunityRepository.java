@@ -3,6 +3,7 @@ package com.erp.crm.domain.repository;
 import com.erp.common.response.CurrencyAmount;
 import com.erp.crm.domain.model.Opportunity;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +28,30 @@ public interface OpportunityRepository extends JpaRepository<Opportunity, Long> 
   Page<Opportunity> search(
       @Param("accountId") Long accountId,
       @Param("stageId") Long stageId,
+      @Param("scoped") boolean scoped,
+      @Param("ownerIds") java.util.Collection<String> ownerIds,
+      Pageable pageable);
+
+  @Query(
+      value =
+          "SELECT o FROM Opportunity o JOIN FETCH o.account a JOIN FETCH o.stage s WHERE "
+              + "(:accountId IS NULL OR a.id = :accountId) AND "
+              + "(:stageId IS NULL OR s.id = :stageId) AND "
+              + "(:from IS NULL OR o.closeDate >= :from) AND "
+              + "(:to IS NULL OR o.closeDate <= :to) AND "
+              + "(:scoped = false OR o.ownerId IN :ownerIds)",
+      countQuery =
+          "SELECT COUNT(o) FROM Opportunity o WHERE "
+              + "(:accountId IS NULL OR o.account.id = :accountId) AND "
+              + "(:stageId IS NULL OR o.stage.id = :stageId) AND "
+              + "(:from IS NULL OR o.closeDate >= :from) AND "
+              + "(:to IS NULL OR o.closeDate <= :to) AND "
+              + "(:scoped = false OR o.ownerId IN :ownerIds)")
+  Page<Opportunity> searchFiltered(
+      @Param("accountId") Long accountId,
+      @Param("stageId") Long stageId,
+      @Param("from") LocalDate from,
+      @Param("to") LocalDate to,
       @Param("scoped") boolean scoped,
       @Param("ownerIds") java.util.Collection<String> ownerIds,
       Pageable pageable);

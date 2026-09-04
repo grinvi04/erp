@@ -5,9 +5,15 @@ public record DepreciationAccountResponse(
     Long depreciationExpenseAccountId,
     Long accumulatedDepreciationAccountId,
     Long disposalGainAccountId,
-    Long disposalLossAccountId) {
+    Long disposalLossAccountId,
+    Long version) {
+  public static DepreciationAccountResponse of(
+      Long expense, Long accumulated, Long gain, Long loss, Long version) {
+    return new DepreciationAccountResponse(expense, accumulated, gain, loss, version);
+  }
+
   public static DepreciationAccountResponse of(
       Long expense, Long accumulated, Long gain, Long loss) {
-    return new DepreciationAccountResponse(expense, accumulated, gain, loss);
+    return of(expense, accumulated, gain, loss, null);
   }
 }

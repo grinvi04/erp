@@ -1,7 +1,7 @@
 'use server'
 import { apiPost, apiPut, apiDelete, apiGet } from '@/lib/api'
 import { revalidatePath } from 'next/cache'
-import type { AccessProfile, DataScope, Role, UserLookup } from '@/types/iam'
+import type { AccessProfile, DataScope, Role, TenantUser, UserLookup } from '@/types/iam'
 
 const PATH = '/iam'
 
@@ -70,4 +70,27 @@ export async function setAccessProfile(
   },
 ): Promise<void> {
   await apiPut<AccessProfile>(`/api/iam/users/${encodeURIComponent(userId)}/access-profile`, data)
+}
+
+export async function inviteTenantUser(data: {
+  email: string
+  firstName: string | null
+  lastName: string | null
+  requestKey: string
+  roleIds: number[]
+}): Promise<TenantUser> {
+  const user = await apiPost<TenantUser>('/api/iam/tenant-users/invitations', data)
+  revalidatePath(PATH)
+  return user
+}
+
+export async function reinviteTenantUser(id: number, roleIds: number[]): Promise<TenantUser> {
+  const user = await apiPost<TenantUser>(`/api/iam/tenant-users/${id}/reinvite`, { roleIds })
+  revalidatePath(PATH)
+  return user
+}
+
+export async function disableTenantUser(id: number): Promise<void> {
+  await apiDelete(`/api/iam/tenant-users/${id}`)
+  revalidatePath(PATH)
 }

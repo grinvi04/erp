@@ -8,6 +8,18 @@ import { test, expect } from '@playwright/test'
 // 실제 백엔드 데이터 렌더는 backend-integration.spec.ts(E2E_BACKEND 게이트)에서 검증한다.
 
 test.describe('인증된 사용자 — 렌더 스모크', () => {
+  test('공개 세션 API가 백엔드 bearer token을 노출하지 않는다', async ({ request }) => {
+    const response = await request.get('/api/auth/session')
+    expect(response.ok()).toBe(true)
+    const session = await response.json()
+
+    expect(session.tenantId).toBe('1')
+    expect(session).not.toHaveProperty('accessToken')
+    expect(session).not.toHaveProperty('refreshToken')
+    expect(session).not.toHaveProperty('serverAccessToken')
+    expect(JSON.stringify(session)).not.toContain('e2e-fake-access-token')
+  })
+
   test('대시보드(/)가 /login으로 리다이렉트되지 않고 렌더된다', async ({ page }) => {
     await page.goto('/')
     await expect(page).not.toHaveURL(/\/login/)
@@ -24,22 +36,27 @@ test.describe('인증된 사용자 — 렌더 스모크', () => {
     await expect(page.getByRole('link', { name: '분석' })).toBeVisible()
   })
 
-  test('사이드바 모듈 그룹이 접이식으로 펼쳐진다', async ({ page }) => {
+  test('권한 조회가 실패한 인증 셸은 보호 모듈 메뉴를 노출하지 않는다', async ({ page }) => {
     await page.goto('/')
-    // 모듈 그룹 토글 버튼(기본 접힘).
-    await expect(page.getByRole('button', { name: '재무' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'CRM' })).toBeVisible()
-    // 그룹을 펼치면 하위 링크가 나타난다.
-    await page.getByRole('button', { name: '재무' }).click()
-    await expect(page.getByRole('link', { name: '재무제표' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'FX 설정' })).toBeVisible()
+    for (const moduleName of ['인사', '재무', '재고', 'CRM']) {
+      await expect(page.getByRole('button', { name: moduleName, exact: true })).toHaveCount(0)
+    }
+    await expect(page.getByRole('link', { name: '역할·권한' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: '감사 로그' })).toHaveCount(0)
   })
 
   test('헤더에 세션 사용자·계정 메뉴(로그아웃 보유)가 표시된다', async ({ page }) => {
+    const pageErrors: Error[] = []
+    page.on('pageerror', (error) => pageErrors.push(error))
+
     await page.goto('/')
     await expect(page.getByText('e2e@test.local')).toBeVisible()
     // 로그아웃은 이 계정 드롭다운 메뉴 안에 있다(헤더 재설계).
-    await expect(page.getByRole('button', { name: '계정' })).toBeVisible()
+    await page.getByRole('button', { name: '계정' }).click()
+    await expect(page.getByText('로그인됨')).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: '내 프로필' })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: '로그아웃' })).toBeVisible()
+    expect(pageErrors).toEqual([])
   })
 
   test('결재함(/approvals)이 인증 상태로 렌더된다', async ({ page }) => {

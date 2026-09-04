@@ -424,7 +424,7 @@ export default function InvoicesClient({ data, vendors, accounts }: Props) {
   const exportExcel = () => {
     startTransition(async () => {
       try {
-        await runCsvExport(exportAllInvoices, {
+        await runCsvExport(() => exportAllInvoices(applied), {
           filename: `매입계산서_${new Date().toISOString().slice(0, 10)}`,
           columns: exportColumns,
           matches: matchesFilter,

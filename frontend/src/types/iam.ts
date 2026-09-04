@@ -26,3 +26,13 @@ export interface UserLookup {
   hasAccessProfile: boolean
   audited: boolean
 }
+
+export type TenantUserStatus = 'PENDING' | 'ACTIVE' | 'FAILED' | 'DISABLED'
+
+export interface TenantUser {
+  id: number
+  email: string
+  userId: string | null
+  status: TenantUserStatus
+  failureCode: string | null
+}

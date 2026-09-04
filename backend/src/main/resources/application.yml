@@ -73,6 +73,18 @@ logging:
     correlation: "[%X{traceId:-}] "
   level:
     root: INFO
-    com.erp: DEBUG
+    com.erp: INFO
     org.springframework.security: INFO
     org.hibernate.SQL: WARN
+
+erp:
+  keycloak:
+    user-admin:
+      enabled: ${ERP_KEYCLOAK_USER_ADMIN_ENABLED:false}
+      base-url: ${ERP_KEYCLOAK_USER_ADMIN_BASE_URL:http://localhost:8180}
+      realm: ${ERP_KEYCLOAK_USER_ADMIN_REALM:erp}
+      client-id: ${ERP_KEYCLOAK_USER_ADMIN_CLIENT_ID:}
+      client-secret: ${ERP_KEYCLOAK_USER_ADMIN_CLIENT_SECRET:}
+      frontend-client-id: ${ERP_KEYCLOAK_USER_ADMIN_FRONTEND_CLIENT_ID:erp-frontend}
+      redirect-uri: ${ERP_KEYCLOAK_USER_ADMIN_REDIRECT_URI:}
+      invite-lifespan-seconds: ${ERP_KEYCLOAK_USER_ADMIN_INVITE_LIFESPAN_SECONDS:900}

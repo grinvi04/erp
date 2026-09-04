@@ -1,14 +1,14 @@
 # 🏢 ERP — 멀티테넌트 SaaS ERP
 
 [![ci-gate](https://github.com/grinvi04/erp/actions/workflows/ci-gate.yml/badge.svg)](https://github.com/grinvi04/erp/actions/workflows/ci-gate.yml)
-![e2e](https://img.shields.io/badge/e2e-34%20passed-brightgreen)
-![version](https://img.shields.io/badge/version-v0.13.0-blue)
+![e2e](https://img.shields.io/badge/e2e-38%20passed-brightgreen)
+![version](https://img.shields.io/badge/version-v0.14.0-blue)
 ![deploy](https://img.shields.io/badge/deploy-local%20only-lightgrey)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
 > **"수백 개 기업의 인사·재무·재고·영업을 한 플랫폼에서 — 테넌트별 완전 격리로."**
 
-HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS ERP. Spring Boot + Next.js 풀스택. 운영 미배포(로컬 풀스택 실행 지원), 현재 `v0.13.0`.
+HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS ERP. Spring Boot + Next.js 풀스택. 운영 미배포(로컬 풀스택 실행 지원), 현재 `v0.14.0`.
 
 ---
 
@@ -62,7 +62,7 @@ HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS 
 | 영역 | 스택 |
 |------|------|
 | **Backend** | Spring Boot 3.4 · Java 21 · Gradle · PostgreSQL 16 · Flyway · Keycloak(OIDC) |
-| **Frontend** | Next.js 15 (App Router) · TypeScript · next-auth v5(BFF) · Tailwind CSS · shadcn/ui |
+| **Frontend** | Next.js 16 (App Router) · TypeScript · next-auth v5(BFF) · Tailwind CSS · shadcn/ui |
 | **Infra · CI** | Docker Compose(로컬) · GitHub Actions(ci-gate) · Playwright(E2E) |
 
 ## 🏗️ 아키텍처
@@ -74,7 +74,7 @@ HR · Finance · Inventory · CRM 4개 모듈의 상용형 멀티테넌트 SaaS 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'lineColor': '#6b7280', 'background': '#f8fafc', 'mainBkg': '#f8fafc', 'fontSize': '14px'}}}%%
 flowchart LR
-    Browser["🖥️ 브라우저"] -->|HTTPS| FE["<b>Next.js 15</b> · App Router<br/>next-auth v5 (BFF)"]
+    Browser["🖥️ 브라우저"] -->|HTTPS| FE["<b>Next.js 16</b> · App Router<br/>next-auth v5 (BFF)"]
     FE -->|"Bearer JWT · tenant_id claim"| BE["<b>Spring Boot 3.4</b> · Java 21<br/>Resource Server"]
     FE -. "OIDC 로그인" .-> KC["🔐 Keycloak<br/>realm: erp"]
     BE -. "JWT/JWKS 검증" .-> KC
@@ -92,7 +92,7 @@ flowchart LR
 
 - **클린 아키텍처** — 모듈 내 `domain`(엔티티·도메인서비스) → `application`(유스케이스·포트) → `adapter`(웹·JPA·이벤트) 3계층. 모듈 간은 `common/` 공유타입·SPI로만 통신(직접 참조 금지).
 - **멀티테넌시** — 모든 테이블 `tenant_id` + Hibernate `@TenantId` 자동 필터. JWT `tenant_id` 클레임 → `TenantContext`(ThreadLocal).
-- **인증·인가** — Backend는 Resource Server(JWT 검증), Frontend는 next-auth BFF(Keycloak). RBAC = Permission(기능권한) + DataScope(전체/부서/본인). 인가는 **DB 기반**(역할→권한) — 기동 시 `ERP_IAM_BOOTSTRAP_ADMIN_SUB` 미설정이면 권한 보유자 없음(fail-closed).
+- **인증·인가** — Backend는 Resource Server(JWT 검증), Frontend는 next-auth BFF(Keycloak). RBAC = Permission(기능권한) + DataScope(전체/부서/본인). 운영자 프로비저닝 명령이 사용자별 `tenant_id`와 최초 `SUPER_ADMIN`을 연결하며, 미등록·비활성 테넌트는 fail-closed로 거부한다.
 - **DB 표준** — BIGINT PK + 시퀀스 채번, 공통 감사 컬럼(`version` 낙관적잠금 · `deleted_at` 소프트삭제 · created/updated), Flyway forward-only(`0xxx` common · `1xxx` hr · `2xxx` finance · `3xxx` inventory · `4xxx` crm).
 
 ## 🚀 시작하기
@@ -100,19 +100,30 @@ flowchart LR
 > **전제** — Docker · JDK 21 · Node 20+
 
 ```bash
-# 1) 인프라 기동 (PostgreSQL + Keycloak)
+# 1) 인프라 기동 (PostgreSQL + Keycloak + 로컬 SMTP 수신함)
 docker compose up -d
 
 # 2) Keycloak 셋업 (realm · client · 테스트 계정, 멱등)
 ./scripts/keycloak-setup.sh
-#    → 출력의 AUTH_KEYCLOAK_SECRET · ERP_IAM_BOOTSTRAP_ADMIN_SUB 를 다음 단계에 사용
+#    → 출력의 프론트 secret · 프로비저닝/사용자관리 자격증명 · 관리자 user ID를 사용
 
-# 3) 백엔드 (부트스트랩 + Flyway 마이그레이션)
+# 3) 최초 테넌트 프로비저닝 (Flyway 포함)
 cd backend
-ERP_IAM_BOOTSTRAP_ADMIN_SUB=<2단계 출력 sub> ./gradlew bootRun
+ERP_KEYCLOAK_PROVISIONING_CLIENT_ID=erp-provisioner \
+ERP_KEYCLOAK_PROVISIONING_CLIENT_SECRET=<2단계 출력 secret> \
+ERP_PROVISION_TENANT_CODE=LOCAL ERP_PROVISION_TENANT_NAME='Local ERP' \
+ERP_PROVISION_ADMIN_USER_ID=<2단계 출력 user ID> ERP_PROVISIONED_BY=local-ops \
+./gradlew provisionTenant
+
+# 4) 백엔드 (2단계 출력의 사용자 관리 값을 주입)
+ERP_KEYCLOAK_USER_ADMIN_ENABLED=true \
+ERP_KEYCLOAK_USER_ADMIN_CLIENT_ID=erp-user-admin \
+ERP_KEYCLOAK_USER_ADMIN_CLIENT_SECRET=<2단계 출력 user-admin secret> \
+ERP_KEYCLOAK_USER_ADMIN_REDIRECT_URI=http://localhost:3000/login \
+./gradlew bootRun
 #    헬스: curl -sf http://localhost:8080/actuator/health   # {"status":"UP"}
 
-# 4) 프론트엔드
+# 5) 프론트엔드
 cd ../frontend && npm install
 cat > .env.local <<'EOF'
 AUTH_SECRET=<openssl rand -base64 32 로 생성>
@@ -131,9 +142,10 @@ npm run dev
 | 프론트엔드 | http://localhost:3000 |
 | 백엔드 | http://localhost:8080 |
 | Keycloak Admin | http://localhost:8180 (`admin` / `admin`) |
+| 초대 메일 수신함 (Mailpit) | http://localhost:8025 |
 
 **테스트 계정** — `admin` / `Admin123!` → http://localhost:3000 의 **"Keycloak으로 로그인"**.
-SUPER_ADMIN(전 권한)은 **백엔드를 이 계정의 Keycloak `sub`로 부트스트랩**(2~3단계)했을 때 부여된다. 다른 사용자는 관리자가 IAM 화면에서 역할을 준다.
+SUPER_ADMIN(전 권한)은 **테넌트 프로비저닝 명령에 이 계정의 Keycloak `sub`를 지정**했을 때 부여된다. 다른 사용자는 관리자가 IAM 화면에서 이메일로 초대하고 역할을 선택한다.
 
 ## 🧪 테스트
 
@@ -146,6 +158,11 @@ cd frontend && npm run type-check && npm run lint && npm run build
 
 # 프론트 E2E (Playwright — 인증 게이트·인증 렌더 스모크, 백엔드 불필요·자체완결)
 cd frontend && npm run build && npm run test:e2e
+
+# 로컬 사용자 초대 실증 (Keycloak·Mailpit·최신 백엔드 실행 필요, 로컬 데이터 변경)
+cd ..
+E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
+./scripts/verify-user-onboarding.sh
 ```
 
 **백엔드 통합 E2E**(선택) — 로컬 풀스택(1~4단계)을 띄운 상태에서 실제 백엔드 데이터 렌더를 검증한다. `E2E_BACKEND` 미설정 시(CI 포함) 제외된다.
@@ -155,6 +172,24 @@ cd frontend
 E2E_BACKEND=1 E2E_CLIENT_SECRET=<2단계 secret> E2E_PASSWORD=Admin123! \
 AUTH_SECRET=<.env.local 과 동일> npm run test:e2e -- --project=backend
 ```
+
+**상용 업무흐름 UAT**(로컬 전용) — 전용 테넌트 A/B와 서로 다른 작성자·결재자·무권한 사용자를 멱등 준비하고 AP/AR→GL→재무제표·부가세, 입고→이전→출고→조정 결재, 테넌트 격리, 감사 `traceId`, 부가세 CSV/API 정합성, 무권한 메뉴/API 거부, 만료 세션의 로그인 복귀를 실제 화면에서 검증한다. `.env.local`의 로컬 Keycloak/Auth 설정과 실행 중인 PostgreSQL·Keycloak·백엔드·프론트엔드가 필요하다.
+
+```bash
+# 환경·안전 계약만 검증(데이터 변경 없음)
+E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
+  ./scripts/commercial-uat.sh --dry-run
+
+# 전용 UAT 테넌트·사용자·권한 준비(무권한 사용자는 역할 0건으로 보정)
+E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
+  ./scripts/commercial-uat.sh --setup-only
+
+# 준비 + 전체 상용 UAT
+E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED \
+  ./scripts/commercial-uat.sh --all
+```
+
+실행기는 자격증명 없는 HTTP loopback URL만 허용하고 원격·운영 URL을 거부한다. 비밀번호와 토큰은 로그에 출력하지 않으며, 업무 레코드는 전용 UAT 테넌트에 실행 ID로 격리해 보존한다. 이 검증은 로컬 후보 품질 게이트이며 운영 배포·백업 복원·SLA 승인을 대체하지 않는다.
 
 ## 📁 디렉토리
 

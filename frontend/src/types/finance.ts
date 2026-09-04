@@ -110,6 +110,7 @@ export interface CompanyProfile {
   address: string | null
   businessType: string | null
   businessItem: string | null
+  version: number | null
 }
 
 export interface VatPartyLine {
@@ -207,16 +208,19 @@ export interface FiscalPeriod {
 
 export interface BaseCurrency {
   baseCurrency: string
+  version: number | null
 }
 
 export interface FxGainLossAccounts {
   fxGainAccountId: number | null
   fxLossAccountId: number | null
+  version: number | null
 }
 
 export interface VatAccounts {
   vatReceivableAccountId: number | null
   vatPayableAccountId: number | null
+  version: number | null
 }
 
 export interface ExchangeRate {
@@ -298,6 +302,7 @@ export interface FixedAsset {
   accumulatedImpairment: number
   bookValue: number
   status: FixedAssetStatus
+  version: number
 }
 
 export interface DepreciationEntry {
@@ -312,6 +317,7 @@ export interface DepreciationAccounts {
   accumulatedDepreciationAccountId: number | null
   disposalGainAccountId: number | null
   disposalLossAccountId: number | null
+  version: number | null
 }
 
 export type ImpairmentEntryType = 'IMPAIRMENT' | 'REVERSAL'
@@ -331,6 +337,7 @@ export interface ImpairmentAccounts {
   impairmentLossAccountId: number | null
   accumulatedImpairmentAccountId: number | null
   impairmentReversalAccountId: number | null
+  version: number | null
 }
 
 export interface ImpairmentRecognizeResult {

@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'com.erp'
-version = '0.13.0'
+version = '0.14.0'
 
 java {
     toolchain {
@@ -75,6 +75,13 @@ test {
 
 tasks.named('check') {
     dependsOn test
+}
+
+tasks.register('provisionTenant', JavaExec) {
+    group = 'application'
+    description = '기존 Keycloak 사용자에 신규 ERP 테넌트와 최초 관리자 권한을 연결한다.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.erp.common.tenant.provisioning.TenantProvisioningCommand'
 }
 
 // Google Java Style — spotlessApply 자동수정, spotlessCheck는 check에 연결돼 CI가 강제.

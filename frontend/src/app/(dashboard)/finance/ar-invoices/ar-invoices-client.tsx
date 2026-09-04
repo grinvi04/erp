@@ -431,7 +431,7 @@ export default function ArInvoicesClient({ data, customers, accounts }: Props) {
   const exportExcel = () => {
     startTransition(async () => {
       try {
-        await runCsvExport(exportAllArInvoices, {
+        await runCsvExport(() => exportAllArInvoices(applied), {
           filename: `매출계산서_${new Date().toISOString().slice(0, 10)}`,
           columns: exportColumns,
           matches: matchesFilter,

@@ -8,10 +8,12 @@ import com.erp.finance.application.dto.ApInvoiceResponse;
 import com.erp.finance.application.service.ApInvoiceService;
 import com.erp.finance.domain.model.ApInvoiceStatus;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,8 +34,15 @@ public class ApInvoiceController {
   @GetMapping
   public ResponseEntity<ApiResponse<PageResponse<ApInvoiceResponse>>> findAll(
       @RequestParam(required = false) ApInvoiceStatus status,
+      @RequestParam(required = false) Long vendorId,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
       @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-    return ResponseEntity.ok(ApiResponse.ok(apInvoiceService.findAll(status, pageable)));
+    PageResponse<ApInvoiceResponse> invoices =
+        vendorId == null && from == null && to == null
+            ? apInvoiceService.findAll(status, pageable)
+            : apInvoiceService.findAll(status, vendorId, from, to, pageable);
+    return ResponseEntity.ok(ApiResponse.ok(invoices));
   }
 
   @GetMapping("/{id}")

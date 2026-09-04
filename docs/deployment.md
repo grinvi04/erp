@@ -15,15 +15,18 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 
 ---
 
-## ✅ 배포 전 점검 (pre-flight — v0.5.0 코드 기준 검증)
+## ✅ 배포 전 점검 (pre-flight — 현재 `develop` 코드 기준 검증)
 
-> 코드가 실제로 읽는 환경변수 이름을 v0.5.0 소스로 교차검증한 결과. 이 표 기준으로 플랫폼 변수를 설정하면 "배포는 됐는데 안 됨"을 피한다.
+> 코드가 실제로 읽는 환경변수 이름을 현재 `develop` 소스와 교차검증한 결과. 이 표 기준으로 플랫폼 변수를 설정하면 "배포는 됐는데 안 됨"을 피한다.
 
 | 대상 | 변수 | 코드 출처 | 주의 |
 |---|---|---|---|
 | 백엔드 | `SPRING_DATASOURCE_URL`·`_USERNAME`·`_PASSWORD` | application.yml | — |
 | 백엔드 | `KEYCLOAK_ISSUER_URI` | application.yml(resource server) | 백엔드용. `.../realms/erp` |
-| 백엔드 | `ERP_IAM_BOOTSTRAP_ADMIN_SUB`·`ERP_IAM_BOOTSTRAP_TENANT_ID` | IamBootstrap.java(`erp.iam.bootstrap.*`) | **미설정 시 권한 보유자 0(fail-closed)** — 필수 |
+| 프로비저닝 명령 | `ERP_KEYCLOAK_PROVISIONING_CLIENT_ID`·`_SECRET` | TenantProvisioningConfiguration.java | 테넌트 생성 때만 주입. 일반 백엔드 런타임에는 주입하지 않음 |
+| 백엔드 | `ERP_KEYCLOAK_USER_ADMIN_ENABLED`·`_CLIENT_ID`·`_CLIENT_SECRET` | TenantIdentityAdminConfiguration.java | 사용자 초대 런타임 전용 서비스 계정. 운영은 `true` |
+| 백엔드 | `ERP_KEYCLOAK_USER_ADMIN_BASE_URL`·`_REALM`·`_FRONTEND_CLIENT_ID`·`_REDIRECT_URI` | TenantIdentityAdminConfiguration.java | 초대 메일의 로그인 대상과 Keycloak Admin API |
+| 백엔드 | `ERP_KEYCLOAK_USER_ADMIN_INVITE_LIFESPAN_SECONDS` | TenantIdentityAdminConfiguration.java | 초대 링크 유효시간(초). 기본값 `900` |
 | 프론트 | `BACKEND_URL` | lib/api.ts | `NEXT_PUBLIC_API_URL` 폴백 |
 | 프론트 | `AUTH_KEYCLOAK_ID`·`AUTH_KEYCLOAK_SECRET` | lib/auth.ts | next-auth Keycloak provider |
 | 프론트 | **`KEYCLOAK_ISSUER`** | lib/auth.ts:27,56 | ⚠️ `AUTH_KEYCLOAK_ISSUER` **아님**(관례와 다름) — 틀리면 로그인 깨짐 |
@@ -39,14 +42,16 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
 
 | 대상 | 플랜 | 월 비용 | 비고 |
 |---|---|---|---|
-| Vercel (프론트) | Hobby(무료) | $0 | 개인/데모 충분. 상용 트래픽·팀은 Pro($20) |
-| Railway (백엔드+DB+Keycloak) | 사용량 기반 | **~$5~15** | 무료 크레딧 소진 후 과금. Keycloak이 메모리(~512MB+) 주 비용 |
+| Vercel (프론트) | Pro 이상 | 사용량·최신 가격 확인 | Hobby는 개인·비상업 용도이므로 유료 파일럿에 사용 금지 |
+| Railway (백엔드+DB+Keycloak) | Pro 이상 | 사용량·최신 가격 확인 | Pro 자체에는 계약 SLA가 없으므로 서비스 정책의 내부 SLO와 구분 |
 
-> 비용 최적화: DB를 **Neon(무료 Postgres)** 로 빼면 Railway는 백엔드+Keycloak만 → 비용 절감. 단 본 가이드는 요청대로 Railway에 DB까지 둔다.
+> 데모와 상용 운영의 플랜을 혼동하지 않는다. 유료 파일럿의 백업·지원·가용성 기준은 [서비스 운영 정책](service-policy.md)을 따르며, 결제 전 각 플랫폼의 최신 공식 가격과 약관을 다시 확인한다. 본 가이드는 Railway에 DB까지 두는 구성을 기준으로 한다.
 
 ---
 
 ## 1. Railway — 백엔드 스택
+
+유료 파일럿은 모든 Railway 서비스와 PostgreSQL 볼륨을 승인된 동일 리전(현재 권장: 싱가포르)에 배치하고 실제 리전을 운영 기록에 남긴다. 이는 국내 보관을 의미하지 않으며, 미국 소재 Railway와 하위처리자의 계정·지원 처리를 포함한 국외 처리 기준은 [개인정보·법률 준비 기준](privacy-legal-readiness.md)을 따른다.
 
 ### 1-1. 프로젝트 + PostgreSQL
 1. [railway.app](https://railway.app) 로그인 → **New Project** → **Deploy PostgreSQL**.
@@ -67,21 +72,30 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
    KC_DB_USERNAME=${{Postgres.PGUSER}}
    KC_DB_PASSWORD=${{Postgres.PGPASSWORD}}
    KC_DB_SCHEMA=keycloak
+   KC_HEALTH_ENABLED=true
+   KC_LEGACY_OBSERVABILITY_INTERFACE=true
    KC_HOSTNAME=${{RAILWAY_PUBLIC_DOMAIN}}
    KEYCLOAK_ADMIN=admin
    KEYCLOAK_ADMIN_PASSWORD=<강한 비밀번호>
    ```
+   `KC_LEGACY_OBSERVABILITY_INTERFACE`는 현재 고정 이미지 `26.0.x`에서 Railway의 단일 공개 포트로 readiness를 확인하기 위한 호환 설정이다. Keycloak 26.4+로 올릴 때는 이를 제거하고 `KC_HTTP_MANAGEMENT_HEALTH_ENABLED=false` 또는 비공개 관리 포트 9000 프로브로 전환한다.
 5. Settings → Networking → **Generate Domain** (공개 URL 발급). 이 URL이 Keycloak 이슈어 베이스가 된다.
 
 ### 1-3. Realm + 클라이언트 (최초 1회, Keycloak Admin)
 `https://<keycloak-domain>/admin` → admin 로그인 →
 1. **Create realm**: `erp`
 2. **Clients → Create**: Client ID `erp-frontend`, OpenID Connect, **Client authentication ON**(confidential), Standard flow.
-3. **Valid redirect URIs**: `https://<vercel-domain>/api/auth/callback/keycloak`
+3. **Valid redirect URIs**에 아래 두 URI를 각각 등록한다.
+   - `https://<vercel-domain>/api/auth/callback/keycloak` (로그인 OIDC 콜백)
+   - `https://<vercel-domain>/login` (초대 메일의 필수 작업 완료 후 복귀)
    **Web origins**: `https://<vercel-domain>`
 4. Credentials 탭의 **Client secret** 복사 → Vercel `AUTH_KEYCLOAK_SECRET`.
-5. **Users → Create** 로 첫 사용자 생성 → 이 사용자의 **sub(ID)** 를 백엔드 부트스트랩에 사용(아래 1-4).
-   - 토큰의 `tenant_id` 클레임: Realm/Client에 **tenant_id(상수 1)** 매퍼 추가(Client scopes → erp-frontend-dedicated → Add mapper → Hardcoded claim `tenant_id`=`1`).
+5. **Users → Create** 로 **해당 테넌트 전용** 프로비저닝 운영자 사용자를 새로 만들고 사용자 ID(`sub`)를 기록한다. 기존 고객의 운영자 계정을 재사용하지 않으며 `tenant_id`가 비어 있는지 확인한다. 이 계정은 고객에게 제공하지 않는 break-glass 계정이다.
+6. Realm의 User Profile에 `tenant_id` 속성을 추가하고 일반 사용자는 편집할 수 없게 한다.
+7. `erp-frontend` 전용 Client scope에 **User Attribute** 매퍼를 추가한다: 사용자 속성 `tenant_id` → 토큰 클레임 `tenant_id`, JSON 타입 `long`.
+8. confidential service-account client `erp-provisioner`를 만들고 `realm-management`의 `manage-users`, `view-users`, `query-users`만 부여한다. 이 클라이언트는 테넌트 생성 명령에만 사용한다.
+9. 별도 confidential service-account client `erp-user-admin`을 만들고 같은 세 역할만 부여한다. 이 클라이언트는 백엔드의 사용자 초대·중지 런타임에만 사용하며 `erp-provisioner` 시크릿과 분리해 회전한다.
+10. Realm email 설정에 운영 SMTP 공급자의 TLS·발신자·자격증명을 설정하고 테스트 메일을 수신한다. SMTP 시크릿은 Keycloak 서비스 변수 또는 승인된 시크릿 저장소에만 둔다.
 
 ### 1-4. 백엔드 서비스
 1. **New → GitHub Repo** → 이 repo 선택 → Settings → **Root Directory**: `backend` (railway.json·Dockerfile 자동 인식).
@@ -92,18 +106,54 @@ ERP를 **프론트=Vercel, 백엔드·DB·Keycloak=Railway** 조합으로 배포
    SPRING_DATASOURCE_USERNAME=${{Postgres.PGUSER}}
    SPRING_DATASOURCE_PASSWORD=${{Postgres.PGPASSWORD}}
    KEYCLOAK_ISSUER_URI=https://<keycloak-domain>/realms/erp
-   ERP_IAM_BOOTSTRAP_ADMIN_SUB=<1-3에서 만든 사용자 sub>
-   ERP_IAM_BOOTSTRAP_TENANT_ID=1
+   ERP_KEYCLOAK_USER_ADMIN_ENABLED=true
+   ERP_KEYCLOAK_USER_ADMIN_BASE_URL=https://<keycloak-domain>
+   ERP_KEYCLOAK_USER_ADMIN_REALM=erp
+   ERP_KEYCLOAK_USER_ADMIN_CLIENT_ID=erp-user-admin
+   ERP_KEYCLOAK_USER_ADMIN_CLIENT_SECRET=<runtime-service-account-secret>
+   ERP_KEYCLOAK_USER_ADMIN_FRONTEND_CLIENT_ID=erp-frontend
+   ERP_KEYCLOAK_USER_ADMIN_REDIRECT_URI=https://<vercel-domain>/login
+   ERP_KEYCLOAK_USER_ADMIN_INVITE_LIFESPAN_SECONDS=900
    ```
 3. Settings → Networking → **Generate Domain** → 백엔드 공개 URL(헬스체크 `/actuator/health`).
-4. 첫 배포 후 Flyway가 전체 마이그레이션(common 0xxx ~ crm 4xxx, 현재 V0008·V4005 포함)을 적용. 부트스트랩이 해당 sub에 SUPER_ADMIN 자동 배정.
+4. 첫 배포 후 Flyway가 전체 마이그레이션을 적용한다. 이 시점에는 테넌트와 권한 보유자가 없는 fail-closed 상태다.
    > ℹ️ 백엔드는 `flyway.out-of-order: true`다(접두사 번호 규약 전제 — 새 common 0xxx가 기존 4xxx보다 낮아도 증분 적용). 기존 DB에 배포할 때 이 설정이 없으면 기동 실패하므로 변경 금지. CI의 `migration-safety` 게이트가 이를 강제한다.
 
-> `ERP_IAM_BOOTSTRAP_ADMIN_SUB` 미설정으로 기동하면 **권한 보유자가 없어** 관리 API를 쓸 수 없다(설계상 fail-closed). 반드시 설정.
+### 1-5. 최초 테넌트 생성
+
+운영자 단말에서 DB와 Keycloak에 접근 가능한 상태로 실행한다. 서비스 계정 시크릿은 명령 실행 시에만 환경변수로 주입하고 저장소나 일반 백엔드 서비스 변수에 넣지 않는다.
+
+```bash
+cd backend
+ERP_KEYCLOAK_BASE_URL=https://<keycloak-domain> \
+ERP_KEYCLOAK_REALM=erp \
+ERP_KEYCLOAK_PROVISIONING_CLIENT_ID=erp-provisioner \
+ERP_KEYCLOAK_PROVISIONING_CLIENT_SECRET=<service-account-secret> \
+ERP_PROVISION_TENANT_CODE=<고유-테넌트-코드> \
+ERP_PROVISION_TENANT_NAME=<회사명> \
+ERP_PROVISION_TENANT_PLAN=STANDARD \
+ERP_PROVISION_ADMIN_USER_ID=<1-3에서 새로 만든 테넌트 전용 break-glass 사용자 sub> \
+ERP_PROVISIONED_BY=<운영자 식별자> \
+./gradlew provisionTenant
+```
+
+명령은 테넌트를 `ACTIVE`로 만들고, 테넌트 전용 break-glass 사용자의 `tenant_id` 속성을 연결하며, ERP에 `SUPER_ADMIN` 역할과 전체 권한을 부여하고 감사 로그를 남긴다. Keycloak 사용자는 단일 `tenant_id`만 가지므로 이 계정을 다른 테넌트에 재사용하지 않는다. 이 계정으로 `/iam`에서 고객 관리자용 비-HR 역할을 생성·배정한 뒤 고객 사용자의 `SUPER_ADMIN`·`hr:*` 권한이 0개인지 확인한다. 일부 단계 실패 시 상태는 `FAILED`로 남으며 같은 코드에 `ERP_PROVISION_RETRY=true`를 더해 재시도한다. 일반 API는 `ACTIVE` 테넌트의 JWT만 허용한다.
+
+프로비저닝 성공 로그의 숫자형 `tenantId`를 승인 기록과 대조한 뒤 고객 관리자를 별도로 개통한다.
+
+1. break-glass 계정으로 ERP `/iam`에 로그인해 기본 `BUSINESS_ADMIN` 역할로 고객 업무 관리자를 이메일 초대한다. 백엔드가 `tenant_id`를 직접 연결하며 일반 사용자가 수정할 수 없다.
+2. 고객 업무 관리자는 초대 메일에서 이메일 확인·비밀번호 설정을 마친 뒤 로그인한다. `BUSINESS_ADMIN`은 안전한 비-HR 역할만 다른 사용자에게 위임할 수 있고 `SUPER_ADMIN`, `hr:*`, `iam:write`, `iam:delegate`는 부여할 수 없다.
+3. 고객 업무 관리자 계정으로 새 로그인해 JWT의 `tenant_id`, IAM 사용자 초대, 허용 메뉴와 보호 API 접근을 확인한다. HR 메뉴·API와 보호 역할 조작은 거부되어야 한다.
+4. `/iam`에서 Finance·Inventory·CRM 업무 사용자를 각 기본 역할로 초대하고 메일 수신·첫 로그인·사용 중지·재초대를 표본 검증한다.
+5. 고객 계정에 `SUPER_ADMIN`, `hr:*`, `iam:write`가 하나라도 있거나 `tenant_id`가 다르면 개통을 중단한다.
+
+추가 사용자는 고객 업무 관리자가 `/iam`에서 초대·중지한다. 보호 역할이나 HR 접근이 필요한 예외 요청은 승인된 지원 채널과 break-glass 절차를 거치고 변경 전후를 감사 기록에 남긴다. #189의 스테이징 리허설에서 SMTP 전달률, 초대 링크, 중지 즉시성, 서비스 계정 회전을 검증한다.
 
 ---
 
 ## 2. Vercel — 프론트엔드
+
+Vercel Pro DPA와 하위처리자 목록을 확인하고 함수의 실제 실행 리전을 운영 기록에 남긴다. Next.js BFF가 로그인 세션과 업무 API 응답을 처리하므로 정적 화면 호스팅으로만 분류하지 않는다.
 
 1. [vercel.com](https://vercel.com) → **Add New → Project** → 이 repo import.
 2. **Root Directory**: `frontend` (Next.js 자동 감지, `output: 'standalone'`).
@@ -138,11 +188,11 @@ curl -sf https://<keycloak-domain>/health/ready        # Keycloak
 curl -sf https://<vercel-domain>/api/auth/session      # 프론트(미로그인 시 빈 세션)
 ```
 
-로그인 → `/iam`(SUPER_ADMIN) 에서 역할·배정 관리 → 다른 사용자에게 권한 부여.
+운영자 break-glass 계정으로 로그인 → `/iam`에서 비-HR 고객 관리자 역할·배정 관리 → 별도 고객 관리자로 권한 경계를 재확인. 운영자 계정은 일상 업무에 사용하지 않는다.
 
 ---
 
 ## 5. 시크릿 관리
 
 - 모든 시크릿(DB 비번·Keycloak 시크릿·AUTH_SECRET)은 **각 플랫폼 Variables/Environment** 에만 둔다. **repo·`.env` 커밋 금지**(secret-scan CI가 차단).
-- `ERP_IAM_BOOTSTRAP_ADMIN_SUB` 등 운영 값도 플랫폼 변수로.
+- 프로비저닝 서비스 계정 시크릿은 테넌트 생성 작업에만 단기 주입하고 정기적으로 회전한다.

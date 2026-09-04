@@ -47,6 +47,22 @@ public class LeadService {
             .map(LeadResponse::from));
   }
 
+  public PageResponse<LeadResponse> search(
+      LeadStatus status, String ownerId, String keyword, Pageable pageable) {
+    permissionChecker.require(Permission.CRM_READ);
+    var s = dataScopeResolver.ownerScope();
+    return PageResponse.from(
+        leadRepository
+            .searchFiltered(
+                status,
+                ownerId,
+                keyword == null || keyword.isBlank() ? null : keyword.trim().toLowerCase(),
+                s.scoped(),
+                s.ownerIds(),
+                pageable)
+            .map(LeadResponse::from));
+  }
+
   public LeadResponse findById(Long id) {
     permissionChecker.require(Permission.CRM_READ);
     var lead = getOrThrow(id);

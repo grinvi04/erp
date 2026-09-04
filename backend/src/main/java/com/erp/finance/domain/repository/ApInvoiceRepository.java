@@ -39,6 +39,26 @@ public interface ApInvoiceRepository extends JpaRepository<ApInvoice, Long> {
   Page<ApInvoice> findByVendorIdAndStatus(
       @Param("vendorId") Long vendorId, @Param("status") ApInvoiceStatus status, Pageable pageable);
 
+  @Query(
+      value =
+          "SELECT i FROM ApInvoice i LEFT JOIN FETCH i.vendor "
+              + "WHERE i.status = COALESCE(:status, i.status) "
+              + "AND i.vendor.id = COALESCE(:vendorId, i.vendor.id) "
+              + "AND i.invoiceDate >= COALESCE(:from, i.invoiceDate) "
+              + "AND i.invoiceDate <= COALESCE(:to, i.invoiceDate)",
+      countQuery =
+          "SELECT COUNT(i) FROM ApInvoice i "
+              + "WHERE i.status = COALESCE(:status, i.status) "
+              + "AND i.vendor.id = COALESCE(:vendorId, i.vendor.id) "
+              + "AND i.invoiceDate >= COALESCE(:from, i.invoiceDate) "
+              + "AND i.invoiceDate <= COALESCE(:to, i.invoiceDate)")
+  Page<ApInvoice> search(
+      @Param("status") ApInvoiceStatus status,
+      @Param("vendorId") Long vendorId,
+      @Param("from") LocalDate from,
+      @Param("to") LocalDate to,
+      Pageable pageable);
+
   /**
    * 전결규정상 현재 사용자가 결재할 수 있는 대기 전표 — 통합 결재함 라우팅용. 상태=대기, 작성자≠본인(직무분리), 금액≤본인 전결 한도. 테넌트 필터는 자동 적용.
    */

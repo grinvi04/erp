@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -24,7 +25,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ErpException.class)
   public ResponseEntity<ApiResponse<Void>> handleErpException(ErpException e) {
     ErrorCode code = e.getErrorCode();
-    log.warn("ERP exception [{}] {}", code.getCode(), e.getMessage());
+    log.warn("ERP exception [{}]", code.getCode());
     return ResponseEntity.status(code.getHttpStatus())
         .body(ApiResponse.error(code.getCode(), e.getMessage()));
   }
@@ -58,7 +59,7 @@ public class GlobalExceptionHandler {
   })
   public ResponseEntity<ApiResponse<Void>> handleInvalidInput(Exception e) {
     ErrorCode code = ErrorCode.INVALID_INPUT;
-    log.warn("Invalid client input: {}", e.getMessage());
+    log.warn("Invalid client input [{}]", e.getClass().getSimpleName());
     return ResponseEntity.status(code.getHttpStatus())
         .body(ApiResponse.error(code.getCode(), code.getMessage()));
   }
@@ -74,6 +75,17 @@ public class GlobalExceptionHandler {
         .body(ApiResponse.error(code.getCode(), code.getMessage()));
   }
 
+  /** 지원하지 않는 HTTP 메서드 — Spring이 계산한 허용 메서드를 {@code Allow} 헤더로 보존한다. */
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMethodNotAllowed(
+      HttpRequestMethodNotSupportedException e) {
+    ErrorCode code = ErrorCode.METHOD_NOT_ALLOWED;
+    log.warn("HTTP method not allowed: {}", e.getMessage());
+    return ResponseEntity.status(code.getHttpStatus())
+        .headers(e.getHeaders())
+        .body(ApiResponse.error(code.getCode(), code.getMessage()));
+  }
+
   /**
    * DB 무결성 제약 위반 — 주로 동시 요청이 unique 제약을 동시에 통과한 뒤 한쪽 INSERT가 충돌하는 check-then-act 레이스(예: 중복 발행·중복
    * 코드). catch-all로 떨어지면 500(C999)으로 잘못 분류돼 ERROR 알람을 울리므로 명시적으로 409로 매핑한다. 서비스의 사전 존재 검사가 대부분의 경우를
@@ -82,7 +94,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(DataIntegrityViolationException.class)
   public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException e) {
     ErrorCode code = ErrorCode.DATA_INTEGRITY_CONFLICT;
-    log.warn("Data integrity violation: {}", e.getMostSpecificCause().getMessage());
+    log.warn("Data integrity violation [{}]", e.getMostSpecificCause().getClass().getSimpleName());
     return ResponseEntity.status(code.getHttpStatus())
         .body(ApiResponse.error(code.getCode(), code.getMessage()));
   }

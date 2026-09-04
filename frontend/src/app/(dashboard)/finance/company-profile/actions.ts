@@ -12,6 +12,7 @@ export async function updateCompanyProfile(data: {
   address: string | null
   businessType: string | null
   businessItem: string | null
+  version: number | null
 }): Promise<void> {
   await apiPut<CompanyProfile>('/api/finance/company-profile', data)
   revalidatePath(PATH)

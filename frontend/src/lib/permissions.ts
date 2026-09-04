@@ -24,4 +24,5 @@ export const PERM = {
   AUDIT_READ: 'audit:read',
   IAM_READ: 'iam:read',
   IAM_WRITE: 'iam:write',
+  IAM_DELEGATE: 'iam:delegate',
 } as const

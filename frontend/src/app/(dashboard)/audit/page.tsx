@@ -12,6 +12,9 @@ export const metadata = { title: '감사 로그 | ERP' }
 const ENTITY_TYPES = [
   'LEAVE_REQUEST',
   'AP_INVOICE',
+  'AR_INVOICE',
+  'GL_ENTRY',
+  'STOCK_MOVEMENT',
   'EMPLOYEE',
   'ROLE',
   'USER_ROLE',

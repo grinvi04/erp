@@ -5,12 +5,25 @@ import { revalidatePath } from 'next/cache'
 import type { Location, Movement, MovementType } from '@/types/inventory'
 
 // 전체 엑셀 내보내기 — 현재 페이지가 아닌 전체 재고이동(전 페이지 순회). 화면이 조회조건을 재적용한다.
-export async function exportAllMovements(): Promise<{
+export interface MovementExportFilter {
+  type: string
+  status: string
+  from: string
+  to: string
+}
+
+export async function exportAllMovements(filter: MovementExportFilter): Promise<{
   rows: Movement[]
   truncated: boolean
   limit: number
 }> {
-  return fetchAllPages<Movement>('/api/inventory/movements')
+  const params = new URLSearchParams()
+  if (filter.type) params.set('type', filter.type)
+  if (filter.status) params.set('status', filter.status)
+  if (filter.from) params.set('from', filter.from)
+  if (filter.to) params.set('to', filter.to)
+  const query = params.toString()
+  return fetchAllPages<Movement>(`/api/inventory/movements${query ? `?${query}` : ''}`)
 }
 
 export interface MovementLineInput {

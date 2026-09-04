@@ -5,4 +5,18 @@ public record DepreciationAccountUpdateRequest(
     Long depreciationExpenseAccountId,
     Long accumulatedDepreciationAccountId,
     Long disposalGainAccountId,
-    Long disposalLossAccountId) {}
+    Long disposalLossAccountId,
+    Long version) {
+  public DepreciationAccountUpdateRequest(
+      Long depreciationExpenseAccountId,
+      Long accumulatedDepreciationAccountId,
+      Long disposalGainAccountId,
+      Long disposalLossAccountId) {
+    this(
+        depreciationExpenseAccountId,
+        accumulatedDepreciationAccountId,
+        disposalGainAccountId,
+        disposalLossAccountId,
+        null);
+  }
+}

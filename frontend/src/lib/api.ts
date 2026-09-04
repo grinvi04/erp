@@ -1,5 +1,5 @@
 import 'server-only'
-import { auth } from '@/lib/auth'
+import { getServerAccessToken } from '@/lib/auth'
 import type { ApiResponse, PageResponse } from '@/types/api'
 
 // BACKEND_URL: server-only (Docker container-to-container). NEXT_PUBLIC_API_URL: browser-facing.
@@ -7,10 +7,10 @@ const API_BASE =
   process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
 
 async function getHeaders(): Promise<HeadersInit> {
-  const session = await auth()
+  const accessToken = await getServerAccessToken()
   const headers: HeadersInit = { 'Content-Type': 'application/json' }
-  if (session?.accessToken) {
-    headers['Authorization'] = `Bearer ${session.accessToken}`
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`
   }
   return headers
 }
@@ -44,10 +44,10 @@ export async function apiGetRaw(path: string): Promise<Response> {
 
 /** multipart 파일 업로드 — 인증 토큰만 주입하고 Content-Type은 fetch가 boundary와 함께 설정하게 둔다(CSV 대량 업로드용). */
 export async function apiPostForm<T>(path: string, form: FormData): Promise<T> {
-  const session = await auth()
+  const accessToken = await getServerAccessToken()
   const headers: HeadersInit = {}
-  if (session?.accessToken) {
-    headers['Authorization'] = `Bearer ${session.accessToken}`
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`
   }
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
@@ -68,10 +68,10 @@ export async function apiPostForm<T>(path: string, form: FormData): Promise<T> {
 
 /** 현재 로그인 사용자의 Keycloak subject(고유 ID)를 access token에서 추출한다. */
 export async function getCurrentUserId(): Promise<string> {
-  const session = await auth()
-  if (!session?.accessToken) return ''
+  const accessToken = await getServerAccessToken()
+  if (!accessToken) return ''
   try {
-    const payload = JSON.parse(Buffer.from(session.accessToken.split('.')[1], 'base64').toString())
+    const payload = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64').toString())
     return payload.sub ?? ''
   } catch {
     return ''

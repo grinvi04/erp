@@ -7,12 +7,25 @@ import type { ArInvoice, TaxType } from '@/types/finance'
 const PATH = '/finance/ar-invoices'
 
 // 전체 엑셀 내보내기 — 현재 페이지가 아닌 전체 매출계산서(전 페이지 순회). 화면이 조회조건을 재적용한다.
-export async function exportAllArInvoices(): Promise<{
+export interface ArInvoiceExportFilter {
+  customer: string
+  status: string
+  from: string
+  to: string
+}
+
+export async function exportAllArInvoices(filter: ArInvoiceExportFilter): Promise<{
   rows: ArInvoice[]
   truncated: boolean
   limit: number
 }> {
-  return fetchAllPages<ArInvoice>('/api/finance/ar-invoices')
+  const params = new URLSearchParams()
+  if (filter.customer) params.set('customerId', filter.customer)
+  if (filter.status) params.set('status', filter.status)
+  if (filter.from) params.set('from', filter.from)
+  if (filter.to) params.set('to', filter.to)
+  const query = params.toString()
+  return fetchAllPages<ArInvoice>(`/api/finance/ar-invoices${query ? `?${query}` : ''}`)
 }
 
 export async function createArInvoice(data: {

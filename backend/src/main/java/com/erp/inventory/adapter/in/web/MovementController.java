@@ -9,10 +9,12 @@ import com.erp.inventory.application.service.MovementService;
 import com.erp.inventory.domain.model.MovementStatus;
 import com.erp.inventory.domain.model.MovementType;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,8 +36,14 @@ public class MovementController {
   public ResponseEntity<ApiResponse<PageResponse<MovementResponse>>> findAll(
       @RequestParam(required = false) MovementType type,
       @RequestParam(required = false) MovementStatus status,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
       @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-    return ResponseEntity.ok(ApiResponse.ok(movementService.findAll(type, status, pageable)));
+    PageResponse<MovementResponse> movements =
+        from == null && to == null
+            ? movementService.findAll(type, status, pageable)
+            : movementService.findAll(type, status, from, to, pageable);
+    return ResponseEntity.ok(ApiResponse.ok(movements));
   }
 
   @GetMapping("/{id}")

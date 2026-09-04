@@ -422,7 +422,7 @@ export default function OpportunitiesClient({ data, accounts, stages, names }: P
   const exportExcel = () => {
     startTransition(async () => {
       try {
-        await runCsvExport(exportAllOpportunities, {
+        await runCsvExport(() => exportAllOpportunities(applied), {
           filename: `영업기회_${new Date().toISOString().slice(0, 10)}`,
           columns: exportColumns,
           matches: matchesFilter,

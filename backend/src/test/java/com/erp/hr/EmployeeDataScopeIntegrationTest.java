@@ -108,6 +108,13 @@ class EmployeeDataScopeIntegrationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void missingProfile_defaultsToSelf_notAllEmployees() {
+    authenticate("user-a", "hr:employee:read", "hr:leave:read");
+
+    assertThat(findAllEmpNos()).containsExactly("EMP-A");
+  }
+
+  @Test
   void allScope_returnsEveryone() {
     authenticate("user-a", "ALL", null);
 

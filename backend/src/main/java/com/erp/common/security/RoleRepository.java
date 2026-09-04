@@ -20,7 +20,11 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
   Optional<Role> findByTenantIdAndId(Long tenantId, Long id);
 
-  Optional<Role> findByTenantIdAndCode(Long tenantId, String code);
+  @Query(
+      "SELECT DISTINCT r FROM Role r LEFT JOIN FETCH r.permissions "
+          + "WHERE r.tenantId = :tenantId AND r.code = :code")
+  Optional<Role> findByTenantIdAndCode(
+      @Param("tenantId") Long tenantId, @Param("code") String code);
 
   boolean existsByTenantIdAndCode(Long tenantId, String code);
 }

@@ -54,7 +54,10 @@ public class BaseCurrencyService {
 
   public BaseCurrencyResponse getBaseCurrency() {
     permissionChecker.require(Permission.FINANCE_READ);
-    return BaseCurrencyResponse.of(currentBaseCurrencyCode());
+    return repository
+        .findFirstByOrderByIdAsc()
+        .map(e -> BaseCurrencyResponse.of(e.getBaseCurrency(), e.getVersion()))
+        .orElseGet(() -> BaseCurrencyResponse.of(TenantBaseCurrency.DEFAULT_BASE_CURRENCY, null));
   }
 
   /** 환산 등 내부 사용을 위한 현재 테넌트 기준통화 코드(미설정 시 KRW). 권한 검사 없음. */
@@ -77,11 +80,16 @@ public class BaseCurrencyService {
             .findFirstByOrderByIdAsc()
             .map(
                 existing -> {
+                  existing.checkVersion(request.version());
                   existing.changeBaseCurrency(request.baseCurrency());
                   return existing;
                 })
-            .orElseGet(() -> repository.save(TenantBaseCurrency.of(request.baseCurrency())));
-    return BaseCurrencyResponse.of(entity.getBaseCurrency());
+            .orElseGet(
+                () ->
+                    createSetting(
+                        request.version(), TenantBaseCurrency.of(request.baseCurrency())));
+    repository.flush();
+    return BaseCurrencyResponse.of(entity.getBaseCurrency(), entity.getVersion());
   }
 
   /** 환차손익 계정 설정 조회(FINANCE_READ). 미설정 항목은 null. */
@@ -93,8 +101,9 @@ public class BaseCurrencyService {
             e ->
                 FxGainLossAccountResponse.of(
                     e.getFxGainAccount() != null ? e.getFxGainAccount().getId() : null,
-                    e.getFxLossAccount() != null ? e.getFxLossAccount().getId() : null))
-        .orElseGet(() -> FxGainLossAccountResponse.of(null, null));
+                    e.getFxLossAccount() != null ? e.getFxLossAccount().getId() : null,
+                    e.getVersion()))
+        .orElseGet(() -> FxGainLossAccountResponse.of(null, null, null));
   }
 
   /**
@@ -108,12 +117,13 @@ public class BaseCurrencyService {
     Account gain = resolveAccount(request.fxGainAccountId());
     Account loss = resolveAccount(request.fxLossAccountId());
     TenantBaseCurrency entity =
-        repository
-            .findFirstByOrderByIdAsc()
-            .orElseGet(() -> repository.save(TenantBaseCurrency.of(currentBaseCurrencyCode())));
+        settingForUpdate(request.version(), TenantBaseCurrency.of(currentBaseCurrencyCode()));
     entity.assignFxAccounts(gain, loss);
+    repository.flush();
     return FxGainLossAccountResponse.of(
-        gain != null ? gain.getId() : null, loss != null ? loss.getId() : null);
+        gain != null ? gain.getId() : null,
+        loss != null ? loss.getId() : null,
+        entity.getVersion());
   }
 
   /**
@@ -141,8 +151,9 @@ public class BaseCurrencyService {
                     e.getVatReceivableAccount() != null
                         ? e.getVatReceivableAccount().getId()
                         : null,
-                    e.getVatPayableAccount() != null ? e.getVatPayableAccount().getId() : null))
-        .orElseGet(() -> VatAccountResponse.of(null, null));
+                    e.getVatPayableAccount() != null ? e.getVatPayableAccount().getId() : null,
+                    e.getVersion()))
+        .orElseGet(() -> VatAccountResponse.of(null, null, null));
   }
 
   /**
@@ -155,12 +166,13 @@ public class BaseCurrencyService {
     Account receivable = resolveAccount(request.vatReceivableAccountId());
     Account payable = resolveAccount(request.vatPayableAccountId());
     TenantBaseCurrency entity =
-        repository
-            .findFirstByOrderByIdAsc()
-            .orElseGet(() -> repository.save(TenantBaseCurrency.of(currentBaseCurrencyCode())));
+        settingForUpdate(request.version(), TenantBaseCurrency.of(currentBaseCurrencyCode()));
     entity.assignVatAccounts(receivable, payable);
+    repository.flush();
     return VatAccountResponse.of(
-        receivable != null ? receivable.getId() : null, payable != null ? payable.getId() : null);
+        receivable != null ? receivable.getId() : null,
+        payable != null ? payable.getId() : null,
+        entity.getVersion());
   }
 
   /** 부가세 분개용 통제계정 — 대급금·예수금 각각 nullable(내부, 권한 검사 없음). 전기 자동분개에서 호출. */
@@ -189,8 +201,9 @@ public class BaseCurrencyService {
                     accountId(e.getDepreciationExpenseAccount()),
                     accountId(e.getAccumulatedDepreciationAccount()),
                     accountId(e.getDisposalGainAccount()),
-                    accountId(e.getDisposalLossAccount())))
-        .orElseGet(() -> DepreciationAccountResponse.of(null, null, null, null));
+                    accountId(e.getDisposalLossAccount()),
+                    e.getVersion()))
+        .orElseGet(() -> DepreciationAccountResponse.of(null, null, null, null, null));
   }
 
   /** 감가상각·처분 계정 설정 변경(FINANCE_SETTING_WRITE). 행이 없으면 현재 기준통화로 생성 후 계정만 채운다. */
@@ -203,12 +216,15 @@ public class BaseCurrencyService {
     Account gain = resolveAccount(request.disposalGainAccountId());
     Account loss = resolveAccount(request.disposalLossAccountId());
     TenantBaseCurrency entity =
-        repository
-            .findFirstByOrderByIdAsc()
-            .orElseGet(() -> repository.save(TenantBaseCurrency.of(currentBaseCurrencyCode())));
+        settingForUpdate(request.version(), TenantBaseCurrency.of(currentBaseCurrencyCode()));
     entity.assignDepreciationAccounts(expense, accumulated, gain, loss);
+    repository.flush();
     return DepreciationAccountResponse.of(
-        accountId(expense), accountId(accumulated), accountId(gain), accountId(loss));
+        accountId(expense),
+        accountId(accumulated),
+        accountId(gain),
+        accountId(loss),
+        entity.getVersion());
   }
 
   /** 감가상각·처분 분개용 계정(내부, 권한 검사 없음). 상각/처분 자동분개에서 호출. */
@@ -239,8 +255,9 @@ public class BaseCurrencyService {
                 ImpairmentAccountResponse.of(
                     accountId(e.getImpairmentLossAccount()),
                     accountId(e.getAccumulatedImpairmentAccount()),
-                    accountId(e.getImpairmentReversalAccount())))
-        .orElseGet(() -> ImpairmentAccountResponse.of(null, null, null));
+                    accountId(e.getImpairmentReversalAccount()),
+                    e.getVersion()))
+        .orElseGet(() -> ImpairmentAccountResponse.of(null, null, null, null));
   }
 
   /** 손상차손 계정 설정 변경(FINANCE_SETTING_WRITE). 행이 없으면 현재 기준통화로 생성 후 계정만 채운다. */
@@ -252,12 +269,11 @@ public class BaseCurrencyService {
     Account accumulated = resolveAccount(request.accumulatedImpairmentAccountId());
     Account reversal = resolveAccount(request.impairmentReversalAccountId());
     TenantBaseCurrency entity =
-        repository
-            .findFirstByOrderByIdAsc()
-            .orElseGet(() -> repository.save(TenantBaseCurrency.of(currentBaseCurrencyCode())));
+        settingForUpdate(request.version(), TenantBaseCurrency.of(currentBaseCurrencyCode()));
     entity.assignImpairmentAccounts(loss, accumulated, reversal);
+    repository.flush();
     return ImpairmentAccountResponse.of(
-        accountId(loss), accountId(accumulated), accountId(reversal));
+        accountId(loss), accountId(accumulated), accountId(reversal), entity.getVersion());
   }
 
   /** 손상차손 분개용 계정(내부, 권한 검사 없음). 손상 자동분개에서 호출. */
@@ -275,6 +291,25 @@ public class BaseCurrencyService {
 
   private static Long accountId(Account a) {
     return a != null ? a.getId() : null;
+  }
+
+  private TenantBaseCurrency settingForUpdate(Long expectedVersion, TenantBaseCurrency newSetting) {
+    return repository
+        .findFirstByOrderByIdAsc()
+        .map(
+            existing -> {
+              existing.checkVersion(expectedVersion);
+              return existing;
+            })
+        .orElseGet(() -> createSetting(expectedVersion, newSetting));
+  }
+
+  private TenantBaseCurrency createSetting(Long expectedVersion, TenantBaseCurrency newSetting) {
+    if (expectedVersion != null) {
+      throw new org.springframework.orm.ObjectOptimisticLockingFailureException(
+          TenantBaseCurrency.class.getSimpleName(), null);
+    }
+    return repository.save(newSetting);
   }
 
   private Account resolveAccount(Long accountId) {
