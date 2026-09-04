@@ -21,6 +21,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --chown=node:node --from=build /app/.next/standalone ./
 COPY --chown=node:node --from=build /app/.next/static ./.next/static
 COPY --chown=node:node --from=build /app/public ./public
+RUN rm -rf node_modules/sharp node_modules/@img/sharp-* \
+    && test ! -e node_modules/sharp \
+    && ! find node_modules/@img -maxdepth 1 -name 'sharp-*' -print -quit | grep -q .
 
 EXPOSE 3000
 ENV PORT=3000

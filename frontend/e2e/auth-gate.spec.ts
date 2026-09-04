@@ -32,6 +32,13 @@ test.describe('인증 게이트', () => {
     expect(headers['content-security-policy']).not.toContain("script-src 'self' 'unsafe-inline'")
     expect(headers['content-security-policy']).not.toContain('https:')
   })
+
+  test('Next 이미지 최적화 엔드포인트를 노출하지 않는다', async ({ request }) => {
+    const response = await request.get('/_next/image?url=%2Ffavicon.ico&w=64&q=75')
+
+    expect(response.status()).toBe(404)
+  })
+
   // 4개 모듈 + 공통 화면의 대표 보호 라우트. (dashboard) 그룹 전체가 레이아웃에서
   // 게이트되므로 모듈별로 골고루 표본을 둔다.
   const protectedRoutes = [
