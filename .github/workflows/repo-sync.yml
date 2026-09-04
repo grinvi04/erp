@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           repository: grinvi04/team-harness   # CUSTOMIZE: 사내 호스팅 이전 시 교체
-          ref: ccd0ed805389b8e044bd721313a38a0cc5de8d61 # v0.55.3
+          ref: 8e3483a5b281b353a3189464a57c1c3b57904624 # v0.67.0
           path: .team-harness
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
