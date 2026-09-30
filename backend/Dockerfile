@@ -1,5 +1,5 @@
 # ── 빌드 스테이지 ─────────────────────────────────────────────────────
-FROM amazoncorretto:21-al2023-jdk@sha256:eaa4fce2c7729b2961a9ced07550b634e531e595a88784df2ebb7604581c2ca5 AS build
+FROM amazoncorretto:24-al2023-jdk@sha256:4392325b718f643e2350800f9b1cbfcb6701d4cee11dd55c57acc01051f2c5b7 AS build
 WORKDIR /app
 RUN dnf install -y findutils && dnf clean all
 
@@ -11,7 +11,7 @@ COPY src ./src
 RUN ./gradlew bootJar --no-daemon -q
 
 # ── 런타임 스테이지 ───────────────────────────────────────────────────
-FROM amazoncorretto:21-al2023-headless@sha256:9dc479b7cedfe1465f1a38189aaa549c829cd9a013f4fc60dc535491001189e4 AS run
+FROM amazoncorretto:24-al2023-headless@sha256:b701d42c766b6c52e89d4228e460beebc05ce8eeddc2196a7447da1e5b5c0ad1 AS run
 WORKDIR /app
 
 COPY --from=build /app/build/libs/*.jar app.jar
