@@ -40,7 +40,7 @@
 - [ ] 초대 메일 수신, 이메일 확인, 비밀번호 설정과 첫 로그인이 성공했다.
 - [ ] 사용 중지 직후 Keycloak 로그인이 차단되고 ERP 역할이 모두 회수됐다.
 - [ ] 실패한 초대를 재초대해 동일 사용자 레코드와 테넌트로 복구했다.
-- [ ] 릴리즈 후보로 `verify-user-onboarding.sh`를 실행해 ACTIVE·메일 수신·테넌트 표식·감사 이전/이후 값·중지·역할 회수와 교차 테넌트 재사용 거부를 통과했다(운영 SMTP에는 합성 주소로 별도 스테이징 검증).
+- [ ] 릴리즈 후보로 `verify-user-onboarding.sh`를 **전용 격리 PostgreSQL·Keycloak·Mailpit·백엔드**에서만 실행해 ACTIVE·메일 수신·테넌트 표식·감사 이전/이후 값·중지·역할 회수와 교차 테넌트 재사용 거부를 통과했다. 세 URL override는 HTTP loopback origin만 허용한다. 스크립트가 기존 합성 identity를 삭제·재생성할 수 있으므로 기존 DB/identity에 연결하지 않는다(운영 SMTP에는 합성 주소로 별도 스테이징 검증).
 - [ ] 테넌트 전용 프로비저닝 운영자에게만 `SUPER_ADMIN`이 부여됐고 접근·사용 사유를 감사 기록으로 남길 수 있다.
 - [ ] 고객 역할을 생성해 필요한 Finance·Inventory·CRM 권한만 부여하고 `iam:write`는 제외했다.
 - [ ] 모든 고객 사용자에게서 `SUPER_ADMIN`, `hr:*`, `iam:write`가 제거됐음을 별도 계정으로 재확인했다.

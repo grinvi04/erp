@@ -96,3 +96,35 @@
 
 - 태스크 1은 독립 커밋으로 되돌릴 수 있다. 태스크 2 이후에는 forward-only DB 마이그레이션과 후속 코드가 의존하므로 단독 revert 대신 fix-forward한다.
 - 런타임 Keycloak 사용자 관리 설정은 환경변수 미설정 시 안전하게 기능을 비활성화하고 기존 운영자 보조 절차를 유지한다. 이 상태에서 고객에게 `iam:delegate` 역할을 배정하지 않는다.
+
+## 9. 2026-10-07 Harness QA 계약 보강 (로컬 fix 브랜치)
+
+대상은 `origin/develop`의 `d10a916`에서 만든 `/tmp/harness-consumers-20261007/erp`의 `fix/harness-qa-contract`이다. 기존 `feature/tenant-user-onboarding` 체크아웃과 미추적 `.codex/`는 보존한다. 이 변경은 AC-13의 안전한 진입과 검증 증거를 보강한다. 기존 온보딩 구현·수용기준·진행 상태를 완료로 다시 판정하지 않으며, 실 Keycloak UAT는 전용 격리 DB/identity에서만 실행한다.
+
+| 요구·위험 / 선정 이유 | 조건·행동 / 환경 | 기대 결과·관찰 경계 | 필수 | 증거·판정 |
+|---|---|---|---|---|
+| AC-13 / URL override가 원격 인증·데이터 변경으로 이어질 수 있음 | backend·Keycloak·Mailpit 중 하나에 외부 URL, URL 자격증명, 경로·query 등 잘못된 origin 입력. 합성 `.env.local`과 curl stub | 첫 인증·네트워크 호출 이전 종료 코드 2. curl 호출 0, 자격증명 전송 0, 변경 요청 0 | 필수 | `bash scripts/verify-user-onboarding-test.sh` |
+| AC-13 / 로컬 설정 파일이 사전 검사 뒤 URL을 재정의할 수 있음 | 합성 `.env.local`에 외부 `BACKEND_URL` | source 후 재검사에서 종료 코드 2, curl 호출 0 | 필수 | 같은 stub 검사 |
+| AC-13 / 허용 경로 유지 | backend `127.0.0.1:18180`, Keycloak `[::1]:18180` | URL 검사를 통과해 첫 헬스체크까지 도달. stub의 의도된 종료 코드 69, 호출 1 | 필수 | 같은 stub 검사. 실제 서비스 동작 증거는 아님 |
+| AC-1~13 / 제품 유지 | CI와 같은 Java 21 백엔드 `./gradlew check`, 프런트 타입·포맷·린트·디자인·단위·빌드·Chromium e2e | 각 명령 exit 0. DB가 필요한 검사는 전용 격리 DB에서 수행 | 필수 | 아래 실행 결과에 후보·환경·명령별 기록 |
+| AC-13 / 실 Keycloak 상태 | 전용 격리 PostgreSQL·Keycloak·Mailpit·백엔드, 합성 사용자 | 초대·재초대·비활성화·교차 테넌트 거부의 실제 저장/identity readback | 필수 | 격리 환경을 준비한 경우에만 실행, 미실행은 UNVERIFIED |
+
+문서·CI 범위: 기존 `commitlint.yml` 검사와 validator를 보존하고 신뢰된 기본 브랜치 코드로 PR metadata를 검사하는 `commitlint-trusted.yml`을 추가한다. `repo-sync`는 v0.67.0 pin에서 v0.81.0의 공식 태그 SHA로 올리되 검사기 변경 여부를 비교한다. 이 둘은 로컬 구문·구성 확인과 원격 CI 실행을 구분한다. PR·머지·배포 및 GitHub 정책 변경은 이 로컬 작업에 포함되지 않는다.
+
+### 실행 증거와 상태
+
+후보는 `d10a916` 위의 이 로컬 diff, 호스트 Java 21.0.11·Node 22.18.0·Docker Compose 2.39.2다. 아래 명령은 별도 언급이 없으면 `/tmp/harness-consumers-20261007/erp`에서 실행했다. 인증정보·토큰은 결과에 남기지 않았고, 실스택 출력 원본은 제한된 권한의 `/tmp/harness-consumers-20261007/erp-uat-*.log`에만 캡처했다.
+
+| 주장 / 관찰 경계 | 실제 명령·환경 | 최초 결과 → 최종 결과 / 판정 |
+|---|---|---|
+| UAT 진입 거부와 허용 | `bash scripts/verify-user-onboarding-test.sh`; 합성 `.env.local`, curl stub | 수정 전 remote backend 사례 exit 1: 기대 exit 2/curl 0, 실제 exit 69/curl 1 (**RED**). 수정 후 외부 backend·Keycloak·Mailpit, userinfo·host suffix·옵션 문자열·경로·query·source 재정의 모두 exit 2/curl 0; loopback 두 사례 exit 69/curl 1 (**PASS**). 실제 서비스 변경은 stub에서 일어나지 않음. |
+| backend 품질 | `cd backend && SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:55442/erp SPRING_PROFILES_ACTIVE=test ./gradlew check` (전용 시험 DB, 합성 DB 계정 환경변수) | exit 0, `BUILD SUCCESSFUL` (**PASS**). 실 Keycloak 인증·UAT를 대신하지 않음. |
+| frontend 품질 | `cd frontend && npm ci --ignore-scripts`, `npm run type-check`, `npm run format:check`, `npm run lint`, `npm run lint:design`, `npm run test`, `npm run build`, `npx playwright install chromium`, `CI=true npm run test:e2e` | 수정된 lockfile 후보에서 각 exit 0; unit 60건, Chromium auth-gate 38건 (**PASS**). e2e 중 백엔드 미기동으로 발생한 fetch 거부 로그가 있어 업무 API e2e로 해석하지 않음. |
+| 컨테이너 빌드 | `docker build --tag erp-backend:harness-qa .` (backend), `docker build --tag erp-frontend:harness-qa .` (frontend), `docker image inspect` | backend exit 0/user `10001:10001`. frontend 최초 exit 1: npm 11 증분 lockfile에 선택적 `@emnapi/*` 누락, 컨테이너 npm 10 `EUSAGE`; `npx --yes npm@10.9.8 install --package-lock-only --ignore-scripts --no-audit --no-fund` 뒤 재빌드 exit 0/user `node` (**PASS**). |
+| 의존성 보안 | `cd frontend && npm audit --json`; 공식 GitHub advisory의 Next.js 수정 버전 확인 | 최초 21건(critical 2 포함). 비강제 `npm audit fix`와 Next.js·eslint-config-next `16.3.6` 갱신 뒤 9건 high/critical 0. 남은 9건은 패치 버전이 없는 `braces` 전이 경로라 **미해결**; 강제 major 교체는 하지 않음. |
+| 표준·문서 구성 | `node .../team-harness/scripts/check-repo-sync.mjs --repo . --harness .../team-harness`, workflow YAML parse, `bash -n` (두 UAT 스크립트), `git diff --check` | repo-sync 21/21 OK, YAML·구문·diff exit 0 (**PASS**). v0.81.0 태그가 `9838c2ef288b4566f81fae03acb56530ee165c06`이며 v0.67.0 대비 검사기 내용 변경 없음. 원격 workflow 실행은 **UNVERIFIED**. |
+| 실 Keycloak 초대·재초대·거부 | 전용 `erp-harness-qa` Compose, PostgreSQL `erp_uat`·Keycloak·Mailpit, backend `127.0.0.1:18080`; `E2E_COMMERCIAL=1 E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED BACKEND_URL=http://127.0.0.1:18080 KEYCLOAK_URL=http://127.0.0.1:18180 MAILPIT_URL=http://127.0.0.1:18025 bash scripts/verify-user-onboarding.sh`를 합성 이메일로 2회 | 첫 신규 초대·두 번째 재초대 각각 exit 0. Keycloak 사용자 수 1, ID 동일, 최종 disabled를 별도 readback으로 단언 (**PASS**, 이 격리 후보에 한정). Mailpit·감사·역할 회수·교차 테넌트 409/C008은 스크립트의 단언으로 확인. |
+
+실스택 최초 환경 실패도 보존한다. 새 Keycloak master realm은 호스트 HTTP 토큰 요청을 `403 HTTPS required`로 거부해 **그 시험 컨테이너 안에서만** SSL 요구를 변경했다. 첫 `provisionTenant`는 전용 Keycloak URL 미설정으로 `ConnectException`, 재시도는 선행 백엔드 검사 DB의 tenant ID 충돌, 새 `erp_uat` DB에서 `ERP_PROVISION_RETRY=true`는 미존재 tenant 오류였다. 새 DB의 최초 생성 모드로 바꾼 뒤 provisioning exit 0이었다. 최초 UAT 두 실행은 Compose 포트가 `0.0.0.0/[::]`에 publish된 상태에서 통과했으나 노출 경계가 틀려 최종 증거로 사용하지 않았다. 해당 새 컨테이너만 중지하고 포트를 모두 `127.0.0.1`로 재생성했다. `docker inspect`의 네 publish `HostIp=127.0.0.1`, 백엔드 listener `127.0.0.1:18080` 확인 후 새 합성 이메일로 신규 초대·재초대 두 실행과 동일 ID readback을 다시 통과했다. 기존 프로젝트 DB·identity와 원본 checkout은 변경하지 않았다.
+
+판정: 스크립트의 URL 차단, 로컬 품질 명령 및 격리 실 Keycloak의 이 시나리오는 **PASS**. 시험 뒤 백엔드와 전용 Docker 세 컨테이너를 중지했고 전용 볼륨은 보존했다. 남은 npm high 9건과 원격 CI/PR gate는 **미해결·UNVERIFIED**이며, 로컬 구현을 병합·릴리즈·배포 완료로 표시하지 않는다.
