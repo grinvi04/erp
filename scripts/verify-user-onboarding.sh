@@ -21,6 +21,22 @@ if [[ ${E2E_COMMERCIAL_MUTATION:-} != "LOCAL_MUTATION_ACCEPTED" ]]; then
   echo "E2E_COMMERCIAL_MUTATION=LOCAL_MUTATION_ACCEPTED 확인값이 필요합니다." >&2
   exit 2
 fi
+
+require_local_endpoints() {
+  python3 - "$BACKEND_URL" "$KEYCLOAK_URL" "$MAILPIT_URL" <<'PY'
+import re
+import sys
+
+for name, url in zip(("BACKEND_URL", "KEYCLOAK_URL", "MAILPIT_URL"), sys.argv[1:]):
+    match = re.fullmatch(r"http://(?:localhost|127\.0\.0\.1|\[::1\])(?::([0-9]{1,5}))?", url)
+    if match is None or (match.group(1) is not None and not 1 <= int(match.group(1)) <= 65535):
+        print(f"{name}: HTTP loopback origin만 허용합니다.", file=sys.stderr)
+        sys.exit(2)
+PY
+}
+
+# 첫 인증·네트워크 호출과 fixture 변경 전에 모든 목적지를 검사한다.
+require_local_endpoints
 if [[ ! -f "$ROOT_DIR/frontend/.env.local" ]]; then
   echo "frontend/.env.local이 필요합니다." >&2
   exit 2
@@ -30,6 +46,12 @@ set -a
 # shellcheck disable=SC1091
 source "$ROOT_DIR/frontend/.env.local"
 set +a
+# 로컬 설정 파일에서 URL을 다시 정의한 경우도 차단한다.
+require_local_endpoints
+
+curl() {
+  command curl -q --noproxy '*' "$@"
+}
 
 compose_environment() {
   local key=$1

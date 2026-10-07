@@ -12,14 +12,16 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "patch:dependencies": "node scripts/apply-braces-depth.mjs",
+    "test:dependency-security": "node scripts/apply-braces-depth.mjs --check && node --test scripts/test-braces-*.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.21.0",
-    "next": "16.3.4",
+    "next": "16.3.6",
     "next-auth": "^5.0.0-beta.32",
     "next-themes": "^0.4.6",
     "react": "19.2.4",
@@ -39,7 +41,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.4",
+    "eslint-config-next": "16.3.6",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.0",
     "tailwindcss": "^4",

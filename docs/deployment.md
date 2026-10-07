@@ -196,3 +196,8 @@ curl -sf https://<vercel-domain>/api/auth/session      # 프론트(미로그인 
 
 - 모든 시크릿(DB 비번·Keycloak 시크릿·AUTH_SECRET)은 **각 플랫폼 Variables/Environment** 에만 둔다. **repo·`.env` 커밋 금지**(secret-scan CI가 차단).
 - 프로비저닝 서비스 계정 시크릿은 테넌트 생성 작업에만 단기 주입하고 정기적으로 회전한다.
+
+
+### 프런트 의존성 보완의 설치 조건
+
+공식 수정판이 없는 braces@3.0.3에는 로컬 깊이 제한 보완이 필요하다. 신규 설치는 `npm ci --ignore-scripts && npm run patch:dependencies && npm run test:dependency-security`를 실행한다. dependency lifecycle 차단을 해제하지 않으며, 버전·원본 또는 보완 바이트가 바뀌면 검사를 실패시켜 재검토한다. CI의 두 설치와 Docker deps 단계는 명시 보완을 연결한다. Vercel 실제 설치 설정·원격 전달은 사용자 보류 때문에 아직 변경/검증하지 않았으며 향후 승인 시 같은 명령을 적용·확인해야 한다. 기본 npm 설치만으로 보완됐다고 간주하지 않는다. 깊이 100을 넘는 정상 패턴도 거부하며 전체 npm 감사 경고는 남는다. 공식 수정판의 소비 호환성과 동일 회귀를 확인한 뒤 보완을 제거한다.

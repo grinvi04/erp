@@ -124,7 +124,8 @@ ERP_KEYCLOAK_USER_ADMIN_REDIRECT_URI=http://localhost:3000/login \
 #    헬스: curl -sf http://localhost:8080/actuator/health   # {"status":"UP"}
 
 # 5) 프론트엔드
-cd ../frontend && npm install
+cd ../frontend && npm ci --ignore-scripts
+npm run patch:dependencies && npm run test:dependency-security
 cat > .env.local <<'EOF'
 AUTH_SECRET=<openssl rand -base64 32 로 생성>
 AUTH_URL=http://localhost:3000
