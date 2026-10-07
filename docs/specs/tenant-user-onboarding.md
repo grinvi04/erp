@@ -142,3 +142,11 @@
 | 의존성 보안·원격 gate | `npm audit --json` exit 1: high 9, critical 0 (**미해결**). 원격 commitlint/repo-sync/CI, PR·병합·릴리즈·운영 배포는 **UNVERIFIED** | npm high는 이 후보에서 패치가 없는 `braces` 전이 경로; 로컬 검사 성공을 원격 gate 성공으로 확대하지 않음. |
 
 첫 `curlrc` 실패와 수정 뒤의 명령·원문 로그를 구분해 보존한다. 품질 검사와 실스택 재시험은 이 보완 후보에서 다시 실행했다. 합성 자격증명 값은 로그·커밋·문서에 두지 않았으며, 원문 로그와 소스 지문을 대조한 범위에서만 PASS를 주장한다. 전용 fixture는 종료 후 DB 볼륨만 남겼다.
+
+### Java 21 실제 시험 실행 보강
+
+독립 검토에서 위 `./gradlew check` 원문은 `:test UP-TO-DATE`였으므로 당시 Java 시험 **실행** 증거로 사용하지 않는다. 변경하지 않은 동일 backend 소스에서 `./gradlew check --rerun-tasks`를 실제로 실행했다. 첫 시도는 이전 격리 UAT와 시험이 남긴 전용 `erp` DB에서 957개 중 2개 실패했다. 당시 JUnit XML에서 감사 날짜 조회가 기존 기록까지 20개를 읽었고 `(tenant_id=1, SUPER_ADMIN)` 역할이 이미 존재해 삽입 충돌이 난 것을 확인했다. 첫 실패 원문 로그는 보존했지만 당시 XML은 Gradle의 다음 실행으로 덮였으므로 별도 원본으로 주장하지 않는다. 이 실패는 PASS로 재분류하지 않는다.
+
+새 전용 PostgreSQL DB `erp_qa_check_v2_20261007`을 같은 loopback fixture에 생성해 재실행했다. `cd /tmp/harness-consumers-20261007/erp/backend && SPRING_PROFILES_ACTIVE=test SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:55442/erp_qa_check_v2_20261007 ./gradlew check --rerun-tasks`는 `:test`가 실제 실행되고 exit 0/`BUILD SUCCESSFUL`이었다. JUnit XML 172개를 직접 집계한 결과는 957 tests, failures 0, errors 0, skipped 0이다. 재시험 전 PostgreSQL publish의 `HostIp=127.0.0.1`을 확인하고 시험 후 중지·리스너 없음도 확인했다. 소스·시험 코드는 이 재시험 때문에 수정하지 않았다.
+
+첫 실패, 새 DB 생성, 최종 원문, XML 집계·압축 원본, 중지 검증의 명령·cwd·종료 코드·파일 SHA-256은 `/tmp/harness-consumers-20261007/erp-qa-v2/manifest.json`에 이어 기록한다. XML 원본 묶음은 `/tmp/harness-consumers-20261007/erp-qa-v2/backend-test-xml.tar.gz`이다. 이 로컬 통과도 원격 CI·PR gate의 **UNVERIFIED** 상태를 바꾸지 않는다.
