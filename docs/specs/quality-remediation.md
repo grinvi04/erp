@@ -1,5 +1,7 @@
 # quality-remediation 스펙 — 상용 제품 품질 리메디에이션 로드맵
 
+> 0~6절은 2026-06 감사와 당시 리메디에이션 계획이다. 현재 QA 계약의 develop 병합 결과와 남은 출시 경계는 7절을 따른다. 상용 파일럿의 수용 기준은 [commercial-readiness](commercial-readiness.md)에 있다.
+
 ## 0. Context / Why
 
 erp는 수백 기업(테넌트)이 돈 주고 쓰는 **상용 SaaS ERP**다. 2026-06-28 실 스택(도커 재기동 → 백엔드 클린 부트 → 실 Keycloak 인증)으로 **실 CRUD·전 화면 상호작용·용어를 직접 감사**한 결과, 렌더링 스모크 테스트로는 안 보이던 **"돈 주고 살 수 없는" 결함**이 다수 발견됐다.
@@ -122,3 +124,9 @@ erp는 수백 기업(테넌트)이 돈 주고 쓰는 **상용 SaaS ERP**다. 202
 - [ ] **사용자 이름 해소(T2-2)** 출처: Keycloak Admin API 조회 vs 로컬 user 미러 테이블(성능·오프라인).
 - [ ] **FX 500(T0-5)** 근본원인(환율 0 vs 코드 버그) 별도 확인 후 환산 정책 확정.
 - [ ] enum 라벨 변경 시 **DB 코드값 불변**(라벨 매핑만 교체, 마이그레이션 불필요) 확인.
+
+## 7. QA 계약 develop 병합 후 현행 판정 (2026-10-08)
+
+- [PR #255](https://github.com/grinvi04/erp/pull/255)의 최종 head `7a13802ce712edb93240933bcd7841b629b42574`에서 develop 보호에 필요한 8개 검사(`backend`, `frontend`, `secret-scan`, `test-guard`, `commitlint`, `migration-safety`, `e2e`, `repo-sync`)가 모두 PASS였다. PR은 [병합 커밋 `9acfb7600c2f2e3abfaf6886211a6fd20e0fe4cc`](https://github.com/grinvi04/erp/commit/9acfb7600c2f2e3abfaf6886211a6fd20e0fe4cc)으로 develop에 반영됐다. main/default의 trusted 검사 전환과 운영 릴리즈는 별도 단계이며 기존 보호 게이트를 유지한다.
+- 로컬 보안·프론트 범위는 고정 코드 후보 `18b18a0633c332407a0679807664af2d9d2da4fb`의 입력을 최종 PR head까지 대조해 재사용했다. 깊은 `braces` 패턴 거부 시험 11건, 프론트 단위 60건, 합성 세션·백엔드 부재 브라우저 38건과 Docker 설치·빌드는 기록된 범위에서 PASS였다. 독립 읽기 전용 검토는 해당 후보에서 추가 P1/P2를 발견하지 못했다. 명령·실패·소스 지문은 [로컬 QA 증거](erp-braces-local-evidence.json)와 `$HOME/Documents/Codex/2026-10-07/erp-braces-local-adoption/`에 보존했다.
+- 전체 의존성 감사 high 9건·운영 의존성 감사 high 7건은 **FAIL**이다. 공식 `braces` 수정판은 확인되지 않았고 확인된 최신 3.0.3도 해당 advisory 범위에 포함돼 로컬 패치를 유지한다. GitHub deployment·외부 commit status·Vercel PR 댓글은 최종 PR head에서 0건이었고, Vercel CLI 인증이 없어 preview URL·실화면은 **UNVERIFIED**다. 실 Keycloak·업무 API의 원격 UAT, 운영 환경·백업·복구·출시 게이트도 미완료다. 다음 단계는 별도 승인된 환경에서 preview·실스택 UAT·감사 잔여 위험을 판정하고 [릴리즈 준비 체크리스트](../release-readiness.md)의 미완료 항목을 유지하는 것이다. develop 병합은 상용 출시 승인이 아니다.
