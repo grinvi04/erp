@@ -150,3 +150,13 @@
 새 전용 PostgreSQL DB `erp_qa_check_v2_20261007`을 같은 loopback fixture에 생성해 재실행했다. `cd /tmp/harness-consumers-20261007/erp/backend && SPRING_PROFILES_ACTIVE=test SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:55442/erp_qa_check_v2_20261007 ./gradlew check --rerun-tasks`는 `:test`가 실제 실행되고 exit 0/`BUILD SUCCESSFUL`이었다. JUnit XML 172개를 직접 집계한 결과는 957 tests, failures 0, errors 0, skipped 0이다. 재시험 전 PostgreSQL publish의 `HostIp=127.0.0.1`을 확인하고 시험 후 중지·리스너 없음도 확인했다. 소스·시험 코드는 이 재시험 때문에 수정하지 않았다.
 
 첫 실패, 새 DB 생성, 최종 원문, XML 집계·압축 원본, 중지 검증의 명령·cwd·종료 코드·파일 SHA-256은 `/tmp/harness-consumers-20261007/erp-qa-v2/manifest.json`에 이어 기록한다. XML 원본 묶음은 `/tmp/harness-consumers-20261007/erp-qa-v2/backend-test-xml.tar.gz`이다. 이 로컬 통과도 원격 CI·PR gate의 **UNVERIFIED** 상태를 바꾸지 않는다.
+
+### 수정판 없는 `braces` 경고의 소비·설치 경계 (읽기 전용 후속 조사)
+
+후속 조사 기준 후보는 `4d4fbf41209c2a0477b111d69c098273c5948bb1`이며 제품 코드·잠금파일·설치물은 변경하지 않았다. frontend의 `eslint-config-next@16.3.6` → `@next/eslint-plugin-next` → `fast-glob` → `micromatch` → `braces@3.0.3` 전이가 [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)에 걸리고, 공식 수정판은 아직 없다. [상류 PR #78](https://github.com/micromatch/braces/pull/78)은 100단계 깊이 제한을 제안하지만 병합·출시되지 않았다. 설치된 `braces`의 6개 원본 소스 지문은 DriveTree에서 대조한 동일 버전과 같다.
+
+격리된 합성 ESLint `settings.next.rootDir`에 2000단계 brace를 전달하면 현재 `getRootDirs` → `fast-glob` → `micromatch` 경로가 `RangeError`로 실패한다. `/tmp`에만 둔 상류 후보를 주입하면 같은 경로는 제한된 `SyntaxError`가 되고 정상 root directory 1개는 유지된다. 현 ERP ESLint 설정에는 `next.rootDir` 재정의가 없고 HTTP·인증 입력이 이 설정에 도달한다는 증거도 없으므로 실제 서비스 악용이나 전체 호환성 검증으로 확대하지 않는다. 원문 명령·종료 코드·후보 지문은 `/tmp/drivetree-residual-20261007/manifest.json`에 보존했다.
+
+이번 후보에는 로컬 패치를 추가하지 않는다. 현재 frontend/e2e CI 및 frontend Dockerfile은 `npm ci --ignore-scripts`를 사용하므로 `postinstall`만 복사하면 실제 검사·이미지에는 적용되지 않는다. 적용을 선택할 때는 기존 스크립트 차단 정책을 유지하고, 각 설치 직후 정확한 버전·원본/패치 SHA 사전 검사, 명시 실행, 깊은 입력 거부·정상 입력·실제 ESLint 소비 회귀, 이미지 안 설치 결과 검사를 연결해야 한다. 100단계 초과 정상 패턴 거부 가능성과 npm audit 메타데이터 경고 지속도 기록해야 한다. 공식 수정판과 호환된 소비 버전이 나오면 로컬 패치 없이 그 경로를 우선 검증한다. 기존 high 9 감사 결과는 여전히 **미해결**이고, 이 문서 전용 조사는 원격 CI·PR·병합·배포의 **UNVERIFIED**를 바꾸지 않는다.
+
+기존 ERP QA 원문 경로는 당시 기록의 cwd를 유지한다. worktree 정리 뒤에도 `/Users/grinvi04/Documents/Codex/2026-10-07/team-harness-consumer-qa-evidence/erp-qa-v2/`에 같은 SHA로 보존하며, 상위 `preservation-manifest.json`의 원본→보존 경로 44건을 대조했다. 로컬 `fix/harness-qa-contract` 커밋은 worktree 삭제와 별개로 Git에 남고, 이 문서 전용 후속 기록을 제품 QA 재실행으로 주장하지 않는다.
