@@ -21,7 +21,8 @@
     "Python stdin encoding failed before writes; explicit encoding used",
     "Exact upstream six-file assertion failed: parse had unrelated quote/comma changes; applied only depth edits and preserved npm behavior",
     "shadcn package.json export absent in test fixture; actual installed package context used",
-    "temporary HTTP oracle incorrectly expected {}; installed Auth.js body:null contract confirmed and expectation corrected"
+    "temporary HTTP oracle incorrectly expected {}; installed Auth.js body:null contract confirmed and expectation corrected",
+    "commit validator first abbreviated range was rejected; full SHA range exit0"
   ],
   "raw": [
     {
@@ -303,6 +304,14 @@
     {
       "file": "visual-runner.mjs",
       "sha256": "bf0022f44af14f0666356559c3977128824ce25722af2c004ad911e3a57437c9"
+    },
+    {
+      "file": "independent-review.json",
+      "sha256": "de13afe09f03045ce413403ec563ed13ea5a2087334a94c69ee0195a5fd39903"
+    },
+    {
+      "file": "commit-message-validation.json",
+      "sha256": "800377dad258972289d179e5a107d4dbd186777252dcc0fc818f04e009145676"
     }
   ],
   "sources": [
@@ -324,7 +333,7 @@
     },
     {
       "path": "docs/specs/tenant-user-onboarding.md",
-      "sha256": "dd500fde858aca02377d8c6840a249818a41901ab75956ab22183315a3e4cc99"
+      "sha256": "15f27d663ab34583ac670e2096b9b56235c05c146235fe98e3f057583e71d8bf"
     },
     {
       "path": "frontend/Dockerfile",
@@ -346,5 +355,23 @@
       "path": "frontend/scripts/test-braces-patch.mjs",
       "sha256": "cefc545906db262f094afb6922da941c504957b1758a7675e707b246a9150b2e"
     }
-  ]
+  ],
+  "review": {
+    "candidate": "18b18a0633c332407a0679807664af2d9d2da4fb",
+    "reviewer": "erp_braces_security_review",
+    "scope": "read-only fixed candidate review",
+    "result": "PASS; no P1/P2 or required local-scope gaps found",
+    "checks": [
+      "raw70/source10 hashes match",
+      "scripts3 unchanged",
+      "actual consumer tests5 PASS",
+      "mixed/unclosed depth counterexamples rejected",
+      "CI/Docker ignore-scripts preserved"
+    ],
+    "limits": [
+      "synthetic sessions/backend absent",
+      "audit fullhigh9/prodhigh7 FAIL",
+      "remote NOT_RUN"
+    ]
+  }
 }
