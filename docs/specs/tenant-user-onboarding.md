@@ -160,3 +160,9 @@
 이번 후보에는 로컬 패치를 추가하지 않는다. 현재 frontend/e2e CI 및 frontend Dockerfile은 `npm ci --ignore-scripts`를 사용하므로 `postinstall`만 복사하면 실제 검사·이미지에는 적용되지 않는다. 적용을 선택할 때는 기존 스크립트 차단 정책을 유지하고, 각 설치 직후 정확한 버전·원본/패치 SHA 사전 검사, 명시 실행, 깊은 입력 거부·정상 입력·실제 ESLint 소비 회귀, 이미지 안 설치 결과 검사를 연결해야 한다. 100단계 초과 정상 패턴 거부 가능성과 npm audit 메타데이터 경고 지속도 기록해야 한다. 공식 수정판과 호환된 소비 버전이 나오면 로컬 패치 없이 그 경로를 우선 검증한다. 기존 high 9 감사 결과는 여전히 **미해결**이고, 이 문서 전용 조사는 원격 CI·PR·병합·배포의 **UNVERIFIED**를 바꾸지 않는다.
 
 기존 ERP QA 원문 경로는 당시 기록의 cwd를 유지한다. worktree 정리 뒤에도 `/Users/grinvi04/Documents/Codex/2026-10-07/team-harness-consumer-qa-evidence/erp-qa-v2/`에 같은 SHA로 보존한다. 이 폴더의 44개 파일에는 당시 manifest 자체도 포함되며, 폴더 밖 최초 실패 `erp-curlrc-red.log`도 상위 증거 폴더에 별도로 보존했다. 각 원본→보존 경로는 `preservation-manifest.json`에서 확인한다. 로컬 `fix/harness-qa-contract` 커밋은 worktree 삭제와 별개로 Git에 남고, 이 문서 전용 후속 기록을 제품 QA 재실행으로 주장하지 않는다.
+
+### 원격 전달 준비 후속 — 2026-10-07
+
+기존 로컬 후보 `03a4bad`는 `codex/evidence-erp-03a4bad`에 보존한다. 미게시 `dc080bd`의 커밋 제목에 필수 `onboarding` scope를 추가한 뒤 앱·시험·설정·문서 전체 파일 트리가 원래 후보와 동일함을 확인했다. 전달 이력 `d72856e`의 현재 validator range는 PASS다. 기존 Java 957개 및 프런트 60/38개 검증은 동일 제품 입력의 원문 증거를 재사용하며 이번 메시지 수정에서 다시 실행한 것으로 표시하지 않는다.
+
+사용자가 Vercel 관련 원격 작업 보류를 재확인했다. ERP 문서에는 Vercel PR 미리보기 연결 가능성이 남고 현재 제공자 연결을 확인하지 못해, 원격 push·PR·CI·병합은 계속 UNVERIFIED로 보존한다. main/default trusted 검사 배치·필수 context 교체·릴리즈·운영 배포도 수행하지 않았다. 감사 high 9건은 해결되지 않았다. 임시 전달 worktree를 정리해도 현재 fix ref와 원래 후보 ref 및 원문 증거는 보존한다.
