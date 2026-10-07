@@ -93,6 +93,8 @@ jobs:
 
       - run: npm ci --ignore-scripts
         if: steps.check.outputs.initialized == 'true'
+      - run: npm run patch:dependencies && npm run test:dependency-security
+        if: steps.check.outputs.initialized == 'true'
       - run: npm run type-check --if-present
         if: steps.check.outputs.initialized == 'true'
       - run: npm run format:check --if-present
@@ -128,6 +130,7 @@ jobs:
 
       # frontend 잡과 동일하게 lockfile을 고정 검증한다. 브라우저는 별도로 명시 설치한다.
       - run: npm ci --ignore-scripts
+      - run: npm run patch:dependencies && npm run test:dependency-security
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       - run: npm run build

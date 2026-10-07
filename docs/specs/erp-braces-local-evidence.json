@@ -1,0 +1,350 @@
+{
+  "base": "b3fbfb36f423940411297d7cf4f4bfa26434e1a0",
+  "scope": "local ERP braces depth and ignore-scripts install boundary; no remote delivery",
+  "cwd": "/private/tmp/erp-braces-20261007",
+  "evidenceDirectory": "$HOME/Documents/Codex/2026-10-07/erp-braces-local-adoption",
+  "results": {
+    "red": "4 depth tests: 1PASS/3FAIL, exit1",
+    "security": "11PASS exit0",
+    "frontend": "type/format/lint/design/unit60/build/CLI help exit0",
+    "browser": "38PASS retries0 synthetic sessions/backend absent",
+    "css": "2 CSS content digests same",
+    "visual": "login desktop/mobile and synthetic authenticated shell PNG exact parity",
+    "httpBff": "anonymous null, authenticated public tenant session, private tokens absent",
+    "docker": "deps install patch CHECK/full build/user node PASS",
+    "prodOnlyInstall": "ignore-scripts and explicit patch/check/normal/deep PASS",
+    "audit": "fullhigh9/prodhigh7 exit1 FAIL; metadata warnings retained",
+    "backend": "no input diff versus b3; prior957 evidence reused, not rerun",
+    "remote": "NOT_RUN"
+  },
+  "firstFailures": [
+    "Python stdin encoding failed before writes; explicit encoding used",
+    "Exact upstream six-file assertion failed: parse had unrelated quote/comma changes; applied only depth edits and preserved npm behavior",
+    "shadcn package.json export absent in test fixture; actual installed package context used",
+    "temporary HTTP oracle incorrectly expected {}; installed Auth.js body:null contract confirmed and expectation corrected"
+  ],
+  "raw": [
+    {
+      "file": "audit-execution.json",
+      "sha256": "4c4e33e2fc801d3640b9d5a2e259a6c997018714af4da55384dbcb50096f54c4"
+    },
+    {
+      "file": "audit-full.json",
+      "sha256": "2449ac493de6d4373bf4632aa7ad0035d2ea110e342dac04b73d7ba58fd87465"
+    },
+    {
+      "file": "audit-prod.json",
+      "sha256": "e44394db30fa309820178989f6ab369c9c7a58178d9259a12daa42243625e0c4"
+    },
+    {
+      "file": "authorization.json",
+      "sha256": "3a502c104a8e4878e687ac431448cb8005d50086ff4dd3ccc317ad53b1eb19e9"
+    },
+    {
+      "file": "baseline-build.txt",
+      "sha256": "5dca3a033a2f1e6cd7a65867b3a2bf8f1b1866644922ee942c5cd742a150a2fa"
+    },
+    {
+      "file": "baseline-cli.txt",
+      "sha256": "b85e1399b071f4caedeef17d247e6bb8d10990b4393b92d4175e5af8c1b5bd17"
+    },
+    {
+      "file": "baseline-css.json",
+      "sha256": "45a903d06b8afd298ac395eb5c5fa01749024fb7f3a10ebd233314d20975c69a"
+    },
+    {
+      "file": "baseline-execution.json",
+      "sha256": "b08dd771cf0f79cae651e36e408992d93fdeb217926826d9cecb7fb9232e9adc"
+    },
+    {
+      "file": "baseline-install.txt",
+      "sha256": "3985101eb466e2430d1a6a8121f278c7813a867f5eb26e75ff928b85bca8d858"
+    },
+    {
+      "file": "baseline-login-desktop.png",
+      "sha256": "be8e190216f56950865c03e980346b4866aadeb199cfd7b28cdc389b8737ee2d"
+    },
+    {
+      "file": "baseline-login-mobile.png",
+      "sha256": "b8af869b37e12521b1c64e2ca98ebeec42553d0498a38282d9f7e9db51ab885a"
+    },
+    {
+      "file": "baseline-shell.png",
+      "sha256": "1c0303a93481a58ed8e1885ea49d93f4732a2d82889be3052d7b8bd262e570c2"
+    },
+    {
+      "file": "baseline-unit.txt",
+      "sha256": "e10392a7162d0391b3e34ab953a0f0f3cfa15887cf5c1d6897e2b244639d6ed9"
+    },
+    {
+      "file": "baseline-visual-server.txt",
+      "sha256": "b73b85344cf59706f91442da331d3e25d1181bd4b865e2014c553c9696fb3ef1"
+    },
+    {
+      "file": "baseline-visual.json",
+      "sha256": "34018b28fe1bed9d649703185dcd2b0c5fcd30f841bcfc17728cb0a75cf08fbb"
+    },
+    {
+      "file": "bff-final.txt",
+      "sha256": "dc1ac9adf7e772cbe006412eb95ea429a52cbc7f5641ce0c54ac0b150837d95b"
+    },
+    {
+      "file": "bff-first-failure.json",
+      "sha256": "726de758c04f77eb37bbe7c115fecef9a5ff56a22d4e406ee978f13938502583"
+    },
+    {
+      "file": "bff-login-desktop.png",
+      "sha256": "be8e190216f56950865c03e980346b4866aadeb199cfd7b28cdc389b8737ee2d"
+    },
+    {
+      "file": "bff-login-mobile.png",
+      "sha256": "b8af869b37e12521b1c64e2ca98ebeec42553d0498a38282d9f7e9db51ab885a"
+    },
+    {
+      "file": "bff-runner.mjs",
+      "sha256": "2eff50f3270dba6a070917dcb497b0a6eee269891e67e8a57a4237807aa114b2"
+    },
+    {
+      "file": "bff-shell.png",
+      "sha256": "1c0303a93481a58ed8e1885ea49d93f4732a2d82889be3052d7b8bd262e570c2"
+    },
+    {
+      "file": "bff-visual-server.txt",
+      "sha256": "136b22bdf06dabca5407711701c604e0bca2f726297003a16c9baf43da7ee492"
+    },
+    {
+      "file": "bff-visual.json",
+      "sha256": "0014bd4ddac6b71364c5a32e410da5f9d88325b42109039cb1f6b7c63ad3adb1"
+    },
+    {
+      "file": "braces-paths.json",
+      "sha256": "cbb7c430c0e770ff22f9bc178918ceee66936acd2f0463afdfb993fa7df437ad"
+    },
+    {
+      "file": "browser-execution.json",
+      "sha256": "d286f9af9e503d8a1ed3cd05c18495288b832e36dc444883f4e523795258c39a"
+    },
+    {
+      "file": "browser-final.txt",
+      "sha256": "e1355d7607ab733645afa5a1ffd184191f9d5b75afc16279eaf62b10cfb75530"
+    },
+    {
+      "file": "build-final.txt",
+      "sha256": "e2c327b7548fec1ebdfeae46d27f542f7fcb3cc6f41d0ea29d56cb028aeef6d3"
+    },
+    {
+      "file": "clean-install-final.txt",
+      "sha256": "d6b129d09991232c47ff39e6dc007bee77ab0caa71292e1a09bd12eb643f1953"
+    },
+    {
+      "file": "cli-final.txt",
+      "sha256": "b85e1399b071f4caedeef17d247e6bb8d10990b4393b92d4175e5af8c1b5bd17"
+    },
+    {
+      "file": "css-parity.json",
+      "sha256": "4ae6aec7dad3a40281242cc82d4e8e07d58e3bbcf72bd7d0432cd52098674f5a"
+    },
+    {
+      "file": "depth-red.txt",
+      "sha256": "18f51468f16d4a5ee9e41d75046076aafa876c16442adf4d7dd56b3f2072138d"
+    },
+    {
+      "file": "design-final.txt",
+      "sha256": "a1f635a1ef2eaea6feb6b9b3297342446fefafccd297208882a79c6aba51f8f6"
+    },
+    {
+      "file": "docker-deps.txt",
+      "sha256": "da10c672cd6b1c032f5de4031b1a167975bba7de51cad5bb599e7f3c00a63784"
+    },
+    {
+      "file": "docker-execution.json",
+      "sha256": "a8a96fd5281d85912d7134cafc5753024f2ac47a0846a3bef66836e8c6ae0a00"
+    },
+    {
+      "file": "docker-full.txt",
+      "sha256": "e0662bd370e42c141b08c14af2d4b8f45ddc01046e95c9c4e227727566cc85c1"
+    },
+    {
+      "file": "docker-installed-patch.txt",
+      "sha256": "77f24d6de88e708e1dffc61a485242142c5474665e92b9a43b9442535e5d18f0"
+    },
+    {
+      "file": "docker-user.txt",
+      "sha256": "389b46f0445738f6b517def165c3e490efa2eb8825c695b8ac8221565e78e4fa"
+    },
+    {
+      "file": "explicit-patch-final.txt",
+      "sha256": "d325f0476e32fcebfc92df67f26d2e7851eade1fe35e119c109e93ef4c78a8f8"
+    },
+    {
+      "file": "format-final.txt",
+      "sha256": "adcfdde65803a1f620ad3b71e238668db9610748d4024b5ed375e89277ea44ae"
+    },
+    {
+      "file": "frontend-execution.json",
+      "sha256": "0bb377796c8c1955c3f4400d72aa26c460b51e36ff7f43eb69756e4f8c3a2837"
+    },
+    {
+      "file": "lint-final.txt",
+      "sha256": "337991ebb6ca906d41e974dd80ed424f277069028ebf65aafa47e13df08415c9"
+    },
+    {
+      "file": "patch-initial-execution.json",
+      "sha256": "09305d9e491e6df159bc64692f52d933461600c4e4bbc2afa9af6c0947d08a17"
+    },
+    {
+      "file": "patch-source-comparison.json",
+      "sha256": "435087abb3341d00aa188284889f1539e794140fd995e880defe2436d428c489"
+    },
+    {
+      "file": "patch.txt",
+      "sha256": "d325f0476e32fcebfc92df67f26d2e7851eade1fe35e119c109e93ef4c78a8f8"
+    },
+    {
+      "file": "patched-login-desktop.png",
+      "sha256": "be8e190216f56950865c03e980346b4866aadeb199cfd7b28cdc389b8737ee2d"
+    },
+    {
+      "file": "patched-login-mobile.png",
+      "sha256": "b8af869b37e12521b1c64e2ca98ebeec42553d0498a38282d9f7e9db51ab885a"
+    },
+    {
+      "file": "patched-shell.png",
+      "sha256": "1c0303a93481a58ed8e1885ea49d93f4732a2d82889be3052d7b8bd262e570c2"
+    },
+    {
+      "file": "patched-visual-server.txt",
+      "sha256": "6024b751cacdbe942be8549b978de47470ba8854bb9a004d9eb0724c6941a670"
+    },
+    {
+      "file": "patched-visual.json",
+      "sha256": "34018b28fe1bed9d649703185dcd2b0c5fcd30f841bcfc17728cb0a75cf08fbb"
+    },
+    {
+      "file": "prod-check.txt",
+      "sha256": "77f24d6de88e708e1dffc61a485242142c5474665e92b9a43b9442535e5d18f0"
+    },
+    {
+      "file": "prod-depth.txt",
+      "sha256": "576c33c90399c69229c78b50884bd83897e558a4f2465306a552d2ee0b02d164"
+    },
+    {
+      "file": "prod-execution.json",
+      "sha256": "8b5fc7110ca02f2536584bb0f803927acf4a4c5226eb7f7b58da8208c7be2271"
+    },
+    {
+      "file": "prod-install.txt",
+      "sha256": "ca5b962da8717f3503b1441ece0d454da8135caa6e61d002ac3b4e6d37495ff4"
+    },
+    {
+      "file": "prod-patch.txt",
+      "sha256": "d325f0476e32fcebfc92df67f26d2e7851eade1fe35e119c109e93ef4c78a8f8"
+    },
+    {
+      "file": "repo-sync.txt",
+      "sha256": "a319509eeeec715fd5faa2ce69c037f7a74f5ddc8d7c830d4103df9834884df2"
+    },
+    {
+      "file": "security-final.txt",
+      "sha256": "c1b38143f5137ef5e997a07a57a843263b73a975b298cfcc508c830307097803"
+    },
+    {
+      "file": "security-green.txt",
+      "sha256": "29f888c4b312de6bc29b131b0aa5c12f73cc46f43fd32f6afe73d3785da1f8df"
+    },
+    {
+      "file": "setup-first-failure.json",
+      "sha256": "2504e22edfedd653dc020073cb03a12a5b058d4b44b545a7c8ac51c073967069"
+    },
+    {
+      "file": "type-final.txt",
+      "sha256": "9348026270716596f4992aaa773c07c14f83a4fc2ff7e4158d83465e03f98f58"
+    },
+    {
+      "file": "unit-final.txt",
+      "sha256": "a47af0a60b204177e1b65cd8d1021e7a1255ed8ec4d8a11f6ea844ef2b5f6844"
+    },
+    {
+      "file": "unpatched-reinstall-check-final.txt",
+      "sha256": "2e0387689babb14c992390a4de5f3bf2f54a20413f9be9a45188c76a0510dae5"
+    },
+    {
+      "file": "upstream-compile.js",
+      "sha256": "88cf20f18b59c9b2741c2d9b0f0ac6b2967d8e174667edf817133ca57d76809e"
+    },
+    {
+      "file": "upstream-constants.js",
+      "sha256": "8d0bfdb50bb1e5267facef720ba09179634761165e3d6e13ad512ed10d6c180c"
+    },
+    {
+      "file": "upstream-expand.js",
+      "sha256": "46a259d3f23c0cd441fa370f16d5d48fa71060dfe918eeba84f6e95d3a94d368"
+    },
+    {
+      "file": "upstream-parse-adaptation.diff",
+      "sha256": "8de6217f4b0b9bdcf082e3a41dbc206f9aed1a48e650db459370a04baf0d062c"
+    },
+    {
+      "file": "upstream-parse.js",
+      "sha256": "9153cf5fd5e2789333e8a42c802d02963093926a3f8a5504ab970329f536215e"
+    },
+    {
+      "file": "upstream-stringify.js",
+      "sha256": "a3b8b5e7567ff9bfdbe155479fbdd92d5a924c3919adf05316f8f0c4f6330332"
+    },
+    {
+      "file": "upstream-utils.js",
+      "sha256": "bbdfdad69da36c1994a19006af254659586a20d2c00b2a936926b7905cfb3aaf"
+    },
+    {
+      "file": "visual-parity.json",
+      "sha256": "2230bb0994ebc331530ae54dc1a58fc9648266515e5e999ebe68be2c9c823f57"
+    },
+    {
+      "file": "visual-runner.mjs",
+      "sha256": "bf0022f44af14f0666356559c3977128824ce25722af2c004ad911e3a57437c9"
+    }
+  ],
+  "sources": [
+    {
+      "path": ".github/workflows/ci-gate.yml",
+      "sha256": "0c6df10754c6fc1c9b817a7fa25a23e4f4520530c094066d286c054adb298759"
+    },
+    {
+      "path": "README.md",
+      "sha256": "8f7c3059253319dbd9b76dc6eca4ec15fe008f6bf390b3a47a01544fe2c22b34"
+    },
+    {
+      "path": "docs/decisions.md",
+      "sha256": "38ab0d5723ef3382e41702e3f40d0b74882ad030401fd97f046c0c4833160185"
+    },
+    {
+      "path": "docs/deployment.md",
+      "sha256": "ccf60e857bb317450871548bb360a28fa99768f2accba4b57fc59f4ee06e68dd"
+    },
+    {
+      "path": "docs/specs/tenant-user-onboarding.md",
+      "sha256": "dd500fde858aca02377d8c6840a249818a41901ab75956ab22183315a3e4cc99"
+    },
+    {
+      "path": "frontend/Dockerfile",
+      "sha256": "f23e5bf67ae5da0b91d4851eff7e61e5fd2058c6dfce99ff283922b5a941febf"
+    },
+    {
+      "path": "frontend/package.json",
+      "sha256": "19ea1b90c1f1a9480de9248eed3eb33abf4d14ac3b85d182030c3e5a747cd053"
+    },
+    {
+      "path": "frontend/scripts/apply-braces-depth.mjs",
+      "sha256": "7557bdeae02ae83aaf9e175a5c2775e0fac4b042164f1019fad35d87cbabd7a1"
+    },
+    {
+      "path": "frontend/scripts/test-braces-depth.mjs",
+      "sha256": "21a2526cb43f1e18cf492a0c049f7c16f5b266ad2246a8b83fcf824960bb229a"
+    },
+    {
+      "path": "frontend/scripts/test-braces-patch.mjs",
+      "sha256": "cefc545906db262f094afb6922da941c504957b1758a7675e707b246a9150b2e"
+    }
+  ]
+}

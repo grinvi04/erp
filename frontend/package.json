@@ -12,7 +12,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "patch:dependencies": "node scripts/apply-braces-depth.mjs",
+    "test:dependency-security": "node scripts/apply-braces-depth.mjs --check && node --test scripts/test-braces-*.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

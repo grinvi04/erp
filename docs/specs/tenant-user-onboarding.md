@@ -166,3 +166,28 @@
 기존 로컬 후보 `03a4bad`는 `codex/evidence-erp-03a4bad`에 보존한다. 미게시 `dc080bd`의 커밋 제목에 필수 `onboarding` scope를 추가한 뒤 앱·시험·설정·문서 전체 파일 트리가 원래 후보와 동일함을 확인했다. 전달 이력 `d72856e`의 현재 validator range는 PASS다. 기존 Java 957개 및 프런트 60/38개 검증은 동일 제품 입력의 원문 증거를 재사용하며 이번 메시지 수정에서 다시 실행한 것으로 표시하지 않는다.
 
 사용자가 Vercel 관련 원격 작업 보류를 재확인했다. ERP 문서에는 Vercel PR 미리보기 연결 가능성이 남고 현재 제공자 연결을 확인하지 못해, 원격 push·PR·CI·병합은 계속 UNVERIFIED로 보존한다. main/default trusted 검사 배치·필수 context 교체·릴리즈·운영 배포도 수행하지 않았다. 감사 high 9건은 해결되지 않았다. 임시 전달 worktree를 정리해도 현재 fix ref와 원래 후보 ref 및 원문 증거는 보존한다.
+
+
+### ERP braces 로컬 보완의 시험 계약 (2026-10-07, 실행 전)
+
+승인 범위는 현재 fix 후보의 설치된 braces 깊이 보완과 소비 경계 회귀다. 기존 주 작업 브랜치·서비스 인증·DB·원격 전달·배포는 변경하지 않는다. 공식 수정판 없는 GHSA-vfj7-8cjw-p6xm의 상류 PR #78 고정 소스를 실제 ERP 설치 버전·지문과 대조한 뒤 채택한다. 다른 제품 보완을 검증 없이 복사하지 않는다.
+
+| 선정 범위·위험 | 기대 결과 / 판정자 | 필수 검사 |
+|---|---|---|
+| 재귀 parser/직접 AST/Next lint rootDir의 깊은 입력 | 2000단계 입력은 stack RangeError 대신 제한된 SyntaxError, 정상 brace·rootDir 결과 보존 | 설치 전 RED와 보완 후 실제 consumer GREEN |
+| 설치 무결성과 전이 경로 | 버전·6개 원본/패치 지문 대조; 재실행 불변; 변조·새 버전·미적용은 검사 실패 | 격리 실제 설치 및 어댑터 반례 |
+| CI·Docker의 ignore-scripts 경계 | 차단 정책 유지, 각 npm ci 뒤 명시 보완·무결성 회귀 실행; 이미지 deps 단계 설치 바이트 동일 | 클린 재설치·workflow YAML·실제 deps 이미지 검사/전체 이미지 build |
+| ERP CSS·CLI·프런트 기능 유지 | shadcn help 동작, CSS 내용 지문과 대표 화면 유지; 타입·포맷·lint·디자인·단위·build·Chromium 기본 인증/BFF 경계 통과 | 보완 전 baseline·후보 전체 프런트 품질·기존 브라우저 시험, 화면 확인 |
+
+backend 소스/설치·DB는 이 보완에 영향 없으며 현재 원본과 기존 Java 957 증거 지문을 대조해 재사용한다. 기본 브라우저 시험은 합성 세션과 backend 미기동의 인증/렌더 경계이며 실제 Keycloak·업무 API·운영 인증의 증거가 아니다. 전체 audit 경고는 패키지 메타데이터가 유지돼 남을 수 있으며 실패를 PASS로 덮지 않는다. 100단계 초과 정상 패턴 거부·확장 수 제한 미제공·임의 malformed AST 전체 비보장을 기록한다. 공식 수정판과 소비 호환성이 확인되면 이 보완 없이 같은 회귀를 통과한 뒤 제거한다. 완료는 필수 로컬 범위 PASS·독립 고정 후보 검토·문서/증거 일치이며 원격 CI·인수/배포 완료와 구분한다.
+
+
+#### 로컬 보완 실행 결과
+
+기준 `b3fbfb36`의 격리 `/private/tmp/erp-braces-20261007`에서 앞 계약을 실행했다. 정상 한 건은 기존 설치에서도 통과하고 깊은 parser/직접 AST/실 Next rootDir 세 건은 실패(RED, exit 1)했다. 설치 원본 6개 SHA 확인 뒤 PR #78 고정 깊이 변경을 적용했다. 상류 parse 파일에는 npm3.0.3과 무관한 quote/comma 변경이 있어 그대로 덮지 않았고 해당 동작을 보존했다. shadcn-resolved glob·무결성 반례를 포함해 보완 후 11/11 PASS다. 클린 `npm ci --ignore-scripts` 직후 미적용 check는 exit 1, 명시 보완 뒤 check/전체 회귀 exit 0이다. 운영 의존성만 설치한 별도 복사본에도 braces가 포함되며 명시 적용·정상/깊은 입력을 통과했다.
+
+타입·포맷·lint·design·unit 60·build·shadcn CLI help는 exit 0이다. baseline과 candidate의 CSS 내용 두 개가 같고 로그인 desktop/mobile 및 합성 인증 셸 PNG 세 개는 byte 동일, 대표 화면도 직접 확인했다. Chromium 기본 suite는 `--retries=0`에서 38 PASS다. API backend 미기동에 따른 ECONNREFUSED 로그를 보존했으며 업무 API/실 IdP UAT의 증거가 아니다. 별도 실제 HTTP `/api/auth/session`은 미인증 null·합성 인증의 tenant/public user 반환과 비공개 토큰 미노출을 확인했다. 최초 임시 probe는 미인증 응답을 {}로 잘못 기대해 실패했고, 설치 Auth.js의 null 계약을 대조한 뒤 판정자를 바로잡았다.
+
+CI 두 설치 뒤 명시 보완·보안 회귀를 연결했고 YAML parse는 PASS다. Docker의 실제 deps image 내부 `--check`, 전체 image build와 최종 user `node`를 확인했다. 설치 script 차단은 유지한다. README·배포 안내에 명시 설치 명령을 연결했지만 Vercel 설정/실원격 검사는 보류다. 현재 repo-sync 21/21 OK와 diff 검사 PASS. backend·lock 입력은 변경하지 않아 기존 Java 957 증거를 재사용한다. 기존 기본 frontend smoke도 실제 Keycloak 인증·저장 흐름 전체를 대신하지 않는다.
+
+전체 감사 high 9·운영 high 7/exit 1은 그대로 FAIL이다. Python stdin 첫 encoding 오류는 쓰기 전 실패, shadcn package export 오해의 첫 fixture 오류도 보존했다. raw 명령·cwd·exit·최초/최종과 지문은 [보완 실행 연결](erp-braces-local-evidence.json) 및 그 파일의 `$HOME/Documents/Codex/2026-10-07/erp-braces-local-adoption` 원문에 있다. 독립 고정 후보 인수는 다음 기록에서 판정한다. 이 로컬 구현·검증으로 원격 CI·PR·병합·trusted 활성화·배포를 완료 표시하지 않는다.
