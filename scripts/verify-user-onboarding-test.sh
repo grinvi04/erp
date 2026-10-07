@@ -49,3 +49,95 @@ run_case loopback-keycloak KEYCLOAK_URL 'http://[::1]:18180' 69 1
 printf 'AUTH_KEYCLOAK_SECRET=synthetic-test-value\nBACKEND_URL=https://example.invalid\n' \
   > "$FIXTURE/frontend/.env.local"
 run_case sourced-remote-backend BACKEND_URL http://localhost:8080 2 0
+
+# 실제 curl의 기본 설정 파일은 stub으로 재현할 수 없다. 두 loopback 수신점으로
+# 숨은 connect-to 및 307/308 추적이 POST 본문을 다른 수신점에 보내는지 확인한다.
+python3 - "$FIXTURE" "$PATH" <<'PY'
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+import os
+import subprocess
+import sys
+import tempfile
+import threading
+
+fixture = Path(sys.argv[1])
+original_path = sys.argv[2]
+(fixture / "frontend/.env.local").write_text("AUTH_KEYCLOAK_SECRET=synthetic-test-value\n")
+
+
+class Receiver(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.server.requests.append(("GET", self.path, False))
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"{}")
+
+    def do_POST(self):
+        body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        self.server.requests.append(("POST", self.path, b"synthetic-admin-password" in body))
+        if self.server.redirect and "/protocol/openid-connect/token" in self.path:
+            self.send_response(self.server.redirect_code)
+            self.send_header("Location", self.server.redirect)
+        else:
+            self.send_response(418)
+        self.end_headers()
+
+    def log_message(self, *_):
+        pass
+
+
+servers = [ThreadingHTTPServer(("127.0.0.1", 0), Receiver) for _ in range(2)]
+for server in servers:
+    server.requests = []
+    server.redirect = None
+    server.redirect_code = 307
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+
+try:
+    intended, other = servers
+    origin = f"http://127.0.0.1:{intended.server_port}"
+    other_origin = f"http://127.0.0.1:{other.server_port}"
+    config_home = Path(tempfile.mkdtemp(dir=fixture))
+    config = config_home / ".curlrc"
+    env = os.environ.copy()
+    env.update({
+        "PATH": original_path,
+        "CURL_HOME": str(config_home),
+        "BACKEND_URL": origin,
+        "KEYCLOAK_URL": origin,
+        "MAILPIT_URL": origin,
+        "E2E_COMMERCIAL": "1",
+        "E2E_COMMERCIAL_MUTATION": "LOCAL_MUTATION_ACCEPTED",
+        "E2E_COMMERCIAL_KC_ADMIN_USERNAME": "synthetic-admin",
+        "E2E_COMMERCIAL_KC_ADMIN_PASSWORD": "synthetic-admin-password",
+    })
+
+    def check(label, config_text):
+        config.write_text(config_text)
+        for server in servers:
+            server.requests.clear()
+        result = subprocess.run(
+            ["bash", str(fixture / "scripts/verify-user-onboarding.sh")],
+            env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15,
+        )
+        intended_posts = [r for r in intended.requests if r[0] == "POST" and r[2]]
+        other_posts = [r for r in other.requests if r[0] == "POST" and r[2]]
+        if result.returncode == 0 or len(intended_posts) != 1 or other.requests:
+            raise SystemExit(
+                f"{label}: exit={result.returncode} intended_posts={len(intended_posts)} "
+                f"other_requests={len(other.requests)} other_posts={len(other_posts)} "
+                "(expected nonzero/1/0/0)"
+            )
+        print(f"PASS {label}: intended credential POST=1, alternate requests=0")
+
+    check("curlrc-connect-to", f'connect-to = "127.0.0.1:{intended.server_port}:127.0.0.1:{other.server_port}"\n')
+    for status in (307, 308):
+        intended.redirect = other_origin + "/redirected-token"
+        intended.redirect_code = status
+        check(f"curlrc-location-{status}", "location\n")
+finally:
+    for server in servers:
+        server.shutdown()
+        server.server_close()
+PY

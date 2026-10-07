@@ -128,3 +128,17 @@
 실스택 최초 환경 실패도 보존한다. 새 Keycloak master realm은 호스트 HTTP 토큰 요청을 `403 HTTPS required`로 거부해 **그 시험 컨테이너 안에서만** SSL 요구를 변경했다. 첫 `provisionTenant`는 전용 Keycloak URL 미설정으로 `ConnectException`, 재시도는 선행 백엔드 검사 DB의 tenant ID 충돌, 새 `erp_uat` DB에서 `ERP_PROVISION_RETRY=true`는 미존재 tenant 오류였다. 새 DB의 최초 생성 모드로 바꾼 뒤 provisioning exit 0이었다. 최초 UAT 두 실행은 Compose 포트가 `0.0.0.0/[::]`에 publish된 상태에서 통과했으나 노출 경계가 틀려 최종 증거로 사용하지 않았다. 해당 새 컨테이너만 중지하고 포트를 모두 `127.0.0.1`로 재생성했다. `docker inspect`의 네 publish `HostIp=127.0.0.1`, 백엔드 listener `127.0.0.1:18080` 확인 후 새 합성 이메일로 신규 초대·재초대 두 실행과 동일 ID readback을 다시 통과했다. 기존 프로젝트 DB·identity와 원본 checkout은 변경하지 않았다.
 
 판정: 스크립트의 URL 차단, 로컬 품질 명령 및 격리 실 Keycloak의 이 시나리오는 **PASS**. 시험 뒤 백엔드와 전용 Docker 세 컨테이너를 중지했고 전용 볼륨은 보존했다. 남은 npm high 9건과 원격 CI/PR gate는 **미해결·UNVERIFIED**이며, 로컬 구현을 병합·릴리즈·배포 완료로 표시하지 않는다.
+
+### 독립 검토 후 `curlrc` 보완 및 새 후보 검증
+
+위 기록은 당시 후보 `564dcced`의 상태를 보존한다. 독립 검토에서 UAT 스크립트의 curl wrapper가 `--noproxy`를 첫 인자로 전달해, 기본 `~/.curlrc`의 `connect-to` 또는 `location` 설정을 읽을 수 있음이 확인됐다. URL origin 검사를 통과한 뒤에도 인증 POST가 다른 목적지로 전송될 수 있는 AC-13 진입 경계 결함이다. wrapper의 첫 인자를 `-q`로 바꾸고 합성 `CURL_HOME`에서 실제 curl과 서로 다른 127.0.0.1 임시 수신점 두 개를 사용해 반증했다. 사용자의 HOME·curl 설정·기존 계정은 변경하지 않았다.
+
+| 필수 범위와 기대값 | 최초 반례 → 수정 후보 관찰 | 증거 / 한계 |
+|---|---|---|
+| 합성 `.curlrc`의 `connect-to`가 허용 origin의 POST 본문을 다른 수신점으로 바꾸지 못해야 함 | 이전 wrapper에서 첫 실 curl 시험 exit 1, 다른 수신점 요청 4회·자격증명 본문 POST 1회 (**RED**). `curl -q --noproxy '*'` 이후 의도된 수신점 POST 1회, 다른 수신점 요청 0회 (**PASS**) | `/tmp/harness-consumers-20261007/erp-curlrc-red.log`, `/tmp/harness-consumers-20261007/erp-qa-v2/curlrc-green.log`. 두 수신점 모두 loopback이며 자격증명은 합성값이고 결과 출력에 값은 없다. |
+| 기본 curl 설정의 `location`이 307/308 응답의 POST를 다른 수신점에 재전송하지 못해야 함 | 각 상태에서 의도된 수신점 POST 1회, 다른 수신점 요청 0회 (**PASS**). curl 기본 설정을 적용한 이전 wrapper의 위치 전송 가능성은 첫 `connect-to` 실패로 전체 시험이 멈췄으므로 별도 RED로 주장하지 않음 | 같은 실제 curl 시험. 서버의 리다이렉트는 합성 loopback 주소로만 구성. |
+| 기존 외부·malformed 주소 거부 0요청과 loopback 허용 경로 유지 | 11개 stub 사례 전부 기존 기대 종료 코드·호출 수 유지 (**PASS**) | 같은 `bash scripts/verify-user-onboarding-test.sh` 결과. stub은 인증·서비스 실동작 증거가 아님. |
+| 현재 후보의 로컬 필수 검사, 전용 실 Keycloak, 종료 경계 | Java 21 Gradle check; 프런트 npm ci, 타입·포맷·린트·디자인·단위 60건·빌드·Chromium e2e 38건; 백엔드/프런트 Docker 빌드와 비 root 사용자, repo-sync 21/21, workflow YAML·shell 구문·diff 모두 exit 0 (**PASS**). 새 합성 사용자 초대·재초대 각각 exit 0, Keycloak 직접 readback 사용자 1명·ID 동일·최종 disabled (**PASS**). 시험 전 Docker 네 publish HostIp 모두 127.0.0.1, 종료 후 세 컨테이너 stopped·백엔드 listener 없음 | 명령별 cwd·실제 종료 코드·원문 로그 경로/sha256·변경 대상 파일 지문은 `/tmp/harness-consumers-20261007/erp-qa-v2/manifest.json`에 기록. 전용 격리 DB `erp_uat`, 18180/18080/55442/18025, 전용 identity 및 메일에만 한정. 원문 로그는 제한 권한으로 보존. |
+| 의존성 보안·원격 gate | `npm audit --json` exit 1: high 9, critical 0 (**미해결**). 원격 commitlint/repo-sync/CI, PR·병합·릴리즈·운영 배포는 **UNVERIFIED** | npm high는 이 후보에서 패치가 없는 `braces` 전이 경로; 로컬 검사 성공을 원격 gate 성공으로 확대하지 않음. |
+
+첫 `curlrc` 실패와 수정 뒤의 명령·원문 로그를 구분해 보존한다. 품질 검사와 실스택 재시험은 이 보완 후보에서 다시 실행했다. 합성 자격증명 값은 로그·커밋·문서에 두지 않았으며, 원문 로그와 소스 지문을 대조한 범위에서만 PASS를 주장한다. 전용 fixture는 종료 후 DB 볼륨만 남겼다.

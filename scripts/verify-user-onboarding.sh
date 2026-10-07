@@ -50,7 +50,7 @@ set +a
 require_local_endpoints
 
 curl() {
-  command curl --noproxy '*' "$@"
+  command curl -q --noproxy '*' "$@"
 }
 
 compose_environment() {
