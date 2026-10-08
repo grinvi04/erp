@@ -12,6 +12,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: amazoncorretto
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: docker
     directory: /frontend
     target-branch: develop
@@ -24,6 +28,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: postgres
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: npm
     directory: /frontend
     target-branch: develop
@@ -34,6 +42,13 @@ updates:
       timezone: Asia/Seoul
     open-pull-requests-limit: 5
     versioning-strategy: increase-if-necessary
+    groups:
+      react-runtime:
+        patterns:
+          - react
+          - react-dom
+          - "@types/react"
+          - "@types/react-dom"
     ignore:
       - dependency-name: "*"
         update-types:
