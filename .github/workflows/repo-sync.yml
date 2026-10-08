@@ -25,16 +25,16 @@ jobs:
     # 활성화: repo(또는 org) Variables에 HARNESS_SYNC_ENABLED=true.
     if: ${{ vars.HARNESS_SYNC_ENABLED == 'true' }}
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5, 대상 repo
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, 대상 repo
 
       - name: Checkout team-harness (표준 출처)
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: grinvi04/team-harness   # CUSTOMIZE: 사내 호스팅 이전 시 교체
           ref: 9838c2ef288b4566f81fae03acb56530ee165c06 # v0.81.0
           path: .team-harness
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
 

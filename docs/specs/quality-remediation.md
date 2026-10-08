@@ -130,3 +130,36 @@ erp는 수백 기업(테넌트)이 돈 주고 쓰는 **상용 SaaS ERP**다. 202
 - [PR #255](https://github.com/grinvi04/erp/pull/255)의 최종 head `7a13802ce712edb93240933bcd7841b629b42574`에서 develop 보호에 필요한 8개 검사(`backend`, `frontend`, `secret-scan`, `test-guard`, `commitlint`, `migration-safety`, `e2e`, `repo-sync`)가 모두 PASS였다. PR은 [병합 커밋 `9acfb7600c2f2e3abfaf6886211a6fd20e0fe4cc`](https://github.com/grinvi04/erp/commit/9acfb7600c2f2e3abfaf6886211a6fd20e0fe4cc)으로 develop에 반영됐다. main/default의 trusted 검사 전환과 운영 릴리즈는 별도 단계이며 기존 보호 게이트를 유지한다.
 - 로컬 보안·프론트 범위는 고정 코드 후보 `18b18a0633c332407a0679807664af2d9d2da4fb`의 입력을 최종 PR head까지 대조해 재사용했다. 깊은 `braces` 패턴 거부 시험 11건, 프론트 단위 60건, 합성 세션·백엔드 부재 브라우저 38건과 Docker 설치·빌드는 기록된 범위에서 PASS였다. 독립 읽기 전용 검토는 해당 후보에서 추가 P1/P2를 발견하지 못했다. 명령·실패·소스 지문은 [로컬 QA 증거](erp-braces-local-evidence.json)와 `$HOME/Documents/Codex/2026-10-07/erp-braces-local-adoption/`에 보존했다.
 - 전체 의존성 감사 high 9건·운영 의존성 감사 high 7건은 **FAIL**이다. 공식 `braces` 수정판은 확인되지 않았고 확인된 최신 3.0.3도 해당 advisory 범위에 포함돼 로컬 패치를 유지한다. GitHub deployment·외부 commit status·Vercel PR 댓글은 최종 PR head에서 0건이었고, Vercel CLI 인증이 없어 preview URL·실화면은 **UNVERIFIED**다. 실 Keycloak·업무 API의 원격 UAT, 운영 환경·백업·복구·출시 게이트도 미완료다. 다음 단계는 별도 승인된 환경에서 preview·실스택 UAT·감사 잔여 위험을 판정하고 [릴리즈 준비 체크리스트](../release-readiness.md)의 미완료 항목을 유지하는 것이다. develop 병합은 상용 출시 승인이 아니다.
+
+## 8. 오래된 의존성 PR 정리 (2026-10-09)
+
+기준 develop은 `c8cb9056265c8f21c8e8ddb5f6f3c05cc194b445`이다. 현재 버전·직접 소비자와 대조한 뒤 호환 가능한 변경만 새 `fix/dependency-pr-refresh` 후보에 반영한다. 과거 PR의 실패 기록은 보존하며 새 후보의 결과로 대체 여부를 판단한다.
+
+| 구 PR | 현재 판정 / 이번 범위 |
+|---|---|
+| #247, #249 | shadcn 4.21.3·Vitest 4.1.11이 이미 반영되어 구 목표를 대체했다. 추가 업데이트 없이 닫는다. |
+| #246 | React만 올리면 React DOM과 정확한 버전이 달라 렌더 오류가 난다. 두 패키지를 함께 19.2.8로 고정하고 타입 lock을 맞춘다. |
+| #245, #248, #250 | 기존 허용 범위 안에서 Sonner 2.0.8·Playwright 1.62.1·Recharts 3.10.1 lock을 갱신한다. |
+| #236, #238, #241–243 | checkout 7.0.1·setup-node 7·dependency-review 5·gitleaks 3·setup-java 6으로 갱신하되, Harness v0.81.0 정본과 일치하는 `commitlint-trusted.yml`은 그대로 유지한다. |
+| #240 | Mailpit 1.31.0의 고정 digest를 반영하고 별도 임시 컨테이너에서 readiness·SMTP 수신·조회 UI를 확인한다. |
+| #254, #237 | Java 21·PostgreSQL 16 제품 계약을 유지해 닫는다. Java 24는 기존 빌드 실패·지원 종료, PostgreSQL 18은 데이터 경로·DB 전환 미검증이다. 자동 업데이트에도 이 두 major 전환을 제외한다. |
+| #239 | **병합 보류.** Keycloak 26.0은 아직 26.7로 전환되지 않았다. 현재 develop 기반 후보, 승인된 DB 사본에서 전환·재시작, readiness, 실제 OIDC 로그인·refresh·issuer/JWKS·tenant claim 및 잘못된 토큰/테넌트 거부를 확인한 뒤 재개한다. 기존 DB와 인증 환경을 이번 작업에서 바꾸지 않는다. |
+
+### 이번 후보의 수용 기준과 관찰 경계
+
+- 설치·React 서버 렌더·기본 인증 화면 렌더가 정상이어야 한다. React/React DOM 불일치 후보는 같은 렌더 검사에서 거부되어야 한다.
+- 프론트 타입·format·lint·디자인 검사·단위·빌드·기본 E2E, 백엔드 check/build 및 고정 의존성 패치 검사를 통과해야 한다. 기본 E2E는 합성 세션·백엔드 부재 범위이며 실 Keycloak/업무 UAT를 대신하지 않는다.
+- Recharts 차트·Sonner 토스트의 대표 렌더/표시를 격리 브라우저에서 확인한다. 전체 업무 화면의 수용 기준 §2는 완료 처리하지 않는다.
+- Mailpit 임시 컨테이너의 readiness와 SMTP로 보낸 합성 메일의 내용·UI 조회를 확인한다. 기존 컨테이너·메일·DB를 사용하거나 변경하지 않는다.
+- YAML·고정 Action SHA·정본 일치·repo-sync 및 최신 PR head의 필수 CI·미해결 리뷰 스레드 0·독립 리뷰를 확인한 뒤 develop에만 병합한다. 릴리즈·운영 배포는 범위 밖이다.
+- 구 PR은 이미 반영됨/제품 기준과 충돌함 또는 새 후보 병합으로 대체됨의 근거를 구분해 닫는다. Keycloak PR은 재개 조건과 함께 유지한다.
+
+### 현재 검증 결과
+
+- 변경한 프론트 package/lock과 YAML·이미지 입력을 고정한 로컬 검사에서 `npm ci`, 의존성 패치·거부 시험 11건, 타입·format·lint·디자인 검사, 단위 60건, 빌드가 PASS였다. 백엔드 Java 21의 `./gradlew check build`도 PASS였으며 957건, 실패·오류·skip 0건이었다. 아키텍처 신선도와 Harness v0.81.0 repo-sync 21/21도 PASS였다.
+- 기본 E2E는 초기 macOS 브라우저 프로세스 권한으로 실패(21 실패·16 미실행·1 통과)했으며 제품 코드를 바꾸지 않고 허용된 실행 권한으로 재검증해 **38건 모두 PASS**였다. 사용자 공용 브라우저 캐시 잠금 대기도 기록하고 작업 전용 임시 캐시로 분리했다. 이 결과는 실 Keycloak·업무 API UAT가 아니다.
+- YAML 구문·Action SHA 고정·React 업데이트 그룹·Java/PG major 제외와 trusted 정본 보존을 대조했다. 다음 Dependabot 예약 실행에서 규칙 적용을 실제 관찰한 결과는 아니다.
+- 2026-10-09의 새 npm 감사는 전체 high **10건**, 운영 의존성 high **8건**으로 **FAIL**이다. `braces` 패치·공식 수정판 부재 외에 변경하지 않은 Next.js 16.3.6의 새 advisory(`GHSA-3w37-wq28-93x7`, `GHSA-4jqv-mc3x-m676`, `GHSA-39w2-rjm5-chcv`, `GHSA-f87g-xv8r-7p7x`, `GHSA-mcj8-r9mp-w47p`, `GHSA-cjq9-62q9-8jv4`)가 포함됐다. Next.js 수정판 검토는 별도 후속 후보이며 이번 구 PR 대체를 보안 감사 전체 통과로 표시하지 않는다.
+- React 19.2.8 + React DOM 19.2.8 서버 렌더는 PASS였고, 격리한 React DOM 19.2.4 조합은 `Incompatible React versions`로 거부됐다. 실제 Chromium에서 차트 A/B/C 세 축 값·세 점의 표시, 클릭 전 부재/클릭 후 1개의 토스트, 페이지 오류 0건을 확인했다. 최초 임시 시험은 이전 SVG 축 내부 구조를 선택해 실패했으며 현재 DOM의 별도 tick-label 레이어를 확인한 뒤 같은 값·표시 기준으로 PASS였다. 제품 코드와 원래 기대값을 바꾸지 않았다.
+- Mailpit 1.31.0의 명시 digest를 별도 임시 컨테이너로 실행해 healthy, 초기 메일 0건, SMTP 합성 메일 수신 후 정확히 1건·제목·본문·HTML, HTTP UI 및 브라우저의 메일 본문 표시가 PASS였다. 기존 컨테이너·DB·메일에는 접근하지 않았다.
+- 두 독립 읽기 전용 검토에서 담당 입력의 지문·직접 소비자·trusted 계약을 대조해 추가 P1/P2를 발견하지 못했다. 위 결과는 PR 제출 전 로컬 후보의 기록이다. 최종 PR head·원격 필수 CI·리뷰·병합 및 구 PR 정리 결과는 이 변경을 포함하는 PR 본문에서 현행화한다. §7의 원격 UAT·출시 미완료를 유지한다.
