@@ -1,5 +1,5 @@
 # ── 의존성 스테이지 ────────────────────────────────────────────────────
-FROM public.ecr.aws/docker/library/node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS deps
+FROM public.ecr.aws/docker/library/node:26-alpine@sha256:40cd011b55415bc894e45b02fdd5a5dfde056921b7d23a64c74f80497af48797 AS deps
 WORKDIR /app
 COPY package*.json ./
 COPY scripts/apply-braces-depth.mjs ./scripts/apply-braces-depth.mjs
@@ -8,7 +8,7 @@ RUN npm ci --ignore-scripts \
     && node scripts/apply-braces-depth.mjs --check
 
 # ── 빌드 스테이지 ─────────────────────────────────────────────────────
-FROM public.ecr.aws/docker/library/node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS build
+FROM public.ecr.aws/docker/library/node:26-alpine@sha256:40cd011b55415bc894e45b02fdd5a5dfde056921b7d23a64c74f80497af48797 AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 # ── 런타임 스테이지 ───────────────────────────────────────────────────
-FROM public.ecr.aws/docker/library/node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS run
+FROM public.ecr.aws/docker/library/node:26-alpine@sha256:40cd011b55415bc894e45b02fdd5a5dfde056921b7d23a64c74f80497af48797 AS run
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
